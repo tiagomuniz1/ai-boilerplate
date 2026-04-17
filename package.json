@@ -1,0 +1,19 @@
+{
+  "name": "project-root",
+  "private": true,
+  "workspaces": [
+    "apps/*",
+    "packages/*",
+    "tools/*"
+  ],
+  "scripts": {
+    "dev": "concurrently \"yarn workspace @app/frontend dev\" \"yarn workspace @app/backend dev\"",
+    "build": "yarn workspace @app/frontend build && yarn workspace @app/backend build",
+    "test": "yarn workspace @app/frontend test && yarn workspace @app/backend test",
+    "ai": "yarn workspace @app/ai-cli ai"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.2"
+  },
+  "packageManager": "yarn@4.14.0"
+}

@@ -1,0 +1,10 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "paths": {
+      "@app/shared": ["../../packages/shared/dist"],
+      "@app/shared/*": ["../../packages/shared/dist/*"]
+    }
+  },
+  "exclude": ["node_modules", "dist", "**/*.spec.ts", "**/*.integration.spec.ts"]
+}
