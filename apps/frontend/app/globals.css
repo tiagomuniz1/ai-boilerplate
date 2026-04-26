@@ -1,3 +1,23 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+@layer base {
+    *,
+    *::before,
+    *::after {
+        box-sizing: border-box;
+    }
+
+    html {
+        -webkit-text-size-adjust: 100%;
+    }
+
+    body {
+        @apply bg-background text-text-primary font-sans text-base antialiased;
+    }
+
+    :focus-visible {
+        @apply outline-none ring-2 ring-primary ring-offset-2 ring-offset-background;
+    }
+}
