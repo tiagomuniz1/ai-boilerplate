@@ -1,5 +1,11 @@
 #!/usr/bin/env node
 
+import dotenv from 'dotenv'
+import path from 'path'
+import { root } from './utils/root'
+
+dotenv.config({ path: path.join(root, '.env') })
+
 import { generateTask } from './commands/generate-task'
 import { generateCode } from './commands/generate-code'
 
@@ -18,7 +24,7 @@ async function main() {
                     ? args.slice(1).join(' ')
                     : args.join(' ')
 
-            generateTask(input, type)
+            await generateTask(input, type)
             break
         }
 

@@ -1,8 +1,9 @@
 import fs from 'fs'
 import path from 'path'
+import { root } from './root'
 
 export function writeFile(relativePath: string, content: string) {
-    const fullPath = path.join(process.cwd(), relativePath)
+    const fullPath = path.join(root, relativePath)
 
     const dir = path.dirname(fullPath)
 

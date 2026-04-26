@@ -1,7 +1,6 @@
 import path from 'path'
 import { readFile } from '../utils/read-file'
 import { writeFile } from '../utils/write-file'
-import { slugify } from '../utils/slugify'
 
 export function generateCode(taskPath: string) {
     if (!taskPath) {
@@ -9,8 +8,16 @@ export function generateCode(taskPath: string) {
         process.exit(1)
     }
 
-    // const task = readFile(taskPath)
-    const task = readFile(`tools/ai-cli/${taskPath}`)
+    const task = readFile(taskPath)
+
+    const basename = path.basename(taskPath, '.md')
+    const type = basename.replace('task-', '')
+    const slug = path.basename(path.dirname(taskPath))
+
+    if (type !== 'backend' && type !== 'frontend') {
+        console.error(`Tipo inválido: "${type}". O arquivo deve se chamar task-backend.md ou task-frontend.md`)
+        process.exit(1)
+    }
 
     const finalPrompt = [
         'Você é um engenheiro de software sênior especialista na arquitetura deste projeto.',
@@ -39,11 +46,6 @@ export function generateCode(taskPath: string) {
         '## TASK',
         task
     ].join('\n')
-
-    // extrair tipo e nome da task
-    const parts = taskPath.split('/')
-    const slug = parts[1]
-    const type = parts[2].replace('task-', '').replace('.md', '') // backend | frontend
 
     const promptPath = `tasks/${slug}/prompt-${type}.md`
 

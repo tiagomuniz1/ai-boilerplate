@@ -1,4 +1,4 @@
-# Task — <Nome da Task> (Backend)
+# Task — <Nome da Task> (Frontend)
 
 ## Descrição
 <!-- 1-3 frases explicando o objetivo da task e o resultado final esperado -->
@@ -7,36 +7,32 @@
 
 ## Contexto
 <!-- Regras de domínio, integrações envolvidas, observações importantes -->
-<!-- Referenciar entidades existentes quando possível -->
+<!-- Referenciar entidades e fluxos existentes quando possível -->
 
 ---
 
 ## Contratos
 
-### Input (DTO)
-<!-- Definir exatamente o formato esperado -->
-<NomeDto>:
+### Input (dados do formulário ou parâmetros)
+<NomeInput>:
 - campo: tipo
 
-### Output
-<!-- Definir o retorno do use-case -->
-<NomeResponse>:
+### Output (modelo exibido na UI)
+<NomeModel>:
 - campo: tipo
 
 ---
 
 ## Assinaturas esperadas
 
-<!-- Use-cases -->
-<UseCase>.execute(dto: <InputDto>): Promise<<Output>>
+<!-- Hook principal -->
+use<Nome>(): { data, isPending, error, ... }
 
-<!-- Repositories -->
-<IRepository>:
-- metodo(...): Promise<...>
+<!-- Use-case -->
+<nomeUseCase>(input: <Input>): Promise<<NomeModel>>
 
-<!-- Adapters (se houver) -->
-<IAdapter>:
-- metodo(...): Promise<...>
+<!-- Service -->
+<nomeService>.<metodo>(...): Promise<<NomeDto>>
 
 ---
 
@@ -48,10 +44,11 @@
 
 ---
 
-## Fluxos alternativos
+## Estados e feedbacks
 
-- Caso X → lançar <Exception>
-- Caso Y → comportamento esperado
+- Loading → skeleton / spinner
+- Erro → mensagem amigável (nunca detalhe técnico)
+- Sucesso → redirecionamento / toast / atualização de lista
 
 ---
 
@@ -64,17 +61,17 @@
 
 ## Dependências
 
-- <Repository>
-- <Adapter>
+- <Service>
+- <Store> (se houver estado global)
 
 ---
 
 ## Decisões técnicas da task
 
-- Usar transação: (sim/não + por quê)
-- Usar distributed lock: (sim/não)
-- Usar cache: (sim/não + onde)
-- Estratégia de concorrência: (se aplicável)
+- Usar React Query (query ou mutation): (sim/não + qual)
+- Usar Zustand: (sim/não + por quê)
+- Optimistic update: (sim/não)
+- Formulário com react-hook-form: (sim/não)
 
 ---
 
@@ -87,12 +84,13 @@
 
 ## Estrutura esperada
 
-modules/<modulo>/
-- controllers/
+features/<modulo>/
+- components/
+- hooks/
+- services/
 - use-cases/
-- repositories/
-- dto/
-- entities/
+- mappers/
+- types/
 
 ---
 
@@ -106,6 +104,6 @@ modules/<modulo>/
 ## Definition of Done
 
 - [ ] Fluxo principal implementado
-- [ ] Fluxos alternativos tratados
+- [ ] Estados de loading, error e success tratados
 - [ ] Testes unitários (100%)
-- [ ] Testes de integração
+- [ ] Testes de integração (loading / error / success)
