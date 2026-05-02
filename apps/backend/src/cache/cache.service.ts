@@ -37,6 +37,13 @@ export class CacheService implements OnModuleDestroy {
     return result === 'OK'
   }
 
+  async delByPattern(pattern: string): Promise<void> {
+    const keys = await this.client.keys(pattern)
+    if (keys.length > 0) {
+      await this.client.del(...keys)
+    }
+  }
+
   onModuleDestroy() {
     this.client.disconnect()
   }

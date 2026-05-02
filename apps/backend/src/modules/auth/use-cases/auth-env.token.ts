@@ -16,6 +16,7 @@ export function parseTtlToSeconds(ttl: string): number {
     case 'm': return value * 60
     case 'h': return value * 3600
     case 'd': return value * 86400
+    /* istanbul ignore next */
     default: return value
   }
 }

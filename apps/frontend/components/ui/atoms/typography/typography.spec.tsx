@@ -39,6 +39,6 @@ describe('Typography', () => {
 
     it('applies caption color class', () => {
         render(<Typography variant="caption">Legenda</Typography>)
-        expect(screen.getByText('Legenda')).toHaveClass('text-text-secondary')
+        expect(screen.getByText('Legenda')).toHaveClass('text-text-dim')
     })
 })

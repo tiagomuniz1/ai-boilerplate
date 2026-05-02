@@ -9,15 +9,17 @@ const config: Config = {
   setupFilesAfterEnv: ['<rootDir>/jest.setup.ts'],
   moduleNameMapper: {
     '^@/(.*)$': '<rootDir>/$1',
-    '^@app/shared$': '<rootDir>/../../packages/shared/src',
-    '^@app/shared/(.*)$': '<rootDir>/../../packages/shared/src/$1',
+    '^@app/shared$': '<rootDir>/../../packages/shared/dist',
+    '^@app/shared/(.*)$': '<rootDir>/../../packages/shared/dist/$1',
   },
   collectCoverageFrom: [
     'components/**/*.{ts,tsx}',
+    'hooks/**/*.{ts,tsx}',
     'lib/**/*.{ts,tsx}',
     'stores/**/*.{ts,tsx}',
     'utils/**/*.{ts,tsx}',
     '!**/*.d.ts',
+    '!components/**/types/**',
   ],
 }
 

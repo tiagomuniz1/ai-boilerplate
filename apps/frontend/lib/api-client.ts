@@ -30,9 +30,13 @@ function normalizeProblemDetails(error: unknown): IApiError {
 client.interceptors.response.use(
   (response) => response.data,
   async (error: unknown) => {
+    const requestUrl = axios.isAxiosError(error) ? (error.config?.url ?? '') : ''
+    const isAuthEndpoint = requestUrl.includes('/auth/login') || requestUrl.includes('/auth/refresh')
+
     if (
       axios.isAxiosError(error) &&
       error.response?.status === 401 &&
+      !isAuthEndpoint &&
       !(error.config as RetryableConfig)?._retry
     ) {
       const config = error.config as RetryableConfig
@@ -45,6 +49,7 @@ client.interceptors.response.use(
         )
         return client(config)
       } catch {
+        /* istanbul ignore else */
         if (typeof window !== 'undefined') {
           window.location.href = '/login'
         }

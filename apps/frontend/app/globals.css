@@ -3,6 +3,72 @@
 @tailwind utilities;
 
 @layer base {
+    :root {
+        --bg: #F7F6F3;
+        --surface: #FFFFFF;
+        --surface2: #FBFAF7;
+
+        --line: #E8E4DB;
+        --lineStrong: #D8D2C4;
+
+        --text: #1A1D29;
+        --textDim: #555A6B;
+        --textMute: #8B8E9A;
+
+        --accent: #2B5CD4;
+        --accentSoft: #E3ECFB;
+
+        --warm: #C47B8A;
+        --warmSoft: #F6E5E8;
+
+        --good: #2F8A67;
+        --goodSoft: #DEF0E7;
+
+        --warn: #B8872A;
+        --warnSoft: #F8EDD3;
+
+        --danger: #C14E45;
+        --dangerSoft: #F7DED9;
+
+        color-scheme: light;
+    }
+
+    .dark {
+        --bg: #0B1220;
+
+        --surface: #111A2E;
+        --surface2: #162241;
+
+        --line: #1F2B47;
+        --lineStrong: #2A3960;
+
+        --text: #E8EEFA;
+        --textDim: #9AA8C7;
+        --textMute: #6B7A9E;
+
+        /* Accent mais equilibrado (menos saturação pesada em fundo escuro) */
+        --accent: #7FB0FF;
+        --accentSoft: #1A2F55;
+
+        /* Warm mais suave e menos “marrom escuro” */
+        --warm: #F2B8B5;
+        --warmSoft: #2E1B22;
+
+        /* Good mais limpo (menos neon verde escuro) */
+        --good: #7BD6B0;
+        --goodSoft: #142F26;
+
+        /* Warn mais leve e consistente */
+        --warn: #F5CB6B;
+        --warnSoft: #2E2410;
+
+        /* Danger mais consistente com UI moderna */
+        --danger: #F2786A;
+        --dangerSoft: #2F1715;
+
+        color-scheme: dark;
+    }
+
     *,
     *::before,
     *::after {
@@ -14,10 +80,16 @@
     }
 
     body {
-        @apply bg-background text-text-primary font-sans text-base antialiased;
+        @apply font-sans text-base antialiased;
+
+        background-color: var(--bg);
+        color: var(--text);
     }
 
     :focus-visible {
-        @apply outline-none ring-2 ring-primary ring-offset-2 ring-offset-background;
+        @apply outline-none ring-2 ring-offset-2;
+
+        --tw-ring-color: var(--accent);
+        --tw-ring-offset-color: var(--bg);
     }
 }

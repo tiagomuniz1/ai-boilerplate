@@ -1,69 +1,70 @@
 import type { Config } from 'tailwindcss'
 
 const config: Config = {
+    darkMode: 'class',
+
     content: [
         './app/**/*.{js,ts,jsx,tsx,mdx}',
         './components/**/*.{js,ts,jsx,tsx,mdx}',
     ],
+
     theme: {
         extend: {
             colors: {
-                background: '#0B1220',
+                /* ===== BASE ===== */
+                bg: 'var(--bg)',
+
                 surface: {
-                    DEFAULT: '#131C31',
-                    elevated: '#1A2540',
+                    DEFAULT: 'var(--surface)',
+                    2: 'var(--surface2)',
                 },
-                border: {
-                    DEFAULT: '#1F2B47',
-                    subtle: '#263554',
+
+                line: {
+                    DEFAULT: 'var(--line)',
+                    strong: 'var(--lineStrong)',
                 },
-                primary: {
-                    DEFAULT: '#F2B8B5',
-                    hover: '#F0A5A1',
-                    foreground: '#0B1220',
-                },
-                secondary: {
-                    DEFAULT: '#7FB0FF',
-                    hover: '#6B9FEE',
-                    foreground: '#0B1220',
-                },
+
+                /* ===== TEXT ===== */
                 text: {
-                    primary: '#E8EEFA',
-                    secondary: '#6B7A9E',
-                    disabled: '#3D4F72',
+                    DEFAULT: 'var(--text)',
+                    dim: 'var(--textDim)',
+                    mute: 'var(--textMute)',
                 },
-                success: {
-                    DEFAULT: '#6FCF97',
-                    foreground: '#0B1220',
+
+                /* ===== ACCENT (PRIMARY ACTIONS) ===== */
+                accent: {
+                    DEFAULT: 'var(--accent)',
+                    soft: 'var(--accentSoft)',
                 },
-                warning: {
-                    DEFAULT: '#F2C94C',
-                    foreground: '#0B1220',
+
+                /* ===== SEMANTIC STATES ===== */
+                warm: {
+                    DEFAULT: 'var(--warm)',
+                    soft: 'var(--warmSoft)',
                 },
-                error: {
-                    DEFAULT: '#FF8A80',
-                    foreground: '#0B1220',
+
+                good: {
+                    DEFAULT: 'var(--good)',
+                    soft: 'var(--goodSoft)',
                 },
-                info: {
-                    DEFAULT: '#7FB0FF',
-                    foreground: '#0B1220',
+
+                warn: {
+                    DEFAULT: 'var(--warn)',
+                    soft: 'var(--warnSoft)',
+                },
+
+                danger: {
+                    DEFAULT: 'var(--danger)',
+                    soft: 'var(--dangerSoft)',
                 },
             },
+
+            /* ===== TYPOGRAPHY ===== */
             fontFamily: {
                 sans: ['var(--font-inter)', 'system-ui', 'sans-serif'],
+                serif: ['var(--font-fraunces)', 'Georgia', 'serif'],
             },
-            borderRadius: {
-                sm: '4px',
-                DEFAULT: '6px',
-                md: '8px',
-                lg: '12px',
-                xl: '16px',
-            },
-            boxShadow: {
-                sm: '0 1px 4px rgba(0,0,0,0.24)',
-                DEFAULT: '0 2px 8px rgba(0,0,0,0.32)',
-                lg: '0 4px 16px rgba(0,0,0,0.40)',
-            },
+
             fontSize: {
                 xs: ['11px', { lineHeight: '16px' }],
                 sm: ['13px', { lineHeight: '20px' }],
@@ -74,8 +75,25 @@ const config: Config = {
                 '2xl': ['24px', { lineHeight: '34px' }],
                 '3xl': ['30px', { lineHeight: '40px' }],
             },
+
+            /* ===== RADIUS ===== */
+            borderRadius: {
+                sm: '4px',
+                DEFAULT: '6px',
+                md: '8px',
+                lg: '12px',
+                xl: '16px',
+            },
+
+            /* ===== SHADOWS ===== */
+            boxShadow: {
+                sm: '0 1px 4px rgba(0,0,0,0.12)',
+                DEFAULT: '0 2px 8px rgba(0,0,0,0.18)',
+                lg: '0 4px 16px rgba(0,0,0,0.25)',
+            },
         },
     },
+
     plugins: [],
 }
 

@@ -7,11 +7,11 @@ const variantConfig: Record<
     TypographyVariant,
     { tag: ElementType; className: string }
 > = {
-    h1: { tag: 'h1', className: 'text-3xl font-bold text-text-primary' },
-    h2: { tag: 'h2', className: 'text-2xl font-semibold text-text-primary' },
-    h3: { tag: 'h3', className: 'text-xl font-semibold text-text-primary' },
-    body: { tag: 'p', className: 'text-base text-text-primary' },
-    caption: { tag: 'span', className: 'text-xs text-text-secondary' },
+    h1: { tag: 'h1', className: 'text-3xl font-bold text-text' },
+    h2: { tag: 'h2', className: 'text-2xl font-semibold text-text' },
+    h3: { tag: 'h3', className: 'text-xl font-semibold text-text' },
+    body: { tag: 'p', className: 'text-base text-text' },
+    caption: { tag: 'span', className: 'text-xs text-text-dim' },
 }
 
 export interface TypographyProps extends HTMLAttributes<HTMLElement> {

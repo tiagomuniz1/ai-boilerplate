@@ -1,5 +1,8 @@
 {
   "name": "project-root",
+  "engines": {
+    "node": ">=24.0.0 <25.0.0"
+  },
   "private": true,
   "workspaces": [
     "apps/*",
@@ -7,7 +10,7 @@
     "tools/*"
   ],
   "scripts": {
-    "dev": "concurrently \"yarn workspace @app/frontend dev\" \"yarn workspace @app/backend dev\"",
+    "dev": "yarn workspace @app/shared build && concurrently \"yarn workspace @app/frontend dev\" \"yarn workspace @app/backend dev\"",
     "build": "yarn workspace @app/frontend build && yarn workspace @app/backend build",
     "test": "yarn workspace @app/frontend test && yarn workspace @app/backend test",
     "ai": "yarn workspace @app/ai-cli ai"

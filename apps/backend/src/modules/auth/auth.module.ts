@@ -12,6 +12,7 @@ import { RefreshTokensRepository } from './repositories/refresh-tokens.repositor
 import { JwtStrategy } from './strategies/jwt.strategy'
 import { LoginUseCase } from './use-cases/login.use-case'
 import { LogoutUseCase } from './use-cases/logout.use-case'
+import { MeUseCase } from './use-cases/me.use-case'
 import { RefreshTokenUseCase } from './use-cases/refresh-token.use-case'
 import { AUTH_ENV } from './use-cases/auth-env.token'
 
@@ -45,6 +46,7 @@ import { AUTH_ENV } from './use-cases/auth-env.token'
     LoginUseCase,
     RefreshTokenUseCase,
     LogoutUseCase,
+    MeUseCase,
     { provide: IRefreshTokensRepository, useClass: RefreshTokensRepository },
   ],
   exports: [JwtAuthGuard],

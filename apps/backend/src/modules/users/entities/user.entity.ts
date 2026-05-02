@@ -5,7 +5,9 @@ import {
   Entity,
   PrimaryGeneratedColumn,
   UpdateDateColumn,
+  VersionColumn,
 } from 'typeorm'
+import { UserRole } from '@app/shared'
 
 @Entity('users')
 export class User {
@@ -15,11 +17,17 @@ export class User {
   @Column({ name: 'full_name' })
   fullName: string
 
-  @Column({ unique: true })
+  @Column()
   email: string
 
   @Column()
   password: string
+
+  @Column({ type: 'varchar', default: UserRole.USER })
+  role: UserRole
+
+  @VersionColumn()
+  version: number
 
   @CreateDateColumn({ name: 'created_at' })
   createdAt: Date

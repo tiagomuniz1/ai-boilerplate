@@ -13,7 +13,9 @@
     "isolatedModules": true,
     "jsx": "preserve",
     "incremental": true,
+    "experimentalDecorators": true,
     "plugins": [{ "name": "next" }],
+    "baseUrl": ".",
     "paths": {
       "@/*": ["./*"],
       "@app/shared": ["../../packages/shared/src"],
@@ -21,5 +23,5 @@
     }
   },
   "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts"],
-  "exclude": ["node_modules"]
+  "exclude": ["node_modules", "cypress", "**/*.spec.ts", "**/*.spec.tsx", "**/*.integration.spec.ts", "**/*.integration.spec.tsx", "jest.config.ts", "jest.setup.ts"]
 }

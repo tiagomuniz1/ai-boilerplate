@@ -1,0 +1,17 @@
+{
+  "admin": {
+    "email": "tiagomuniz1@gmail.com",
+    "password": "123123123",
+    "fullName": "Tiago Muniz"
+  },
+  "newUser": {
+    "fullName": "Novo Usuário E2E",
+    "email": "novo.usuario.e2e@test.com",
+    "password": "Password123!",
+    "role": "user"
+  },
+  "updatedUser": {
+    "fullName": "Usuário Atualizado",
+    "email": "usuario.atualizado@test.com"
+  }
+}

@@ -11,11 +11,11 @@ export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
 
 const variantClasses: Record<NonNullable<ButtonProps['variant']>, string> = {
     primary:
-        'bg-primary text-primary-foreground hover:bg-primary-hover focus-visible:ring-primary',
+        'bg-accent text-bg hover:bg-accent/90 focus-visible:ring-accent',
     secondary:
-        'bg-secondary text-secondary-foreground hover:bg-secondary-hover focus-visible:ring-secondary',
+        'bg-surface-2 text-text hover:bg-surface-2/80 focus-visible:ring-line',
     ghost:
-        'bg-transparent text-text-primary hover:bg-surface-elevated focus-visible:ring-text-secondary border border-border',
+        'bg-transparent text-text hover:bg-surface-2 focus-visible:ring-line border border-line',
 }
 
 const sizeClasses: Record<NonNullable<ButtonProps['size']>, string> = {
@@ -45,7 +45,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
                 className={cn(
                     'inline-flex items-center justify-center font-medium rounded-md',
                     'transition-colors duration-150',
-                    'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-background',
+                    'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-bg',
                     'disabled:opacity-40 disabled:cursor-not-allowed',
                     variantClasses[variant],
                     sizeClasses[size],

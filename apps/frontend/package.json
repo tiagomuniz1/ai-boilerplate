@@ -12,8 +12,7 @@
     "test:unit:coverage": "jest --testPathPattern='.*\\.spec\\.(ts|tsx)$' --coverage --passWithNoTests",
     "typecheck": "tsc --noEmit",
     "lint": "next lint",
-    "cypress:open": "cypress open",
-    "cypress:run": "cypress run"
+    "cypress:run": "cypress run --browser chrome --headed"
   },
   "dependencies": {
     "@aws-sdk/client-ssm": "^3.600.0",

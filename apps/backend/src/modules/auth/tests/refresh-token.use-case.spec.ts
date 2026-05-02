@@ -8,6 +8,7 @@ import { IRefreshTokensRepository } from '../repositories/refresh-tokens.reposit
 import { IAuthEnv } from '../use-cases/auth-env.token'
 import { RefreshToken } from '../entities/refresh-token.entity'
 import { User } from '../../users/entities/user.entity'
+import { UserRole } from '@app/shared'
 
 const mockQueryRunner = {
   connect: jest.fn().mockResolvedValue(undefined),
@@ -23,8 +24,12 @@ const mockDataSource = {
 } as unknown as DataSource
 
 const mockUsersRepository: jest.Mocked<IUsersRepository> = {
+  findAll: jest.fn(),
   findById: jest.fn(),
   findByEmail: jest.fn(),
+  create: jest.fn(),
+  update: jest.fn(),
+  delete: jest.fn(),
 }
 
 const mockRefreshTokensRepository: jest.Mocked<IRefreshTokensRepository> = {
@@ -51,6 +56,8 @@ function makeUser(overrides: Partial<User> = {}): User {
     fullName: faker.person.fullName(),
     email: faker.internet.email(),
     password: 'hashed',
+    role: UserRole.USER,
+    version: 1,
     createdAt: new Date(),
     updatedAt: new Date(),
     deletedAt: null,

@@ -25,7 +25,7 @@ export function FormField({
             </Label>
             {children}
             {error && (
-                <span role="alert" className="text-xs text-error">
+                <span role="alert" className="text-xs text-danger">
                     {error}
                 </span>
             )}

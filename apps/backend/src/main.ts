@@ -1,7 +1,12 @@
 import 'reflect-metadata'
+import * as dotenv from 'dotenv'
+import * as path from 'path'
+dotenv.config({ path: path.resolve(process.cwd(), '.env.local') })
+
 import { NestFactory } from '@nestjs/core'
 import { ValidationPipe } from '@nestjs/common'
 import helmet from 'helmet'
+import * as cookieParser from 'cookie-parser'
 import { WinstonModule } from 'nest-winston'
 import { AppModule } from './app.module'
 import { createWinstonConfig } from './config/env.config'
@@ -12,6 +17,7 @@ async function bootstrap() {
   })
 
   app.use(helmet())
+  app.use(cookieParser())
 
   app.enableCors({
     origin: process.env.FRONTEND_URL,

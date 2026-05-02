@@ -1,32 +1,26 @@
 import { UnauthorizedException } from '@nestjs/common'
 import { JwtService } from '@nestjs/jwt'
 import { faker } from '@faker-js/faker'
-import { DataSource, QueryRunner } from 'typeorm'
+import { DataSource } from 'typeorm'
 import * as bcrypt from 'bcrypt'
 import { LoginUseCase } from '../use-cases/login.use-case'
 import { IUsersRepository } from '../../users/repositories/users.repository.interface'
 import { IRefreshTokensRepository } from '../repositories/refresh-tokens.repository.interface'
 import { IAuthEnv } from '../use-cases/auth-env.token'
 import { User } from '../../users/entities/user.entity'
+import { UserRole } from '@app/shared'
 
 jest.mock('bcrypt', () => ({ compare: jest.fn() }))
 
-const mockQueryRunner = {
-  connect: jest.fn().mockResolvedValue(undefined),
-  startTransaction: jest.fn().mockResolvedValue(undefined),
-  commitTransaction: jest.fn().mockResolvedValue(undefined),
-  rollbackTransaction: jest.fn().mockResolvedValue(undefined),
-  release: jest.fn().mockResolvedValue(undefined),
-  manager: {},
-} as unknown as QueryRunner
-
-const mockDataSource = {
-  createQueryRunner: jest.fn().mockReturnValue(mockQueryRunner),
-} as unknown as DataSource
+const mockDataSource = {} as unknown as DataSource
 
 const mockUsersRepository: jest.Mocked<IUsersRepository> = {
+  findAll: jest.fn(),
   findById: jest.fn(),
   findByEmail: jest.fn(),
+  create: jest.fn(),
+  update: jest.fn(),
+  delete: jest.fn(),
 }
 
 const mockRefreshTokensRepository: jest.Mocked<IRefreshTokensRepository> = {
@@ -52,6 +46,8 @@ function makeUser(overrides: Partial<User> = {}): User {
     fullName: faker.person.fullName(),
     email: faker.internet.email(),
     password: 'hashed_password',
+    role: UserRole.USER,
+    version: 1,
     createdAt: new Date(),
     updatedAt: new Date(),
     deletedAt: null,
@@ -73,7 +69,7 @@ describe('LoginUseCase', () => {
     )
   })
 
-  it('returns accessToken, refreshToken and expiresIn on valid credentials', async () => {
+  it('returns { user, accessToken, refreshToken } on valid credentials', async () => {
     const user = makeUser()
     mockUsersRepository.findByEmail.mockResolvedValue(user)
     ;(bcrypt.compare as jest.Mock).mockResolvedValue(true)
@@ -85,9 +81,11 @@ describe('LoginUseCase', () => {
     const result = await useCase.execute({ email: user.email, password: 'password123' })
 
     expect(result).toEqual({
+      user: { id: user.id, fullName: user.fullName, email: user.email },
       accessToken: 'access-token',
       refreshToken: 'refresh-token',
-      expiresIn: 900,
+      accessTokenMaxAge: 900 * 1000,
+      refreshTokenMaxAge: 7 * 86400 * 1000,
     })
   })
 
@@ -121,7 +119,7 @@ describe('LoginUseCase', () => {
     )
   })
 
-  it('persists refresh token in transaction', async () => {
+  it('persists refresh token in repository', async () => {
     const user = makeUser()
     mockUsersRepository.findByEmail.mockResolvedValue(user)
     ;(bcrypt.compare as jest.Mock).mockResolvedValue(true)
@@ -136,9 +134,7 @@ describe('LoginUseCase', () => {
       user.id,
       'refresh-token',
       expect.any(Date),
-      mockQueryRunner,
     )
-    expect(mockQueryRunner.commitTransaction).toHaveBeenCalled()
   })
 
   it('throws generic UnauthorizedException when user is not found', async () => {
@@ -175,7 +171,7 @@ describe('LoginUseCase', () => {
     expect(err1.message).toBe(err2.message)
   })
 
-  it('rolls back transaction when refresh token creation fails', async () => {
+  it('throws when refresh token creation fails', async () => {
     const user = makeUser()
     mockUsersRepository.findByEmail.mockResolvedValue(user)
     ;(bcrypt.compare as jest.Mock).mockResolvedValue(true)
@@ -185,7 +181,5 @@ describe('LoginUseCase', () => {
     await expect(
       useCase.execute({ email: user.email, password: 'password123' }),
     ).rejects.toThrow('DB error')
-
-    expect(mockQueryRunner.rollbackTransaction).toHaveBeenCalled()
   })
 })

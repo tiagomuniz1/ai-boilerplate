@@ -10,10 +10,11 @@ export interface ModalProps {
     onClose: () => void
     title?: string
     className?: string
+    'data-testid'?: string
     children: React.ReactNode
 }
 
-export function Modal({ isOpen, onClose, title, className, children }: ModalProps) {
+export function Modal({ isOpen, onClose, title, className, 'data-testid': testId, children }: ModalProps) {
     const dialogRef = useRef<HTMLDivElement>(null)
     const previousFocusRef = useRef<HTMLElement | null>(null)
 
@@ -44,15 +45,16 @@ export function Modal({ isOpen, onClose, title, className, children }: ModalProp
             className="fixed inset-0 z-50 flex items-center justify-center"
             onClick={onClose}
         >
-            <div aria-hidden="true" className="absolute inset-0 bg-background/80 backdrop-blur-sm" />
+            <div aria-hidden="true" className="absolute inset-0 bg-bg/80 backdrop-blur-sm" />
             <div
                 ref={dialogRef}
                 role="dialog"
                 aria-modal="true"
                 aria-labelledby={title ? 'modal-title' : undefined}
                 tabIndex={-1}
+                data-testid={testId}
                 className={cn(
-                    'relative z-10 w-full max-w-md rounded-lg bg-surface-elevated border border-border shadow-lg p-6',
+                    'relative z-10 w-full max-w-md rounded-lg bg-surface-2 border border-line shadow-lg p-6',
                     'focus-visible:outline-none',
                     className,
                 )}

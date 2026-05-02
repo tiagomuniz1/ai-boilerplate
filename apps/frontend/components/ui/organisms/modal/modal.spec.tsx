@@ -70,4 +70,25 @@ describe('Modal', () => {
         renderModal({ className: 'custom-class' })
         expect(screen.getByRole('dialog')).toHaveClass('custom-class')
     })
+
+    it('restores focus to previously focused element when modal closes', () => {
+        const button = document.createElement('button')
+        document.body.appendChild(button)
+        button.focus()
+
+        const { rerender } = render(
+            <Modal isOpen={true} onClose={jest.fn()}>
+                <p>Conteúdo</p>
+            </Modal>,
+        )
+
+        rerender(
+            <Modal isOpen={false} onClose={jest.fn()}>
+                <p>Conteúdo</p>
+            </Modal>,
+        )
+
+        expect(document.activeElement).toBe(button)
+        button.remove()
+    })
 })

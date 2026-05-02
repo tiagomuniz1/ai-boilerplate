@@ -24,6 +24,6 @@ describe('Card', () => {
 
     it('applies surface-elevated background class', () => {
         const { container } = render(<Card>Conteúdo</Card>)
-        expect(container.firstChild).toHaveClass('bg-surface-elevated')
+        expect(container.firstChild).toHaveClass('bg-surface-2')
     })
 })

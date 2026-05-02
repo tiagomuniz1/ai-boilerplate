@@ -4,6 +4,7 @@ import { createQueryClient } from '@/lib/react-query.config'
 
 function AllProviders({ children }: { children: React.ReactNode }) {
   const queryClient = createQueryClient()
+  queryClient.setDefaultOptions({ queries: { retry: false } })
   return <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
 }
 

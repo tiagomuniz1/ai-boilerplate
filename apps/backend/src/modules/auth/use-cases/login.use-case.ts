@@ -5,10 +5,18 @@ import { randomUUID } from 'crypto'
 import { DataSource } from 'typeorm'
 import { BaseUseCase } from '../../../common/base.use-case'
 import { IUsersRepository } from '../../users/repositories/users.repository.interface'
-import { AuthResponseDto } from '../dto/auth-response.dto'
 import { LoginDto } from '../dto/login.dto'
+import { LoginResponseDto } from '../dto/login-response.dto'
 import { IRefreshTokensRepository } from '../repositories/refresh-tokens.repository.interface'
 import { AUTH_ENV, IAuthEnv, parseTtlToSeconds } from './auth-env.token'
+
+interface LoginResult {
+  user: LoginResponseDto
+  accessToken: string
+  refreshToken: string
+  accessTokenMaxAge: number
+  refreshTokenMaxAge: number
+}
 
 @Injectable()
 export class LoginUseCase extends BaseUseCase {
@@ -22,7 +30,7 @@ export class LoginUseCase extends BaseUseCase {
     super(dataSource)
   }
 
-  async execute(dto: LoginDto): Promise<AuthResponseDto> {
+  async execute(dto: LoginDto): Promise<LoginResult> {
     const user = await this.usersRepository.findByEmail(dto.email)
 
     if (!user) {
@@ -34,8 +42,8 @@ export class LoginUseCase extends BaseUseCase {
       throw new UnauthorizedException('Invalid credentials')
     }
 
-    const accessExpiresIn = parseTtlToSeconds(this.authEnv.jwtExpiration)
-    const refreshExpiresIn = parseTtlToSeconds(this.authEnv.jwtRefreshExpiration)
+    const accessExpiresInSeconds = parseTtlToSeconds(this.authEnv.jwtExpiration)
+    const refreshExpiresInSeconds = parseTtlToSeconds(this.authEnv.jwtRefreshExpiration)
 
     const [accessToken, refreshToken] = await Promise.all([
       this.jwtService.signAsync(
@@ -48,12 +56,15 @@ export class LoginUseCase extends BaseUseCase {
       ),
     ])
 
-    const expiresAt = new Date(Date.now() + refreshExpiresIn * 1000)
+    const expiresAt = new Date(Date.now() + refreshExpiresInSeconds * 1000)
+    await this.refreshTokensRepository.create(user.id, refreshToken, expiresAt)
 
-    await this.runInTransaction(async (queryRunner) => {
-      await this.refreshTokensRepository.create(user.id, refreshToken, expiresAt, queryRunner)
-    })
-
-    return { accessToken, refreshToken, expiresIn: accessExpiresIn }
+    return {
+      user: { id: user.id, fullName: user.fullName, email: user.email },
+      accessToken,
+      refreshToken,
+      accessTokenMaxAge: accessExpiresInSeconds * 1000,
+      refreshTokenMaxAge: refreshExpiresInSeconds * 1000,
+    }
   }
 }

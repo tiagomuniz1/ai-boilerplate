@@ -10,12 +10,12 @@ describe('Button', () => {
 
     it('applies primary variant by default', () => {
         render(<Button>Save</Button>)
-        expect(screen.getByRole('button')).toHaveClass('bg-primary')
+        expect(screen.getByRole('button')).toHaveClass('bg-accent')
     })
 
     it('applies secondary variant classes', () => {
         render(<Button variant="secondary">Save</Button>)
-        expect(screen.getByRole('button')).toHaveClass('bg-secondary')
+        expect(screen.getByRole('button')).toHaveClass('bg-surface-2')
     })
 
     it('applies ghost variant classes', () => {

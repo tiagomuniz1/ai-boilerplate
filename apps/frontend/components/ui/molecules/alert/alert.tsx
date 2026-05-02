@@ -5,19 +5,19 @@ type AlertVariant = 'success' | 'error' | 'warning' | 'info'
 
 const variantConfig: Record<AlertVariant, { className: string; role: string }> = {
     success: {
-        className: 'bg-success/10 border-success text-success',
+        className: 'bg-good/10 border-good text-good',
         role: 'status',
     },
     error: {
-        className: 'bg-error/10 border-error text-error',
+        className: 'bg-danger/10 border-danger text-danger',
         role: 'alert',
     },
     warning: {
-        className: 'bg-warning/10 border-warning text-warning',
+        className: 'bg-warn/10 border-warn text-warn',
         role: 'alert',
     },
     info: {
-        className: 'bg-info/10 border-info text-info',
+        className: 'bg-accent/10 border-accent text-accent',
         role: 'status',
     },
 }

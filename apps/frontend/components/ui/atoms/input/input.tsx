@@ -18,7 +18,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
                         htmlFor={inputId}
                         className={cn(
                             'text-sm font-medium',
-                            disabled ? 'text-text-disabled' : 'text-text-primary',
+                            disabled ? 'text-text-mute' : 'text-text',
                         )}
                     >
                         {label}
@@ -38,23 +38,23 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
                     }
                     className={cn(
                         'h-10 w-full rounded-md px-3 text-base',
-                        'bg-surface border border-border',
-                        'text-text-primary placeholder:text-text-disabled',
+                        'bg-surface border border-line',
+                        'text-text placeholder:text-text-mute',
                         'transition-colors duration-150',
-                        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background',
-                        error && 'border-error focus-visible:ring-error',
+                        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-bg',
+                        error && 'border-danger focus-visible:ring-danger',
                         disabled && 'opacity-40 cursor-not-allowed',
                         className,
                     )}
                     {...props}
                 />
                 {error && (
-                    <span id={`${inputId}-error`} role="alert" className="text-xs text-error">
+                    <span id={`${inputId}-error`} role="alert" className="text-xs text-danger">
                         {error}
                     </span>
                 )}
                 {!error && helperText && (
-                    <span id={`${inputId}-helper`} className="text-xs text-text-secondary">
+                    <span id={`${inputId}-helper`} className="text-xs text-text-dim">
                         {helperText}
                     </span>
                 )}

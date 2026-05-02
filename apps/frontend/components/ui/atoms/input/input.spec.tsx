@@ -44,7 +44,7 @@ describe('Input', () => {
 
     it('applies error border class when error is present', () => {
         render(<Input id="email" error="Erro" />)
-        expect(screen.getByRole('textbox')).toHaveClass('border-error')
+        expect(screen.getByRole('textbox')).toHaveClass('border-danger')
     })
 
     it('merges className prop', () => {
@@ -56,5 +56,10 @@ describe('Input', () => {
         const ref = { current: null }
         render(<Input ref={ref} />)
         expect(ref.current).not.toBeNull()
+    })
+
+    it('applies text-text-disabled class to label when disabled', () => {
+        render(<Input label="Email" id="email" disabled />)
+        expect(screen.getByText('Email')).toHaveClass('text-text-mute')
     })
 })

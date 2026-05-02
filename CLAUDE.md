@@ -70,7 +70,6 @@ yarn test  # todos os testes do monorepo
 ### Testes E2E
 
 ```bash
-yarn workspace apps/frontend cypress:open  # abre interface do Cypress
 yarn workspace apps/frontend cypress:run   # headless (CI/CD)
 ```
 

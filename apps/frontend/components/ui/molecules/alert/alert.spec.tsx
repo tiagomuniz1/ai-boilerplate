@@ -29,12 +29,12 @@ describe('Alert', () => {
 
     it('applies error variant border class', () => {
         render(<Alert variant="error">Erro</Alert>)
-        expect(screen.getByRole('alert')).toHaveClass('border-error')
+        expect(screen.getByRole('alert')).toHaveClass('border-danger')
     })
 
     it('applies success variant border class', () => {
         render(<Alert variant="success">Sucesso</Alert>)
-        expect(screen.getByRole('status')).toHaveClass('border-success')
+        expect(screen.getByRole('status')).toHaveClass('border-good')
     })
 
     it('merges className prop', () => {
