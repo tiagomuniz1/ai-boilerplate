@@ -9,8 +9,6 @@
 ### Setup inicial
 
 ```bash
-git clone <repo-url>
-cd <repo>
 yarn install
 
 # Configurar credenciais AWS (necessário para buscar variáveis do Parameter Store)
@@ -28,41 +26,41 @@ docker compose down -v  # reset completo do banco
 ### Banco de dados
 
 ```bash
-yarn workspace apps/backend typeorm migration:run
-yarn workspace apps/backend typeorm migration:generate src/database/migrations/nome_da_migration
-yarn workspace apps/backend typeorm migration:revert
-yarn workspace apps/backend seed:run
-NODE_ENV=test yarn workspace apps/backend seed:run
+yarn workspace @app/backend migration:run
+yarn workspace @app/backend migration:generate src/database/migrations/nome_da_migration
+yarn workspace @app/backend migration:revert
+yarn workspace @app/backend seed:run
+NODE_ENV=test yarn workspace @app/backend seed:run
 ```
 
 ### Desenvolvimento
 
 ```bash
-yarn workspace apps/frontend dev
-yarn workspace apps/backend dev
+yarn workspace @app/frontend dev
+yarn workspace @app/backend dev
 yarn dev  # frontend e backend em paralelo
 ```
 
 ### Build
 
 ```bash
-yarn workspace apps/frontend build
-yarn workspace apps/backend build
+yarn workspace @app/frontend build
+yarn workspace @app/backend build
 yarn build
 ```
 
 ### Testes
 
 ```bash
-yarn workspace apps/frontend test:unit
-yarn workspace apps/frontend test:integration
-yarn workspace apps/frontend test
-yarn workspace apps/frontend test:unit --coverage
+yarn workspace @app/frontend test:unit
+yarn workspace @app/frontend test:integration
+yarn workspace @app/frontend test
+yarn workspace @app/frontend test:unit --coverage
 
-yarn workspace apps/backend test:unit
-yarn workspace apps/backend test:integration
-yarn workspace apps/backend test
-yarn workspace apps/backend test:unit --coverage
+yarn workspace @app/backend test:unit
+yarn workspace @app/backend test:integration
+yarn workspace @app/backend test
+yarn workspace @app/backend test:unit --coverage
 
 yarn test  # todos os testes do monorepo
 ```
@@ -70,7 +68,7 @@ yarn test  # todos os testes do monorepo
 ### Testes E2E
 
 ```bash
-yarn workspace apps/frontend cypress:run   # headless (CI/CD)
+yarn workspace @app/frontend cypress:run   # headless (CI/CD)
 ```
 
 ---

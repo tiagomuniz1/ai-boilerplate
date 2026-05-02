@@ -24,6 +24,7 @@ const updateSchema = z.object({
   fullName: z.string().min(3, 'Nome deve ter no mínimo 3 caracteres').optional().or(z.literal('')),
   email: z.string().email('E-mail inválido').optional().or(z.literal('')),
   role: z.nativeEnum(UserRole, { errorMap: () => ({ message: 'Role inválida' }) }).optional(),
+  isActive: z.boolean(),
 })
 
 type CreateFormValues = z.infer<typeof createSchema>
@@ -130,6 +131,7 @@ function UserFormEdit({ defaultValues, isPending, globalError, onSubmit }: UserF
       fullName: defaultValues.fullName,
       email: defaultValues.email,
       role: defaultValues.role,
+      isActive: defaultValues.isActive,
     })
   }, [defaultValues, reset])
 
@@ -138,6 +140,7 @@ function UserFormEdit({ defaultValues, isPending, globalError, onSubmit }: UserF
       fullName: data.fullName || undefined,
       email: data.email || undefined,
       role: data.role,
+      isActive: data.isActive,
     }
     onSubmit(input, setError as (field: keyof IUpdateUserInput, error: { message: string }) => void)
   }
@@ -166,6 +169,15 @@ function UserFormEdit({ defaultValues, isPending, globalError, onSubmit }: UserF
           {...register('email')}
         />
         <RoleSelect registerProps={register('role')} error={errors.role?.message} />
+        <label className="flex cursor-pointer items-center gap-3">
+          <input
+            type="checkbox"
+            data-testid="user-form-isactive"
+            className="h-4 w-4 rounded border-line accent-accent"
+            {...register('isActive')}
+          />
+          <span className="text-sm text-text">Usuário ativo</span>
+        </label>
         <Button
           type="submit"
           isLoading={isPending}

@@ -5,6 +5,7 @@ export interface IUserModel {
   fullName: string
   email: string
   role: UserRole
+  isActive: boolean
   createdAt: Date
   updatedAt: Date
 }

@@ -23,7 +23,7 @@ describe('UsersController', () => {
 
   it('create delegates to CreateUserUseCase', async () => {
     const dto = { fullName: 'Alice', email: 'a@b.com', password: 'Pass1234', role: UserRole.USER }
-    const response = { id: 'u1', ...dto, createdAt: new Date(), updatedAt: new Date() }
+    const response = { id: 'u1', ...dto, isActive: true, createdAt: new Date(), updatedAt: new Date() }
     mockCreateUser.execute.mockResolvedValue(response)
 
     const result = await controller.create(dto as any)
@@ -44,7 +44,7 @@ describe('UsersController', () => {
   })
 
   it('findById delegates to FindUserByIdUseCase', async () => {
-    const response = { id: 'u1', fullName: 'Alice', email: 'a@b.com', role: UserRole.USER, createdAt: new Date(), updatedAt: new Date() }
+    const response = { id: 'u1', fullName: 'Alice', email: 'a@b.com', role: UserRole.USER, isActive: true, createdAt: new Date(), updatedAt: new Date() }
     mockFindById.execute.mockResolvedValue(response)
 
     const result = await controller.findById('u1')
@@ -55,7 +55,7 @@ describe('UsersController', () => {
 
   it('update delegates to UpdateUserUseCase', async () => {
     const dto = { fullName: 'Bob' }
-    const response = { id: 'u1', fullName: 'Bob', email: 'a@b.com', role: UserRole.USER, createdAt: new Date(), updatedAt: new Date() }
+    const response = { id: 'u1', fullName: 'Bob', email: 'a@b.com', role: UserRole.USER, isActive: true, createdAt: new Date(), updatedAt: new Date() }
     mockUpdate.execute.mockResolvedValue(response)
 
     const result = await controller.update('u1', dto as any)

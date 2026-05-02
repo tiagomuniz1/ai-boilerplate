@@ -7,6 +7,7 @@ export function toUserModel(dto: UserResponseDto): IUserModel {
     fullName: dto.fullName,
     email: dto.email,
     role: dto.role,
+    isActive: dto.isActive,
     createdAt: new Date(dto.createdAt),
     updatedAt: new Date(dto.updatedAt),
   }

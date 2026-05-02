@@ -31,6 +31,7 @@ function makeUser(overrides: Partial<User> = {}): User {
     email: faker.internet.email(),
     password: 'hash',
     role: UserRole.USER,
+    isActive: true,
     version: 1,
     createdAt: new Date(),
     updatedAt: new Date(),
@@ -58,8 +59,20 @@ describe('UpdateUserUseCase', () => {
     const result = await useCase.execute(user.id, { fullName: 'New Name' })
 
     expect(result.fullName).toBe('New Name')
+    expect(result.isActive).toBe(true)
     expect(result).not.toHaveProperty('password')
     expect(result).not.toHaveProperty('version')
+  })
+
+  it('can update isActive to false', async () => {
+    const user = makeUser({ isActive: true })
+    const updated = { ...user, isActive: false }
+    mockUsersRepository.findById.mockResolvedValue(user)
+    mockUsersRepository.update.mockResolvedValue(updated)
+
+    const result = await useCase.execute(user.id, { isActive: false })
+
+    expect(result.isActive).toBe(false)
   })
 
   it('throws NotFoundException when user does not exist', async () => {

@@ -18,6 +18,7 @@ const existingUser: IUserModel = {
   fullName: 'Alice Costa',
   email: 'alice@example.com',
   role: UserRole.USER,
+  isActive: true,
   createdAt: new Date('2024-01-15'),
   updatedAt: new Date('2024-01-16'),
 }
@@ -252,6 +253,38 @@ describe('UserForm (integration) — edit mode', () => {
   beforeEach(() => {
     jest.clearAllMocks()
     ;(useRouter as jest.Mock).mockReturnValue({ push: mockPush })
+  })
+
+  it('renders isActive checkbox in edit mode', async () => {
+    renderWithProviders(
+      <UserForm mode="edit" defaultValues={existingUser} isPending={false} onSubmit={jest.fn()} />,
+    )
+
+    await waitFor(() => {
+      expect(screen.getByTestId<HTMLInputElement>('user-form-isactive').checked).toBe(true)
+    })
+  })
+
+  it('submits isActive false when checkbox is unchecked', async () => {
+    const onSubmit = jest.fn()
+
+    renderWithProviders(
+      <UserForm mode="edit" defaultValues={existingUser} isPending={false} onSubmit={onSubmit} />,
+    )
+
+    await waitFor(() => {
+      expect(screen.getByTestId<HTMLInputElement>('user-form-isactive').checked).toBe(true)
+    })
+
+    await userEvent.click(screen.getByTestId('user-form-isactive'))
+    await userEvent.click(screen.getByTestId('user-form-submit'))
+
+    await waitFor(() => {
+      expect(onSubmit).toHaveBeenCalledWith(
+        expect.objectContaining({ isActive: false }),
+        expect.any(Function),
+      )
+    })
   })
 
   it('does not render password field in edit mode', () => {

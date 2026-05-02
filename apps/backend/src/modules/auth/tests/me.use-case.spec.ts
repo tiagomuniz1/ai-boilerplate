@@ -27,6 +27,7 @@ function makeUser(overrides: Partial<User> = {}): User {
     version: 1,
     createdAt: new Date(),
     updatedAt: new Date(),
+    isActive: true,
     deletedAt: null,
     ...overrides,
   }

@@ -5,6 +5,7 @@ export class UserResponseDto {
   fullName: string
   email: string
   role: UserRole
+  isActive: boolean
   createdAt: Date
   updatedAt: Date
 }

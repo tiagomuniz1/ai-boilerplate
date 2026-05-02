@@ -31,6 +31,7 @@ function makeUser(): User {
     email: faker.internet.email(),
     password: 'hash',
     role: UserRole.USER,
+    isActive: true,
     version: 1,
     createdAt: new Date(),
     updatedAt: new Date(),

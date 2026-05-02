@@ -26,6 +26,9 @@ export class User {
   @Column({ type: 'varchar', default: UserRole.USER })
   role: UserRole
 
+  @Column({ name: 'is_active', default: true })
+  isActive: boolean
+
   @VersionColumn()
   version: number
 

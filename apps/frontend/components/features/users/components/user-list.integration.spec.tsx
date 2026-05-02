@@ -20,6 +20,7 @@ const makeDto = (overrides = {}) => ({
   fullName: 'Alice Costa',
   email: 'alice@example.com',
   role: UserRole.USER,
+  isActive: true,
   createdAt: '2024-01-15T10:00:00.000Z',
   updatedAt: '2024-01-16T10:00:00.000Z',
   ...overrides,
@@ -161,6 +162,36 @@ describe('UserList (integration)', () => {
     })
 
     expect(screen.getByTestId('user-name-uuid-1')).toBeInTheDocument()
+  })
+
+  it('renders single initial for single-word name', async () => {
+    ;(userService.getAll as jest.Mock).mockResolvedValue({ data: [makeDto({ fullName: 'Alice' })], total: 1, page: 1, limit: 20 })
+
+    renderWithProviders(<UserList />)
+
+    await waitFor(() => {
+      expect(screen.getByTestId('user-name-uuid-1')).toHaveTextContent('Alice')
+    })
+  })
+
+  it('renders "Inativo" badge for inactive user', async () => {
+    ;(userService.getAll as jest.Mock).mockResolvedValue({ data: [makeDto({ isActive: false })], total: 1, page: 1, limit: 20 })
+
+    renderWithProviders(<UserList />)
+
+    await waitFor(() => {
+      expect(screen.getByTestId('user-status-uuid-1')).toHaveTextContent('Inativo')
+    })
+  })
+
+  it('renders "Ativo" badge for active user', async () => {
+    ;(userService.getAll as jest.Mock).mockResolvedValue({ data: [makeDto({ isActive: true })], total: 1, page: 1, limit: 20 })
+
+    renderWithProviders(<UserList />)
+
+    await waitFor(() => {
+      expect(screen.getByTestId('user-status-uuid-1')).toHaveTextContent('Ativo')
+    })
   })
 
   it('renders "Novo usuário" link', async () => {

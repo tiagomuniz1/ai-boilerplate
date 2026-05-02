@@ -47,6 +47,7 @@ describe('CreateUserUseCase', () => {
       email: dto.email,
       password: 'hashed',
       role: UserRole.USER,
+      isActive: true,
       version: 1,
       createdAt: now,
       updatedAt: now,
@@ -62,6 +63,7 @@ describe('CreateUserUseCase', () => {
     expect(result.id).toBe(createdUser.id)
     expect(result.email).toBe(dto.email)
     expect(result.role).toBe(UserRole.USER)
+    expect(result.isActive).toBe(true)
     expect(result).not.toHaveProperty('password')
     expect(result).not.toHaveProperty('version')
   })
@@ -73,7 +75,7 @@ describe('CreateUserUseCase', () => {
       password: 'PlainText123',
       role: UserRole.USER,
     }
-    const createdUser: User = { ...dto, id: 'u1', password: 'hash', version: 1, createdAt: new Date(), updatedAt: new Date(), deletedAt: null }
+    const createdUser: User = { ...dto, id: 'u1', password: 'hash', isActive: true, version: 1, createdAt: new Date(), updatedAt: new Date(), deletedAt: null }
 
     mockUsersRepository.findByEmail.mockResolvedValue(null)
     mockUsersRepository.create.mockResolvedValue(createdUser)
@@ -98,7 +100,7 @@ describe('CreateUserUseCase', () => {
 
   it('defaults role to USER when not provided (DTO default)', async () => {
     const dto = { fullName: 'Carol', email: 'carol@example.com', password: 'Password123', role: UserRole.USER }
-    const createdUser: User = { ...dto, id: 'u2', password: 'hash', version: 1, createdAt: new Date(), updatedAt: new Date(), deletedAt: null }
+    const createdUser: User = { ...dto, id: 'u2', password: 'hash', isActive: true, version: 1, createdAt: new Date(), updatedAt: new Date(), deletedAt: null }
 
     mockUsersRepository.findByEmail.mockResolvedValue(null)
     mockUsersRepository.create.mockResolvedValue(createdUser)
@@ -111,7 +113,7 @@ describe('CreateUserUseCase', () => {
 
   it('invalidates list cache after creation', async () => {
     const dto = { fullName: 'Dave', email: 'd@e.com', password: 'Password123', role: UserRole.USER }
-    const user: User = { ...dto, id: 'u3', password: 'hash', version: 1, createdAt: new Date(), updatedAt: new Date(), deletedAt: null }
+    const user: User = { ...dto, id: 'u3', password: 'hash', isActive: true, version: 1, createdAt: new Date(), updatedAt: new Date(), deletedAt: null }
 
     mockUsersRepository.findByEmail.mockResolvedValue(null)
     mockUsersRepository.create.mockResolvedValue(user)
@@ -124,7 +126,7 @@ describe('CreateUserUseCase', () => {
 
   it('does not throw when cache invalidation fails', async () => {
     const dto = { fullName: 'Eve', email: 'e@f.com', password: 'Password123', role: UserRole.USER }
-    const user: User = { ...dto, id: 'u4', password: 'hash', version: 1, createdAt: new Date(), updatedAt: new Date(), deletedAt: null }
+    const user: User = { ...dto, id: 'u4', password: 'hash', isActive: true, version: 1, createdAt: new Date(), updatedAt: new Date(), deletedAt: null }
 
     mockUsersRepository.findByEmail.mockResolvedValue(null)
     mockUsersRepository.create.mockResolvedValue(user)

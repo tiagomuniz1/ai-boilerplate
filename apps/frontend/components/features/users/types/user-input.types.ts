@@ -11,4 +11,5 @@ export interface IUpdateUserInput {
   fullName?: string
   email?: string
   role?: UserRole
+  isActive?: boolean
 }
