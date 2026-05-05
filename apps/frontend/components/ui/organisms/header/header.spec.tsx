@@ -9,6 +9,12 @@ jest.mock('next/navigation', () => ({
   useRouter: jest.fn(),
   usePathname: jest.fn(),
 }))
+jest.mock('@/stores/theme.store', () => ({
+  useThemeStore: jest.fn((selector?: (s: any) => any) => {
+    const state = { theme: 'light', toggleTheme: jest.fn(), setTheme: jest.fn() }
+    return selector ? selector(state) : state
+  }),
+}))
 
 const mockUseHeaderUser = useHeaderUser as jest.MockedFunction<typeof useHeaderUser>
 const mockUseLogout = useLogout as jest.MockedFunction<typeof useLogout>
@@ -120,5 +126,15 @@ describe('Header', () => {
   it('renders notification badge', () => {
     render(<Header />)
     expect(screen.getByTestId('header-notifications-badge')).toBeInTheDocument()
+  })
+
+  it('renders the theme toggle button', () => {
+    render(<Header />)
+    expect(screen.getByTestId('theme-toggle')).toBeInTheDocument()
+  })
+
+  it('theme toggle button has aria-label for light mode', () => {
+    render(<Header />)
+    expect(screen.getByLabelText('Alternar para modo escuro')).toBeInTheDocument()
   })
 })

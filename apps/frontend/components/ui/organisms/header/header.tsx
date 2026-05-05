@@ -7,6 +7,7 @@ import { HeaderLogo } from './components/header-logo'
 import { HeaderSearch } from './components/header-search'
 import { HeaderUserMenu } from './components/header-user-menu'
 import { HeaderMobileMenu } from './components/header-mobile-menu'
+import { ThemeToggle } from '@/components/ui/molecules/theme-toggle/theme-toggle'
 import type { IHeaderProps } from './types/header.types'
 
 export function Header({ variant = 'default', onLogoClick }: IHeaderProps) {
@@ -60,6 +61,8 @@ export function Header({ variant = 'default', onLogoClick }: IHeaderProps) {
             data-testid="header-notifications-badge"
           />
         </button>
+
+        <ThemeToggle />
 
         <button
           type="button"
