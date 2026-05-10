@@ -99,7 +99,7 @@ describe('Users List', () => {
     cy.get(`[data-testid="user-table-row-${mockUser.id}"]`).should('exist')
     cy.get(`[data-testid="user-name-${mockUser.id}"]`).should('contain', mockUser.fullName)
     cy.get(`[data-testid="user-email-${mockUser.id}"]`).should('contain', mockUser.email)
-    cy.get(`[data-testid="user-role-${mockUser.id}"]`).should('contain', mockUser.role)
+    cy.get(`[data-testid="user-role-${mockUser.id}"]`).should('contain', 'Usuário')
   })
 
   it('shows "Novo usuário" button that links to /users/new', () => {
@@ -113,6 +113,35 @@ describe('Users List', () => {
     cy.get('[data-testid="user-list-new-button"]').should('be.visible')
     cy.get('[data-testid="user-list-new-button"]').click()
     cy.url().should('include', '/users/new')
+  })
+
+  it('renders search input', () => {
+    cy.intercept('GET', `${Cypress.env('API_URL')}/users*`, {
+      statusCode: 200,
+      body: emptyListResponse,
+    }).as('getUsers')
+
+    visitWithMockAuth('/users')
+    cy.wait('@getUsers')
+    cy.get('[data-testid="user-list-search"]').should('be.visible')
+  })
+
+  it('typing in search sends query param to API', () => {
+    cy.intercept('GET', `${Cypress.env('API_URL')}/users*`, {
+      statusCode: 200,
+      body: populatedListResponse,
+    }).as('getUsers')
+
+    visitWithMockAuth('/users')
+    cy.wait('@getUsers')
+
+    cy.intercept('GET', `${Cypress.env('API_URL')}/users*`, {
+      statusCode: 200,
+      body: populatedListResponse,
+    }).as('searchUsers')
+
+    cy.get('[data-testid="user-list-search"]').type('Usuário')
+    cy.wait('@searchUsers').its('request.url').should('include', 'search=')
   })
 
   it('shows user rows with data from real API', () => {

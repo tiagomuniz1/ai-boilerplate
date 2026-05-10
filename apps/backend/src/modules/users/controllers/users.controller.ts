@@ -1,6 +1,6 @@
 import { Body, Controller, Delete, Get, HttpCode, Param, Patch, Post, Query } from '@nestjs/common'
 import { CreateUserDto, PaginatedUsersResponseDto, UpdateUserDto, UserResponseDto } from '@app/shared'
-import { PaginationDto } from '../../../common/dto/pagination.dto'
+import { ListUsersQueryDto } from '../dto/list-users-query.dto'
 import { Public } from '../../auth/decorators/public.decorator'
 import { CreateUserUseCase } from '../use-cases/create-user.use-case'
 import { DeleteUserUseCase } from '../use-cases/delete-user.use-case'
@@ -26,8 +26,8 @@ export class UsersController {
   }
 
   @Get()
-  findAll(@Query() pagination: PaginationDto): Promise<PaginatedUsersResponseDto> {
-    return this.findAllUsersUseCase.execute(pagination)
+  findAll(@Query() query: ListUsersQueryDto): Promise<PaginatedUsersResponseDto> {
+    return this.findAllUsersUseCase.execute(query)
   }
 
   @Get(':id')

@@ -97,8 +97,15 @@ export function UserTableRow({ user, isCurrentUser, onDeleteClick }: UserTableRo
           <Link
             href={`/users/${user.id}/edit`}
             data-testid={`user-edit-link-${user.id}`}
+            className="text-xs text-text-mute hover:text-text transition-colors"
+          >
+            Editar
+          </Link>
+          <Link
+            href={`/users/${user.id}`}
+            data-testid={`user-view-link-${user.id}`}
             className="flex items-center justify-center rounded-md p-1.5 text-text-mute transition-colors hover:bg-line hover:text-text"
-            aria-label={`Editar ${user.fullName}`}
+            aria-label={`Ver detalhes de ${user.fullName}`}
           >
             <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
               <path d="M6 12L10 8L6 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />

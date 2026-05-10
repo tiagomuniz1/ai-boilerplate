@@ -3,7 +3,7 @@ jest.mock('@/stores/auth.store')
 jest.mock('../services/users.service')
 jest.mock('../use-cases/delete-user.use-case')
 
-import { screen, waitFor } from '@testing-library/react'
+import { screen, waitFor, fireEvent, act } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { useRouter } from 'next/navigation'
 import { useAuthStore } from '@/stores/auth.store'
@@ -200,5 +200,57 @@ describe('UserList (integration)', () => {
     renderWithProviders(<UserList />)
 
     expect(screen.getByTestId('user-list-new-button')).toBeInTheDocument()
+  })
+
+  it('renders edit text link pointing to edit page', async () => {
+    ;(userService.getAll as jest.Mock).mockResolvedValue({ data: [makeDto()], total: 1, page: 1, limit: 20 })
+
+    renderWithProviders(<UserList />)
+
+    await waitFor(() => {
+      expect(screen.getByTestId('user-list-table')).toBeInTheDocument()
+    })
+
+    const editLink = screen.getByTestId('user-edit-link-uuid-1')
+    expect(editLink).toHaveTextContent('Editar')
+    expect(editLink).toHaveAttribute('href', '/users/uuid-1/edit')
+  })
+
+  it('renders view chevron linking to user details page', async () => {
+    ;(userService.getAll as jest.Mock).mockResolvedValue({ data: [makeDto()], total: 1, page: 1, limit: 20 })
+
+    renderWithProviders(<UserList />)
+
+    await waitFor(() => {
+      expect(screen.getByTestId('user-list-table')).toBeInTheDocument()
+    })
+
+    const viewLink = screen.getByTestId('user-view-link-uuid-1')
+    expect(viewLink).toHaveAttribute('href', '/users/uuid-1')
+  })
+
+  it('renders search input', () => {
+    ;(userService.getAll as jest.Mock).mockReturnValue(new Promise(() => {}))
+
+    renderWithProviders(<UserList />)
+
+    expect(screen.getByTestId('user-list-search')).toBeInTheDocument()
+  })
+
+  it('calls getAll with search param after debounce', async () => {
+    jest.useFakeTimers()
+    ;(userService.getAll as jest.Mock).mockResolvedValue({ data: [], total: 0, page: 1, limit: 20 })
+
+    renderWithProviders(<UserList />)
+
+    fireEvent.change(screen.getByTestId('user-list-search'), { target: { value: 'Alice' } })
+
+    act(() => { jest.advanceTimersByTime(300) })
+
+    await waitFor(() => {
+      expect(userService.getAll).toHaveBeenCalledWith({ search: 'Alice' })
+    })
+
+    jest.useRealTimers()
   })
 })

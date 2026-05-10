@@ -5,15 +5,15 @@ export class CreateUserDto {
   @IsString()
   @MinLength(3)
   @MaxLength(120)
-  fullName: string
+  fullName!: string
 
   @IsEmail()
-  email: string
+  email!: string
 
   @IsString()
   @MinLength(8)
   @MaxLength(64)
-  password: string
+  password!: string
 
   @IsOptional()
   @IsEnum(UserRole)

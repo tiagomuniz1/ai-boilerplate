@@ -3,11 +3,21 @@ import { UsersRepository } from './users.repository'
 import { User } from '../entities/user.entity'
 import { UserRole } from '@app/shared'
 
+function makeQueryBuilder() {
+  return {
+    skip: jest.fn().mockReturnThis(),
+    take: jest.fn().mockReturnThis(),
+    orderBy: jest.fn().mockReturnThis(),
+    andWhere: jest.fn().mockReturnThis(),
+    getManyAndCount: jest.fn(),
+  }
+}
+
 function makeRepo(): jest.Mocked<Repository<User>> {
   return {
     findOneBy: jest.fn(),
     findOneByOrFail: jest.fn(),
-    findAndCount: jest.fn(),
+    createQueryBuilder: jest.fn(),
     create: jest.fn(),
     save: jest.fn(),
     softDelete: jest.fn(),
@@ -61,18 +71,33 @@ describe('UsersRepository', () => {
   })
 
   describe('findAll', () => {
-    it('delegates to findAndCount with correct pagination', async () => {
+    let mockQb: ReturnType<typeof makeQueryBuilder>
+
+    beforeEach(() => {
+      mockQb = makeQueryBuilder()
+      ;(repo.createQueryBuilder as jest.Mock).mockReturnValue(mockQb)
+    })
+
+    it('returns paginated results without search', async () => {
       const users = [{ id: 'u1' } as User]
-      repo.findAndCount.mockResolvedValue([users, 1])
+      mockQb.getManyAndCount.mockResolvedValue([users, 1])
 
       const result = await repository.findAll(2, 10)
 
-      expect(repo.findAndCount).toHaveBeenCalledWith({
-        skip: 10,
-        take: 10,
-        order: { createdAt: 'DESC' },
-      })
+      expect(repo.createQueryBuilder).toHaveBeenCalledWith('user')
+      expect(mockQb.skip).toHaveBeenCalledWith(10)
+      expect(mockQb.take).toHaveBeenCalledWith(10)
+      expect(mockQb.orderBy).toHaveBeenCalledWith('user.created_at', 'DESC')
+      expect(mockQb.andWhere).not.toHaveBeenCalled()
       expect(result).toEqual([users, 1])
+    })
+
+    it('applies ILIKE filter when search is provided', async () => {
+      mockQb.getManyAndCount.mockResolvedValue([[], 0])
+
+      await repository.findAll(1, 20, 'alice')
+
+      expect(mockQb.andWhere).toHaveBeenCalledWith('user.full_name ILIKE :search', { search: '%alice%' })
     })
   })
 

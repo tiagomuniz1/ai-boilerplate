@@ -12,12 +12,18 @@ export class UsersRepository implements IUsersRepository {
     private readonly repository: Repository<User>,
   ) {}
 
-  async findAll(page: number, limit: number): Promise<[User[], number]> {
-    return this.repository.findAndCount({
-      skip: (page - 1) * limit,
-      take: limit,
-      order: { createdAt: 'DESC' },
-    })
+  async findAll(page: number, limit: number, search?: string): Promise<[User[], number]> {
+    const query = this.repository
+      .createQueryBuilder('user')
+      .skip((page - 1) * limit)
+      .take(limit)
+      .orderBy('user.created_at', 'DESC')
+
+    if (search) {
+      query.andWhere('user.full_name ILIKE :search', { search: `%${search}%` })
+    }
+
+    return query.getManyAndCount()
   }
 
   async findById(id: string): Promise<User | null> {

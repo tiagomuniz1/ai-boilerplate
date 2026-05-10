@@ -63,6 +63,10 @@ describe('Login', () => {
   })
 
   it('redirects authenticated user directly to /dashboard', () => {
+    cy.intercept('GET', `${Cypress.env('API_URL')}/auth/me`, {
+      statusCode: 200,
+      body: { id: 'mock-id', fullName: 'Test User', email: 'test@example.com' },
+    })
     cy.setCookie('access_token', 'valid-token')
     cy.visit('/login')
     cy.url().should('include', '/dashboard')

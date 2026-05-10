@@ -6,6 +6,7 @@ import { CacheModule } from './cache/cache.module'
 import { HealthModule } from './health/health.module'
 import { AuthModule } from './modules/auth/auth.module'
 import { UsersModule } from './modules/users/users.module'
+import { PatientsModule } from './modules/patients/patients.module'
 import { HttpExceptionFilter } from './common/filters/http-exception.filter'
 import { RequestIdInterceptor } from './common/interceptors/request-id.interceptor'
 import { JwtAuthGuard } from './modules/auth/guards/jwt-auth.guard'
@@ -20,6 +21,7 @@ import { JwtAuthGuard } from './modules/auth/guards/jwt-auth.guard'
     HealthModule,
     AuthModule,
     UsersModule,
+    PatientsModule,
   ],
   providers: [
     { provide: APP_FILTER, useClass: HttpExceptionFilter },

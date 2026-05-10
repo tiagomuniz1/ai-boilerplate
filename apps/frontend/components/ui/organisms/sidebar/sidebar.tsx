@@ -1,5 +1,6 @@
 'use client'
 
+import { useState, useEffect } from 'react'
 import { cn } from '@/lib/cn'
 import { useSidebarNavigation } from '@/hooks/use-sidebar-navigation.hook'
 import { useAuthStore } from '@/stores/auth.store'
@@ -15,6 +16,11 @@ function getInitials(fullName: string): string {
 export function Sidebar() {
   const { items, isCollapsed, toggle } = useSidebarNavigation()
   const user = useAuthStore((state) => state.user)
+  const [mounted, setMounted] = useState(false)
+
+  useEffect(() => {
+    setMounted(true)
+  }, [])
 
   return (
     <aside
@@ -63,7 +69,7 @@ export function Sidebar() {
         ))}
       </nav>
 
-      {user && (
+      {mounted && user && (
         <div data-testid="sidebar-user" className="border-t border-line pt-3 mt-2">
           <div className="flex items-center gap-[10px] p-1.5">
             <div

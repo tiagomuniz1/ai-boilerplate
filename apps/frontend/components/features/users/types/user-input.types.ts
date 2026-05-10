@@ -13,3 +13,9 @@ export interface IUpdateUserInput {
   role?: UserRole
   isActive?: boolean
 }
+
+export interface IUserListParams {
+  search?: string
+  page?: number
+  limit?: number
+}

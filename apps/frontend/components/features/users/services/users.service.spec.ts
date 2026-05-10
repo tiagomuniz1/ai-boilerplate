@@ -67,4 +67,28 @@ describe('userService', () => {
 
     expect(mockApiClient.delete).toHaveBeenCalledWith('/users/uuid-1')
   })
+
+  it('getAll appends search param to query string', async () => {
+    mockApiClient.get.mockResolvedValue({ data: [], total: 0, page: 1, limit: 20 })
+
+    await userService.getAll({ search: 'alice' })
+
+    expect(mockApiClient.get).toHaveBeenCalledWith('/users?search=alice')
+  })
+
+  it('getAll appends page and limit params to query string', async () => {
+    mockApiClient.get.mockResolvedValue({ data: [], total: 0, page: 2, limit: 10 })
+
+    await userService.getAll({ page: 2, limit: 10 })
+
+    expect(mockApiClient.get).toHaveBeenCalledWith('/users?page=2&limit=10')
+  })
+
+  it('getAll appends all params to query string', async () => {
+    mockApiClient.get.mockResolvedValue({ data: [], total: 0, page: 1, limit: 20 })
+
+    await userService.getAll({ search: 'alice', page: 1, limit: 20 })
+
+    expect(mockApiClient.get).toHaveBeenCalledWith('/users?search=alice&page=1&limit=20')
+  })
 })

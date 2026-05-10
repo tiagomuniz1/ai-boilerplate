@@ -1,10 +1,11 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { Skeleton } from '@/components/ui/atoms/skeleton/skeleton'
 import { Alert } from '@/components/ui/molecules/alert/alert'
 import { Button } from '@/components/ui/atoms/button/button'
+import { Input } from '@/components/ui/atoms/input/input'
 import { useAuthStore } from '@/stores/auth.store'
 import { useUsers } from '../hooks/use-users.hook'
 import { useDeleteUser } from '../hooks/use-delete-user.hook'
@@ -13,7 +14,16 @@ import { DeleteUserDialog } from './delete-user-dialog'
 import type { IUserModel } from '../types/user-model.types'
 
 export function UserList() {
-  const { data: users, isPending, isError } = useUsers()
+  const [searchTerm, setSearchTerm] = useState('')
+  const [debouncedSearch, setDebouncedSearch] = useState('')
+
+  useEffect(() => {
+    const timer = setTimeout(() => setDebouncedSearch(searchTerm), 300)
+    return () => clearTimeout(timer)
+  }, [searchTerm])
+
+  const params = debouncedSearch ? { search: debouncedSearch } : undefined
+  const { data: users, isPending, isError } = useUsers(params)
   const { mutate: deleteUser, isPending: isDeleting } = useDeleteUser()
   const currentUser = useAuthStore((state) => state.user)
 
@@ -64,6 +74,13 @@ export function UserList() {
           </Button>
         </Link>
       </div>
+
+      <Input
+        placeholder="Buscar por nome..."
+        value={searchTerm}
+        onChange={(e) => setSearchTerm(e.target.value)}
+        data-testid="user-list-search"
+      />
 
       {successMessage && (
         <Alert variant="success" data-testid="user-list-success">

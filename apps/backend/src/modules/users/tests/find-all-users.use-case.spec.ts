@@ -4,7 +4,7 @@ import { UserRole } from '@app/shared'
 import { FindAllUsersUseCase } from '../use-cases/find-all-users.use-case'
 import { IUsersRepository } from '../repositories/users.repository.interface'
 import { CacheService } from '../../../cache/cache.service'
-import { PaginationDto } from '../../../common/dto/pagination.dto'
+import { ListUsersQueryDto } from '../dto/list-users-query.dto'
 import { User } from '../entities/user.entity'
 
 const mockUsersRepository: jest.Mocked<IUsersRepository> = {
@@ -41,7 +41,7 @@ function makeUser(): User {
 
 describe('FindAllUsersUseCase', () => {
   let useCase: FindAllUsersUseCase
-  const pagination: PaginationDto = Object.assign(new PaginationDto(), { page: 1, limit: 20 })
+  const pagination: ListUsersQueryDto = Object.assign(new ListUsersQueryDto(), { page: 1, limit: 20 })
 
   beforeEach(() => {
     jest.clearAllMocks()
@@ -66,12 +66,12 @@ describe('FindAllUsersUseCase', () => {
 
     const result = await useCase.execute(pagination)
 
-    expect(mockUsersRepository.findAll).toHaveBeenCalledWith(1, 20)
+    expect(mockUsersRepository.findAll).toHaveBeenCalledWith(1, 20, undefined)
     expect(result.total).toBe(2)
     expect(result.page).toBe(1)
     expect(result.limit).toBe(20)
     expect(result.data).toHaveLength(2)
-    expect(mockCacheService.set).toHaveBeenCalledWith('users:list:1:20', result, 60)
+    expect(mockCacheService.set).toHaveBeenCalledWith('users:list:1:20:all', result, 60)
   })
 
   it('response data does not include password or version', async () => {
@@ -91,12 +91,24 @@ describe('FindAllUsersUseCase', () => {
     mockUsersRepository.findAll.mockResolvedValue([[], 42])
     mockCacheService.set.mockResolvedValue(undefined)
 
-    const pag: PaginationDto = Object.assign(new PaginationDto(), { page: 3, limit: 10 })
+    const pag: ListUsersQueryDto = Object.assign(new ListUsersQueryDto(), { page: 3, limit: 10 })
     const result = await useCase.execute(pag)
 
     expect(result.total).toBe(42)
     expect(result.page).toBe(3)
     expect(result.limit).toBe(10)
+  })
+
+  it('passes search param to repository and uses scoped cache key', async () => {
+    mockCacheService.get.mockResolvedValue(null)
+    mockUsersRepository.findAll.mockResolvedValue([[], 0])
+    mockCacheService.set.mockResolvedValue(undefined)
+
+    const searchQuery: ListUsersQueryDto = Object.assign(new ListUsersQueryDto(), { page: 1, limit: 20, search: 'alice' })
+    await useCase.execute(searchQuery)
+
+    expect(mockUsersRepository.findAll).toHaveBeenCalledWith(1, 20, 'alice')
+    expect(mockCacheService.set).toHaveBeenCalledWith('users:list:1:20:alice', expect.any(Object), 60)
   })
 
   it('does not throw when cache read fails', async () => {

@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 import { Inter, Fraunces } from 'next/font/google'
+import Script from 'next/script'
 import './globals.css'
 import { Providers } from './providers'
 
@@ -26,11 +27,13 @@ const themeInitScript = `(function(){try{var s=localStorage.getItem('theme-prefe
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
     return (
-        <html lang="pt-BR" className={`${inter.variable} ${fraunces.variable}`}>
-            <head>
-                <script dangerouslySetInnerHTML={{ __html: themeInitScript }} />
-            </head>
+        <html lang="pt-BR" className={`${inter.variable} ${fraunces.variable}`} suppressHydrationWarning>
             <body>
+                <Script
+                    id="theme-init"
+                    strategy="beforeInteractive"
+                    dangerouslySetInnerHTML={{ __html: themeInitScript }}
+                />
                 <Providers>{children}</Providers>
             </body>
         </html>
