@@ -1,0 +1,65 @@
+import { Injectable, Logger } from '@nestjs/common'
+import { DataSource } from 'typeorm'
+import { DoctorResponseDto, PaginatedDoctorsResponseDto } from '@app/shared'
+import { BaseUseCase } from '../../../common/base.use-case'
+import { CacheService } from '../../../cache/cache.service'
+import { IDoctorsRepository } from '../repositories/doctors.repository.interface'
+import { ListDoctorsQueryDto } from '../dto/list-doctors-query.dto'
+import { Doctor } from '../entities/doctor.entity'
+
+@Injectable()
+export class FindAllDoctorsUseCase extends BaseUseCase {
+  private readonly logger = new Logger(FindAllDoctorsUseCase.name)
+
+  constructor(
+    dataSource: DataSource,
+    private readonly doctorsRepository: IDoctorsRepository,
+    private readonly cacheService: CacheService,
+  ) {
+    super(dataSource)
+  }
+
+  async execute(query: ListDoctorsQueryDto): Promise<PaginatedDoctorsResponseDto> {
+    const { page, limit, search } = query
+    const cacheKey = `doctors:list:${page}:${limit}:${search ?? 'all'}`
+
+    try {
+      const cached = await this.cacheService.get<PaginatedDoctorsResponseDto>(cacheKey)
+      if (cached) return cached
+    } catch {
+      this.logger.warn('Cache read failed', { context: FindAllDoctorsUseCase.name })
+    }
+
+    const [doctors, total] = await this.doctorsRepository.findAll(page, limit, search)
+    const result: PaginatedDoctorsResponseDto = {
+      data: doctors.map((d) => this.toResponse(d)),
+      total,
+      page,
+      limit,
+    }
+
+    try {
+      await this.cacheService.set(cacheKey, result, 60)
+    } catch {
+      this.logger.warn('Cache write failed', { context: FindAllDoctorsUseCase.name })
+    }
+
+    return result
+  }
+
+  private toResponse(doctor: Doctor): DoctorResponseDto {
+    return {
+      id: doctor.id,
+      user: {
+        id: doctor.user.id,
+        fullName: doctor.user.fullName,
+        email: doctor.user.email,
+      },
+      crmNumber: doctor.crmNumber,
+      specialty: doctor.specialty,
+      bio: doctor.bio,
+      createdAt: doctor.createdAt,
+      updatedAt: doctor.updatedAt,
+    }
+  }
+}
