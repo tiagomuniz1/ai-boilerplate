@@ -2,6 +2,7 @@ import { Body, Controller, Delete, Get, HttpCode, Param, Patch, Post, Query } fr
 import { CreateUserDto, PaginatedUsersResponseDto, UpdateUserDto, UserResponseDto } from '@app/shared'
 import { ListUsersQueryDto } from '../dto/list-users-query.dto'
 import { Public } from '../../auth/decorators/public.decorator'
+import { ActivateUserUseCase } from '../use-cases/activate-user.use-case'
 import { CreateUserUseCase } from '../use-cases/create-user.use-case'
 import { DeleteUserUseCase } from '../use-cases/delete-user.use-case'
 import { FindAllUsersUseCase } from '../use-cases/find-all-users.use-case'
@@ -16,7 +17,8 @@ export class UsersController {
     private readonly findUserByIdUseCase: FindUserByIdUseCase,
     private readonly updateUserUseCase: UpdateUserUseCase,
     private readonly deleteUserUseCase: DeleteUserUseCase,
-  ) { }
+    private readonly activateUserUseCase: ActivateUserUseCase,
+  ) {}
 
   @Post()
   @Public()
@@ -33,6 +35,11 @@ export class UsersController {
   @Get(':id')
   findById(@Param('id') id: string): Promise<UserResponseDto> {
     return this.findUserByIdUseCase.execute(id)
+  }
+
+  @Patch(':id/activate')
+  activate(@Param('id') id: string): Promise<UserResponseDto> {
+    return this.activateUserUseCase.execute(id)
   }
 
   @Patch(':id')

@@ -157,6 +157,18 @@ describe('LoginUseCase', () => {
     ).rejects.toThrow(new UnauthorizedException('Invalid credentials'))
   })
 
+  it('throws UnauthorizedException when account is not active', async () => {
+    const user = makeUser({ isActive: false })
+    mockUsersRepository.findByEmail.mockResolvedValue(user)
+    ;(bcrypt.compare as jest.Mock).mockResolvedValue(true)
+
+    await expect(
+      useCase.execute({ email: user.email, password: 'password123' }),
+    ).rejects.toThrow(new UnauthorizedException('Account is not active'))
+
+    expect(mockRefreshTokensRepository.create).not.toHaveBeenCalled()
+  })
+
   it('error message is identical for missing user and wrong password', async () => {
     mockUsersRepository.findByEmail.mockResolvedValue(null)
     const err1 = await useCase

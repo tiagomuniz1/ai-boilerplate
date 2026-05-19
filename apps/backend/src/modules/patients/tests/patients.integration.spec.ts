@@ -104,9 +104,11 @@ describe('PatientsController (integration)', () => {
       const { body } = await createPatient(payload).expect(201)
 
       expect(body.id).toBeDefined()
-      expect(body.fullName).toBe(payload.fullName)
+      expect(body.user).toBeDefined()
+      expect(body.user.fullName).toBe(payload.fullName)
+      expect(body.user.email).toBe(payload.email)
+      expect(body.user.isActive).toBe(false)
       expect(body.documentNumber).toBe(payload.documentNumber)
-      expect(body.email).toBe(payload.email)
       expect(body.phoneNumber).toBe(payload.phoneNumber)
       expect(body.birthDate).toBe(payload.birthDate)
       expect(body.gender).toBe(PatientGender.MALE)
@@ -125,6 +127,15 @@ describe('PatientsController (integration)', () => {
       await createPatient({
         documentNumber: '11122233344',
         email: faker.internet.email(),
+      }).expect(409)
+    })
+
+    it('returns 409 when email already in use', async () => {
+      const email = faker.internet.email()
+      await createPatient({ email }).expect(201)
+      await createPatient({
+        documentNumber: '99988877766',
+        email,
       }).expect(409)
     })
 
@@ -180,8 +191,8 @@ describe('PatientsController (integration)', () => {
         .set('Authorization', `Bearer ${accessToken}`)
         .expect(200)
 
-      expect(body.data.some((p: any) => p.fullName === 'Fulano de Tal')).toBe(true)
-      expect(body.data.every((p: any) => p.fullName !== 'Ciclano Sousa')).toBe(true)
+      expect(body.data.some((p: any) => p.user.fullName === 'Fulano de Tal')).toBe(true)
+      expect(body.data.every((p: any) => p.user.fullName !== 'Ciclano Sousa')).toBe(true)
     })
 
     it('filters by documentNumber exact match', async () => {
@@ -252,7 +263,7 @@ describe('PatientsController (integration)', () => {
         .expect(200)
 
       expect(body.id).toBe(created.id)
-      expect(body.fullName).toBe(newName)
+      expect(body.user.fullName).toBe(newName)
       expect(body.documentNumber).toBe(created.documentNumber)
     })
 

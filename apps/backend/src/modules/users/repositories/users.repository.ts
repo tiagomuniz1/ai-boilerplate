@@ -1,9 +1,9 @@
 import { Injectable } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
 import { QueryRunner, Repository } from 'typeorm'
-import { CreateUserDto, UpdateUserDto } from '@app/shared'
+import { UpdateUserDto } from '@app/shared'
 import { User } from '../entities/user.entity'
-import { IUsersRepository } from './users.repository.interface'
+import { CreateUserData, IUsersRepository } from './users.repository.interface'
 
 @Injectable()
 export class UsersRepository implements IUsersRepository {
@@ -34,7 +34,7 @@ export class UsersRepository implements IUsersRepository {
     return this.repository.findOneBy({ email })
   }
 
-  async create(data: CreateUserDto, queryRunner?: QueryRunner): Promise<User> {
+  async create(data: CreateUserData, queryRunner?: QueryRunner): Promise<User> {
     const repo = queryRunner ? queryRunner.manager.getRepository(User) : this.repository
     return repo.save(repo.create(data))
   }

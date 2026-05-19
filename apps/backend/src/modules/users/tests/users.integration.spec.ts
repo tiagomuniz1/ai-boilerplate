@@ -249,6 +249,58 @@ describe('UsersController (integration)', () => {
     })
   })
 
+  describe('PATCH /users/:id/activate', () => {
+    it('returns 200 with isActive true after activation', async () => {
+      const { body: created } = await createUser().expect(201)
+
+      await request(app.getHttpServer())
+        .patch(`/users/${created.id}`)
+        .set('Authorization', `Bearer ${accessToken}`)
+        .send({ isActive: false })
+
+      const { body } = await request(app.getHttpServer())
+        .patch(`/users/${created.id}/activate`)
+        .set('Authorization', `Bearer ${accessToken}`)
+        .expect(200)
+
+      expect(body.id).toBe(created.id)
+      expect(body.isActive).toBe(true)
+    })
+
+    it('returns 422 when user is already active', async () => {
+      const { body: created } = await createUser().expect(201)
+
+      await request(app.getHttpServer())
+        .patch(`/users/${created.id}/activate`)
+        .set('Authorization', `Bearer ${accessToken}`)
+        .expect(422)
+    })
+
+    it('returns 404 when user does not exist', async () => {
+      await request(app.getHttpServer())
+        .patch(`/users/${faker.string.uuid()}/activate`)
+        .set('Authorization', `Bearer ${accessToken}`)
+        .expect(404)
+    })
+
+    it('response never contains password or version', async () => {
+      const { body: created } = await createUser().expect(201)
+
+      await request(app.getHttpServer())
+        .patch(`/users/${created.id}`)
+        .set('Authorization', `Bearer ${accessToken}`)
+        .send({ isActive: false })
+
+      const { body } = await request(app.getHttpServer())
+        .patch(`/users/${created.id}/activate`)
+        .set('Authorization', `Bearer ${accessToken}`)
+        .expect(200)
+
+      expect(body.password).toBeUndefined()
+      expect(body.version).toBeUndefined()
+    })
+  })
+
   describe('DELETE /users/:id', () => {
     it('returns 204 on successful soft delete', async () => {
       const { body: created } = await createUser().expect(201)

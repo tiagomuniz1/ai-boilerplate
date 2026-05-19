@@ -72,3 +72,48 @@ describe('Login', () => {
     cy.url().should('include', '/dashboard')
   })
 })
+
+describe('Login como médico', () => {
+  let doctor: {
+    doctorId: string
+    userId: string
+    email: string
+    password: string
+    crmNumber: string
+    specialty: string
+    accessToken: string
+  }
+
+  before(() => {
+    cy.seedDoctor().then((result) => {
+      doctor = result
+    })
+  })
+
+  after(() => {
+    if (doctor) {
+      cy.deleteDoctorViaApi(doctor.doctorId, doctor.accessToken)
+      cy.deleteUserViaApi(doctor.userId, doctor.accessToken)
+    }
+  })
+
+  beforeEach(() => {
+    cy.clearCookies()
+    cy.clearLocalStorage()
+    cy.visit('/login')
+  })
+
+  it('faz login com credenciais de médico e redireciona para /dashboard', () => {
+    cy.get('[data-testid="login-email"]').type(doctor.email)
+    cy.get('[data-testid="login-password"]').type(doctor.password)
+    cy.get('[data-testid="login-submit"]').click()
+    cy.url().should('include', '/dashboard')
+  })
+
+  it('após login, médico pode acessar seu perfil em /doctors', () => {
+    cy.login(doctor.email, doctor.password)
+    cy.visit(`/doctors/${doctor.doctorId}`)
+    cy.get('[data-testid="doctor-details-crm"]').should('contain', doctor.crmNumber)
+    cy.get('[data-testid="doctor-details-specialty"]').should('contain', doctor.specialty)
+  })
+})

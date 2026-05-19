@@ -1,5 +1,6 @@
 import { UserRole } from '@app/shared'
 import { UsersController } from './users.controller'
+import { ActivateUserUseCase } from '../use-cases/activate-user.use-case'
 import { CreateUserUseCase } from '../use-cases/create-user.use-case'
 import { FindAllUsersUseCase } from '../use-cases/find-all-users.use-case'
 import { FindUserByIdUseCase } from '../use-cases/find-user-by-id.use-case'
@@ -12,13 +13,14 @@ const mockFindAll = { execute: jest.fn() } as unknown as jest.Mocked<FindAllUser
 const mockFindById = { execute: jest.fn() } as unknown as jest.Mocked<FindUserByIdUseCase>
 const mockUpdate = { execute: jest.fn() } as unknown as jest.Mocked<UpdateUserUseCase>
 const mockDelete = { execute: jest.fn() } as unknown as jest.Mocked<DeleteUserUseCase>
+const mockActivate = { execute: jest.fn() } as unknown as jest.Mocked<ActivateUserUseCase>
 
 describe('UsersController', () => {
   let controller: UsersController
 
   beforeEach(() => {
     jest.clearAllMocks()
-    controller = new UsersController(mockCreateUser, mockFindAll, mockFindById, mockUpdate, mockDelete)
+    controller = new UsersController(mockCreateUser, mockFindAll, mockFindById, mockUpdate, mockDelete, mockActivate)
   })
 
   it('create delegates to CreateUserUseCase', async () => {
@@ -61,6 +63,16 @@ describe('UsersController', () => {
     const result = await controller.update('u1', dto as any)
 
     expect(mockUpdate.execute).toHaveBeenCalledWith('u1', dto)
+    expect(result).toBe(response)
+  })
+
+  it('activate delegates to ActivateUserUseCase', async () => {
+    const response = { id: 'u1', fullName: 'Alice', email: 'a@b.com', role: UserRole.USER, isActive: true, createdAt: new Date(), updatedAt: new Date() }
+    mockActivate.execute.mockResolvedValue(response)
+
+    const result = await controller.activate('u1')
+
+    expect(mockActivate.execute).toHaveBeenCalledWith('u1')
     expect(result).toBe(response)
   })
 

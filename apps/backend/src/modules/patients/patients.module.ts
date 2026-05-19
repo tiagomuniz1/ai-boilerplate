@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common'
 import { TypeOrmModule } from '@nestjs/typeorm'
 import { CacheModule } from '../../cache/cache.module'
+import { UsersModule } from '../users/users.module'
 import { Patient } from './entities/patient.entity'
 import { PatientsController } from './controllers/patients.controller'
 import { CreatePatientUseCase } from './use-cases/create-patient.use-case'
@@ -12,7 +13,7 @@ import { IPatientsRepository } from './repositories/patients.repository.interfac
 import { PatientsRepository } from './repositories/patients.repository'
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Patient]), CacheModule],
+  imports: [TypeOrmModule.forFeature([Patient]), CacheModule, UsersModule],
   controllers: [PatientsController],
   providers: [
     CreatePatientUseCase,

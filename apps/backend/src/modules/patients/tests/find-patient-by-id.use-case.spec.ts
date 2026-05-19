@@ -1,7 +1,7 @@
 import { NotFoundException } from '@nestjs/common'
 import { DataSource } from 'typeorm'
 import { faker } from '@faker-js/faker'
-import { PatientGender } from '@app/shared'
+import { PatientGender, UserRole } from '@app/shared'
 import { CacheService } from '../../../cache/cache.service'
 import { IPatientsRepository } from '../repositories/patients.repository.interface'
 import { FindPatientByIdUseCase } from '../use-cases/find-patient-by-id.use-case'
@@ -23,19 +23,37 @@ const mockCacheService = {
   delByPattern: jest.fn(),
 } as unknown as jest.Mocked<CacheService>
 
-const makePatient = () => ({
+const makeUser = (overrides = {}) => ({
   id: faker.string.uuid(),
   fullName: faker.person.fullName(),
-  documentNumber: '12345678901',
   email: faker.internet.email(),
-  phoneNumber: '(11) 99999-9999',
-  birthDate: '1990-05-15',
-  gender: PatientGender.MALE,
+  password: 'hashed',
+  role: UserRole.PATIENT,
+  isActive: false,
   version: 1,
   createdAt: new Date(),
   updatedAt: new Date(),
   deletedAt: null,
+  ...overrides,
 })
+
+const makePatient = (overrides = {}) => {
+  const user = makeUser()
+  return {
+    id: faker.string.uuid(),
+    user,
+    userId: user.id,
+    documentNumber: '12345678901',
+    phoneNumber: '(11) 99999-9999',
+    birthDate: '1990-05-15',
+    gender: PatientGender.MALE,
+    version: 1,
+    createdAt: new Date(),
+    updatedAt: new Date(),
+    deletedAt: null,
+    ...overrides,
+  }
+}
 
 describe('FindPatientByIdUseCase', () => {
   let useCase: FindPatientByIdUseCase
@@ -51,7 +69,7 @@ describe('FindPatientByIdUseCase', () => {
 
   it('returns cached response on cache hit without calling repository', async () => {
     const id = faker.string.uuid()
-    const cached = { id, fullName: 'João' }
+    const cached = { id, user: { fullName: 'João' } }
     mockCacheService.get.mockResolvedValue(cached)
 
     const result = await useCase.execute(id)

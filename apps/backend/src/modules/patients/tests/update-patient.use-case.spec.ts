@@ -1,8 +1,9 @@
 import { ConflictException, NotFoundException } from '@nestjs/common'
 import { DataSource, OptimisticLockVersionMismatchError } from 'typeorm'
 import { faker } from '@faker-js/faker'
-import { PatientGender } from '@app/shared'
+import { PatientGender, UserRole } from '@app/shared'
 import { CacheService } from '../../../cache/cache.service'
+import { IUsersRepository } from '../../users/repositories/users.repository.interface'
 import { IPatientsRepository } from '../repositories/patients.repository.interface'
 import { UpdatePatientUseCase } from '../use-cases/update-patient.use-case'
 
@@ -10,6 +11,15 @@ const mockPatientsRepository: jest.Mocked<IPatientsRepository> = {
   findAll: jest.fn(),
   findById: jest.fn(),
   findByDocumentNumber: jest.fn(),
+  create: jest.fn(),
+  update: jest.fn(),
+  delete: jest.fn(),
+}
+
+const mockUsersRepository: jest.Mocked<IUsersRepository> = {
+  findAll: jest.fn(),
+  findById: jest.fn(),
+  findByEmail: jest.fn(),
   create: jest.fn(),
   update: jest.fn(),
   delete: jest.fn(),
@@ -23,14 +33,24 @@ const mockCacheService = {
   delByPattern: jest.fn(),
 } as unknown as jest.Mocked<CacheService>
 
-const makePatient = (overrides = {}) => ({
+const mockDataSource = {
+  createQueryRunner: jest.fn().mockReturnValue({
+    connect: jest.fn(),
+    startTransaction: jest.fn(),
+    commitTransaction: jest.fn(),
+    rollbackTransaction: jest.fn(),
+    release: jest.fn(),
+    manager: { getRepository: jest.fn() },
+  }),
+} as unknown as DataSource
+
+const makeUser = (overrides = {}) => ({
   id: faker.string.uuid(),
   fullName: faker.person.fullName(),
-  documentNumber: '12345678901',
   email: faker.internet.email(),
-  phoneNumber: '(11) 99999-9999',
-  birthDate: '1990-05-15',
-  gender: PatientGender.MALE,
+  password: 'hashed',
+  role: UserRole.PATIENT,
+  isActive: false,
   version: 1,
   createdAt: new Date(),
   updatedAt: new Date(),
@@ -38,40 +58,108 @@ const makePatient = (overrides = {}) => ({
   ...overrides,
 })
 
+const makePatient = (overrides = {}) => {
+  const user = makeUser()
+  return {
+    id: faker.string.uuid(),
+    user,
+    userId: user.id,
+    documentNumber: '12345678901',
+    phoneNumber: '(11) 99999-9999',
+    birthDate: '1990-05-15',
+    gender: PatientGender.MALE,
+    version: 1,
+    createdAt: new Date(),
+    updatedAt: new Date(),
+    deletedAt: null,
+    ...overrides,
+  }
+}
+
 describe('UpdatePatientUseCase', () => {
   let useCase: UpdatePatientUseCase
 
   beforeEach(() => {
     jest.clearAllMocks()
     useCase = new UpdatePatientUseCase(
-      {} as DataSource,
+      mockDataSource,
       mockPatientsRepository,
+      mockUsersRepository,
       mockCacheService,
     )
   })
 
-  it('updates patient and returns response', async () => {
+  it('updates patient fields and returns response', async () => {
     const patient = makePatient()
-    const updated = { ...patient, fullName: 'Nome Atualizado' }
+    const updated = { ...patient, phoneNumber: '(11) 88888-8888' }
 
-    mockPatientsRepository.findById.mockResolvedValue(patient as any)
+    mockPatientsRepository.findById
+      .mockResolvedValueOnce(patient as any)
+      .mockResolvedValueOnce(updated as any)
     mockPatientsRepository.update.mockResolvedValue(updated as any)
     mockCacheService.del.mockResolvedValue(undefined)
     mockCacheService.delByPattern.mockResolvedValue(undefined)
 
-    const result = await useCase.execute(patient.id, { fullName: 'Nome Atualizado' })
+    const result = await useCase.execute(patient.id, { phoneNumber: '(11) 88888-8888' })
 
-    expect(mockPatientsRepository.findById).toHaveBeenCalledWith(patient.id)
-    expect(mockPatientsRepository.update).toHaveBeenCalledWith(patient.id, { fullName: 'Nome Atualizado' })
-    expect(result.fullName).toBe('Nome Atualizado')
+    expect(mockPatientsRepository.update).toHaveBeenCalledWith(patient.id, { phoneNumber: '(11) 88888-8888' })
+    expect(mockUsersRepository.update).not.toHaveBeenCalled()
+    expect(result.phoneNumber).toBe('(11) 88888-8888')
     expect(result).not.toHaveProperty('version')
+  })
+
+  it('updates user fields when fullName is provided', async () => {
+    const patient = makePatient()
+    const updatedUser = { ...patient.user, fullName: 'Novo Nome' }
+    const updatedPatient = { ...patient, user: updatedUser }
+
+    mockPatientsRepository.findById
+      .mockResolvedValueOnce(patient as any)
+      .mockResolvedValueOnce(updatedPatient as any)
+    mockUsersRepository.update.mockResolvedValue(updatedUser as any)
+    mockCacheService.del.mockResolvedValue(undefined)
+    mockCacheService.delByPattern.mockResolvedValue(undefined)
+
+    const result = await useCase.execute(patient.id, { fullName: 'Novo Nome' })
+
+    expect(mockUsersRepository.update).toHaveBeenCalledWith(
+      patient.userId,
+      expect.objectContaining({ fullName: 'Novo Nome' }),
+    )
+    expect(mockPatientsRepository.update).not.toHaveBeenCalled()
+    expect(result.user.fullName).toBe('Novo Nome')
   })
 
   it('throws NotFoundException when patient does not exist', async () => {
     mockPatientsRepository.findById.mockResolvedValue(null)
 
-    await expect(useCase.execute(faker.string.uuid(), { fullName: 'Test' })).rejects.toThrow(NotFoundException)
+    await expect(useCase.execute(faker.string.uuid(), { phoneNumber: '(11) 99999-9999' })).rejects.toThrow(
+      NotFoundException,
+    )
     expect(mockPatientsRepository.update).not.toHaveBeenCalled()
+  })
+
+  it('throws ConflictException when new email is already in use', async () => {
+    const patient = makePatient()
+    mockPatientsRepository.findById.mockResolvedValue(patient as any)
+    mockUsersRepository.findByEmail.mockResolvedValue(makeUser() as any)
+
+    await expect(useCase.execute(patient.id, { email: 'taken@example.com' })).rejects.toThrow(ConflictException)
+    expect(mockUsersRepository.update).not.toHaveBeenCalled()
+  })
+
+  it('does not check email uniqueness when email is unchanged', async () => {
+    const patient = makePatient()
+    const updatedPatient = { ...patient, user: { ...patient.user, fullName: 'Outro Nome' } }
+
+    mockPatientsRepository.findById
+      .mockResolvedValueOnce(patient as any)
+      .mockResolvedValueOnce(updatedPatient as any)
+    mockUsersRepository.update.mockResolvedValue(updatedPatient.user as any)
+
+    await useCase.execute(patient.id, { email: patient.user.email, fullName: 'Outro Nome' })
+
+    expect(mockUsersRepository.findByEmail).not.toHaveBeenCalled()
   })
 
   it('throws ConflictException on OptimisticLockVersionMismatchError', async () => {
@@ -79,7 +167,7 @@ describe('UpdatePatientUseCase', () => {
     mockPatientsRepository.findById.mockResolvedValue(patient as any)
     mockPatientsRepository.update.mockRejectedValue(new OptimisticLockVersionMismatchError('Patient', 1, 2))
 
-    await expect(useCase.execute(patient.id, { fullName: 'Test' })).rejects.toThrow(ConflictException)
+    await expect(useCase.execute(patient.id, { phoneNumber: '(11) 99999-9999' })).rejects.toThrow(ConflictException)
   })
 
   it('propagates non-optimistic-lock errors', async () => {
@@ -87,7 +175,7 @@ describe('UpdatePatientUseCase', () => {
     mockPatientsRepository.findById.mockResolvedValue(patient as any)
     mockPatientsRepository.update.mockRejectedValue(new Error('Database error'))
 
-    await expect(useCase.execute(patient.id, { fullName: 'Test' })).rejects.toThrow('Database error')
+    await expect(useCase.execute(patient.id, { phoneNumber: '(11) 99999-9999' })).rejects.toThrow('Database error')
   })
 
   it('invalidates patient and list cache after update', async () => {
@@ -97,7 +185,7 @@ describe('UpdatePatientUseCase', () => {
     mockCacheService.del.mockResolvedValue(undefined)
     mockCacheService.delByPattern.mockResolvedValue(undefined)
 
-    await useCase.execute(patient.id, { fullName: 'Test' })
+    await useCase.execute(patient.id, { phoneNumber: '(11) 99999-9999' })
 
     expect(mockCacheService.del).toHaveBeenCalledWith(`patient:${patient.id}`)
     expect(mockCacheService.delByPattern).toHaveBeenCalledWith('patients:list*')
@@ -109,7 +197,7 @@ describe('UpdatePatientUseCase', () => {
     mockPatientsRepository.update.mockResolvedValue(patient as any)
     mockCacheService.del.mockRejectedValue(new Error('Redis error'))
 
-    const result = await useCase.execute(patient.id, { fullName: 'Test' })
+    const result = await useCase.execute(patient.id, { phoneNumber: '(11) 99999-9999' })
 
     expect(result.id).toBe(patient.id)
   })

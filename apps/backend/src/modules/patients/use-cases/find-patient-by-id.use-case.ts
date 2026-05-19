@@ -45,9 +45,13 @@ export class FindPatientByIdUseCase extends BaseUseCase {
   private toResponse(patient: Patient): PatientResponseDto {
     return {
       id: patient.id,
-      fullName: patient.fullName,
+      user: {
+        id: patient.user.id,
+        fullName: patient.user.fullName,
+        email: patient.user.email,
+        isActive: patient.user.isActive,
+      },
       documentNumber: patient.documentNumber,
-      email: patient.email,
       phoneNumber: patient.phoneNumber,
       birthDate: patient.birthDate,
       gender: patient.gender,

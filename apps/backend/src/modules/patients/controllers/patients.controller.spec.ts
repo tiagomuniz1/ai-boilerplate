@@ -15,9 +15,13 @@ const mockDelete = { execute: jest.fn() } as unknown as jest.Mocked<DeletePatien
 
 const makeResponse = (overrides = {}) => ({
   id: 'uuid-1',
-  fullName: 'Alice Costa',
+  user: {
+    id: 'user-uuid-1',
+    fullName: 'Alice Costa',
+    email: 'alice@example.com',
+    isActive: false,
+  },
   documentNumber: '12345678901',
-  email: 'alice@example.com',
   phoneNumber: '(11) 99999-9999',
   birthDate: '1990-05-15',
   gender: PatientGender.FEMALE,
@@ -85,7 +89,7 @@ describe('PatientsController', () => {
 
   it('update delegates to UpdatePatientUseCase with id and dto', async () => {
     const dto = { fullName: 'Alice Updated' }
-    const response = makeResponse({ fullName: 'Alice Updated' })
+    const response = makeResponse({ user: { id: 'user-uuid-1', fullName: 'Alice Updated', email: 'alice@example.com', isActive: false } })
     mockUpdate.execute.mockResolvedValue(response)
 
     const result = await controller.update('uuid-1', dto as any)

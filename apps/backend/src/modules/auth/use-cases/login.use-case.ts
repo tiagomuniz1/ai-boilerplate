@@ -42,6 +42,10 @@ export class LoginUseCase extends BaseUseCase {
       throw new UnauthorizedException('Invalid credentials')
     }
 
+    if (!user.isActive) {
+      throw new UnauthorizedException('Account is not active')
+    }
+
     const accessExpiresInSeconds = parseTtlToSeconds(this.authEnv.jwtExpiration)
     const refreshExpiresInSeconds = parseTtlToSeconds(this.authEnv.jwtRefreshExpiration)
 

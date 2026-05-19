@@ -1,10 +1,16 @@
 import { PatientGender } from '../enums/patient-gender.enum'
 
-export class PatientResponseDto {
+export class PatientUserDto {
   id!: string
   fullName!: string
-  documentNumber!: string
   email!: string
+  isActive!: boolean
+}
+
+export class PatientResponseDto {
+  id!: string
+  user!: PatientUserDto
+  documentNumber!: string
   phoneNumber!: string
   birthDate!: string
   gender!: PatientGender

@@ -1,9 +1,8 @@
 import { Injectable } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
-import { QueryRunner, Repository } from 'typeorm'
-import { CreatePatientDto, UpdatePatientDto } from '@app/shared'
+import { ILike, QueryRunner, Repository } from 'typeorm'
 import { Patient } from '../entities/patient.entity'
-import { IPatientsRepository } from './patients.repository.interface'
+import { CreatePatientData, IPatientsRepository, UpdatePatientData } from './patients.repository.interface'
 
 @Injectable()
 export class PatientsRepository implements IPatientsRepository {
@@ -13,38 +12,39 @@ export class PatientsRepository implements IPatientsRepository {
   ) {}
 
   async findAll(page: number, limit: number, search?: string): Promise<[Patient[], number]> {
-    const query = this.repository
-      .createQueryBuilder('patient')
-      .skip((page - 1) * limit)
-      .take(limit)
-      .orderBy('patient.created_at', 'DESC')
+    const where = search
+      ? [
+          { user: { fullName: ILike(`%${search}%`) } },
+          { documentNumber: search },
+        ]
+      : {}
 
-    if (search) {
-      query.andWhere(
-        '(patient.full_name ILIKE :search OR patient.document_number = :exact)',
-        { search: `%${search}%`, exact: search },
-      )
-    }
-
-    return query.getManyAndCount()
+    return this.repository.findAndCount({
+      relations: ['user'],
+      where,
+      skip: (page - 1) * limit,
+      take: limit,
+      order: { createdAt: 'DESC' },
+    })
   }
 
   async findById(id: string): Promise<Patient | null> {
-    return this.repository.findOneBy({ id })
+    return this.repository.findOne({ where: { id }, relations: ['user'] })
   }
 
   async findByDocumentNumber(documentNumber: string): Promise<Patient | null> {
     return this.repository.findOneBy({ documentNumber })
   }
 
-  async create(data: CreatePatientDto, queryRunner?: QueryRunner): Promise<Patient> {
+  async create(data: CreatePatientData, queryRunner?: QueryRunner): Promise<Patient> {
     const repo = queryRunner ? queryRunner.manager.getRepository(Patient) : this.repository
-    return repo.save(repo.create(data))
+    const saved = await repo.save(repo.create(data))
+    return repo.findOneOrFail({ where: { id: saved.id }, relations: ['user'] })
   }
 
-  async update(id: string, data: UpdatePatientDto, queryRunner?: QueryRunner): Promise<Patient> {
+  async update(id: string, data: UpdatePatientData, queryRunner?: QueryRunner): Promise<Patient> {
     const repo = queryRunner ? queryRunner.manager.getRepository(Patient) : this.repository
-    const patient = await repo.findOneByOrFail({ id })
+    const patient = await repo.findOneOrFail({ where: { id }, relations: ['user'] })
     Object.assign(patient, data)
     return repo.save(patient)
   }
