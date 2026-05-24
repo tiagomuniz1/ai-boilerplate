@@ -9,11 +9,14 @@ import type { IUserModel } from '../types/user-model.types'
 
 const roleLabel: Record<UserRole, string> = {
   [UserRole.ADMIN]: 'Admin',
+  [UserRole.DOCTOR]: 'Médico',
   [UserRole.USER]: 'Usuário',
+  [UserRole.PATIENT]: 'Paciente',
 }
 
 interface UserDetailsProps {
   user: IUserModel
+  canDelete: boolean
   onDeleteClick: () => void
 }
 
@@ -28,7 +31,7 @@ function DetailRow({ label, value, testId }: { label: string; value: string; tes
   )
 }
 
-export function UserDetails({ user, onDeleteClick }: UserDetailsProps) {
+export function UserDetails({ user, canDelete, onDeleteClick }: UserDetailsProps) {
   return (
     <div className="flex flex-col gap-6" data-testid="user-details">
       <div className="flex items-start justify-between gap-4">
@@ -46,15 +49,17 @@ export function UserDetails({ user, onDeleteClick }: UserDetailsProps) {
               Editar
             </Button>
           </Link>
-          <Button
-            variant="primary"
-            size="sm"
-            onClick={onDeleteClick}
-            data-testid="user-details-delete-button"
-            className="bg-danger hover:bg-danger/90 focus-visible:ring-danger"
-          >
-            Excluir
-          </Button>
+          {canDelete && (
+            <Button
+              variant="primary"
+              size="sm"
+              onClick={onDeleteClick}
+              data-testid="user-details-delete-button"
+              className="bg-danger hover:bg-danger/90 focus-visible:ring-danger"
+            >
+              Excluir
+            </Button>
+          )}
         </div>
       </div>
 

@@ -1,7 +1,9 @@
-import { ConflictException, NotFoundException } from '@nestjs/common'
+import { ConflictException, ForbiddenException, NotFoundException } from '@nestjs/common'
 import { DataSource, OptimisticLockVersionMismatchError } from 'typeorm'
 import { faker } from '@faker-js/faker'
+import { UserRole } from '@app/shared'
 import { CacheService } from '../../../cache/cache.service'
+import { ICurrentUser } from '../../auth/types/current-user.type'
 import { IDoctorsRepository } from '../repositories/doctors.repository.interface'
 import { UpdateDoctorUseCase } from '../use-cases/update-doctor.use-case'
 
@@ -37,6 +39,8 @@ const makeDoctor = (overrides = {}) => ({
   ...overrides,
 })
 
+const adminUser: ICurrentUser = { id: faker.string.uuid(), role: UserRole.ADMIN }
+
 describe('UpdateDoctorUseCase', () => {
   let useCase: UpdateDoctorUseCase
 
@@ -59,7 +63,7 @@ describe('UpdateDoctorUseCase', () => {
     mockCacheService.del.mockResolvedValue(undefined)
     mockCacheService.delByPattern.mockResolvedValue(undefined)
 
-    const result = await useCase.execute(doctor.id, { specialty: 'Neurologia' })
+    const result = await useCase.execute(doctor.id, { specialty: 'Neurologia' }, adminUser)
 
     expect(result.id).toBe(doctor.id)
     expect(result.specialty).toBe('Neurologia')
@@ -68,7 +72,7 @@ describe('UpdateDoctorUseCase', () => {
   it('throws NotFoundException when doctor does not exist', async () => {
     mockDoctorsRepository.findById.mockResolvedValue(null)
 
-    await expect(useCase.execute(faker.string.uuid(), { specialty: 'Neurologia' })).rejects.toThrow(
+    await expect(useCase.execute(faker.string.uuid(), { specialty: 'Neurologia' }, adminUser)).rejects.toThrow(
       NotFoundException,
     )
   })
@@ -81,7 +85,7 @@ describe('UpdateDoctorUseCase', () => {
     mockDoctorsRepository.findByCrmNumber.mockResolvedValue(otherDoctor as any)
 
     await expect(
-      useCase.execute(doctor.id, { crmNumber: '22222/SP' }),
+      useCase.execute(doctor.id, { crmNumber: '22222/SP' }, adminUser),
     ).rejects.toThrow(ConflictException)
     expect(mockDoctorsRepository.update).not.toHaveBeenCalled()
   })
@@ -95,7 +99,7 @@ describe('UpdateDoctorUseCase', () => {
     mockCacheService.del.mockResolvedValue(undefined)
     mockCacheService.delByPattern.mockResolvedValue(undefined)
 
-    const result = await useCase.execute(doctor.id, { crmNumber: '12345/SP' })
+    const result = await useCase.execute(doctor.id, { crmNumber: '12345/SP' }, adminUser)
 
     expect(mockDoctorsRepository.findByCrmNumber).not.toHaveBeenCalled()
     expect(result.crmNumber).toBe('12345/SP')
@@ -108,7 +112,7 @@ describe('UpdateDoctorUseCase', () => {
       new OptimisticLockVersionMismatchError('Doctor', 1, 2),
     )
 
-    await expect(useCase.execute(doctor.id, { specialty: 'Neurologia' })).rejects.toThrow(
+    await expect(useCase.execute(doctor.id, { specialty: 'Neurologia' }, adminUser)).rejects.toThrow(
       ConflictException,
     )
   })
@@ -118,7 +122,7 @@ describe('UpdateDoctorUseCase', () => {
     mockDoctorsRepository.findById.mockResolvedValue(doctor as any)
     mockDoctorsRepository.update.mockRejectedValue(new Error('Unexpected DB error'))
 
-    await expect(useCase.execute(doctor.id, { specialty: 'Neurologia' })).rejects.toThrow(
+    await expect(useCase.execute(doctor.id, { specialty: 'Neurologia' }, adminUser)).rejects.toThrow(
       'Unexpected DB error',
     )
   })
@@ -132,7 +136,7 @@ describe('UpdateDoctorUseCase', () => {
     mockCacheService.del.mockResolvedValue(undefined)
     mockCacheService.delByPattern.mockResolvedValue(undefined)
 
-    await useCase.execute(doctor.id, { specialty: 'Neurologia' })
+    await useCase.execute(doctor.id, { specialty: 'Neurologia' }, adminUser)
 
     expect(mockCacheService.del).toHaveBeenCalledWith(`doctor:${doctor.id}`)
     expect(mockCacheService.delByPattern).toHaveBeenCalledWith('doctors:list*')
@@ -146,8 +150,37 @@ describe('UpdateDoctorUseCase', () => {
     mockDoctorsRepository.update.mockResolvedValue(updated as any)
     mockCacheService.del.mockRejectedValue(new Error('Redis error'))
 
-    const result = await useCase.execute(doctor.id, { specialty: 'Neurologia' })
+    const result = await useCase.execute(doctor.id, { specialty: 'Neurologia' }, adminUser)
 
     expect(result.id).toBeDefined()
+  })
+
+  it('allows DOCTOR to update their own profile', async () => {
+    const doctor = makeDoctor()
+    const doctorUser: ICurrentUser = { id: doctor.user.id, role: UserRole.DOCTOR }
+    const updated = makeDoctor({ id: doctor.id, specialty: 'Neurologia' })
+
+    mockDoctorsRepository.findByUserId.mockResolvedValue(doctor as any)
+    mockDoctorsRepository.findById.mockResolvedValue(doctor as any)
+    mockDoctorsRepository.update.mockResolvedValue(updated as any)
+    mockCacheService.del.mockResolvedValue(undefined)
+    mockCacheService.delByPattern.mockResolvedValue(undefined)
+
+    const result = await useCase.execute(doctor.id, { specialty: 'Neurologia' }, doctorUser)
+
+    expect(result.id).toBe(doctor.id)
+  })
+
+  it('throws ForbiddenException when DOCTOR tries to update another doctor profile', async () => {
+    const doctorUser: ICurrentUser = { id: faker.string.uuid(), role: UserRole.DOCTOR }
+    const ownDoctor = makeDoctor()
+    const otherDoctorId = faker.string.uuid()
+
+    mockDoctorsRepository.findByUserId.mockResolvedValue(ownDoctor as any)
+
+    await expect(useCase.execute(otherDoctorId, { specialty: 'Neurologia' }, doctorUser)).rejects.toThrow(
+      ForbiddenException,
+    )
+    expect(mockDoctorsRepository.findById).not.toHaveBeenCalled()
   })
 })

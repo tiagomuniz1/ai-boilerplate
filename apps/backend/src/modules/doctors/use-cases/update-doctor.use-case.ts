@@ -1,8 +1,9 @@
-import { ConflictException, Injectable, Logger, NotFoundException } from '@nestjs/common'
+import { ConflictException, ForbiddenException, Injectable, Logger, NotFoundException } from '@nestjs/common'
 import { DataSource, OptimisticLockVersionMismatchError } from 'typeorm'
-import { DoctorResponseDto, UpdateDoctorDto } from '@app/shared'
+import { DoctorResponseDto, UpdateDoctorDto, UserRole } from '@app/shared'
 import { BaseUseCase } from '../../../common/base.use-case'
 import { CacheService } from '../../../cache/cache.service'
+import { ICurrentUser } from '../../auth/types/current-user.type'
 import { IDoctorsRepository } from '../repositories/doctors.repository.interface'
 import { Doctor } from '../entities/doctor.entity'
 
@@ -18,7 +19,14 @@ export class UpdateDoctorUseCase extends BaseUseCase {
     super(dataSource)
   }
 
-  async execute(id: string, dto: UpdateDoctorDto): Promise<DoctorResponseDto> {
+  async execute(id: string, dto: UpdateDoctorDto, currentUser: ICurrentUser): Promise<DoctorResponseDto> {
+    if (currentUser.role === UserRole.DOCTOR) {
+      const ownDoctor = await this.doctorsRepository.findByUserId(currentUser.id)
+      if (!ownDoctor || ownDoctor.id !== id) {
+        throw new ForbiddenException('You can only update your own doctor profile')
+      }
+    }
+
     const doctor = await this.doctorsRepository.findById(id)
     if (!doctor) throw new NotFoundException('Doctor not found')
 

@@ -1,0 +1,26 @@
+{
+  "schedule": {
+    "id": "schedule-uuid-1",
+    "doctorId": "doc-uuid-1",
+    "dayOfWeek": "MONDAY",
+    "startTime": "08:00",
+    "endTime": "12:00",
+    "slotDurationInMinutes": 30,
+    "validFrom": null,
+    "validUntil": null,
+    "createdAt": "2025-01-01T10:00:00.000Z",
+    "updatedAt": "2025-01-01T10:00:00.000Z"
+  },
+  "scheduleWithValidity": {
+    "id": "schedule-uuid-2",
+    "doctorId": "doc-uuid-1",
+    "dayOfWeek": "WEDNESDAY",
+    "startTime": "14:00",
+    "endTime": "18:00",
+    "slotDurationInMinutes": 60,
+    "validFrom": "2025-01-01",
+    "validUntil": "2025-12-31",
+    "createdAt": "2025-01-01T10:00:00.000Z",
+    "updatedAt": "2025-01-01T10:00:00.000Z"
+  }
+}

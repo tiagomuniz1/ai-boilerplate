@@ -18,7 +18,22 @@ describe('JwtStrategy', () => {
 
     beforeEach(() => { strategy = new JwtStrategy() })
 
-    it('maps sub to userId and keeps email', () => {
+    it('maps sub to id, keeps email, and includes role from payload', () => {
+      const payload: JwtPayload = {
+        sub: 'user-uuid',
+        email: 'user@example.com',
+        role: 'doctor' as any,
+        iat: 0,
+        exp: 9999999999,
+      }
+      expect(strategy.validate(payload)).toEqual({
+        id: 'user-uuid',
+        email: 'user@example.com',
+        role: 'doctor',
+      })
+    })
+
+    it('defaults role to USER when role is absent in payload', () => {
       const payload: JwtPayload = {
         sub: 'user-uuid',
         email: 'user@example.com',
@@ -26,8 +41,9 @@ describe('JwtStrategy', () => {
         exp: 9999999999,
       }
       expect(strategy.validate(payload)).toEqual({
-        userId: 'user-uuid',
+        id: 'user-uuid',
         email: 'user@example.com',
+        role: 'user',
       })
     })
   })

@@ -1,10 +1,11 @@
-import { ConflictException, NotFoundException } from '@nestjs/common'
+import { ConflictException, ForbiddenException, NotFoundException } from '@nestjs/common'
 import { DataSource, OptimisticLockVersionMismatchError } from 'typeorm'
 import { faker } from '@faker-js/faker'
 import { UserRole } from '@app/shared'
 import { UpdateUserUseCase } from '../use-cases/update-user.use-case'
 import { IUsersRepository } from '../repositories/users.repository.interface'
 import { CacheService } from '../../../cache/cache.service'
+import { ICurrentUser } from '../../auth/types/current-user.type'
 import { User } from '../entities/user.entity'
 
 const mockUsersRepository: jest.Mocked<IUsersRepository> = {
@@ -40,6 +41,8 @@ function makeUser(overrides: Partial<User> = {}): User {
   }
 }
 
+const adminUser: ICurrentUser = { id: faker.string.uuid(), role: UserRole.ADMIN }
+
 describe('UpdateUserUseCase', () => {
   let useCase: UpdateUserUseCase
 
@@ -56,7 +59,7 @@ describe('UpdateUserUseCase', () => {
     mockUsersRepository.findById.mockResolvedValue(user)
     mockUsersRepository.update.mockResolvedValue(updated)
 
-    const result = await useCase.execute(user.id, { fullName: 'New Name' })
+    const result = await useCase.execute(user.id, { fullName: 'New Name' }, adminUser)
 
     expect(result.fullName).toBe('New Name')
     expect(result.isActive).toBe(true)
@@ -70,7 +73,7 @@ describe('UpdateUserUseCase', () => {
     mockUsersRepository.findById.mockResolvedValue(user)
     mockUsersRepository.update.mockResolvedValue(updated)
 
-    const result = await useCase.execute(user.id, { isActive: false })
+    const result = await useCase.execute(user.id, { isActive: false }, adminUser)
 
     expect(result.isActive).toBe(false)
   })
@@ -78,7 +81,7 @@ describe('UpdateUserUseCase', () => {
   it('throws NotFoundException when user does not exist', async () => {
     mockUsersRepository.findById.mockResolvedValue(null)
 
-    await expect(useCase.execute('nonexistent', { fullName: 'X' })).rejects.toThrow(NotFoundException)
+    await expect(useCase.execute('nonexistent', { fullName: 'X' }, adminUser)).rejects.toThrow(NotFoundException)
     expect(mockUsersRepository.update).not.toHaveBeenCalled()
   })
 
@@ -88,7 +91,7 @@ describe('UpdateUserUseCase', () => {
     mockUsersRepository.findById.mockResolvedValue(user)
     mockUsersRepository.findByEmail.mockResolvedValue(otherUser)
 
-    await expect(useCase.execute(user.id, { email: 'taken@example.com' })).rejects.toThrow(ConflictException)
+    await expect(useCase.execute(user.id, { email: 'taken@example.com' }, adminUser)).rejects.toThrow(ConflictException)
     expect(mockUsersRepository.update).not.toHaveBeenCalled()
   })
 
@@ -98,7 +101,7 @@ describe('UpdateUserUseCase', () => {
     mockUsersRepository.findById.mockResolvedValue(user)
     mockUsersRepository.update.mockResolvedValue(updated)
 
-    await useCase.execute(user.id, { email: 'same@example.com' })
+    await useCase.execute(user.id, { email: 'same@example.com' }, adminUser)
 
     expect(mockUsersRepository.findByEmail).not.toHaveBeenCalled()
   })
@@ -108,7 +111,7 @@ describe('UpdateUserUseCase', () => {
     mockUsersRepository.findById.mockResolvedValue(user)
     mockUsersRepository.update.mockRejectedValue(new OptimisticLockVersionMismatchError('User', 1, 2))
 
-    await expect(useCase.execute(user.id, { fullName: 'X' })).rejects.toThrow(ConflictException)
+    await expect(useCase.execute(user.id, { fullName: 'X' }, adminUser)).rejects.toThrow(ConflictException)
   })
 
   it('re-throws unknown errors from repository', async () => {
@@ -116,7 +119,7 @@ describe('UpdateUserUseCase', () => {
     mockUsersRepository.findById.mockResolvedValue(user)
     mockUsersRepository.update.mockRejectedValue(new Error('DB failure'))
 
-    await expect(useCase.execute(user.id, { fullName: 'X' })).rejects.toThrow('DB failure')
+    await expect(useCase.execute(user.id, { fullName: 'X' }, adminUser)).rejects.toThrow('DB failure')
   })
 
   it('invalidates individual and list cache after update', async () => {
@@ -124,7 +127,7 @@ describe('UpdateUserUseCase', () => {
     mockUsersRepository.findById.mockResolvedValue(user)
     mockUsersRepository.update.mockResolvedValue(user)
 
-    await useCase.execute(user.id, { fullName: 'X' })
+    await useCase.execute(user.id, { fullName: 'X' }, adminUser)
 
     expect(mockCacheService.del).toHaveBeenCalledWith(`user:${user.id}`)
     expect(mockCacheService.delByPattern).toHaveBeenCalledWith('users:list*')
@@ -136,6 +139,45 @@ describe('UpdateUserUseCase', () => {
     mockUsersRepository.update.mockResolvedValue(user)
     mockCacheService.del.mockRejectedValue(new Error('Redis down'))
 
-    await expect(useCase.execute(user.id, { fullName: 'X' })).resolves.toBeDefined()
+    await expect(useCase.execute(user.id, { fullName: 'X' }, adminUser)).resolves.toBeDefined()
+  })
+
+  it('allows DOCTOR to update their own profile', async () => {
+    const user = makeUser()
+    const doctorUser: ICurrentUser = { id: user.id, role: UserRole.DOCTOR }
+    const updated = { ...user, fullName: 'Updated Name' }
+    mockUsersRepository.findById.mockResolvedValue(user)
+    mockUsersRepository.update.mockResolvedValue(updated)
+
+    const result = await useCase.execute(user.id, { fullName: 'Updated Name' }, doctorUser)
+
+    expect(result.id).toBe(user.id)
+  })
+
+  it('throws ForbiddenException when DOCTOR tries to update another user profile', async () => {
+    const doctorUser: ICurrentUser = { id: faker.string.uuid(), role: UserRole.DOCTOR }
+    const otherId = faker.string.uuid()
+
+    await expect(useCase.execute(otherId, { fullName: 'X' }, doctorUser)).rejects.toThrow(ForbiddenException)
+    expect(mockUsersRepository.findById).not.toHaveBeenCalled()
+  })
+
+  it('allows USER to update their own profile', async () => {
+    const user = makeUser()
+    const currentUser: ICurrentUser = { id: user.id, role: UserRole.USER }
+    const updated = { ...user, fullName: 'Updated Name' }
+    mockUsersRepository.findById.mockResolvedValue(user)
+    mockUsersRepository.update.mockResolvedValue(updated)
+
+    const result = await useCase.execute(user.id, { fullName: 'Updated Name' }, currentUser)
+
+    expect(result.id).toBe(user.id)
+  })
+
+  it('throws ForbiddenException when USER tries to update another user profile', async () => {
+    const currentUser: ICurrentUser = { id: faker.string.uuid(), role: UserRole.USER }
+    const otherId = faker.string.uuid()
+
+    await expect(useCase.execute(otherId, { fullName: 'X' }, currentUser)).rejects.toThrow(ForbiddenException)
   })
 })

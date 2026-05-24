@@ -1,8 +1,9 @@
-import { Injectable, Logger } from '@nestjs/common'
+import { Injectable, Logger, NotFoundException } from '@nestjs/common'
 import { DataSource } from 'typeorm'
-import { DoctorResponseDto, PaginatedDoctorsResponseDto } from '@app/shared'
+import { DoctorResponseDto, PaginatedDoctorsResponseDto, UserRole } from '@app/shared'
 import { BaseUseCase } from '../../../common/base.use-case'
 import { CacheService } from '../../../cache/cache.service'
+import { ICurrentUser } from '../../auth/types/current-user.type'
 import { IDoctorsRepository } from '../repositories/doctors.repository.interface'
 import { ListDoctorsQueryDto } from '../dto/list-doctors-query.dto'
 import { Doctor } from '../entities/doctor.entity'
@@ -19,7 +20,19 @@ export class FindAllDoctorsUseCase extends BaseUseCase {
     super(dataSource)
   }
 
-  async execute(query: ListDoctorsQueryDto): Promise<PaginatedDoctorsResponseDto> {
+  async execute(query: ListDoctorsQueryDto, currentUser: ICurrentUser): Promise<PaginatedDoctorsResponseDto> {
+    if (currentUser.role === UserRole.DOCTOR) {
+      const doctor = await this.doctorsRepository.findByUserId(currentUser.id)
+      if (!doctor) throw new NotFoundException('Doctor not found')
+      const result: PaginatedDoctorsResponseDto = {
+        data: [this.toResponse(doctor)],
+        total: 1,
+        page: 1,
+        limit: query.limit,
+      }
+      return result
+    }
+
     const { page, limit, search } = query
     const cacheKey = `doctors:list:${page}:${limit}:${search ?? 'all'}`
 

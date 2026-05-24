@@ -24,6 +24,7 @@ export class MeUseCase extends BaseUseCase {
       id: user.id,
       fullName: user.fullName,
       email: user.email,
+      role: user.role,
     }
   }
 }

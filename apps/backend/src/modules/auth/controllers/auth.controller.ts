@@ -1,12 +1,11 @@
-import { Body, Controller, Get, HttpCode, Post, Res } from '@nestjs/common'
+import { Controller, Get, HttpCode, Post, Req, Res, Body } from '@nestjs/common'
 import { Throttle } from '@nestjs/throttler'
-import { Response } from 'express'
+import { Request, Response } from 'express'
 import { Public } from '../decorators/public.decorator'
 import { CurrentUser } from '../decorators/current-user.decorator'
 import { RefreshResponseDto } from '../dto/auth-response.dto'
 import { LoginDto } from '../dto/login.dto'
 import { LoginResponseDto } from '../dto/login-response.dto'
-import { LogoutDto } from '../dto/logout.dto'
 import { MeResponseDto } from '../dto/me-response.dto'
 import { RefreshTokenDto } from '../dto/refresh-token.dto'
 import { LoginUseCase } from '../use-cases/login.use-case'
@@ -58,13 +57,24 @@ export class AuthController {
 
   @Post('logout')
   @HttpCode(204)
-  logout(@Body() dto: LogoutDto): Promise<void> {
-    return this.logoutUseCase.execute(dto)
+  async logout(
+    @Req() req: Request,
+    @Res({ passthrough: true }) res: Response,
+  ): Promise<void> {
+    const refreshToken = req.cookies?.refresh_token as string | undefined
+
+    const cookieOptions = { httpOnly: true, secure: true, sameSite: 'strict' as const, path: '/' }
+    res.clearCookie('access_token', cookieOptions)
+    res.clearCookie('refresh_token', cookieOptions)
+
+    if (refreshToken) {
+      await this.logoutUseCase.execute({ refreshToken })
+    }
   }
 
   @Get('me')
   @HttpCode(200)
   me(@CurrentUser() authUser: AuthenticatedUser): Promise<MeResponseDto> {
-    return this.meUseCase.execute(authUser.userId)
+    return this.meUseCase.execute(authUser.id)
   }
 }

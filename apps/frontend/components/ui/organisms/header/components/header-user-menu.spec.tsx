@@ -112,6 +112,18 @@ describe('HeaderUserMenu', () => {
       expect(screen.getByText('maria@example.com')).toBeInTheDocument()
     })
 
+    it('renders "Meu perfil" link in dropdown', () => {
+      renderMenu()
+      fireEvent.click(screen.getByTestId('header-avatar-button'))
+      expect(screen.getByTestId('header-profile-link')).toBeInTheDocument()
+    })
+
+    it('"Meu perfil" link points to user edit page', () => {
+      renderMenu()
+      fireEvent.click(screen.getByTestId('header-avatar-button'))
+      expect(screen.getByTestId('header-profile-link')).toHaveAttribute('href', '/users/user-1/edit')
+    })
+
     it('renders logout button in dropdown', () => {
       renderMenu()
       fireEvent.click(screen.getByTestId('header-avatar-button'))

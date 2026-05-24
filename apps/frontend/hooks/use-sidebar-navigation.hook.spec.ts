@@ -1,5 +1,7 @@
 import { renderHook, act } from '@testing-library/react'
+import { UserRole } from '@app/shared'
 import { useSidebarNavigation } from './use-sidebar-navigation.hook'
+import { useAuthStore } from '@/stores/auth.store'
 import { useSidebarStore } from '@/stores/sidebar.store'
 
 const mockUsePathname = jest.fn()
@@ -8,13 +10,18 @@ jest.mock('next/navigation', () => ({
   usePathname: () => mockUsePathname(),
 }))
 
+function setRole(role: UserRole) {
+  useAuthStore.setState({ user: { id: 'u1', fullName: 'Test', email: 't@t.com', role } })
+}
+
 describe('useSidebarNavigation', () => {
   beforeEach(() => {
     mockUsePathname.mockReturnValue('/dashboard')
     useSidebarStore.setState({ isCollapsed: false })
+    setRole(UserRole.ADMIN)
   })
 
-  it('returns all navigation items', () => {
+  it('returns navigation items for current role', () => {
     const { result } = renderHook(() => useSidebarNavigation())
     expect(result.current.items.length).toBeGreaterThan(0)
   })
@@ -79,5 +86,37 @@ describe('useSidebarNavigation', () => {
       expect(item.href).toBeDefined()
       expect(typeof item.isActive).toBe('boolean')
     })
+  })
+
+  it('ADMIN sees all 5 items', () => {
+    setRole(UserRole.ADMIN)
+    const { result } = renderHook(() => useSidebarNavigation())
+    const ids = result.current.items.map((i) => i.id)
+    expect(ids).toEqual(expect.arrayContaining(['dashboard', 'users', 'patients', 'doctors', 'schedules']))
+    expect(ids).toHaveLength(5)
+  })
+
+  it('DOCTOR sees dashboard, doctors and schedules', () => {
+    setRole(UserRole.DOCTOR)
+    const { result } = renderHook(() => useSidebarNavigation())
+    const ids = result.current.items.map((i) => i.id)
+    expect(ids).toEqual(expect.arrayContaining(['dashboard', 'doctors', 'schedules']))
+    expect(ids).not.toContain('users')
+    expect(ids).not.toContain('patients')
+  })
+
+  it('USER sees dashboard, patients and doctors', () => {
+    setRole(UserRole.USER)
+    const { result } = renderHook(() => useSidebarNavigation())
+    const ids = result.current.items.map((i) => i.id)
+    expect(ids).toEqual(expect.arrayContaining(['dashboard', 'patients', 'doctors']))
+    expect(ids).not.toContain('users')
+    expect(ids).not.toContain('schedules')
+  })
+
+  it('returns empty items when no user is logged in', () => {
+    useAuthStore.setState({ user: null })
+    const { result } = renderHook(() => useSidebarNavigation())
+    expect(result.current.items).toHaveLength(0)
   })
 })

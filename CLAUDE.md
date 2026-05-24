@@ -4,6 +4,10 @@
 
 ---
 
+@ai/context/permissions.md
+
+---
+
 ## Comandos
 
 ### Setup inicial

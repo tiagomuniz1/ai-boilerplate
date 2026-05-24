@@ -51,6 +51,7 @@ describe('MeUseCase', () => {
       id: user.id,
       fullName: user.fullName,
       email: user.email,
+      role: user.role,
     })
     expect(mockUsersRepository.findById).toHaveBeenCalledWith(user.id)
   })

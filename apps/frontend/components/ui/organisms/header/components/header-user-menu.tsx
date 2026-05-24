@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import Link from 'next/link'
 import type { IHeaderUserModel } from '../types/header.types'
 
 export interface IHeaderUserMenuProps {
@@ -73,6 +74,33 @@ export function HeaderUserMenu({ user, onLogout, isLoggingOut, logoutError }: IH
               <div className="text-text-mute truncate" style={{ fontSize: '11px' }}>
                 {user.email}
               </div>
+            </div>
+
+            <div className="border-t border-line" />
+
+            <div className="p-1">
+              <Link
+                href={`/users/${user.id}/edit`}
+                data-testid="header-profile-link"
+                className="flex items-center gap-2 px-3 py-2 text-sm text-text-dim hover:bg-surface-2 rounded transition-colors"
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width={14}
+                  height={14}
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth={2}
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  aria-hidden="true"
+                >
+                  <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+                  <circle cx="12" cy="7" r="4" />
+                </svg>
+                Meu perfil
+              </Link>
             </div>
 
             <div className="border-t border-line" />

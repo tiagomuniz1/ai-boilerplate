@@ -1,4 +1,5 @@
 import { Response } from 'express'
+import { UserRole } from '@app/shared'
 import { AuthController } from './auth.controller'
 import { LoginUseCase } from '../use-cases/login.use-case'
 import { RefreshTokenUseCase } from '../use-cases/refresh-token.use-case'
@@ -10,8 +11,8 @@ const mockRefreshTokenUseCase = { execute: jest.fn() } as unknown as jest.Mocked
 const mockLogoutUseCase = { execute: jest.fn() } as unknown as jest.Mocked<LogoutUseCase>
 const mockMeUseCase = { execute: jest.fn() } as unknown as jest.Mocked<MeUseCase>
 
-function makeMockResponse(): jest.Mocked<Pick<Response, 'cookie'>> {
-  return { cookie: jest.fn() }
+function makeMockResponse(): jest.Mocked<Pick<Response, 'cookie' | 'clearCookie'>> {
+  return { cookie: jest.fn(), clearCookie: jest.fn() }
 }
 
 describe('AuthController', () => {
@@ -24,7 +25,7 @@ describe('AuthController', () => {
 
   describe('login', () => {
     const useCaseResult = {
-      user: { id: 'uuid-1', fullName: 'Alice Costa', email: 'alice@example.com' },
+      user: { id: 'uuid-1', fullName: 'Alice Costa', email: 'alice@example.com', role: UserRole.USER },
       accessToken: 'access-token-value',
       refreshToken: 'refresh-token-value',
       accessTokenMaxAge: 900 * 1000,
@@ -105,7 +106,7 @@ describe('AuthController', () => {
         mockResponse as any,
       )
 
-      expect(result).toEqual({ id: 'uuid-1', fullName: 'Alice Costa', email: 'alice@example.com' })
+      expect(result).toEqual({ id: 'uuid-1', fullName: 'Alice Costa', email: 'alice@example.com', role: UserRole.USER })
       expect(result).not.toHaveProperty('accessToken')
       expect(result).not.toHaveProperty('refreshToken')
     })
@@ -122,18 +123,41 @@ describe('AuthController', () => {
     expect(result).toBe(response)
   })
 
-  it('delegates logout to LogoutUseCase', async () => {
-    const dto = { refreshToken: 'rt' } as any
-    mockLogoutUseCase.execute.mockResolvedValue(undefined)
+  describe('logout', () => {
+    it('reads refresh_token from cookie and delegates to LogoutUseCase', async () => {
+      mockLogoutUseCase.execute.mockResolvedValue(undefined)
+      const mockReq = { cookies: { refresh_token: 'rt' } } as any
+      const mockRes = { clearCookie: jest.fn() } as any
 
-    await controller.logout(dto)
+      await controller.logout(mockReq, mockRes)
 
-    expect(mockLogoutUseCase.execute).toHaveBeenCalledWith(dto)
+      expect(mockLogoutUseCase.execute).toHaveBeenCalledWith({ refreshToken: 'rt' })
+    })
+
+    it('clears access_token and refresh_token cookies', async () => {
+      mockLogoutUseCase.execute.mockResolvedValue(undefined)
+      const mockReq = { cookies: { refresh_token: 'rt' } } as any
+      const mockRes = { clearCookie: jest.fn() } as any
+
+      await controller.logout(mockReq, mockRes)
+
+      expect(mockRes.clearCookie).toHaveBeenCalledWith('access_token', expect.objectContaining({ httpOnly: true, secure: true, sameSite: 'strict' }))
+      expect(mockRes.clearCookie).toHaveBeenCalledWith('refresh_token', expect.objectContaining({ httpOnly: true, secure: true, sameSite: 'strict' }))
+    })
+
+    it('skips LogoutUseCase when refresh_token cookie is absent', async () => {
+      const mockReq = { cookies: {} } as any
+      const mockRes = { clearCookie: jest.fn() } as any
+
+      await controller.logout(mockReq, mockRes)
+
+      expect(mockLogoutUseCase.execute).not.toHaveBeenCalled()
+    })
   })
 
-  it('delegates me to MeUseCase using userId from authUser', async () => {
-    const authUser = { userId: 'user-uuid', email: 'user@example.com' }
-    const meResult = { id: 'user-uuid', fullName: 'Alice Costa', email: 'user@example.com' }
+  it('delegates me to MeUseCase using id from authUser', async () => {
+    const authUser = { id: 'user-uuid', email: 'user@example.com', role: 'user' as any }
+    const meResult = { id: 'user-uuid', fullName: 'Alice Costa', email: 'user@example.com', role: UserRole.USER }
     mockMeUseCase.execute.mockResolvedValue(meResult)
 
     const result = await controller.me(authUser)

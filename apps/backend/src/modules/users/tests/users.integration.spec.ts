@@ -1,5 +1,4 @@
 import { INestApplication, ValidationPipe } from '@nestjs/common'
-import { APP_GUARD } from '@nestjs/core'
 import { Test } from '@nestjs/testing'
 import { getRepositoryToken } from '@nestjs/typeorm'
 import { faker } from '@faker-js/faker'
@@ -8,7 +7,6 @@ import * as request from 'supertest'
 import { Repository } from 'typeorm'
 import { UserRole } from '@app/shared'
 import { AppModule } from '../../../app.module'
-import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard'
 import { User } from '../entities/user.entity'
 
 process.env.NODE_ENV = 'test'
@@ -25,10 +23,7 @@ describe('UsersController (integration)', () => {
   beforeAll(async () => {
     const module = await Test.createTestingModule({
       imports: [AppModule],
-    })
-      .overrideProvider(APP_GUARD)
-      .useClass(JwtAuthGuard)
-      .compile()
+    }).compile()
 
     app = module.createNestApplication()
     app.useGlobalPipes(
@@ -47,6 +42,7 @@ describe('UsersController (integration)', () => {
         fullName: 'Test Auth User',
         email: 'auth@test.com',
         password: hashedPassword,
+        role: UserRole.ADMIN,
       }),
     )
 

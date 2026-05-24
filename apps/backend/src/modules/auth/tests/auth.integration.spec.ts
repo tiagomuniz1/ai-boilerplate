@@ -4,6 +4,7 @@ import { Test } from '@nestjs/testing'
 import { getRepositoryToken } from '@nestjs/typeorm'
 import { faker } from '@faker-js/faker'
 import * as bcrypt from 'bcrypt'
+import * as cookieParser from 'cookie-parser'
 import * as request from 'supertest'
 import { Repository } from 'typeorm'
 import { AppModule } from '../../../app.module'
@@ -40,6 +41,7 @@ describe('AuthController (integration)', () => {
       .compile()
 
     app = module.createNestApplication()
+    app.use(cookieParser())
     app.useGlobalPipes(
       new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true, transform: true }),
     )
@@ -81,7 +83,7 @@ describe('AuthController (integration)', () => {
   }
 
   describe('POST /auth/login', () => {
-    it('returns 200 with { id, fullName, email } body and sets httpOnly cookies on valid credentials', async () => {
+    it('returns 200 with { id, fullName, email, role } body and sets httpOnly cookies on valid credentials', async () => {
       const user = await createTestUser()
 
       const response = await request(app.getHttpServer())
@@ -93,6 +95,7 @@ describe('AuthController (integration)', () => {
         id: user.id,
         fullName: user.fullName,
         email: user.email,
+        role: user.role,
       })
       expect(response.body).not.toHaveProperty('accessToken')
       expect(response.body).not.toHaveProperty('refreshToken')
@@ -182,6 +185,25 @@ describe('AuthController (integration)', () => {
         .expect(400)
     })
 
+    it('returns 401 when account is inactive', async () => {
+      const hashedPassword = await bcrypt.hash('password123', 10)
+      await userRepository.save(
+        userRepository.create({
+          fullName: faker.person.fullName(),
+          email: 'inactive@test.com',
+          password: hashedPassword,
+          isActive: false,
+        }),
+      )
+
+      const { body } = await request(app.getHttpServer())
+        .post('/auth/login')
+        .send({ email: 'inactive@test.com', password: 'password123' })
+        .expect(401)
+
+      expect(body.detail).toBe('Account is not active')
+    })
+
     it('is accessible without authentication (public route)', async () => {
       await request(app.getHttpServer())
         .post('/auth/login')
@@ -261,12 +283,30 @@ describe('AuthController (integration)', () => {
       await request(app.getHttpServer())
         .post('/auth/logout')
         .set('Authorization', `Bearer ${accessToken}`)
-        .send({ refreshToken })
+        .set('Cookie', `refresh_token=${refreshToken}`)
         .expect(204)
 
       const tokenHash = createHash('sha256').update(refreshToken).digest('hex')
       const stored = await refreshTokenRepository.findOneBy({ tokenHash })
       expect(stored!.revokedAt).not.toBeNull()
+    })
+
+    it('clears access_token and refresh_token cookies in response', async () => {
+      const user = await createTestUser()
+      const { accessToken, refreshToken } = await loginAndExtractTokens(user.email)
+
+      const response = await request(app.getHttpServer())
+        .post('/auth/logout')
+        .set('Authorization', `Bearer ${accessToken}`)
+        .set('Cookie', `refresh_token=${refreshToken}`)
+        .expect(204)
+
+      const cookies = response.headers['set-cookie'] as unknown as string[]
+      const clearedAccessToken = cookies?.find((c) => c.startsWith('access_token='))
+      const clearedRefreshToken = cookies?.find((c) => c.startsWith('refresh_token='))
+
+      expect(clearedAccessToken).toBeDefined()
+      expect(clearedRefreshToken).toBeDefined()
     })
 
     it('returns 204 on already revoked token (idempotent)', async () => {
@@ -276,24 +316,23 @@ describe('AuthController (integration)', () => {
       await request(app.getHttpServer())
         .post('/auth/logout')
         .set('Authorization', `Bearer ${accessToken}`)
-        .send({ refreshToken })
+        .set('Cookie', `refresh_token=${refreshToken}`)
         .expect(204)
 
       await request(app.getHttpServer())
         .post('/auth/logout')
         .set('Authorization', `Bearer ${accessToken}`)
-        .send({ refreshToken })
+        .set('Cookie', `refresh_token=${refreshToken}`)
         .expect(204)
     })
 
-    it('returns 204 on nonexistent token (idempotent)', async () => {
+    it('returns 204 without refresh_token cookie (idempotent)', async () => {
       const user = await createTestUser()
       const { accessToken } = await loginAndExtractTokens(user.email)
 
       await request(app.getHttpServer())
         .post('/auth/logout')
         .set('Authorization', `Bearer ${accessToken}`)
-        .send({ refreshToken: 'nonexistent-token' })
         .expect(204)
     })
 
@@ -304,7 +343,7 @@ describe('AuthController (integration)', () => {
       await request(app.getHttpServer())
         .post('/auth/logout')
         .set('Authorization', `Bearer ${accessToken}`)
-        .send({ refreshToken })
+        .set('Cookie', `refresh_token=${refreshToken}`)
 
       await request(app.getHttpServer())
         .post('/auth/refresh')
@@ -313,9 +352,43 @@ describe('AuthController (integration)', () => {
     })
   })
 
+  describe('GET /auth/me', () => {
+    it('returns 200 with current user profile when authenticated', async () => {
+      const user = await createTestUser()
+      const { accessToken } = await loginAndExtractTokens(user.email)
+
+      const { body } = await request(app.getHttpServer())
+        .get('/auth/me')
+        .set('Authorization', `Bearer ${accessToken}`)
+        .expect(200)
+
+      expect(body.id).toBe(user.id)
+      expect(body.fullName).toBe(user.fullName)
+      expect(body.email).toBe(user.email)
+      expect(body.role).toBe(user.role)
+    })
+
+    it('response does not contain password or version', async () => {
+      const user = await createTestUser()
+      const { accessToken } = await loginAndExtractTokens(user.email)
+
+      const { body } = await request(app.getHttpServer())
+        .get('/auth/me')
+        .set('Authorization', `Bearer ${accessToken}`)
+        .expect(200)
+
+      expect(body.password).toBeUndefined()
+      expect(body.version).toBeUndefined()
+    })
+
+    it('returns 401 without token', async () => {
+      await request(app.getHttpServer()).get('/auth/me').expect(401)
+    })
+  })
+
   describe('JWT Guard', () => {
     it('returns 401 on protected endpoint without token', async () => {
-      await request(app.getHttpServer()).post('/auth/logout').send({ refreshToken: 'token' }).expect(401)
+      await request(app.getHttpServer()).post('/auth/logout').expect(401)
     })
 
     it('health endpoint is accessible without authentication', async () => {

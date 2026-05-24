@@ -27,7 +27,7 @@ describe('UserDetails (integration)', () => {
   })
 
   it('renders all user fields', () => {
-    renderWithProviders(<UserDetails user={user} onDeleteClick={jest.fn()} />)
+    renderWithProviders(<UserDetails user={user} canDelete onDeleteClick={jest.fn()} />)
 
     expect(screen.getByTestId('user-details-name')).toHaveTextContent('Alice Costa')
     expect(screen.getByTestId('user-details-email')).toHaveTextContent('alice@example.com')
@@ -37,27 +37,39 @@ describe('UserDetails (integration)', () => {
   })
 
   it('renders "Inativo" for inactive user', () => {
-    renderWithProviders(<UserDetails user={{ ...user, isActive: false }} onDeleteClick={jest.fn()} />)
+    renderWithProviders(<UserDetails user={{ ...user, isActive: false }} canDelete onDeleteClick={jest.fn()} />)
 
     expect(screen.getByTestId('user-details-status')).toHaveTextContent('Inativo')
   })
 
   it('renders "Usuário" role label for USER role', () => {
-    renderWithProviders(<UserDetails user={{ ...user, role: UserRole.USER }} onDeleteClick={jest.fn()} />)
+    renderWithProviders(<UserDetails user={{ ...user, role: UserRole.USER }} canDelete onDeleteClick={jest.fn()} />)
 
     expect(screen.getByTestId('user-details-role')).toHaveTextContent('Usuário')
   })
 
   it('renders edit button linking to edit page', () => {
-    renderWithProviders(<UserDetails user={user} onDeleteClick={jest.fn()} />)
+    renderWithProviders(<UserDetails user={user} canDelete onDeleteClick={jest.fn()} />)
 
     expect(screen.getByTestId('user-details-edit-button')).toBeInTheDocument()
+  })
+
+  it('shows delete button when canDelete is true', () => {
+    renderWithProviders(<UserDetails user={user} canDelete onDeleteClick={jest.fn()} />)
+
+    expect(screen.getByTestId('user-details-delete-button')).toBeInTheDocument()
+  })
+
+  it('hides delete button when canDelete is false', () => {
+    renderWithProviders(<UserDetails user={user} canDelete={false} onDeleteClick={jest.fn()} />)
+
+    expect(screen.queryByTestId('user-details-delete-button')).not.toBeInTheDocument()
   })
 
   it('calls onDeleteClick when delete button is clicked', async () => {
     const onDeleteClick = jest.fn()
 
-    renderWithProviders(<UserDetails user={user} onDeleteClick={onDeleteClick} />)
+    renderWithProviders(<UserDetails user={user} canDelete onDeleteClick={onDeleteClick} />)
 
     await userEvent.click(screen.getByTestId('user-details-delete-button'))
 

@@ -5,6 +5,8 @@ const mockRedisInstance = {
   del: jest.fn(),
   keys: jest.fn(),
   disconnect: jest.fn(),
+  scanStream: jest.fn(),
+  pipeline: jest.fn(),
 }
 
 jest.mock('ioredis', () => {
@@ -76,6 +78,54 @@ describe('CacheService', () => {
       mockRedisInstance.keys.mockResolvedValue([])
       await service.delByPattern('users:list*')
       expect(mockRedisInstance.del).not.toHaveBeenCalled()
+    })
+  })
+
+  describe('delByPrefix', () => {
+    it('deletes all keys found by SCAN stream', async () => {
+      const { EventEmitter } = require('events')
+      const stream = new EventEmitter()
+      const mockPipeline = { del: jest.fn(), exec: jest.fn().mockResolvedValue(null) }
+      mockRedisInstance.scanStream.mockReturnValue(stream)
+      mockRedisInstance.pipeline.mockReturnValue(mockPipeline)
+
+      const promise = service.delByPrefix('schedules:list:')
+      stream.emit('data', ['schedules:list:a:b', 'schedules:list:c:d'])
+      stream.emit('end')
+      await promise
+
+      expect(mockPipeline.del).toHaveBeenCalledWith('schedules:list:a:b')
+      expect(mockPipeline.del).toHaveBeenCalledWith('schedules:list:c:d')
+      expect(mockPipeline.exec).toHaveBeenCalled()
+    })
+
+    it('does not call pipeline.exec when no keys match', async () => {
+      const { EventEmitter } = require('events')
+      const stream = new EventEmitter()
+      const mockPipeline = { del: jest.fn(), exec: jest.fn().mockResolvedValue(null) }
+      mockRedisInstance.scanStream.mockReturnValue(stream)
+      mockRedisInstance.pipeline.mockReturnValue(mockPipeline)
+
+      const promise = service.delByPrefix('nonexistent:')
+      stream.emit('data', [])
+      stream.emit('end')
+      await promise
+
+      expect(mockPipeline.del).not.toHaveBeenCalled()
+      expect(mockPipeline.exec).not.toHaveBeenCalled()
+    })
+
+    it('rejects when stream emits an error', async () => {
+      const { EventEmitter } = require('events')
+      const stream = new EventEmitter()
+      const mockPipeline = { del: jest.fn(), exec: jest.fn() }
+      mockRedisInstance.scanStream.mockReturnValue(stream)
+      mockRedisInstance.pipeline.mockReturnValue(mockPipeline)
+
+      const promise = service.delByPrefix('prefix:')
+      stream.emit('error', new Error('SCAN error'))
+
+      await expect(promise).rejects.toThrow('SCAN error')
     })
   })
 

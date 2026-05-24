@@ -1,8 +1,9 @@
-import { Injectable, Logger, NotFoundException } from '@nestjs/common'
+import { ForbiddenException, Injectable, Logger, NotFoundException } from '@nestjs/common'
 import { DataSource } from 'typeorm'
-import { DoctorResponseDto } from '@app/shared'
+import { DoctorResponseDto, UserRole } from '@app/shared'
 import { BaseUseCase } from '../../../common/base.use-case'
 import { CacheService } from '../../../cache/cache.service'
+import { ICurrentUser } from '../../auth/types/current-user.type'
 import { IDoctorsRepository } from '../repositories/doctors.repository.interface'
 import { Doctor } from '../entities/doctor.entity'
 
@@ -18,7 +19,14 @@ export class FindDoctorByIdUseCase extends BaseUseCase {
     super(dataSource)
   }
 
-  async execute(id: string): Promise<DoctorResponseDto> {
+  async execute(id: string, currentUser: ICurrentUser): Promise<DoctorResponseDto> {
+    if (currentUser.role === UserRole.DOCTOR) {
+      const ownDoctor = await this.doctorsRepository.findByUserId(currentUser.id)
+      if (!ownDoctor || ownDoctor.id !== id) {
+        throw new ForbiddenException('You can only view your own doctor profile')
+      }
+    }
+
     const cacheKey = `doctor:${id}`
 
     try {

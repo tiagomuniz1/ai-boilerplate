@@ -1,8 +1,9 @@
-import { ConflictException, Injectable, Logger, NotFoundException } from '@nestjs/common'
+import { ConflictException, ForbiddenException, Injectable, Logger, NotFoundException } from '@nestjs/common'
 import { DataSource, OptimisticLockVersionMismatchError } from 'typeorm'
-import { UpdateUserDto, UserResponseDto } from '@app/shared'
+import { UpdateUserDto, UserResponseDto, UserRole } from '@app/shared'
 import { BaseUseCase } from '../../../common/base.use-case'
 import { CacheService } from '../../../cache/cache.service'
+import { ICurrentUser } from '../../auth/types/current-user.type'
 import { IUsersRepository } from '../repositories/users.repository.interface'
 import { User } from '../entities/user.entity'
 
@@ -18,7 +19,11 @@ export class UpdateUserUseCase extends BaseUseCase {
     super(dataSource)
   }
 
-  async execute(id: string, dto: UpdateUserDto): Promise<UserResponseDto> {
+  async execute(id: string, dto: UpdateUserDto, currentUser: ICurrentUser): Promise<UserResponseDto> {
+    if (currentUser.role !== UserRole.ADMIN && currentUser.id !== id) {
+      throw new ForbiddenException('You can only update your own profile')
+    }
+
     const user = await this.usersRepository.findById(id)
     if (!user) throw new NotFoundException('User not found')
 

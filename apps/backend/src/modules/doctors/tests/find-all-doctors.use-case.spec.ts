@@ -1,6 +1,9 @@
+import { NotFoundException } from '@nestjs/common'
 import { DataSource } from 'typeorm'
 import { faker } from '@faker-js/faker'
+import { UserRole } from '@app/shared'
 import { CacheService } from '../../../cache/cache.service'
+import { ICurrentUser } from '../../auth/types/current-user.type'
 import { IDoctorsRepository } from '../repositories/doctors.repository.interface'
 import { FindAllDoctorsUseCase } from '../use-cases/find-all-doctors.use-case'
 import { ListDoctorsQueryDto } from '../dto/list-doctors-query.dto'
@@ -39,6 +42,8 @@ const makeDoctor = () => ({
 const makeQuery = (overrides: Partial<ListDoctorsQueryDto> = {}): ListDoctorsQueryDto =>
   Object.assign(new ListDoctorsQueryDto(), { page: 1, limit: 20, ...overrides })
 
+const adminUser: ICurrentUser = { id: faker.string.uuid(), role: UserRole.ADMIN }
+
 describe('FindAllDoctorsUseCase', () => {
   let useCase: FindAllDoctorsUseCase
 
@@ -57,7 +62,7 @@ describe('FindAllDoctorsUseCase', () => {
     mockDoctorsRepository.findAll.mockResolvedValue([[doctor as any], 1])
     mockCacheService.set.mockResolvedValue(undefined)
 
-    const result = await useCase.execute(makeQuery())
+    const result = await useCase.execute(makeQuery(), adminUser)
 
     expect(result.data).toHaveLength(1)
     expect(result.total).toBe(1)
@@ -71,7 +76,7 @@ describe('FindAllDoctorsUseCase', () => {
     const cached = { data: [], total: 0, page: 1, limit: 20 }
     mockCacheService.get.mockResolvedValue(cached)
 
-    const result = await useCase.execute(makeQuery())
+    const result = await useCase.execute(makeQuery(), adminUser)
 
     expect(result).toBe(cached)
     expect(mockDoctorsRepository.findAll).not.toHaveBeenCalled()
@@ -82,7 +87,7 @@ describe('FindAllDoctorsUseCase', () => {
     mockDoctorsRepository.findAll.mockResolvedValue([[], 0])
     mockCacheService.set.mockResolvedValue(undefined)
 
-    await useCase.execute(makeQuery({ search: 'Cardio' }))
+    await useCase.execute(makeQuery({ search: 'Cardio' }), adminUser)
 
     expect(mockDoctorsRepository.findAll).toHaveBeenCalledWith(1, 20, 'Cardio')
   })
@@ -92,7 +97,7 @@ describe('FindAllDoctorsUseCase', () => {
     mockDoctorsRepository.findAll.mockResolvedValue([[], 0])
     mockCacheService.set.mockResolvedValue(undefined)
 
-    await useCase.execute(makeQuery())
+    await useCase.execute(makeQuery(), adminUser)
 
     expect(mockCacheService.get).toHaveBeenCalledWith('doctors:list:1:20:all')
   })
@@ -102,7 +107,7 @@ describe('FindAllDoctorsUseCase', () => {
     mockDoctorsRepository.findAll.mockResolvedValue([[], 0])
     mockCacheService.set.mockResolvedValue(undefined)
 
-    const result = await useCase.execute(makeQuery())
+    const result = await useCase.execute(makeQuery(), adminUser)
 
     expect(result.data).toHaveLength(0)
   })
@@ -113,7 +118,7 @@ describe('FindAllDoctorsUseCase', () => {
     mockDoctorsRepository.findAll.mockResolvedValue([[doctor as any], 1])
     mockCacheService.set.mockRejectedValue(new Error('Redis error'))
 
-    const result = await useCase.execute(makeQuery())
+    const result = await useCase.execute(makeQuery(), adminUser)
 
     expect(result.total).toBe(1)
   })
@@ -124,9 +129,30 @@ describe('FindAllDoctorsUseCase', () => {
     mockDoctorsRepository.findAll.mockResolvedValue([[doctor as any], 1])
     mockCacheService.set.mockResolvedValue(undefined)
 
-    const result = await useCase.execute(makeQuery())
+    const result = await useCase.execute(makeQuery(), adminUser)
 
     expect(result.data[0]).not.toHaveProperty('version')
     expect(result.data[0]).not.toHaveProperty('deletedAt')
+  })
+
+  it('returns only own profile when DOCTOR role', async () => {
+    const doctor = makeDoctor()
+    const doctorUser: ICurrentUser = { id: doctor.user.id, role: UserRole.DOCTOR }
+    mockDoctorsRepository.findByUserId.mockResolvedValue(doctor as any)
+
+    const result = await useCase.execute(makeQuery(), doctorUser)
+
+    expect(result.data).toHaveLength(1)
+    expect(result.total).toBe(1)
+    expect(result.data[0].id).toBe(doctor.id)
+    expect(mockDoctorsRepository.findAll).not.toHaveBeenCalled()
+    expect(mockCacheService.get).not.toHaveBeenCalled()
+  })
+
+  it('throws NotFoundException when DOCTOR has no doctor profile', async () => {
+    const doctorUser: ICurrentUser = { id: faker.string.uuid(), role: UserRole.DOCTOR }
+    mockDoctorsRepository.findByUserId.mockResolvedValue(null)
+
+    await expect(useCase.execute(makeQuery(), doctorUser)).rejects.toThrow(NotFoundException)
   })
 })

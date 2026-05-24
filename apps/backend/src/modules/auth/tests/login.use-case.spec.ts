@@ -82,7 +82,7 @@ describe('LoginUseCase', () => {
     const result = await useCase.execute({ email: user.email, password: 'password123' })
 
     expect(result).toEqual({
-      user: { id: user.id, fullName: user.fullName, email: user.email },
+      user: { id: user.id, fullName: user.fullName, email: user.email, role: user.role },
       accessToken: 'access-token',
       refreshToken: 'refresh-token',
       accessTokenMaxAge: 900 * 1000,
@@ -100,7 +100,7 @@ describe('LoginUseCase', () => {
     await useCase.execute({ email: user.email, password: 'password123' })
 
     expect(mockJwtService.signAsync).toHaveBeenCalledWith(
-      { sub: user.id, email: user.email },
+      { sub: user.id, email: user.email, role: user.role },
       { expiresIn: '900s' },
     )
   })
@@ -194,5 +194,33 @@ describe('LoginUseCase', () => {
     await expect(
       useCase.execute({ email: user.email, password: 'password123' }),
     ).rejects.toThrow('DB error')
+  })
+
+  it('throws UnauthorizedException when user has PATIENT role', async () => {
+    const user = makeUser({ role: UserRole.PATIENT })
+    mockUsersRepository.findByEmail.mockResolvedValue(user)
+    ;(bcrypt.compare as jest.Mock).mockResolvedValue(true)
+
+    await expect(
+      useCase.execute({ email: user.email, password: 'password123' }),
+    ).rejects.toThrow(new UnauthorizedException('Invalid credentials'))
+
+    expect(mockRefreshTokensRepository.create).not.toHaveBeenCalled()
+  })
+
+  it('PATIENT login error message matches wrong-password message', async () => {
+    const user = makeUser({ role: UserRole.PATIENT })
+    mockUsersRepository.findByEmail.mockResolvedValue(user)
+    ;(bcrypt.compare as jest.Mock).mockResolvedValue(true)
+    const patientErr = await useCase
+      .execute({ email: user.email, password: 'password123' })
+      .catch((e) => e)
+
+    mockUsersRepository.findByEmail.mockResolvedValue(null)
+    const notFoundErr = await useCase
+      .execute({ email: faker.internet.email(), password: 'password123' })
+      .catch((e) => e)
+
+    expect(patientErr.message).toBe(notFoundErr.message)
   })
 })

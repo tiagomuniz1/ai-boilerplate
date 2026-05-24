@@ -162,6 +162,64 @@ describe('UpdatePatientUseCase', () => {
     expect(mockUsersRepository.findByEmail).not.toHaveBeenCalled()
   })
 
+  it('runs both user and patient updates inside a transaction when both fields are present', async () => {
+    const patient = makePatient()
+    const updatedPatient = {
+      ...patient,
+      phoneNumber: '(11) 77777-7777',
+      user: { ...patient.user, fullName: 'New Name' },
+    }
+
+    mockPatientsRepository.findById
+      .mockResolvedValueOnce(patient as any)
+      .mockResolvedValueOnce(updatedPatient as any)
+    mockUsersRepository.update.mockResolvedValue(updatedPatient.user as any)
+    mockPatientsRepository.update.mockResolvedValue(updatedPatient as any)
+    mockCacheService.del.mockResolvedValue(undefined)
+    mockCacheService.delByPattern.mockResolvedValue(undefined)
+
+    const result = await useCase.execute(patient.id, {
+      fullName: 'New Name',
+      phoneNumber: '(11) 77777-7777',
+    })
+
+    expect(mockUsersRepository.update).toHaveBeenCalledWith(
+      patient.userId,
+      expect.objectContaining({ fullName: 'New Name' }),
+      expect.anything(),
+    )
+    expect(mockPatientsRepository.update).toHaveBeenCalledWith(
+      patient.id,
+      expect.objectContaining({ phoneNumber: '(11) 77777-7777' }),
+      expect.anything(),
+    )
+    expect(result.phoneNumber).toBe('(11) 77777-7777')
+  })
+
+  it('throws ConflictException when OptimisticLock is triggered inside transaction', async () => {
+    const patient = makePatient()
+    mockPatientsRepository.findById.mockResolvedValue(patient as any)
+    mockUsersRepository.update.mockResolvedValue(patient.user as any)
+    mockPatientsRepository.update.mockRejectedValue(
+      new OptimisticLockVersionMismatchError('Patient', 1, 2),
+    )
+
+    await expect(
+      useCase.execute(patient.id, { fullName: 'New Name', phoneNumber: '(11) 99999-9999' }),
+    ).rejects.toThrow(ConflictException)
+  })
+
+  it('rethrows non-optimistic errors from patientsRepository inside transaction', async () => {
+    const patient = makePatient()
+    mockPatientsRepository.findById.mockResolvedValue(patient as any)
+    mockUsersRepository.update.mockResolvedValue(patient.user as any)
+    mockPatientsRepository.update.mockRejectedValue(new Error('DB failure inside transaction'))
+
+    await expect(
+      useCase.execute(patient.id, { fullName: 'New Name', phoneNumber: '(11) 99999-9999' }),
+    ).rejects.toThrow('DB failure inside transaction')
+  })
+
   it('throws ConflictException on OptimisticLockVersionMismatchError', async () => {
     const patient = makePatient()
     mockPatientsRepository.findById.mockResolvedValue(patient as any)

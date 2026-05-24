@@ -1,10 +1,11 @@
-import { NotFoundException } from '@nestjs/common'
+import { ForbiddenException, NotFoundException } from '@nestjs/common'
 import { DataSource } from 'typeorm'
 import { faker } from '@faker-js/faker'
 import { UserRole } from '@app/shared'
 import { FindUserByIdUseCase } from '../use-cases/find-user-by-id.use-case'
 import { IUsersRepository } from '../repositories/users.repository.interface'
 import { CacheService } from '../../../cache/cache.service'
+import { ICurrentUser } from '../../auth/types/current-user.type'
 import { User } from '../entities/user.entity'
 
 const mockUsersRepository: jest.Mocked<IUsersRepository> = {
@@ -39,6 +40,8 @@ function makeUser(id = faker.string.uuid()): User {
   }
 }
 
+const adminUser: ICurrentUser = { id: faker.string.uuid(), role: UserRole.ADMIN }
+
 describe('FindUserByIdUseCase', () => {
   let useCase: FindUserByIdUseCase
 
@@ -52,7 +55,7 @@ describe('FindUserByIdUseCase', () => {
     const cached = { id, fullName: 'Alice', email: 'a@b.com', role: UserRole.USER, createdAt: new Date(), updatedAt: new Date() }
     mockCacheService.get.mockResolvedValue(cached)
 
-    const result = await useCase.execute(id)
+    const result = await useCase.execute(id, adminUser)
 
     expect(result).toBe(cached)
     expect(mockUsersRepository.findById).not.toHaveBeenCalled()
@@ -64,7 +67,7 @@ describe('FindUserByIdUseCase', () => {
     mockUsersRepository.findById.mockResolvedValue(user)
     mockCacheService.set.mockResolvedValue(undefined)
 
-    const result = await useCase.execute(user.id)
+    const result = await useCase.execute(user.id, adminUser)
 
     expect(mockUsersRepository.findById).toHaveBeenCalledWith(user.id)
     expect(result.id).toBe(user.id)
@@ -75,7 +78,7 @@ describe('FindUserByIdUseCase', () => {
     mockCacheService.get.mockResolvedValue(null)
     mockUsersRepository.findById.mockResolvedValue(null)
 
-    await expect(useCase.execute('nonexistent-id')).rejects.toThrow(NotFoundException)
+    await expect(useCase.execute('nonexistent-id', adminUser)).rejects.toThrow(NotFoundException)
   })
 
   it('response does not include password or version', async () => {
@@ -84,7 +87,7 @@ describe('FindUserByIdUseCase', () => {
     mockUsersRepository.findById.mockResolvedValue(user)
     mockCacheService.set.mockResolvedValue(undefined)
 
-    const result = await useCase.execute(user.id)
+    const result = await useCase.execute(user.id, adminUser)
 
     expect(result).not.toHaveProperty('password')
     expect(result).not.toHaveProperty('version')
@@ -96,7 +99,7 @@ describe('FindUserByIdUseCase', () => {
     mockUsersRepository.findById.mockResolvedValue(user)
     mockCacheService.set.mockResolvedValue(undefined)
 
-    await expect(useCase.execute(user.id)).resolves.toBeDefined()
+    await expect(useCase.execute(user.id, adminUser)).resolves.toBeDefined()
     expect(mockUsersRepository.findById).toHaveBeenCalled()
   })
 
@@ -106,6 +109,33 @@ describe('FindUserByIdUseCase', () => {
     mockUsersRepository.findById.mockResolvedValue(user)
     mockCacheService.set.mockRejectedValue(new Error('Redis down'))
 
-    await expect(useCase.execute(user.id)).resolves.toBeDefined()
+    await expect(useCase.execute(user.id, adminUser)).resolves.toBeDefined()
+  })
+
+  it('allows DOCTOR to view their own profile', async () => {
+    const user = makeUser()
+    const doctorUser: ICurrentUser = { id: user.id, role: UserRole.DOCTOR }
+    mockCacheService.get.mockResolvedValue(null)
+    mockUsersRepository.findById.mockResolvedValue(user)
+    mockCacheService.set.mockResolvedValue(undefined)
+
+    const result = await useCase.execute(user.id, doctorUser)
+
+    expect(result.id).toBe(user.id)
+  })
+
+  it('throws ForbiddenException when DOCTOR tries to view another user profile', async () => {
+    const doctorUser: ICurrentUser = { id: faker.string.uuid(), role: UserRole.DOCTOR }
+    const otherId = faker.string.uuid()
+
+    await expect(useCase.execute(otherId, doctorUser)).rejects.toThrow(ForbiddenException)
+    expect(mockUsersRepository.findById).not.toHaveBeenCalled()
+  })
+
+  it('throws ForbiddenException when USER tries to view another user profile', async () => {
+    const currentUser: ICurrentUser = { id: faker.string.uuid(), role: UserRole.USER }
+    const otherId = faker.string.uuid()
+
+    await expect(useCase.execute(otherId, currentUser)).rejects.toThrow(ForbiddenException)
   })
 })

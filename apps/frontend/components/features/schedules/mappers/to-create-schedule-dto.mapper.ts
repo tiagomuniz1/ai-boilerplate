@@ -1,0 +1,14 @@
+import type { CreateScheduleDto } from '@app/shared'
+import type { ICreateScheduleInput } from '../types/schedule-input.types'
+
+export function toCreateScheduleDto(input: ICreateScheduleInput): CreateScheduleDto {
+  return {
+    doctorId: input.doctorId,
+    dayOfWeek: input.dayOfWeek,
+    startTime: input.startTime,
+    endTime: input.endTime,
+    slotDurationInMinutes: input.slotDurationInMinutes,
+    validFrom: input.validFrom || undefined,
+    validUntil: input.validUntil || undefined,
+  }
+}

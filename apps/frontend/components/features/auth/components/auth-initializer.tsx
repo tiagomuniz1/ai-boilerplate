@@ -10,7 +10,7 @@ export function AuthInitializer() {
   const setUser = useAuthStore((state) => state.setUser)
 
   useEffect(() => {
-    if (user) return
+    if (user?.role) return
     authService
       .getMe()
       .then((dto) => setUser(toAuthUserModel(dto)))

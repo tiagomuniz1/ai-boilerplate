@@ -3,6 +3,7 @@ import { JwtService } from '@nestjs/jwt'
 import * as bcrypt from 'bcrypt'
 import { randomUUID } from 'crypto'
 import { DataSource } from 'typeorm'
+import { UserRole } from '@app/shared'
 import { BaseUseCase } from '../../../common/base.use-case'
 import { IUsersRepository } from '../../users/repositories/users.repository.interface'
 import { LoginDto } from '../dto/login.dto'
@@ -46,12 +47,16 @@ export class LoginUseCase extends BaseUseCase {
       throw new UnauthorizedException('Account is not active')
     }
 
+    if (user.role === UserRole.PATIENT) {
+      throw new UnauthorizedException('Invalid credentials')
+    }
+
     const accessExpiresInSeconds = parseTtlToSeconds(this.authEnv.jwtExpiration)
     const refreshExpiresInSeconds = parseTtlToSeconds(this.authEnv.jwtRefreshExpiration)
 
     const [accessToken, refreshToken] = await Promise.all([
       this.jwtService.signAsync(
-        { sub: user.id, email: user.email },
+        { sub: user.id, email: user.email, role: user.role },
         { expiresIn: this.authEnv.jwtExpiration },
       ),
       this.jwtService.signAsync(
@@ -64,7 +69,7 @@ export class LoginUseCase extends BaseUseCase {
     await this.refreshTokensRepository.create(user.id, refreshToken, expiresAt)
 
     return {
-      user: { id: user.id, fullName: user.fullName, email: user.email },
+      user: { id: user.id, fullName: user.fullName, email: user.email, role: user.role },
       accessToken,
       refreshToken,
       accessTokenMaxAge: accessExpiresInSeconds * 1000,

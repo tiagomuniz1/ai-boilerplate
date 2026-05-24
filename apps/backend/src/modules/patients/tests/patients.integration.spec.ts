@@ -1,14 +1,12 @@
 import { INestApplication, ValidationPipe } from '@nestjs/common'
-import { APP_GUARD } from '@nestjs/core'
 import { Test } from '@nestjs/testing'
 import { getRepositoryToken } from '@nestjs/typeorm'
 import { faker } from '@faker-js/faker'
 import * as bcrypt from 'bcrypt'
 import * as request from 'supertest'
 import { Repository } from 'typeorm'
-import { PatientGender } from '@app/shared'
+import { PatientGender, UserRole } from '@app/shared'
 import { AppModule } from '../../../app.module'
-import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard'
 import { User } from '../../users/entities/user.entity'
 import { Patient } from '../entities/patient.entity'
 
@@ -27,10 +25,7 @@ describe('PatientsController (integration)', () => {
   beforeAll(async () => {
     const module = await Test.createTestingModule({
       imports: [AppModule],
-    })
-      .overrideProvider(APP_GUARD)
-      .useClass(JwtAuthGuard)
-      .compile()
+    }).compile()
 
     app = module.createNestApplication()
     app.useGlobalPipes(
@@ -50,6 +45,7 @@ describe('PatientsController (integration)', () => {
         fullName: 'Test Auth User',
         email: 'auth@test.com',
         password: hashedPassword,
+        role: UserRole.ADMIN,
       }),
     )
 
@@ -283,6 +279,31 @@ describe('PatientsController (integration)', () => {
         .set('Authorization', `Bearer ${accessToken}`)
         .send({ documentNumber: '99999999999' })
         .expect(400)
+    })
+
+    it('returns 409 when new email is already in use by another account', async () => {
+      const { body: p1 } = await createPatient({ documentNumber: '11111111111' }).expect(201)
+      const { body: p2 } = await createPatient({ documentNumber: '22222222222', email: faker.internet.email() }).expect(201)
+
+      await request(app.getHttpServer())
+        .patch(`/patients/${p1.id}`)
+        .set('Authorization', `Bearer ${accessToken}`)
+        .send({ email: p2.user.email })
+        .expect(409)
+    })
+
+    it('updates both user and patient fields when provided together', async () => {
+      const { body: created } = await createPatient().expect(201)
+      const newName = faker.person.fullName()
+
+      const { body } = await request(app.getHttpServer())
+        .patch(`/patients/${created.id}`)
+        .set('Authorization', `Bearer ${accessToken}`)
+        .send({ fullName: newName, phoneNumber: '(21) 98888-7777' })
+        .expect(200)
+
+      expect(body.user.fullName).toBe(newName)
+      expect(body.phoneNumber).toBe('(21) 98888-7777')
     })
 
     it('returns 400 when birthDate is in the future', async () => {

@@ -44,6 +44,27 @@ export class CacheService implements OnModuleDestroy {
     }
   }
 
+  async delByPrefix(prefix: string): Promise<void> {
+    const stream = this.client.scanStream({ match: `${prefix}*`, count: 100 })
+    const pipeline = this.client.pipeline()
+    let hasKeys = false
+
+    await new Promise<void>((resolve, reject) => {
+      stream.on('data', (keys: string[]) => {
+        if (keys.length > 0) {
+          hasKeys = true
+          keys.forEach((key) => pipeline.del(key))
+        }
+      })
+      stream.on('end', resolve)
+      stream.on('error', reject)
+    })
+
+    if (hasKeys) {
+      await pipeline.exec()
+    }
+  }
+
   onModuleDestroy() {
     this.client.disconnect()
   }

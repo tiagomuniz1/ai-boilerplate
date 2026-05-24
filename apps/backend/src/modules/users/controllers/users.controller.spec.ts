@@ -7,6 +7,7 @@ import { FindUserByIdUseCase } from '../use-cases/find-user-by-id.use-case'
 import { UpdateUserUseCase } from '../use-cases/update-user.use-case'
 import { DeleteUserUseCase } from '../use-cases/delete-user.use-case'
 import { PaginationDto } from '../../../common/dto/pagination.dto'
+import { AuthenticatedUser } from '../../auth/strategies/jwt.strategy'
 
 const mockCreateUser = { execute: jest.fn() } as unknown as jest.Mocked<CreateUserUseCase>
 const mockFindAll = { execute: jest.fn() } as unknown as jest.Mocked<FindAllUsersUseCase>
@@ -14,6 +15,8 @@ const mockFindById = { execute: jest.fn() } as unknown as jest.Mocked<FindUserBy
 const mockUpdate = { execute: jest.fn() } as unknown as jest.Mocked<UpdateUserUseCase>
 const mockDelete = { execute: jest.fn() } as unknown as jest.Mocked<DeleteUserUseCase>
 const mockActivate = { execute: jest.fn() } as unknown as jest.Mocked<ActivateUserUseCase>
+
+const currentUser: AuthenticatedUser = { id: 'user-uuid-admin', role: UserRole.ADMIN, email: 'admin@example.com' }
 
 describe('UsersController', () => {
   let controller: UsersController
@@ -49,9 +52,9 @@ describe('UsersController', () => {
     const response = { id: 'u1', fullName: 'Alice', email: 'a@b.com', role: UserRole.USER, isActive: true, createdAt: new Date(), updatedAt: new Date() }
     mockFindById.execute.mockResolvedValue(response)
 
-    const result = await controller.findById('u1')
+    const result = await controller.findById('u1', currentUser)
 
-    expect(mockFindById.execute).toHaveBeenCalledWith('u1')
+    expect(mockFindById.execute).toHaveBeenCalledWith('u1', currentUser)
     expect(result).toBe(response)
   })
 
@@ -60,9 +63,9 @@ describe('UsersController', () => {
     const response = { id: 'u1', fullName: 'Bob', email: 'a@b.com', role: UserRole.USER, isActive: true, createdAt: new Date(), updatedAt: new Date() }
     mockUpdate.execute.mockResolvedValue(response)
 
-    const result = await controller.update('u1', dto as any)
+    const result = await controller.update('u1', dto as any, currentUser)
 
-    expect(mockUpdate.execute).toHaveBeenCalledWith('u1', dto)
+    expect(mockUpdate.execute).toHaveBeenCalledWith('u1', dto, currentUser)
     expect(result).toBe(response)
   })
 

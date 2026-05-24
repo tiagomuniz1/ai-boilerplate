@@ -2,6 +2,7 @@ jest.mock('@/stores/auth.store')
 jest.mock('../services/auth.service')
 
 import { render, waitFor } from '@testing-library/react'
+import { UserRole } from '@app/shared'
 import { useAuthStore } from '@/stores/auth.store'
 import { authService } from '../services/auth.service'
 import { AuthInitializer } from './auth-initializer'
@@ -13,6 +14,7 @@ const mockUser: IAuthUserModel = {
   id: 'uuid-1',
   fullName: 'Alice Costa',
   email: 'alice@example.com',
+  role: UserRole.DOCTOR,
 }
 
 function mockAuthStore(user: IAuthUserModel | null) {
@@ -33,10 +35,27 @@ describe('AuthInitializer', () => {
     expect(container).toBeEmptyDOMElement()
   })
 
-  it('does not call authService.getMe when user is already set', () => {
+  it('does not call authService.getMe when user already has a role', () => {
     mockAuthStore(mockUser)
     render(<AuthInitializer />)
     expect(authService.getMe).not.toHaveBeenCalled()
+  })
+
+  it('calls authService.getMe when user exists but has no role (stale state)', async () => {
+    const staleUser = { id: 'uuid-1', fullName: 'Alice Costa', email: 'alice@example.com' } as unknown as IAuthUserModel
+    mockAuthStore(staleUser)
+    ;(authService.getMe as jest.Mock).mockResolvedValue({
+      id: 'uuid-1',
+      fullName: 'Alice Costa',
+      email: 'alice@example.com',
+      role: UserRole.ADMIN,
+    })
+
+    render(<AuthInitializer />)
+
+    await waitFor(() => {
+      expect(authService.getMe).toHaveBeenCalledTimes(1)
+    })
   })
 
   it('calls authService.getMe when user is null', async () => {
@@ -45,6 +64,7 @@ describe('AuthInitializer', () => {
       id: 'uuid-2',
       fullName: 'Bob Silva',
       email: 'bob@example.com',
+      role: UserRole.ADMIN,
     })
 
     render(<AuthInitializer />)
@@ -60,6 +80,7 @@ describe('AuthInitializer', () => {
       id: 'uuid-2',
       fullName: 'Bob Silva',
       email: 'bob@example.com',
+      role: UserRole.ADMIN,
     })
 
     render(<AuthInitializer />)
@@ -69,6 +90,7 @@ describe('AuthInitializer', () => {
         id: 'uuid-2',
         fullName: 'Bob Silva',
         email: 'bob@example.com',
+        role: UserRole.ADMIN,
       })
     })
   })

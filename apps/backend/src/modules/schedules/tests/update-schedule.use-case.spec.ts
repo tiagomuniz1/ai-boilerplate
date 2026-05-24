@@ -1,0 +1,316 @@
+import { ConflictException, ForbiddenException, NotFoundException, UnprocessableEntityException } from '@nestjs/common'
+import { DataSource, OptimisticLockVersionMismatchError } from 'typeorm'
+import { faker } from '@faker-js/faker'
+import { DayOfWeek, UserRole } from '@app/shared'
+import { CacheService } from '../../../cache/cache.service'
+import { ICurrentUser } from '../../auth/types/current-user.type'
+import { IDoctorsRepository } from '../../doctors/repositories/doctors.repository.interface'
+import { IAppointmentsRepository } from '../repositories/appointments.repository.stub'
+import { ISchedulesRepository } from '../repositories/schedules.repository.interface'
+import { UpdateScheduleUseCase } from '../use-cases/update-schedule.use-case'
+
+const mockSchedulesRepository: jest.Mocked<ISchedulesRepository> = {
+  findAll: jest.fn(),
+  findById: jest.fn(),
+  findOverlapping: jest.fn(),
+  create: jest.fn(),
+  update: jest.fn(),
+  delete: jest.fn(),
+}
+
+const mockDoctorsRepository: jest.Mocked<IDoctorsRepository> = {
+  findAll: jest.fn(),
+  findById: jest.fn(),
+  findByUserId: jest.fn(),
+  findByCrmNumber: jest.fn(),
+  create: jest.fn(),
+  update: jest.fn(),
+  delete: jest.fn(),
+}
+
+const mockAppointmentsRepository: jest.Mocked<IAppointmentsRepository> = {
+  hasFutureAppointmentsByScheduleId: jest.fn(),
+}
+
+const mockCacheService = {
+  get: jest.fn(),
+  set: jest.fn(),
+  del: jest.fn(),
+  delByPrefix: jest.fn(),
+  delByPattern: jest.fn(),
+  setIfNotExists: jest.fn(),
+} as unknown as jest.Mocked<CacheService>
+
+const ownerId = faker.string.uuid()
+const otherDoctorId = faker.string.uuid()
+const adminId = faker.string.uuid()
+
+const ownerUser: ICurrentUser = { id: ownerId, role: UserRole.DOCTOR }
+const otherDoctorUser: ICurrentUser = { id: otherDoctorId, role: UserRole.DOCTOR }
+const adminUser: ICurrentUser = { id: adminId, role: UserRole.ADMIN }
+
+const makeSchedule = (overrides = {}) => ({
+  id: faker.string.uuid(),
+  doctorId: ownerId,
+  dayOfWeek: DayOfWeek.MONDAY,
+  startTime: '08:00',
+  endTime: '12:00',
+  slotDurationInMinutes: 30,
+  validFrom: null,
+  validUntil: null,
+  version: 1,
+  createdAt: new Date(),
+  updatedAt: new Date(),
+  deletedAt: null,
+  ...overrides,
+})
+
+describe('UpdateScheduleUseCase', () => {
+  let useCase: UpdateScheduleUseCase
+
+  beforeEach(() => {
+    jest.clearAllMocks()
+    useCase = new UpdateScheduleUseCase(
+      {} as DataSource,
+      mockSchedulesRepository,
+      mockDoctorsRepository,
+      mockAppointmentsRepository,
+      mockCacheService,
+    )
+    mockAppointmentsRepository.hasFutureAppointmentsByScheduleId.mockResolvedValue(false)
+    mockCacheService.delByPrefix.mockResolvedValue(undefined)
+    mockDoctorsRepository.findByUserId.mockImplementation((userId: string) =>
+      Promise.resolve({ id: userId } as any),
+    )
+  })
+
+  it('throws NotFoundException when schedule not found', async () => {
+    mockSchedulesRepository.findById.mockResolvedValue(null)
+    await expect(useCase.execute(faker.string.uuid(), {}, ownerUser)).rejects.toThrow(NotFoundException)
+  })
+
+  it('throws ForbiddenException when role is USER', async () => {
+    mockSchedulesRepository.findById.mockResolvedValue(makeSchedule() as any)
+    const userUser: ICurrentUser = { id: faker.string.uuid(), role: UserRole.USER }
+    await expect(useCase.execute(faker.string.uuid(), {}, userUser)).rejects.toThrow(ForbiddenException)
+    expect(mockSchedulesRepository.update).not.toHaveBeenCalled()
+  })
+
+  it('throws ForbiddenException when role is PATIENT', async () => {
+    mockSchedulesRepository.findById.mockResolvedValue(makeSchedule() as any)
+    const patientUser: ICurrentUser = { id: faker.string.uuid(), role: UserRole.PATIENT }
+    await expect(useCase.execute(faker.string.uuid(), {}, patientUser)).rejects.toThrow(ForbiddenException)
+    expect(mockSchedulesRepository.update).not.toHaveBeenCalled()
+  })
+
+  it('throws NotFoundException when DOCTOR has no profile', async () => {
+    mockSchedulesRepository.findById.mockResolvedValue(makeSchedule() as any)
+    mockDoctorsRepository.findByUserId.mockResolvedValue(null)
+    await expect(useCase.execute(faker.string.uuid(), {}, ownerUser)).rejects.toThrow(NotFoundException)
+    expect(mockSchedulesRepository.update).not.toHaveBeenCalled()
+  })
+
+  it('throws ForbiddenException when doctor tries to update another doctor schedule', async () => {
+    mockSchedulesRepository.findById.mockResolvedValue(makeSchedule() as any)
+    await expect(useCase.execute(faker.string.uuid(), {}, otherDoctorUser)).rejects.toThrow(
+      ForbiddenException,
+    )
+  })
+
+  it('allows admin to update any schedule', async () => {
+    const schedule = makeSchedule()
+    const updated = makeSchedule({ specialty: 'X' })
+    mockSchedulesRepository.findById.mockResolvedValue(schedule as any)
+    mockSchedulesRepository.findOverlapping.mockResolvedValue(null)
+    mockSchedulesRepository.update.mockResolvedValue(updated as any)
+
+    await expect(useCase.execute(schedule.id, { startTime: '09:00' }, adminUser)).resolves.toBeDefined()
+  })
+
+  it('throws ConflictException when schedule has future appointments', async () => {
+    mockSchedulesRepository.findById.mockResolvedValue(makeSchedule() as any)
+    mockAppointmentsRepository.hasFutureAppointmentsByScheduleId.mockResolvedValue(true)
+
+    await expect(useCase.execute(faker.string.uuid(), {}, ownerUser)).rejects.toThrow(ConflictException)
+    expect(mockSchedulesRepository.update).not.toHaveBeenCalled()
+  })
+
+  it('throws UnprocessableEntityException when merged startTime >= endTime', async () => {
+    mockSchedulesRepository.findById.mockResolvedValue(makeSchedule() as any)
+
+    await expect(
+      useCase.execute(faker.string.uuid(), { startTime: '14:00' }, ownerUser),
+    ).rejects.toThrow(UnprocessableEntityException)
+  })
+
+  it('throws UnprocessableEntityException when interval not divisible by merged slot', async () => {
+    mockSchedulesRepository.findById.mockResolvedValue(makeSchedule() as any)
+
+    await expect(
+      useCase.execute(faker.string.uuid(), { slotDurationInMinutes: 70 }, ownerUser),
+    ).rejects.toThrow(UnprocessableEntityException)
+  })
+
+  it('throws UnprocessableEntityException when merged validFrom >= validUntil', async () => {
+    const schedule = makeSchedule({ validUntil: '2025-03-01' })
+    mockSchedulesRepository.findById.mockResolvedValue(schedule as any)
+
+    await expect(
+      useCase.execute(faker.string.uuid(), { validFrom: '2025-06-01' }, ownerUser),
+    ).rejects.toThrow(UnprocessableEntityException)
+  })
+
+  it('does not trigger overlap check when only slotDurationInMinutes changes', async () => {
+    const schedule = makeSchedule()
+    const updated = makeSchedule({ slotDurationInMinutes: 60 })
+    mockSchedulesRepository.findById.mockResolvedValue(schedule as any)
+    mockSchedulesRepository.update.mockResolvedValue(updated as any)
+
+    await useCase.execute(schedule.id, { slotDurationInMinutes: 60 }, ownerUser)
+
+    expect(mockSchedulesRepository.findOverlapping).not.toHaveBeenCalled()
+  })
+
+  it('triggers overlap check when startTime changes', async () => {
+    const schedule = makeSchedule()
+    const updated = makeSchedule()
+    mockSchedulesRepository.findById.mockResolvedValue(schedule as any)
+    mockSchedulesRepository.findOverlapping.mockResolvedValue(null)
+    mockSchedulesRepository.update.mockResolvedValue(updated as any)
+
+    await useCase.execute(schedule.id, { startTime: '09:00' }, ownerUser)
+
+    expect(mockSchedulesRepository.findOverlapping).toHaveBeenCalledWith(
+      schedule.doctorId,
+      schedule.dayOfWeek,
+      '09:00',
+      schedule.endTime,
+      schedule.validFrom,
+      schedule.validUntil,
+      schedule.id,
+    )
+  })
+
+  it('throws ConflictException when updated time overlaps another schedule', async () => {
+    const schedule = makeSchedule()
+    mockSchedulesRepository.findById.mockResolvedValue(schedule as any)
+    mockSchedulesRepository.findOverlapping.mockResolvedValue(makeSchedule() as any)
+
+    await expect(
+      useCase.execute(schedule.id, { startTime: '07:00' }, ownerUser),
+    ).rejects.toThrow(ConflictException)
+    expect(mockSchedulesRepository.update).not.toHaveBeenCalled()
+  })
+
+  it('removes validUntil when null is sent (undefined != null)', async () => {
+    const schedule = makeSchedule({ validUntil: '2025-12-31' })
+    const updated = makeSchedule({ validUntil: null })
+    mockSchedulesRepository.findById.mockResolvedValue(schedule as any)
+    mockSchedulesRepository.findOverlapping.mockResolvedValue(null)
+    mockSchedulesRepository.update.mockResolvedValue(updated as any)
+
+    await useCase.execute(schedule.id, { validUntil: null }, ownerUser)
+
+    expect(mockSchedulesRepository.update).toHaveBeenCalledWith(
+      schedule.id,
+      { validUntil: null },
+    )
+  })
+
+  it('preserves existing validFrom when dto.validFrom is undefined', async () => {
+    const schedule = makeSchedule({ validFrom: '2025-01-01' })
+    const updated = makeSchedule({ validFrom: '2025-01-01' })
+    mockSchedulesRepository.findById.mockResolvedValue(schedule as any)
+    mockSchedulesRepository.update.mockResolvedValue(updated as any)
+
+    await useCase.execute(schedule.id, { slotDurationInMinutes: 60 }, ownerUser)
+
+    expect(mockSchedulesRepository.findOverlapping).not.toHaveBeenCalled()
+  })
+
+  it('throws ConflictException on optimistic lock mismatch', async () => {
+    const schedule = makeSchedule()
+    mockSchedulesRepository.findById.mockResolvedValue(schedule as any)
+    mockSchedulesRepository.update.mockRejectedValue(new OptimisticLockVersionMismatchError('', 1, 2))
+
+    await expect(
+      useCase.execute(schedule.id, { slotDurationInMinutes: 60 }, ownerUser),
+    ).rejects.toThrow(ConflictException)
+  })
+
+  it('uses provided dayOfWeek in merged values and triggers overlap check', async () => {
+    const schedule = makeSchedule()
+    const updated = makeSchedule({ dayOfWeek: DayOfWeek.TUESDAY })
+    mockSchedulesRepository.findById.mockResolvedValue(schedule as any)
+    mockSchedulesRepository.findOverlapping.mockResolvedValue(null)
+    mockSchedulesRepository.update.mockResolvedValue(updated as any)
+
+    await expect(
+      useCase.execute(schedule.id, { dayOfWeek: DayOfWeek.TUESDAY }, ownerUser),
+    ).resolves.toBeDefined()
+
+    expect(mockSchedulesRepository.findOverlapping).toHaveBeenCalledWith(
+      schedule.doctorId,
+      DayOfWeek.TUESDAY,
+      schedule.startTime,
+      schedule.endTime,
+      schedule.validFrom,
+      schedule.validUntil,
+      schedule.id,
+    )
+  })
+
+  it('uses provided endTime in merged values and triggers overlap check', async () => {
+    const schedule = makeSchedule()
+    const updated = makeSchedule({ endTime: '13:00' })
+    mockSchedulesRepository.findById.mockResolvedValue(schedule as any)
+    mockSchedulesRepository.findOverlapping.mockResolvedValue(null)
+    mockSchedulesRepository.update.mockResolvedValue(updated as any)
+
+    await expect(
+      useCase.execute(schedule.id, { endTime: '13:00' }, ownerUser),
+    ).resolves.toBeDefined()
+
+    expect(mockSchedulesRepository.findOverlapping).toHaveBeenCalledWith(
+      schedule.doctorId,
+      schedule.dayOfWeek,
+      schedule.startTime,
+      '13:00',
+      schedule.validFrom,
+      schedule.validUntil,
+      schedule.id,
+    )
+  })
+
+  it('propagates non-optimistic-lock errors from repository update', async () => {
+    const schedule = makeSchedule()
+    mockSchedulesRepository.findById.mockResolvedValue(schedule as any)
+    mockSchedulesRepository.update.mockRejectedValue(new Error('Database connection lost'))
+
+    await expect(
+      useCase.execute(schedule.id, { slotDurationInMinutes: 60 }, ownerUser),
+    ).rejects.toThrow('Database connection lost')
+  })
+
+  it('invalidates cache after update using schedule.doctorId', async () => {
+    const schedule = makeSchedule()
+    mockSchedulesRepository.findById.mockResolvedValue(schedule as any)
+    mockSchedulesRepository.update.mockResolvedValue(schedule as any)
+
+    await useCase.execute(schedule.id, { slotDurationInMinutes: 60 }, ownerUser)
+
+    expect(mockCacheService.delByPrefix).toHaveBeenCalledWith(`schedules:list:${schedule.doctorId}:`)
+    expect(mockCacheService.delByPrefix).toHaveBeenCalledWith('schedules:list:all:')
+  })
+
+  it('continues when cache invalidation fails', async () => {
+    const schedule = makeSchedule()
+    mockSchedulesRepository.findById.mockResolvedValue(schedule as any)
+    mockSchedulesRepository.update.mockResolvedValue(schedule as any)
+    mockCacheService.delByPrefix.mockRejectedValue(new Error('Redis error'))
+
+    await expect(
+      useCase.execute(schedule.id, { slotDurationInMinutes: 60 }, ownerUser),
+    ).resolves.toBeDefined()
+  })
+})

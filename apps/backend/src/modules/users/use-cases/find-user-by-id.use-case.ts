@@ -1,8 +1,9 @@
-import { Injectable, Logger, NotFoundException } from '@nestjs/common'
+import { ForbiddenException, Injectable, Logger, NotFoundException } from '@nestjs/common'
 import { DataSource } from 'typeorm'
-import { UserResponseDto } from '@app/shared'
+import { UserResponseDto, UserRole } from '@app/shared'
 import { BaseUseCase } from '../../../common/base.use-case'
 import { CacheService } from '../../../cache/cache.service'
+import { ICurrentUser } from '../../auth/types/current-user.type'
 import { IUsersRepository } from '../repositories/users.repository.interface'
 import { User } from '../entities/user.entity'
 
@@ -18,7 +19,11 @@ export class FindUserByIdUseCase extends BaseUseCase {
     super(dataSource)
   }
 
-  async execute(id: string): Promise<UserResponseDto> {
+  async execute(id: string, currentUser: ICurrentUser): Promise<UserResponseDto> {
+    if (currentUser.role !== UserRole.ADMIN && currentUser.id !== id) {
+      throw new ForbiddenException('You can only view your own profile')
+    }
+
     const cacheKey = `user:${id}`
 
     try {
