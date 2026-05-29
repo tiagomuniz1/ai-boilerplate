@@ -5,12 +5,12 @@ const mockAuthUser = {
   id: 'mock-auth-user-id',
   fullName: 'Mock Admin',
   email: 'mock@admin.com',
+  role: 'admin',
 }
 
 const mockPatient = {
   id: MOCK_PATIENT_ID,
-  fullName: 'Paciente Detalhe',
-  email: 'detalhe@test.com',
+  user: { id: 'user-uuid-1', fullName: 'Paciente Detalhe', email: 'detalhe@test.com', isActive: true },
   phoneNumber: '(11) 98765-4321',
   birthDate: '1990-05-15',
   documentNumber: '12345678901',
@@ -85,8 +85,8 @@ describe('Patients Detail', () => {
     cy.wait('@getPatient')
 
     cy.get('[data-testid="patient-details"]').should('be.visible')
-    cy.get('[data-testid="patient-details-name"]').should('contain', mockPatient.fullName)
-    cy.get('[data-testid="patient-details-email"]').should('contain', mockPatient.email)
+    cy.get('[data-testid="patient-details-name"]').should('contain', mockPatient.user.fullName)
+    cy.get('[data-testid="patient-details-email"]').should('contain', mockPatient.user.email)
     cy.get('[data-testid="patient-details-phone"]').should('contain', mockPatient.phoneNumber)
     cy.get('[data-testid="patient-details-document"]').should('contain', mockPatient.documentNumber)
     cy.get('[data-testid="patient-details-gender"]').should('contain', 'Masculino')
@@ -132,7 +132,7 @@ describe('Patients Detail', () => {
     cy.wait('@getPatient')
     cy.get('[data-testid="patient-details-delete-button"]').click()
     cy.get('[data-testid="delete-patient-dialog"]').should('be.visible')
-    cy.get('[data-testid="delete-patient-dialog-message"]').should('contain', mockPatient.fullName)
+    cy.get('[data-testid="delete-patient-dialog-message"]').should('contain', mockPatient.user.fullName)
   })
 
   it('cancel button on dialog closes dialog without deleting', () => {

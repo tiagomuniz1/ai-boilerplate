@@ -10,14 +10,14 @@ import { createDoctorUseCase } from './create-doctor.use-case'
 const input = {
   userId: 'user-uuid-1',
   crmNumber: '12345/SP',
-  specialty: 'Cardiologia',
+  specialtyIds: ['spec-uuid-1'],
 }
 
 const makeDto = () => ({
   id: 'uuid-1',
   user: { id: 'user-uuid-1', fullName: 'Dr. João', email: 'joao@example.com' },
   crmNumber: '12345/SP',
-  specialty: 'Cardiologia',
+  specialties: [{ id: 'spec-uuid-1', name: 'Cardiologia' }],
   bio: null,
   createdAt: new Date(),
   updatedAt: new Date(),

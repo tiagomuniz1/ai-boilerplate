@@ -4,7 +4,7 @@ const mockDoctorUser = {
   id: 'doctor-user-uuid',
   fullName: 'Dr. João Silva',
   email: 'joao@test.com',
-  role: 'DOCTOR',
+  role: 'doctor',
 }
 
 const mockSchedule = {

@@ -21,6 +21,14 @@ const roleBadge: Record<UserRole, { label: string; className: string }> = {
     label: 'Usuário',
     className: 'border border-line text-text-dim bg-transparent',
   },
+  [UserRole.DOCTOR]: {
+    label: 'Médico',
+    className: 'border border-line text-text-dim bg-transparent',
+  },
+  [UserRole.PATIENT]: {
+    label: 'Paciente',
+    className: 'border border-line text-text-dim bg-transparent',
+  },
 }
 
 export interface UserTableRowProps {

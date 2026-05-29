@@ -4,12 +4,17 @@ const mockAuthUser = {
   id: 'mock-auth-user-id',
   fullName: 'Mock Admin',
   email: 'mock@admin.com',
+  role: 'admin',
 }
 
 const mockCreatedPatient = {
   id: 'bbbbbbbb-1111-1111-1111-000000000001',
-  fullName: 'Paciente E2E Criado',
-  email: 'paciente.criado@test.com',
+  user: {
+    id: 'user-uuid-created',
+    fullName: 'Paciente E2E Criado',
+    email: 'paciente.criado@test.com',
+    isActive: true,
+  },
   phoneNumber: '(11) 99999-9999',
   birthDate: '1990-05-15',
   documentNumber: '12345678901',

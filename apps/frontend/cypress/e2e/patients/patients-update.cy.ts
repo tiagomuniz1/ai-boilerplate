@@ -5,12 +5,12 @@ const mockAuthUser = {
   id: 'mock-auth-user-id',
   fullName: 'Mock Admin',
   email: 'mock@admin.com',
+  role: 'admin',
 }
 
 const mockPatient = {
   id: MOCK_PATIENT_ID,
-  fullName: 'Paciente Original',
-  email: 'original@test.com',
+  user: { id: 'user-uuid-1', fullName: 'Paciente Original', email: 'original@test.com', isActive: true },
   phoneNumber: '(11) 99999-9999',
   birthDate: '1990-05-15',
   documentNumber: '12345678901',
@@ -21,8 +21,7 @@ const mockPatient = {
 
 const mockUpdatedPatient = {
   ...mockPatient,
-  fullName: 'Paciente Atualizado',
-  email: 'atualizado@test.com',
+  user: { ...mockPatient.user, fullName: 'Paciente Atualizado', email: 'atualizado@test.com' },
 }
 
 function visitWithMockAuth(url: string) {
@@ -73,8 +72,8 @@ describe('Patients Update', () => {
     visitWithMockAuth(`/patients/${MOCK_PATIENT_ID}/edit`)
     cy.wait('@getPatient')
 
-    cy.get('[data-testid="patient-form-fullname"]').should('have.value', mockPatient.fullName)
-    cy.get('[data-testid="patient-form-email"]').should('have.value', mockPatient.email)
+    cy.get('[data-testid="patient-form-fullname"]').should('have.value', mockPatient.user.fullName)
+    cy.get('[data-testid="patient-form-email"]').should('have.value', mockPatient.user.email)
     cy.get('[data-testid="patient-form-phone"]').should('have.value', mockPatient.phoneNumber)
     cy.get('[data-testid="patient-form-document"]').should('have.value', mockPatient.documentNumber)
     cy.get('[data-testid="patient-form-gender"]').should('have.value', mockPatient.gender)
@@ -177,7 +176,7 @@ describe('Patients Update', () => {
     cy.get(`[data-testid="patient-view-link-${MOCK_PATIENT_ID}"]`).click()
     cy.wait('@getPatient')
     cy.get('[data-testid="patient-details"]').should('be.visible')
-    cy.get('[data-testid="patient-details-name"]').should('contain', mockPatient.fullName)
+    cy.get('[data-testid="patient-details-name"]').should('contain', mockPatient.user.fullName)
   })
 })
 

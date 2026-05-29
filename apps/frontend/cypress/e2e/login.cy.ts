@@ -77,10 +77,11 @@ describe('Login como médico', () => {
   let doctor: {
     doctorId: string
     userId: string
+    specialtyId: string
+    specialtyName: string
     email: string
     password: string
     crmNumber: string
-    specialty: string
     accessToken: string
   }
 
@@ -94,6 +95,7 @@ describe('Login como médico', () => {
     if (doctor) {
       cy.deleteDoctorViaApi(doctor.doctorId, doctor.accessToken)
       cy.deleteUserViaApi(doctor.userId, doctor.accessToken)
+      cy.deleteSpecialtyViaApi(doctor.specialtyId, doctor.accessToken)
     }
   })
 
@@ -114,6 +116,6 @@ describe('Login como médico', () => {
     cy.login(doctor.email, doctor.password)
     cy.visit(`/doctors/${doctor.doctorId}`)
     cy.get('[data-testid="doctor-details-crm"]').should('contain', doctor.crmNumber)
-    cy.get('[data-testid="doctor-details-specialty"]').should('contain', doctor.specialty)
+    cy.get('[data-testid="doctor-details-specialties"]').should('contain', doctor.specialtyName)
   })
 })

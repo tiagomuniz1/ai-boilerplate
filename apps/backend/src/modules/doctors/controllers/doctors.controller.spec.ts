@@ -18,7 +18,7 @@ const makeResponse = (overrides = {}) => ({
   id: 'uuid-1',
   user: { id: 'user-uuid-1', fullName: 'Dr. Alice', email: 'alice@clinic.com' },
   crmNumber: '12345/SP',
-  specialty: 'Cardiologia',
+  specialties: [{ id: 'spec-uuid-1', name: 'Cardiologia' }],
   bio: null,
   createdAt: new Date(),
   updatedAt: new Date(),
@@ -42,7 +42,7 @@ describe('DoctorsController', () => {
   })
 
   it('create delegates to CreateDoctorUseCase', async () => {
-    const dto = { userId: 'user-uuid-1', crmNumber: '12345/SP', specialty: 'Cardiologia' }
+    const dto = { userId: 'user-uuid-1', crmNumber: '12345/SP', specialtyIds: ['spec-uuid-1'] }
     const response = makeResponse()
     mockCreate.execute.mockResolvedValue(response)
 
@@ -91,8 +91,8 @@ describe('DoctorsController', () => {
   })
 
   it('update delegates to UpdateDoctorUseCase with id and dto', async () => {
-    const dto = { specialty: 'Neurologia' }
-    const response = makeResponse({ specialty: 'Neurologia' })
+    const dto = { specialtyIds: ['spec-uuid-2'] }
+    const response = makeResponse({ specialties: [{ id: 'spec-uuid-2', name: 'Neurologia' }] })
     mockUpdate.execute.mockResolvedValue(response)
 
     const result = await controller.update('uuid-1', dto as any, currentUser)

@@ -1,6 +1,9 @@
 const MOCK_TOKEN = 'mock-access-token'
 const MOCK_DOCTOR_ID = 'eeeeeeee-2222-2222-2222-000000000001'
 
+const SPEC_ID_1 = '00000000-0000-4000-a000-000000000001'
+const SPEC_ID_2 = '00000000-0000-4000-a000-000000000002'
+
 const mockAuthUser = {
   id: 'mock-auth-user-id',
   fullName: 'Mock Admin',
@@ -11,7 +14,10 @@ const mockDoctor = {
   id: MOCK_DOCTOR_ID,
   user: { id: 'user-uuid-1', fullName: 'Dr. Detalhe Silva', email: 'detalhe@test.com' },
   crmNumber: '54321/MG',
-  specialty: 'Neurologia',
+  specialties: [
+    { id: SPEC_ID_1, name: 'Cardiologia' },
+    { id: SPEC_ID_2, name: 'Neurologia' },
+  ],
   bio: 'Especialista em neurologia clínica.',
   createdAt: '2024-01-15T10:00:00.000Z',
   updatedAt: '2024-01-15T10:00:00.000Z',
@@ -73,7 +79,7 @@ describe('Doctors Detail', () => {
     cy.get('[data-testid="doctor-details"]').should('not.exist')
   })
 
-  it('shows doctor details with name, email, CRM, specialty and bio', () => {
+  it('shows doctor details with name, email, CRM, specialties and bio', () => {
     cy.intercept('GET', `${Cypress.env('API_URL')}/doctors/${MOCK_DOCTOR_ID}`, {
       statusCode: 200,
       body: mockDoctor,
@@ -86,9 +92,26 @@ describe('Doctors Detail', () => {
     cy.get('[data-testid="doctor-details-name"]').should('contain', mockDoctor.user.fullName)
     cy.get('[data-testid="doctor-details-email"]').should('contain', mockDoctor.user.email)
     cy.get('[data-testid="doctor-details-crm"]').should('contain', mockDoctor.crmNumber)
-    cy.get('[data-testid="doctor-details-specialty"]').should('contain', mockDoctor.specialty)
+    cy.get('[data-testid="doctor-details-specialties"]').should('be.visible')
+    cy.get(`[data-testid="doctor-details-specialty-badge-${SPEC_ID_1}"]`).should('contain', 'Cardiologia')
+    cy.get(`[data-testid="doctor-details-specialty-badge-${SPEC_ID_2}"]`).should('contain', 'Neurologia')
     cy.get('[data-testid="doctor-details-bio"]').should('contain', mockDoctor.bio)
     cy.get('[data-testid="doctor-details-created-at"]').should('be.visible')
+  })
+
+  it('shows all specialties as individual badges', () => {
+    cy.intercept('GET', `${Cypress.env('API_URL')}/doctors/${MOCK_DOCTOR_ID}`, {
+      statusCode: 200,
+      body: mockDoctor,
+    }).as('getDoctor')
+
+    visitWithMockAuth(`/doctors/${MOCK_DOCTOR_ID}`)
+    cy.wait('@getDoctor')
+
+    cy.get('[data-testid="doctor-details-specialties"]').within(() => {
+      cy.get(`[data-testid="doctor-details-specialty-badge-${SPEC_ID_1}"]`).should('exist')
+      cy.get(`[data-testid="doctor-details-specialty-badge-${SPEC_ID_2}"]`).should('exist')
+    })
   })
 
   it('does not show bio section when bio is null', () => {

@@ -155,10 +155,25 @@ export function DoctorList() {
                       {doctor.crmNumber}
                     </td>
                     <td
-                      className="px-6 py-4 text-sm text-text-dim"
+                      className="px-6 py-4"
                       data-testid={`doctor-specialty-${doctor.id}`}
                     >
-                      {doctor.specialty}
+                      <div className="flex flex-wrap gap-1">
+                        {doctor.specialties.slice(0, 2).map((s) => (
+                          <span
+                            key={s.id}
+                            data-testid={`doctor-specialty-badge-${s.id}`}
+                            className="inline-flex items-center rounded-full border border-line bg-surface-2 px-2 py-0.5 text-xs text-text"
+                          >
+                            {s.name}
+                          </span>
+                        ))}
+                        {doctor.specialties.length > 2 && (
+                          <span className="inline-flex items-center text-xs text-text-mute">
+                            +{doctor.specialties.length - 2} mais
+                          </span>
+                        )}
+                      </div>
                     </td>
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-3">

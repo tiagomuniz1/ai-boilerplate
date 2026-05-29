@@ -5,12 +5,12 @@ const mockAuthUser = {
   id: 'mock-auth-user-id',
   fullName: 'Mock Admin',
   email: 'mock@admin.com',
+  role: 'admin',
 }
 
 const mockPatient = {
   id: MOCK_PATIENT_ID,
-  fullName: 'Paciente Para Excluir',
-  email: 'excluir@test.com',
+  user: { id: 'user-uuid-1', fullName: 'Paciente Para Excluir', email: 'excluir@test.com', isActive: true },
   phoneNumber: '(11) 99999-9999',
   birthDate: '1990-05-15',
   documentNumber: '12345678901',
@@ -60,7 +60,7 @@ describe('Patients Delete', () => {
     cy.wait('@getPatients')
     cy.get(`[data-testid="patient-delete-button-${MOCK_PATIENT_ID}"]`).click()
     cy.get('[data-testid="delete-patient-dialog"]').should('be.visible')
-    cy.get('[data-testid="delete-patient-dialog-message"]').should('contain', mockPatient.fullName)
+    cy.get('[data-testid="delete-patient-dialog-message"]').should('contain', mockPatient.user.fullName)
   })
 
   it('cancel button on dialog does not delete patient', () => {
@@ -114,7 +114,7 @@ describe('Patients Delete', () => {
     cy.get('[data-testid="delete-patient-dialog-confirm"]').click()
     cy.wait('@deletePatient')
     cy.get('[data-testid="patient-list-success"]').should('be.visible')
-    cy.get('[data-testid="patient-list-success"]').should('contain', mockPatient.fullName)
+    cy.get('[data-testid="patient-list-success"]').should('contain', mockPatient.user.fullName)
   })
 
   it('deleted patient no longer appears in list', () => {

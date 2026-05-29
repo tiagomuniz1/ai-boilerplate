@@ -5,7 +5,7 @@ export function toCreateDoctorDto(input: ICreateDoctorInput): CreateDoctorDto {
   return {
     userId: input.userId,
     crmNumber: input.crmNumber,
-    specialty: input.specialty,
+    specialtyIds: input.specialtyIds,
     bio: input.bio,
   }
 }

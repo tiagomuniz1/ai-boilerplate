@@ -16,7 +16,7 @@ const makeDto = (overrides = {}) => ({
   id: 'uuid-1',
   user: { id: 'user-uuid-1', fullName: 'Dr. João Silva', email: 'joao@example.com' },
   crmNumber: '12345/SP',
-  specialty: 'Cardiologia',
+  specialties: [{ id: 'spec-uuid-1', name: 'Cardiologia' }],
   bio: null,
   createdAt: '2024-01-15T10:00:00.000Z',
   updatedAt: '2024-01-16T10:00:00.000Z',
@@ -49,7 +49,77 @@ describe('DoctorList (integration)', () => {
     expect(screen.getByTestId('doctor-name-uuid-1')).toHaveTextContent('Dr. João Silva')
     expect(screen.getByTestId('doctor-email-uuid-1')).toHaveTextContent('joao@example.com')
     expect(screen.getByTestId('doctor-crm-uuid-1')).toHaveTextContent('12345/SP')
-    expect(screen.getByTestId('doctor-specialty-uuid-1')).toHaveTextContent('Cardiologia')
+    expect(screen.getByTestId('doctor-specialty-badge-spec-uuid-1')).toHaveTextContent('Cardiologia')
+  })
+
+  it('renders 1 badge when doctor has 1 specialty', async () => {
+    ;(doctorsService.getAll as jest.Mock).mockResolvedValue({ data: [makeDto()], total: 1, page: 1, limit: 20 })
+
+    renderWithProviders(<DoctorList />)
+
+    await waitFor(() => {
+      expect(screen.getByTestId('doctor-list-table')).toBeInTheDocument()
+    })
+
+    expect(screen.getByTestId('doctor-specialty-badge-spec-uuid-1')).toBeInTheDocument()
+  })
+
+  it('renders 2 badges when doctor has 2 specialties', async () => {
+    const dto = makeDto({
+      specialties: [
+        { id: 'spec-uuid-1', name: 'Cardiologia' },
+        { id: 'spec-uuid-2', name: 'Neurologia' },
+      ],
+    })
+    ;(doctorsService.getAll as jest.Mock).mockResolvedValue({ data: [dto], total: 1, page: 1, limit: 20 })
+
+    renderWithProviders(<DoctorList />)
+
+    await waitFor(() => {
+      expect(screen.getByTestId('doctor-list-table')).toBeInTheDocument()
+    })
+
+    expect(screen.getByTestId('doctor-specialty-badge-spec-uuid-1')).toBeInTheDocument()
+    expect(screen.getByTestId('doctor-specialty-badge-spec-uuid-2')).toBeInTheDocument()
+    expect(screen.queryByText(/\+\d+ mais/)).not.toBeInTheDocument()
+  })
+
+  it('renders 2 badges + overflow indicator when doctor has 4 specialties', async () => {
+    const dto = makeDto({
+      specialties: [
+        { id: 'spec-uuid-1', name: 'Cardiologia' },
+        { id: 'spec-uuid-2', name: 'Neurologia' },
+        { id: 'spec-uuid-3', name: 'Ortopedia' },
+        { id: 'spec-uuid-4', name: 'Pediatria' },
+      ],
+    })
+    ;(doctorsService.getAll as jest.Mock).mockResolvedValue({ data: [dto], total: 1, page: 1, limit: 20 })
+
+    renderWithProviders(<DoctorList />)
+
+    await waitFor(() => {
+      expect(screen.getByTestId('doctor-list-table')).toBeInTheDocument()
+    })
+
+    expect(screen.getByTestId('doctor-specialty-badge-spec-uuid-1')).toBeInTheDocument()
+    expect(screen.getByTestId('doctor-specialty-badge-spec-uuid-2')).toBeInTheDocument()
+    expect(screen.queryByTestId('doctor-specialty-badge-spec-uuid-3')).not.toBeInTheDocument()
+    expect(screen.queryByTestId('doctor-specialty-badge-spec-uuid-4')).not.toBeInTheDocument()
+    expect(screen.getByText('+2 mais')).toBeInTheDocument()
+  })
+
+  it('renders empty specialty cell when doctor has no specialties', async () => {
+    const dto = makeDto({ specialties: [] })
+    ;(doctorsService.getAll as jest.Mock).mockResolvedValue({ data: [dto], total: 1, page: 1, limit: 20 })
+
+    renderWithProviders(<DoctorList />)
+
+    await waitFor(() => {
+      expect(screen.getByTestId('doctor-list-table')).toBeInTheDocument()
+    })
+
+    expect(screen.getByTestId('doctor-specialty-uuid-1')).toBeInTheDocument()
+    expect(screen.queryByTestId(/doctor-specialty-badge-/)).not.toBeInTheDocument()
   })
 
   it('renders empty state when no doctors', async () => {

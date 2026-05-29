@@ -4,7 +4,7 @@ import type { IUpdateDoctorInput } from '../types/doctor-input.types'
 export function toUpdateDoctorDto(input: IUpdateDoctorInput): UpdateDoctorDto {
   return {
     crmNumber: input.crmNumber,
-    specialty: input.specialty,
+    specialtyIds: input.specialtyIds,
     bio: input.bio,
   }
 }

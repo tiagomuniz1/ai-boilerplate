@@ -4,14 +4,14 @@ describe('toUpdateDoctorDto', () => {
   it('maps all fields to DTO correctly', () => {
     const input = {
       crmNumber: '12345/SP',
-      specialty: 'Neurologia',
+      specialtyIds: ['spec-uuid-1'],
       bio: 'Bio atualizada.',
     }
 
     const dto = toUpdateDoctorDto(input)
 
     expect(dto.crmNumber).toBe(input.crmNumber)
-    expect(dto.specialty).toBe(input.specialty)
+    expect(dto.specialtyIds).toEqual(input.specialtyIds)
     expect(dto.bio).toBe(input.bio)
   })
 
@@ -19,14 +19,14 @@ describe('toUpdateDoctorDto', () => {
     const dto = toUpdateDoctorDto({})
 
     expect(dto.crmNumber).toBeUndefined()
-    expect(dto.specialty).toBeUndefined()
+    expect(dto.specialtyIds).toBeUndefined()
     expect(dto.bio).toBeUndefined()
   })
 
   it('maps partial update correctly', () => {
-    const dto = toUpdateDoctorDto({ specialty: 'Ortopedia' })
+    const dto = toUpdateDoctorDto({ specialtyIds: ['spec-uuid-2'] })
 
-    expect(dto.specialty).toBe('Ortopedia')
+    expect(dto.specialtyIds).toEqual(['spec-uuid-2'])
     expect(dto.crmNumber).toBeUndefined()
   })
 })

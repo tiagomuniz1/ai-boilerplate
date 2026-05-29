@@ -59,7 +59,7 @@ export class FindDoctorByIdUseCase extends BaseUseCase {
         email: doctor.user.email,
       },
       crmNumber: doctor.crmNumber,
-      specialty: doctor.specialty,
+      specialties: (doctor.specialties ?? []).map((s) => ({ id: s.id, name: s.name })),
       bio: doctor.bio,
       createdAt: doctor.createdAt,
       updatedAt: doctor.updatedAt,

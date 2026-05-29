@@ -1,13 +1,26 @@
-import { ILike, Repository } from 'typeorm'
+import { Repository } from 'typeorm'
 import { DoctorsRepository } from './doctors.repository'
 import { Doctor } from '../entities/doctor.entity'
 import { User } from '../../users/entities/user.entity'
+
+function makeQueryBuilderMock(result: [Doctor[], number]) {
+  const qb: any = {
+    leftJoinAndSelect: jest.fn().mockReturnThis(),
+    where: jest.fn().mockReturnThis(),
+    orWhere: jest.fn().mockReturnThis(),
+    orderBy: jest.fn().mockReturnThis(),
+    take: jest.fn().mockReturnThis(),
+    skip: jest.fn().mockReturnThis(),
+    getManyAndCount: jest.fn().mockResolvedValue(result),
+  }
+  return qb
+}
 
 function makeManagerRepo() {
   return {
     create: jest.fn(),
     save: jest.fn(),
-    findOneByOrFail: jest.fn(),
+    findOne: jest.fn(),
     softDelete: jest.fn(),
   }
 }
@@ -22,10 +35,8 @@ function makeRepo(): jest.Mocked<Repository<Doctor>> {
     findAndCount: jest.fn(),
     findOne: jest.fn(),
     findOneBy: jest.fn(),
-    findOneByOrFail: jest.fn(),
-    create: jest.fn(),
-    save: jest.fn(),
     softDelete: jest.fn(),
+    createQueryBuilder: jest.fn(),
     manager,
   } as unknown as jest.Mocked<Repository<Doctor>>
 }
@@ -44,7 +55,7 @@ function makeDoctor(overrides = {}): Doctor {
     userId: 'user-uuid-1',
     user: makeUser(),
     crmNumber: '12345/SP',
-    specialty: 'Cardiologia',
+    specialties: [{ id: 'spec-uuid-1', name: 'Cardiologia' }],
     bio: null,
     version: 1,
     createdAt: new Date(),
@@ -65,7 +76,7 @@ describe('DoctorsRepository', () => {
   })
 
   describe('findAll', () => {
-    it('returns paginated results without search', async () => {
+    it('returns paginated results without search using findAndCount with relations', async () => {
       const doctors = [makeDoctor()]
       repo.findAndCount.mockResolvedValue([doctors, 1])
 
@@ -73,8 +84,7 @@ describe('DoctorsRepository', () => {
 
       expect(repo.findAndCount).toHaveBeenCalledWith(
         expect.objectContaining({
-          relations: ['user'],
-          where: {},
+          relations: ['user', 'specialties'],
           skip: 10,
           take: 10,
           order: { createdAt: 'DESC' },
@@ -83,34 +93,44 @@ describe('DoctorsRepository', () => {
       expect(result).toEqual([doctors, 1])
     })
 
-    it('applies ILike filter on user fullName and specialty when search is provided', async () => {
-      repo.findAndCount.mockResolvedValue([[], 0])
+    it('uses QueryBuilder with ILIKE on fullName and specialty name when search is provided', async () => {
+      const doctors = [makeDoctor()]
+      const qb = makeQueryBuilderMock([doctors, 1])
+      repo.createQueryBuilder.mockReturnValue(qb)
 
-      await repository.findAll(1, 20, 'Cardio')
+      const result = await repository.findAll(1, 20, 'Cardio')
 
-      expect(repo.findAndCount).toHaveBeenCalledWith(
-        expect.objectContaining({
-          where: [
-            { user: { fullName: ILike('%Cardio%') } },
-            { specialty: ILike('%Cardio%') },
-          ],
-        }),
-      )
+      expect(repo.createQueryBuilder).toHaveBeenCalledWith('doctor')
+      expect(qb.leftJoinAndSelect).toHaveBeenCalledWith('doctor.user', 'user')
+      expect(qb.leftJoinAndSelect).toHaveBeenCalledWith('doctor.specialties', 'specialty')
+      expect(qb.where).toHaveBeenCalledWith('user.fullName ILIKE :search', { search: '%Cardio%' })
+      expect(qb.orWhere).toHaveBeenCalledWith('specialty.name ILIKE :search', { search: '%Cardio%' })
+      expect(qb.getManyAndCount).toHaveBeenCalled()
+      expect(result).toEqual([doctors, 1])
     })
 
-    it('does not apply filter when search is undefined', async () => {
+    it('does not use createQueryBuilder when search is undefined', async () => {
       repo.findAndCount.mockResolvedValue([[], 0])
 
       await repository.findAll(1, 20, undefined)
 
+      expect(repo.createQueryBuilder).not.toHaveBeenCalled()
+      expect(repo.findAndCount).toHaveBeenCalled()
+    })
+
+    it('calculates correct skip for pagination', async () => {
+      repo.findAndCount.mockResolvedValue([[], 0])
+
+      await repository.findAll(3, 10)
+
       expect(repo.findAndCount).toHaveBeenCalledWith(
-        expect.objectContaining({ where: {} }),
+        expect.objectContaining({ skip: 20, take: 10 }),
       )
     })
   })
 
   describe('findById', () => {
-    it('returns doctor with user relation when found', async () => {
+    it('returns doctor with user and specialties relations when found', async () => {
       const doctor = makeDoctor()
       repo.findOne.mockResolvedValue(doctor)
 
@@ -118,7 +138,7 @@ describe('DoctorsRepository', () => {
 
       expect(repo.findOne).toHaveBeenCalledWith({
         where: { id: 'uuid-1' },
-        relations: ['user'],
+        relations: ['user', 'specialties'],
       })
       expect(result).toBe(doctor)
     })
@@ -131,18 +151,21 @@ describe('DoctorsRepository', () => {
   })
 
   describe('findByUserId', () => {
-    it('returns doctor when found', async () => {
+    it('returns doctor with user and specialties relations when found', async () => {
       const doctor = makeDoctor()
-      repo.findOneBy.mockResolvedValue(doctor)
+      repo.findOne.mockResolvedValue(doctor)
 
       const result = await repository.findByUserId('user-uuid-1')
 
-      expect(repo.findOneBy).toHaveBeenCalledWith({ userId: 'user-uuid-1' })
+      expect(repo.findOne).toHaveBeenCalledWith({
+        where: { userId: 'user-uuid-1' },
+        relations: ['user', 'specialties'],
+      })
       expect(result).toBe(doctor)
     })
 
     it('returns null when not found', async () => {
-      repo.findOneBy.mockResolvedValue(null)
+      repo.findOne.mockResolvedValue(null)
 
       expect(await repository.findByUserId('missing')).toBeNull()
     })
@@ -167,86 +190,113 @@ describe('DoctorsRepository', () => {
   })
 
   describe('create', () => {
-    it('creates and saves doctor using manager repo and reloads with user relation', async () => {
-      const data = {
-        userId: 'user-uuid-1',
-        crmNumber: '12345/SP',
-        specialty: 'Cardiologia',
-      }
-      const entity = { id: 'uuid-1', ...data } as Doctor
-      const withUser = makeDoctor()
+    it('creates doctor with specialties, saves, and reloads with all relations', async () => {
+      const data = { userId: 'user-uuid-1', crmNumber: '12345/SP', bio: null }
+      const specialties = [{ id: 'spec-uuid-1', name: 'Cardiologia' }] as any
+      const entity = { id: 'uuid-1', ...data, specialties: [] } as unknown as Doctor
+      const withRelations = makeDoctor()
 
       const managerRepo = (repo.manager as any)._managerRepo
       managerRepo.create.mockReturnValue(entity)
       managerRepo.save.mockResolvedValue(entity)
-      repo.findOne.mockResolvedValue(withUser)
+      repo.findOne.mockResolvedValue(withRelations)
 
-      const result = await repository.create(data as any)
+      const result = await repository.create(data as any, specialties)
 
-      expect(managerRepo.create).toHaveBeenCalledWith(data)
+      expect(managerRepo.create).toHaveBeenCalledWith({
+        userId: data.userId,
+        crmNumber: data.crmNumber,
+        bio: data.bio,
+      })
+      expect(entity.specialties).toBe(specialties)
       expect(managerRepo.save).toHaveBeenCalledWith(entity)
       expect(repo.findOne).toHaveBeenCalledWith({
         where: { id: entity.id },
-        relations: ['user'],
+        relations: ['user', 'specialties'],
       })
-      expect(result).toBe(withUser)
+      expect(result).toBe(withRelations)
     })
 
     it('uses queryRunner manager repo when provided', async () => {
-      const data = { userId: 'user-uuid-1', crmNumber: '12345/SP', specialty: 'Cardiologia' }
-      const entity = { id: 'uuid-qr' } as Doctor
-      const withUser = makeDoctor({ id: 'uuid-qr' })
+      const data = { userId: 'user-uuid-1', crmNumber: '12345/SP', bio: null }
+      const specialties = [] as any
+      const entity = { id: 'uuid-qr', specialties: [] } as unknown as Doctor
+      const withRelations = makeDoctor({ id: 'uuid-qr' })
 
       const qrRepo = makeManagerRepo()
       qrRepo.create.mockReturnValue(entity)
       qrRepo.save.mockResolvedValue(entity)
       const queryRunner = { manager: { getRepository: jest.fn().mockReturnValue(qrRepo) } } as any
-      repo.findOne.mockResolvedValue(withUser)
+      repo.findOne.mockResolvedValue(withRelations)
 
-      const result = await repository.create(data as any, queryRunner)
+      const result = await repository.create(data as any, specialties, queryRunner)
 
       expect(qrRepo.save).toHaveBeenCalled()
       expect((repo.manager as any)._managerRepo.save).not.toHaveBeenCalled()
-      expect(result).toBe(withUser)
+      expect(result).toBe(withRelations)
     })
   })
 
   describe('update', () => {
-    it('loads doctor, merges data, saves, and reloads with user relation', async () => {
+    it('loads doctor with specialties, merges data, saves, and reloads with relations', async () => {
       const doctor = makeDoctor()
-      const updated = makeDoctor({ specialty: 'Neurologia' })
+      const newSpecialties = [{ id: 'spec-uuid-2', name: 'Neurologia' }] as any
+      const updated = makeDoctor({ specialties: newSpecialties })
 
       const managerRepo = (repo.manager as any)._managerRepo
-      managerRepo.findOneByOrFail.mockResolvedValue(doctor)
-      managerRepo.save.mockResolvedValue({ ...doctor, specialty: 'Neurologia' })
+      managerRepo.findOne.mockResolvedValue(doctor)
+      managerRepo.save.mockResolvedValue({ ...doctor, specialties: newSpecialties })
       repo.findOne.mockResolvedValue(updated)
 
-      const result = await repository.update('uuid-1', { specialty: 'Neurologia' })
+      const result = await repository.update('uuid-1', { crmNumber: '99999/SP' }, newSpecialties)
 
-      expect(managerRepo.findOneByOrFail).toHaveBeenCalledWith({ id: 'uuid-1' })
-      expect(managerRepo.save).toHaveBeenCalledWith(
-        expect.objectContaining({ specialty: 'Neurologia' }),
-      )
+      expect(managerRepo.findOne).toHaveBeenCalledWith({
+        where: { id: 'uuid-1' },
+        relations: ['specialties'],
+      })
+      expect(managerRepo.save).toHaveBeenCalled()
       expect(repo.findOne).toHaveBeenCalledWith({
         where: { id: 'uuid-1' },
-        relations: ['user'],
+        relations: ['user', 'specialties'],
       })
       expect(result).toBe(updated)
     })
 
+    it('does not modify specialties when null is passed', async () => {
+      const doctor = makeDoctor()
+      const originalSpecialties = doctor.specialties
+      const updated = makeDoctor({ id: doctor.id })
+
+      const managerRepo = (repo.manager as any)._managerRepo
+      managerRepo.findOne.mockResolvedValue(doctor)
+      managerRepo.save.mockResolvedValue(doctor)
+      repo.findOne.mockResolvedValue(updated)
+
+      await repository.update('uuid-1', { crmNumber: '99999/SP' }, null)
+
+      expect(doctor.specialties).toBe(originalSpecialties)
+    })
+
+    it('throws when doctor is not found', async () => {
+      const managerRepo = (repo.manager as any)._managerRepo
+      managerRepo.findOne.mockResolvedValue(null)
+
+      await expect(repository.update('missing', {}, null)).rejects.toThrow('Doctor missing not found')
+    })
+
     it('uses queryRunner repository when provided', async () => {
       const doctor = makeDoctor()
-      const withUser = makeDoctor({ specialty: 'Neurologia' })
+      const withRelations = makeDoctor()
 
       const qrRepo = makeManagerRepo()
-      qrRepo.findOneByOrFail.mockResolvedValue(doctor)
-      qrRepo.save.mockResolvedValue({ ...doctor, specialty: 'Neurologia' })
+      qrRepo.findOne.mockResolvedValue(doctor)
+      qrRepo.save.mockResolvedValue(doctor)
       const queryRunner = { manager: { getRepository: jest.fn().mockReturnValue(qrRepo) } } as any
-      repo.findOne.mockResolvedValue(withUser)
+      repo.findOne.mockResolvedValue(withRelations)
 
-      await repository.update('uuid-1', { specialty: 'Neurologia' }, queryRunner)
+      await repository.update('uuid-1', { bio: 'new bio' }, null, queryRunner)
 
-      expect(qrRepo.findOneByOrFail).toHaveBeenCalled()
+      expect(qrRepo.findOne).toHaveBeenCalled()
       expect(qrRepo.save).toHaveBeenCalled()
       expect((repo.manager as any)._managerRepo.save).not.toHaveBeenCalled()
     })

@@ -1,13 +1,13 @@
 export interface ICreateDoctorInput {
   userId: string
   crmNumber: string
-  specialty: string
+  specialtyIds: string[]
   bio?: string
 }
 
 export interface IUpdateDoctorInput {
   crmNumber?: string
-  specialty?: string
+  specialtyIds?: string[]
   bio?: string
 }
 

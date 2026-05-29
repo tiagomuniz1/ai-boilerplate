@@ -5,6 +5,7 @@ const mockAuthUser = {
   id: 'mock-auth-user-id',
   fullName: 'Mock Admin',
   email: 'mock@admin.com',
+  role: 'admin',
 }
 
 const mockUser = {

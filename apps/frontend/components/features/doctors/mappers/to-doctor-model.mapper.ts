@@ -10,7 +10,7 @@ export function toDoctorModel(dto: DoctorResponseDto): IDoctorModel {
       email: dto.user.email,
     },
     crmNumber: dto.crmNumber,
-    specialty: dto.specialty,
+    specialties: dto.specialties.map((s) => ({ id: s.id, name: s.name })),
     bio: dto.bio,
     createdAt: new Date(dto.createdAt),
     updatedAt: new Date(dto.updatedAt),

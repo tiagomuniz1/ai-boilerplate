@@ -30,7 +30,7 @@ const makeDoctor = () => ({
   userId: faker.string.uuid(),
   user: { id: faker.string.uuid(), fullName: faker.person.fullName(), email: faker.internet.email() } as any,
   crmNumber: '12345/SP',
-  specialty: 'Cardiologia',
+  specialties: [{ id: faker.string.uuid(), name: 'Cardiologia' }],
   bio: 'Especialista em cardio',
   version: 1,
   createdAt: new Date(),

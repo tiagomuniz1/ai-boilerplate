@@ -1,9 +1,8 @@
 {
   "newDoctor": {
-    "crmNumber": "12345/SP",
-    "specialty": "Cardiologia"
+    "crmNumber": "12345/SP"
   },
   "updatedDoctor": {
-    "specialty": "Neurologia"
+    "crmNumber": "22222/SP"
   }
 }

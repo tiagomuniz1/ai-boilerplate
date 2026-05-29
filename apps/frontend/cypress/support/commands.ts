@@ -8,18 +8,19 @@ interface CreateUserInput {
 interface CreateDoctorInput {
   userId: string
   crmNumber: string
-  specialty: string
+  specialtyIds: string[]
   bio?: string
 }
 
 interface SeededDoctor {
   doctorId: string
   userId: string
+  specialtyId: string
+  specialtyName: string
   email: string
   password: string
   fullName: string
   crmNumber: string
-  specialty: string
   accessToken: string
 }
 
@@ -32,6 +33,7 @@ declare global {
       seedUser(): Chainable<{ id: string; email: string; fullName: string }>
       createDoctorViaApi(input: CreateDoctorInput, accessToken: string): Chainable<{ id: string }>
       deleteDoctorViaApi(id: string, accessToken?: string): Chainable<void>
+      deleteSpecialtyViaApi(id: string, accessToken?: string): Chainable<void>
       seedDoctor(): Chainable<SeededDoctor>
     }
   }
@@ -113,6 +115,15 @@ Cypress.Commands.add('deleteDoctorViaApi', (id: string, accessToken?: string) =>
   })
 })
 
+Cypress.Commands.add('deleteSpecialtyViaApi', (id: string, accessToken?: string) => {
+  cy.request({
+    method: 'DELETE',
+    url: `${Cypress.env('API_URL')}/specialties/${id}`,
+    failOnStatusCode: false,
+    headers: accessToken ? { Authorization: `Bearer ${accessToken}` } : {},
+  })
+})
+
 Cypress.Commands.add('seedDoctor', () => {
   const ts = Date.now()
   const password = 'Password123!'
@@ -120,35 +131,63 @@ Cypress.Commands.add('seedDoctor', () => {
     fullName: `Dr. Test ${ts}`,
     email: `doctor.${ts}@e2e.test`,
     password,
-    role: 'user',
+    role: 'doctor',
   }
   const crmNumber = `${String(ts).slice(-5)}/SP`
-  const specialty = 'Cardiologia'
 
-  return cy.createUserViaApi(userInput).then(({ id: userId }) => {
+  return cy.fixture('users').then((fixture) => {
     return cy.request({
       method: 'POST',
       url: `${Cypress.env('API_URL')}/auth/login`,
-      body: { email: userInput.email, password },
+      body: { email: fixture.admin.email, password: fixture.admin.password },
     }).then((loginResponse) => {
       const setCookieHeader = loginResponse.headers['set-cookie'] as string | string[] | undefined
-      let accessToken = ''
+      let adminToken = ''
       if (setCookieHeader) {
         const cookies = Array.isArray(setCookieHeader) ? setCookieHeader : [setCookieHeader]
-        const tokenCookie = cookies.find((c) => c.startsWith('access_token='))
-        if (tokenCookie) accessToken = tokenCookie.split(';')[0].replace('access_token=', '')
+        const tokenCookie = cookies.find((c: string) => c.startsWith('access_token='))
+        if (tokenCookie) adminToken = tokenCookie.split(';')[0].replace('access_token=', '')
       }
 
-      return cy.createDoctorViaApi({ userId, crmNumber, specialty }, accessToken).then(({ id: doctorId }) => ({
-        doctorId,
-        userId,
-        email: userInput.email,
-        password,
-        fullName: userInput.fullName,
-        crmNumber,
-        specialty,
-        accessToken,
-      }))
+      return cy.request({
+        method: 'POST',
+        url: `${Cypress.env('API_URL')}/users`,
+        body: userInput,
+        headers: { Authorization: `Bearer ${adminToken}` },
+      }).then((userResponse) => {
+        const userId = userResponse.body.id as string
+
+        return cy.request({
+          method: 'POST',
+          url: `${Cypress.env('API_URL')}/specialties`,
+          body: { name: `Especialidade Test ${ts}`, description: null },
+          headers: { Authorization: `Bearer ${adminToken}` },
+        }).then((specialtyResponse) => {
+          const specialtyId = specialtyResponse.body.id as string
+          const specialtyName = specialtyResponse.body.name as string
+
+          return cy.request({
+            method: 'POST',
+            url: `${Cypress.env('API_URL')}/doctors`,
+            body: { userId, crmNumber, specialtyIds: [specialtyId] },
+            headers: { Authorization: `Bearer ${adminToken}` },
+          }).then((doctorResponse) => {
+            const doctorId = doctorResponse.body.id as string
+
+            return ({
+              doctorId,
+              userId,
+              specialtyId,
+              specialtyName,
+              email: userInput.email,
+              password,
+              fullName: userInput.fullName,
+              crmNumber,
+              accessToken: adminToken,
+            })
+          })
+        })
+      })
     })
   })
 })

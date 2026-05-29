@@ -1,22 +1,25 @@
 const MOCK_TOKEN = 'mock-access-token'
 
+const SPEC_ID_1 = '00000000-0000-4000-a000-000000000001'
+const DOC_UUID = '00000000-0000-4000-b000-000000000001'
+
 const mockDoctorUser = {
   id: 'doctor-user-uuid',
   fullName: 'Dr. João Silva',
   email: 'joao@test.com',
-  role: 'DOCTOR',
+  role: 'doctor',
 }
 
 const mockAdminUser = {
   id: 'admin-user-uuid',
   fullName: 'Admin User',
   email: 'admin@test.com',
-  role: 'ADMIN',
+  role: 'admin',
 }
 
 const mockCreatedSchedule = {
   id: 'new-schedule-uuid',
-  doctorId: 'doc-uuid-1',
+  doctorId: DOC_UUID,
   dayOfWeek: 'TUESDAY',
   startTime: '09:00',
   endTime: '13:00',
@@ -30,10 +33,10 @@ const mockCreatedSchedule = {
 const mockDoctorsList = {
   data: [
     {
-      id: 'doc-uuid-1',
+      id: DOC_UUID,
       user: { id: 'user-uuid-1', fullName: 'Dr. João Silva', email: 'joao@test.com' },
       crmNumber: '12345/SP',
-      specialty: 'Cardiologia',
+      specialties: [{ id: SPEC_ID_1, name: 'Cardiologia' }],
       bio: null,
       createdAt: '2025-01-01T10:00:00.000Z',
       updatedAt: '2025-01-01T10:00:00.000Z',
@@ -88,8 +91,8 @@ describe('Schedules Create', () => {
   it('shows validation errors when submitting empty form as DOCTOR', () => {
     visitAsDoctor('/schedules/new')
     cy.get('[data-testid="schedule-form-submit"]').click()
-    cy.contains('Dia da semana obrigatório').should('be.visible')
-    cy.contains('Horário inválido').should('be.visible')
+    cy.get('[data-testid="schedule-form-day"]').should('have.attr', 'aria-invalid', 'true')
+    cy.get('[data-testid="schedule-form-start-time"]').should('have.attr', 'aria-invalid', 'true')
   })
 
   it('shows validation error when endTime is before startTime', () => {
@@ -106,7 +109,7 @@ describe('Schedules Create', () => {
     cy.get('[data-testid="schedule-form-day"]').select('TUESDAY')
     cy.get('[data-testid="schedule-form-start-time"]').clear().type('08:00')
     cy.get('[data-testid="schedule-form-end-time"]').clear().type('09:00')
-    cy.get('[data-testid="schedule-form-slot"]').clear().type('40')
+    cy.get('[data-testid="schedule-form-slot"]').type('{selectall}40')
     cy.get('[data-testid="schedule-form-submit"]').click()
     cy.contains('O intervalo de tempo deve ser divisível pela duração do slot').should('be.visible')
   })
@@ -124,7 +127,7 @@ describe('Schedules Create', () => {
     cy.get('[data-testid="schedule-form-day"]').select('TUESDAY')
     cy.get('[data-testid="schedule-form-start-time"]').clear().type('09:00')
     cy.get('[data-testid="schedule-form-end-time"]').clear().type('13:00')
-    cy.get('[data-testid="schedule-form-slot"]').clear().type('60')
+    cy.get('[data-testid="schedule-form-slot"]').type('{selectall}60')
     cy.get('[data-testid="schedule-form-submit"]').click()
 
     cy.wait('@createSchedule')
@@ -135,14 +138,14 @@ describe('Schedules Create', () => {
     cy.intercept('POST', `${Cypress.env('API_URL')}/schedules`, { statusCode: 201, body: mockCreatedSchedule }).as('createSchedule')
 
     visitAsAdmin('/schedules/new')
-    cy.get('[data-testid="schedule-form-doctor"]').select('doc-uuid-1')
+    cy.get('[data-testid="schedule-form-doctor"]').select(DOC_UUID)
     cy.get('[data-testid="schedule-form-day"]').select('TUESDAY')
     cy.get('[data-testid="schedule-form-start-time"]').clear().type('09:00')
     cy.get('[data-testid="schedule-form-end-time"]').clear().type('13:00')
-    cy.get('[data-testid="schedule-form-slot"]').clear().type('60')
+    cy.get('[data-testid="schedule-form-slot"]').type('{selectall}60')
     cy.get('[data-testid="schedule-form-submit"]').click()
 
-    cy.wait('@createSchedule').its('request.body').should('have.property', 'doctorId', 'doc-uuid-1')
+    cy.wait('@createSchedule').its('request.body').should('have.property', 'doctorId', DOC_UUID)
     cy.url().should('match', /\/schedules$/)
   })
 
@@ -156,7 +159,7 @@ describe('Schedules Create', () => {
     cy.get('[data-testid="schedule-form-day"]').select('TUESDAY')
     cy.get('[data-testid="schedule-form-start-time"]').clear().type('09:00')
     cy.get('[data-testid="schedule-form-end-time"]').clear().type('13:00')
-    cy.get('[data-testid="schedule-form-slot"]').clear().type('60')
+    cy.get('[data-testid="schedule-form-slot"]').type('{selectall}60')
     cy.get('[data-testid="schedule-form-submit"]').click()
 
     cy.wait('@createSchedule')
@@ -174,7 +177,7 @@ describe('Schedules Create', () => {
     cy.get('[data-testid="schedule-form-day"]').select('TUESDAY')
     cy.get('[data-testid="schedule-form-start-time"]').clear().type('09:00')
     cy.get('[data-testid="schedule-form-end-time"]').clear().type('13:00')
-    cy.get('[data-testid="schedule-form-slot"]').clear().type('60')
+    cy.get('[data-testid="schedule-form-slot"]').type('{selectall}60')
     cy.get('[data-testid="schedule-form-submit"]').click()
 
     cy.wait('@createSchedule')
@@ -190,7 +193,7 @@ describe('Schedules Create', () => {
     cy.get('[data-testid="schedule-form-day"]').select('TUESDAY')
     cy.get('[data-testid="schedule-form-start-time"]').clear().type('09:00')
     cy.get('[data-testid="schedule-form-end-time"]').clear().type('13:00')
-    cy.get('[data-testid="schedule-form-slot"]').clear().type('60')
+    cy.get('[data-testid="schedule-form-slot"]').type('{selectall}60')
     cy.get('[data-testid="schedule-form-submit"]').click()
 
     cy.get('[data-testid="schedule-form-submit"]').should('be.disabled')

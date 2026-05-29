@@ -9,7 +9,7 @@ const makeDto = () => ({
   id: 'uuid-1',
   user: { id: 'user-uuid-1', fullName: 'Dr. João Silva', email: 'joao@example.com' },
   crmNumber: '12345/SP',
-  specialty: 'Cardiologia',
+  specialties: [{ id: 'spec-uuid-1', name: 'Cardiologia' }],
   bio: null,
   createdAt: new Date('2024-01-15T10:00:00.000Z'),
   updatedAt: new Date('2024-01-16T10:00:00.000Z'),
@@ -62,7 +62,7 @@ describe('doctorsService', () => {
     const input = {
       userId: 'user-uuid-1',
       crmNumber: '12345/SP',
-      specialty: 'Cardiologia',
+      specialtyIds: ['spec-uuid-1'],
     }
 
     const result = await doctorsService.create(input)
@@ -74,7 +74,7 @@ describe('doctorsService', () => {
   it('update calls PATCH /doctors/:id with data and returns result', async () => {
     const dto = makeDto()
     mockApiClient.patch.mockResolvedValue(dto)
-    const input = { specialty: 'Neurologia' }
+    const input = { specialtyIds: ['spec-uuid-2'] }
 
     const result = await doctorsService.update('uuid-1', input)
 

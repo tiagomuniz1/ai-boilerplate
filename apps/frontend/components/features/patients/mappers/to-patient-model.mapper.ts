@@ -4,8 +4,8 @@ import type { IPatientModel } from '../types/patient-model.types'
 export function toPatientModel(dto: PatientResponseDto): IPatientModel {
   return {
     id: dto.id,
-    fullName: dto.fullName,
-    email: dto.email,
+    fullName: dto.user.fullName,
+    email: dto.user.email,
     phoneNumber: dto.phoneNumber,
     birthDate: new Date(dto.birthDate),
     documentNumber: dto.documentNumber,

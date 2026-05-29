@@ -9,6 +9,7 @@ import { UserRole } from '@app/shared'
 import { AppModule } from '../../../app.module'
 import { User } from '../../users/entities/user.entity'
 import { Doctor } from '../entities/doctor.entity'
+import { Specialty } from '../../specialties/entities/specialty.entity'
 
 process.env.NODE_ENV = 'test'
 process.env.DB_SCHEMA = 'test'
@@ -20,8 +21,10 @@ describe('DoctorsController (integration)', () => {
   let app: INestApplication
   let userRepository: Repository<User>
   let doctorRepository: Repository<Doctor>
+  let specialtyRepository: Repository<Specialty>
   let accessToken: string
   let authUserId: string
+  let defaultSpecialtyId: string
 
   beforeAll(async () => {
     const module = await Test.createTestingModule({
@@ -36,6 +39,7 @@ describe('DoctorsController (integration)', () => {
 
     userRepository = module.get(getRepositoryToken(User))
     doctorRepository = module.get(getRepositoryToken(Doctor))
+    specialtyRepository = module.get(getRepositoryToken(Specialty))
   })
 
   beforeEach(async () => {
@@ -51,6 +55,11 @@ describe('DoctorsController (integration)', () => {
     )
     authUserId = authUser.id
 
+    const defaultSpecialty = await specialtyRepository.save(
+      specialtyRepository.create({ name: 'Cardiologia' }),
+    )
+    defaultSpecialtyId = defaultSpecialty.id
+
     const response = await request(app.getHttpServer())
       .post('/auth/login')
       .send({ email: authUser.email, password })
@@ -62,7 +71,9 @@ describe('DoctorsController (integration)', () => {
   })
 
   afterEach(async () => {
+    await doctorRepository.query('DELETE FROM test.doctor_specialties')
     await doctorRepository.query('DELETE FROM test.doctors')
+    await specialtyRepository.query('DELETE FROM test.specialties')
     await userRepository.query('DELETE FROM test.users')
   })
 
@@ -82,13 +93,13 @@ describe('DoctorsController (integration)', () => {
 
   function makePayload(userId: string, overrides: Partial<{
     crmNumber: string
-    specialty: string
+    specialtyIds: string[]
     bio: string
   }> = {}) {
     return {
       userId,
       crmNumber: '12345/SP',
-      specialty: 'Cardiologia',
+      specialtyIds: [defaultSpecialtyId],
       ...overrides,
     }
   }
@@ -112,7 +123,9 @@ describe('DoctorsController (integration)', () => {
       expect(body.user.fullName).toBe(targetUser.fullName)
       expect(body.user.email).toBe(targetUser.email)
       expect(body.crmNumber).toBe(payload.crmNumber)
-      expect(body.specialty).toBe(payload.specialty)
+      expect(body.specialties).toHaveLength(1)
+      expect(body.specialties[0].id).toBe(defaultSpecialtyId)
+      expect(body.specialties[0].name).toBe('Cardiologia')
       expect(body.bio).toBeNull()
       expect(body.createdAt).toBeDefined()
       expect(body.updatedAt).toBeDefined()
@@ -134,7 +147,7 @@ describe('DoctorsController (integration)', () => {
     it('returns 409 when user already has a doctor profile', async () => {
       const targetUser = await createTargetUser()
       await createDoctor(targetUser.id).expect(201)
-      await createDoctor(targetUser.id).expect(409)
+      await createDoctor(targetUser.id, { crmNumber: '99999/RJ' }).expect(409)
     })
 
     it('returns 409 when CRM number is already in use', async () => {
@@ -145,14 +158,19 @@ describe('DoctorsController (integration)', () => {
       await createDoctor(user2.id, { crmNumber: '99999/RJ' }).expect(409)
     })
 
+    it('returns 422 when a specialtyId does not exist', async () => {
+      const targetUser = await createTargetUser()
+      await createDoctor(targetUser.id, { specialtyIds: [faker.string.uuid()] }).expect(422)
+    })
+
     it('returns 400 when CRM format is invalid', async () => {
       const targetUser = await createTargetUser()
       await createDoctor(targetUser.id, { crmNumber: '123-SP' }).expect(400)
     })
 
-    it('returns 400 when specialty is too short', async () => {
+    it('returns 400 when specialtyIds is empty', async () => {
       const targetUser = await createTargetUser()
-      await createDoctor(targetUser.id, { specialty: 'AB' }).expect(400)
+      await createDoctor(targetUser.id, { specialtyIds: [] }).expect(400)
     })
 
     it('returns 400 when unknown field is sent', async () => {
@@ -162,6 +180,19 @@ describe('DoctorsController (integration)', () => {
         .set('Authorization', `Bearer ${accessToken}`)
         .send({ ...makePayload(targetUser.id), unknownField: 'value' })
         .expect(400)
+    })
+
+    it('creates doctor with multiple specialties', async () => {
+      const targetUser = await createTargetUser()
+      const neurology = await specialtyRepository.save(
+        specialtyRepository.create({ name: 'Neurologia' }),
+      )
+
+      const { body } = await createDoctor(targetUser.id, {
+        specialtyIds: [defaultSpecialtyId, neurology.id],
+      }).expect(201)
+
+      expect(body.specialties).toHaveLength(2)
     })
   })
 
@@ -183,19 +214,23 @@ describe('DoctorsController (integration)', () => {
       expect(body.limit).toBe(20)
     })
 
-    it('filters by specialty via search param', async () => {
+    it('filters by specialty name via search param', async () => {
       const user1 = await createTargetUser()
       const user2 = await createTargetUser()
-      await createDoctor(user1.id, { crmNumber: '11111/SP', specialty: 'Cardiologia' })
-      await createDoctor(user2.id, { crmNumber: '22222/SP', specialty: 'Neurologia' })
+      const neurology = await specialtyRepository.save(
+        specialtyRepository.create({ name: 'Neurologia' }),
+      )
+
+      await createDoctor(user1.id, { crmNumber: '11111/SP' })
+      await createDoctor(user2.id, { crmNumber: '22222/SP', specialtyIds: [neurology.id] })
 
       const { body } = await request(app.getHttpServer())
         .get('/doctors?search=Cardio')
         .set('Authorization', `Bearer ${accessToken}`)
         .expect(200)
 
-      expect(body.data.some((d: any) => d.specialty === 'Cardiologia')).toBe(true)
-      expect(body.data.every((d: any) => d.specialty !== 'Neurologia')).toBe(true)
+      expect(body.data.some((d: any) => d.specialties.some((s: any) => s.name === 'Cardiologia'))).toBe(true)
+      expect(body.data.every((d: any) => d.specialties.every((s: any) => s.name !== 'Neurologia'))).toBe(true)
     })
 
     it('response data never contains version', async () => {
@@ -221,7 +256,7 @@ describe('DoctorsController (integration)', () => {
   })
 
   describe('GET /doctors/:id', () => {
-    it('returns 200 with DoctorResponseDto', async () => {
+    it('returns 200 with DoctorResponseDto including specialties', async () => {
       const targetUser = await createTargetUser()
       const { body: created } = await createDoctor(targetUser.id).expect(201)
 
@@ -232,6 +267,7 @@ describe('DoctorsController (integration)', () => {
 
       expect(body.id).toBe(created.id)
       expect(body.user.id).toBe(targetUser.id)
+      expect(body.specialties).toHaveLength(1)
       expect(body.version).toBeUndefined()
     })
 
@@ -244,26 +280,65 @@ describe('DoctorsController (integration)', () => {
   })
 
   describe('PATCH /doctors/:id', () => {
-    it('returns 200 with updated DoctorResponseDto', async () => {
+    it('returns 200 with updated specialties', async () => {
+      const targetUser = await createTargetUser()
+      const { body: created } = await createDoctor(targetUser.id).expect(201)
+      const neurology = await specialtyRepository.save(
+        specialtyRepository.create({ name: 'Neurologia' }),
+      )
+
+      const { body } = await request(app.getHttpServer())
+        .patch(`/doctors/${created.id}`)
+        .set('Authorization', `Bearer ${accessToken}`)
+        .send({ specialtyIds: [neurology.id] })
+        .expect(200)
+
+      expect(body.id).toBe(created.id)
+      expect(body.specialties).toHaveLength(1)
+      expect(body.specialties[0].name).toBe('Neurologia')
+      expect(body.crmNumber).toBe(created.crmNumber)
+    })
+
+    it('replaces specialties completely when specialtyIds is provided', async () => {
+      const targetUser = await createTargetUser()
+      const neurology = await specialtyRepository.save(
+        specialtyRepository.create({ name: 'Neurologia' }),
+      )
+      const { body: created } = await createDoctor(targetUser.id, {
+        specialtyIds: [defaultSpecialtyId, neurology.id],
+      }).expect(201)
+
+      expect(created.specialties).toHaveLength(2)
+
+      const { body } = await request(app.getHttpServer())
+        .patch(`/doctors/${created.id}`)
+        .set('Authorization', `Bearer ${accessToken}`)
+        .send({ specialtyIds: [defaultSpecialtyId] })
+        .expect(200)
+
+      expect(body.specialties).toHaveLength(1)
+      expect(body.specialties[0].id).toBe(defaultSpecialtyId)
+    })
+
+    it('does not change specialties when specialtyIds is not provided', async () => {
       const targetUser = await createTargetUser()
       const { body: created } = await createDoctor(targetUser.id).expect(201)
 
       const { body } = await request(app.getHttpServer())
         .patch(`/doctors/${created.id}`)
         .set('Authorization', `Bearer ${accessToken}`)
-        .send({ specialty: 'Neurologia' })
+        .send({ bio: 'Updated bio' })
         .expect(200)
 
-      expect(body.id).toBe(created.id)
-      expect(body.specialty).toBe('Neurologia')
-      expect(body.crmNumber).toBe(created.crmNumber)
+      expect(body.specialties).toHaveLength(1)
+      expect(body.specialties[0].id).toBe(defaultSpecialtyId)
     })
 
     it('returns 404 when doctor does not exist', async () => {
       await request(app.getHttpServer())
         .patch(`/doctors/${faker.string.uuid()}`)
         .set('Authorization', `Bearer ${accessToken}`)
-        .send({ specialty: 'Neurologia' })
+        .send({ bio: 'test' })
         .expect(404)
     })
 
@@ -278,6 +353,17 @@ describe('DoctorsController (integration)', () => {
         .set('Authorization', `Bearer ${accessToken}`)
         .send({ crmNumber: '11111/SP' })
         .expect(409)
+    })
+
+    it('returns 422 when updating with a non-existent specialtyId', async () => {
+      const targetUser = await createTargetUser()
+      const { body: created } = await createDoctor(targetUser.id).expect(201)
+
+      await request(app.getHttpServer())
+        .patch(`/doctors/${created.id}`)
+        .set('Authorization', `Bearer ${accessToken}`)
+        .send({ specialtyIds: [faker.string.uuid()] })
+        .expect(422)
     })
 
     it('returns 400 when trying to update with invalid CRM format', async () => {
@@ -298,7 +384,7 @@ describe('DoctorsController (integration)', () => {
       const { body } = await request(app.getHttpServer())
         .patch(`/doctors/${created.id}`)
         .set('Authorization', `Bearer ${accessToken}`)
-        .send({ specialty: 'Neurologia' })
+        .send({ bio: 'test' })
         .expect(200)
 
       expect(body.version).toBeUndefined()

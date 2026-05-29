@@ -1,4 +1,4 @@
-import { IsOptional, IsString, Matches, MaxLength, MinLength } from 'class-validator'
+import { ArrayMinSize, IsArray, IsOptional, IsString, IsUUID, Matches, MaxLength } from 'class-validator'
 
 export class UpdateDoctorDto {
   @IsOptional()
@@ -7,10 +7,10 @@ export class UpdateDoctorDto {
   crmNumber?: string
 
   @IsOptional()
-  @IsString()
-  @MinLength(3)
-  @MaxLength(100)
-  specialty?: string
+  @IsArray()
+  @IsUUID('4', { each: true })
+  @ArrayMinSize(1)
+  specialtyIds?: string[]
 
   @IsOptional()
   @IsString()

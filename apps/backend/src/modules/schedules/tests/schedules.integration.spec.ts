@@ -10,6 +10,7 @@ import { DayOfWeek, UserRole } from '@app/shared'
 import { AppModule } from '../../../app.module'
 import { User } from '../../users/entities/user.entity'
 import { Doctor } from '../../doctors/entities/doctor.entity'
+import { Specialty } from '../../specialties/entities/specialty.entity'
 import { Schedule } from '../entities/schedule.entity'
 
 process.env.NODE_ENV = 'test'
@@ -22,6 +23,7 @@ describe('SchedulesController (integration)', () => {
   let app: INestApplication
   let userRepository: Repository<User>
   let doctorRepository: Repository<Doctor>
+  let specialtyRepository: Repository<Specialty>
   let scheduleRepository: Repository<Schedule>
 
   let doctorToken: string
@@ -45,12 +47,15 @@ describe('SchedulesController (integration)', () => {
 
     userRepository = module.get(getRepositoryToken(User))
     doctorRepository = module.get(getRepositoryToken(Doctor))
+    specialtyRepository = module.get(getRepositoryToken(Specialty))
     scheduleRepository = module.get(getRepositoryToken(Schedule))
   })
 
   beforeEach(async () => {
     await scheduleRepository.query('DELETE FROM test.schedules')
+    await doctorRepository.query('DELETE FROM test.doctor_specialties')
     await doctorRepository.query('DELETE FROM test.doctors')
+    await specialtyRepository.query('DELETE FROM test.specialties')
     await userRepository.query('DELETE FROM test.users')
 
     const password = 'Password123!'
@@ -84,22 +89,24 @@ describe('SchedulesController (integration)', () => {
       }),
     )
 
-    const doctorProfile = await doctorRepository.save(
-      doctorRepository.create({
-        userId: doctorUserId,
-        crmNumber: '11111/SP',
-        specialty: 'Cardiologia',
-      }),
+    const cardiologia = await specialtyRepository.save(
+      specialtyRepository.create({ name: 'Cardiologia' }),
     )
+    const neurologia = await specialtyRepository.save(
+      specialtyRepository.create({ name: 'Neurologia' }),
+    )
+
+    const doctorEntity = doctorRepository.create({ userId: doctorUserId, crmNumber: '11111/SP' })
+    doctorEntity.specialties = [cardiologia]
+    const doctorProfile = await doctorRepository.save(doctorEntity)
     doctorId = doctorProfile.id
 
-    const otherDoctorProfile = await doctorRepository.save(
-      doctorRepository.create({
-        userId: otherDoctorUserRecord.id,
-        crmNumber: '22222/SP',
-        specialty: 'Neurologia',
-      }),
-    )
+    const otherDoctorEntity = doctorRepository.create({
+      userId: otherDoctorUserRecord.id,
+      crmNumber: '22222/SP',
+    })
+    otherDoctorEntity.specialties = [neurologia]
+    const otherDoctorProfile = await doctorRepository.save(otherDoctorEntity)
     otherDoctorId = otherDoctorProfile.id
 
     const loginAndExtractToken = async (email: string) => {
@@ -120,7 +127,9 @@ describe('SchedulesController (integration)', () => {
 
   afterAll(async () => {
     await scheduleRepository.query('DELETE FROM test.schedules')
+    await doctorRepository.query('DELETE FROM test.doctor_specialties')
     await doctorRepository.query('DELETE FROM test.doctors')
+    await specialtyRepository.query('DELETE FROM test.specialties')
     await userRepository.query('DELETE FROM test.users')
     await app.close()
   })

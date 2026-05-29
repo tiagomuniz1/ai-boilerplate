@@ -1,17 +1,19 @@
 const MOCK_TOKEN = 'mock-access-token'
 
+const SPEC_ID_1 = '00000000-0000-4000-a000-000000000001'
+
 const mockDoctorUser = {
   id: 'doctor-user-uuid',
   fullName: 'Dr. João Silva',
   email: 'joao@test.com',
-  role: 'DOCTOR',
+  role: 'doctor',
 }
 
 const mockAdminUser = {
   id: 'admin-user-uuid',
   fullName: 'Admin User',
   email: 'admin@test.com',
-  role: 'ADMIN',
+  role: 'admin',
 }
 
 const mockSchedule = {
@@ -36,7 +38,7 @@ const mockDoctorsList = {
       id: 'doc-uuid-1',
       user: { id: 'user-uuid-1', fullName: 'Dr. João Silva', email: 'joao@test.com' },
       crmNumber: '12345/SP',
-      specialty: 'Cardiologia',
+      specialties: [{ id: SPEC_ID_1, name: 'Cardiologia' }],
       bio: null,
       createdAt: '2025-01-01T10:00:00.000Z',
       updatedAt: '2025-01-01T10:00:00.000Z',

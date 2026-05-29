@@ -57,11 +57,25 @@ export function DoctorDetails({ doctor, onDeleteClick }: DoctorDetailsProps) {
             <DetailRow label="CRM" value={doctor.crmNumber} testId="doctor-details-crm" />
           </div>
           <div className="bg-surface px-6 py-4">
-            <DetailRow
-              label="Especialidade"
-              value={doctor.specialty}
-              testId="doctor-details-specialty"
-            />
+            <div className="flex flex-col gap-0.5">
+              <span className="text-xs font-medium uppercase tracking-wider text-text-mute">
+                Especialidades
+              </span>
+              <div
+                data-testid="doctor-details-specialties"
+                className="flex flex-wrap gap-1 pt-0.5"
+              >
+                {doctor.specialties.map((s) => (
+                  <span
+                    key={s.id}
+                    data-testid={`doctor-details-specialty-badge-${s.id}`}
+                    className="inline-flex items-center rounded-full border border-line bg-surface-2 px-2 py-0.5 text-xs text-text"
+                  >
+                    {s.name}
+                  </span>
+                ))}
+              </div>
+            </div>
           </div>
           <div className="bg-surface px-6 py-4">
             <DetailRow

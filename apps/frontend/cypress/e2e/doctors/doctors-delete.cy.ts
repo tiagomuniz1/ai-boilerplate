@@ -1,6 +1,8 @@
 const MOCK_TOKEN = 'mock-access-token'
 const MOCK_DOCTOR_ID = 'dddddddd-2222-2222-2222-000000000001'
 
+const SPEC_ID_1 = '00000000-0000-4000-a000-000000000001'
+
 const mockAuthUser = {
   id: 'mock-auth-user-id',
   fullName: 'Mock Admin',
@@ -11,7 +13,7 @@ const mockDoctor = {
   id: MOCK_DOCTOR_ID,
   user: { id: 'user-uuid-1', fullName: 'Dr. Para Excluir', email: 'excluir@test.com' },
   crmNumber: '99999/RJ',
-  specialty: 'Ortopedia',
+  specialties: [{ id: SPEC_ID_1, name: 'Ortopedia' }],
   bio: null,
   createdAt: '2024-01-15T10:00:00.000Z',
   updatedAt: '2024-01-15T10:00:00.000Z',

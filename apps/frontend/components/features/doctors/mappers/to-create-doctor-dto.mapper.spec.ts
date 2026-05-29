@@ -4,7 +4,7 @@ describe('toCreateDoctorDto', () => {
   const input = {
     userId: 'user-uuid-1',
     crmNumber: '12345/SP',
-    specialty: 'Cardiologia',
+    specialtyIds: ['spec-uuid-1', 'spec-uuid-2'],
     bio: 'Bio do médico.',
   }
 
@@ -13,7 +13,7 @@ describe('toCreateDoctorDto', () => {
 
     expect(dto.userId).toBe(input.userId)
     expect(dto.crmNumber).toBe(input.crmNumber)
-    expect(dto.specialty).toBe(input.specialty)
+    expect(dto.specialtyIds).toEqual(input.specialtyIds)
     expect(dto.bio).toBe(input.bio)
   })
 

@@ -8,7 +8,7 @@ const makeDto = () => ({
     email: 'joao@example.com',
   },
   crmNumber: '12345/SP',
-  specialty: 'Cardiologia',
+  specialties: [{ id: 'spec-uuid-1', name: 'Cardiologia' }],
   bio: 'Especialista em cardiologia intervencionista.',
   createdAt: '2024-01-15T10:00:00.000Z' as unknown as Date,
   updatedAt: '2024-01-16T10:00:00.000Z' as unknown as Date,
@@ -23,7 +23,7 @@ describe('toDoctorModel', () => {
     expect(model.user.fullName).toBe('Dr. João Silva')
     expect(model.user.email).toBe('joao@example.com')
     expect(model.crmNumber).toBe('12345/SP')
-    expect(model.specialty).toBe('Cardiologia')
+    expect(model.specialties).toEqual([{ id: 'spec-uuid-1', name: 'Cardiologia' }])
     expect(model.bio).toBe('Especialista em cardiologia intervencionista.')
   })
 
@@ -55,5 +55,26 @@ describe('toDoctorModel', () => {
       fullName: 'Dr. João Silva',
       email: 'joao@example.com',
     })
+  })
+
+  it('maps multiple specialties correctly', () => {
+    const dto = {
+      ...makeDto(),
+      specialties: [
+        { id: 'spec-uuid-1', name: 'Cardiologia' },
+        { id: 'spec-uuid-2', name: 'Neurologia' },
+      ],
+    }
+
+    const model = toDoctorModel(dto)
+
+    expect(model.specialties).toHaveLength(2)
+    expect(model.specialties[1].name).toBe('Neurologia')
+  })
+
+  it('maps empty specialties array correctly', () => {
+    const model = toDoctorModel({ ...makeDto(), specialties: [] })
+
+    expect(model.specialties).toEqual([])
   })
 })

@@ -15,8 +15,7 @@ const mockPush = jest.fn()
 
 const makeDto = (overrides = {}) => ({
   id: 'uuid-1',
-  fullName: 'João Silva',
-  email: 'joao@example.com',
+  user: { id: 'user-uuid-1', fullName: 'João Silva', email: 'joao@example.com', isActive: true },
   phoneNumber: '(11) 99999-9999',
   birthDate: '1990-05-15',
   documentNumber: '12345678901',

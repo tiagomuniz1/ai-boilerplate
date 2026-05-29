@@ -4,7 +4,7 @@ const mockDoctorUser = {
   id: 'doctor-user-uuid',
   fullName: 'Dr. João Silva',
   email: 'joao@test.com',
-  role: 'DOCTOR',
+  role: 'doctor',
 }
 
 const mockSchedule = {
@@ -146,8 +146,6 @@ describe('Schedules Update', () => {
   })
 
   it('back button returns to schedule detail page', () => {
-    cy.intercept('GET', `${Cypress.env('API_URL')}/schedules/${mockSchedule.id}`, { statusCode: 200, body: mockSchedule })
-
     visitAsDoctor(`/schedules/${mockSchedule.id}/edit`)
     cy.wait('@getSchedule')
 

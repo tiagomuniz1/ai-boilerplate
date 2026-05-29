@@ -1,9 +1,10 @@
-import { ConflictException, Injectable, Logger, NotFoundException } from '@nestjs/common'
+import { ConflictException, Injectable, Logger, NotFoundException, UnprocessableEntityException } from '@nestjs/common'
 import { DataSource } from 'typeorm'
 import { CreateDoctorDto, DoctorResponseDto } from '@app/shared'
 import { BaseUseCase } from '../../../common/base.use-case'
 import { CacheService } from '../../../cache/cache.service'
 import { IUsersRepository } from '../../users/repositories/users.repository.interface'
+import { ISpecialtiesRepository } from '../../specialties/repositories/specialties.repository.interface'
 import { IDoctorsRepository } from '../repositories/doctors.repository.interface'
 import { Doctor } from '../entities/doctor.entity'
 
@@ -15,6 +16,7 @@ export class CreateDoctorUseCase extends BaseUseCase {
     dataSource: DataSource,
     private readonly doctorsRepository: IDoctorsRepository,
     private readonly usersRepository: IUsersRepository,
+    private readonly specialtiesRepository: ISpecialtiesRepository,
     private readonly cacheService: CacheService,
   ) {
     super(dataSource)
@@ -30,7 +32,13 @@ export class CreateDoctorUseCase extends BaseUseCase {
     const existingCrm = await this.doctorsRepository.findByCrmNumber(dto.crmNumber)
     if (existingCrm) throw new ConflictException('CRM number already in use')
 
-    const doctor = await this.doctorsRepository.create(dto)
+    const uniqueIds = [...new Set(dto.specialtyIds)]
+    const specialties = await this.specialtiesRepository.findByIds(uniqueIds)
+    if (specialties.length !== uniqueIds.length) {
+      throw new UnprocessableEntityException('One or more specialty IDs not found')
+    }
+
+    const doctor = await this.doctorsRepository.create(dto, specialties)
 
     try {
       await this.cacheService.delByPattern('doctors:list*')
@@ -50,7 +58,7 @@ export class CreateDoctorUseCase extends BaseUseCase {
         email: doctor.user.email,
       },
       crmNumber: doctor.crmNumber,
-      specialty: doctor.specialty,
+      specialties: doctor.specialties.map((s) => ({ id: s.id, name: s.name })),
       bio: doctor.bio,
       createdAt: doctor.createdAt,
       updatedAt: doctor.updatedAt,

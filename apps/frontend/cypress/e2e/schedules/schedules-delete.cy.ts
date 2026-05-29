@@ -1,10 +1,12 @@
 const MOCK_TOKEN = 'mock-access-token'
 
+const SPEC_ID_1 = '00000000-0000-4000-a000-000000000001'
+
 const mockDoctorUser = {
   id: 'doctor-user-uuid',
   fullName: 'Dr. João Silva',
   email: 'joao@test.com',
-  role: 'DOCTOR',
+  role: 'doctor',
 }
 
 const mockSchedule = {
@@ -22,7 +24,23 @@ const mockSchedule = {
 
 const populatedListResponse = { data: [mockSchedule], total: 1, page: 1, limit: 20 }
 const emptyListResponse = { data: [], total: 0, page: 1, limit: 20 }
-const mockDoctorsList = { data: [], total: 0, page: 1, limit: 100 }
+
+const mockDoctorsList = {
+  data: [
+    {
+      id: 'doc-uuid-1',
+      user: { id: 'user-uuid-1', fullName: 'Dr. João Silva', email: 'joao@test.com' },
+      crmNumber: '12345/SP',
+      specialties: [{ id: SPEC_ID_1, name: 'Cardiologia' }],
+      bio: null,
+      createdAt: '2025-01-01T10:00:00.000Z',
+      updatedAt: '2025-01-01T10:00:00.000Z',
+    },
+  ],
+  total: 1,
+  page: 1,
+  limit: 100,
+}
 
 function visitAsDoctor(url: string) {
   cy.intercept('GET', `${Cypress.env('API_URL')}/auth/me`, { statusCode: 200, body: mockDoctorUser })

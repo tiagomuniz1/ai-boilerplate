@@ -4,12 +4,15 @@ import {
   DeleteDateColumn,
   Entity,
   JoinColumn,
+  JoinTable,
+  ManyToMany,
   ManyToOne,
   PrimaryGeneratedColumn,
   UpdateDateColumn,
   VersionColumn,
 } from 'typeorm'
 import { User } from '../../users/entities/user.entity'
+import { Specialty } from '../../specialties/entities/specialty.entity'
 
 @Entity('doctors')
 export class Doctor {
@@ -26,8 +29,13 @@ export class Doctor {
   @Column({ name: 'crm_number' })
   crmNumber: string
 
-  @Column()
-  specialty: string
+  @ManyToMany(() => Specialty, { eager: false })
+  @JoinTable({
+    name: 'doctor_specialties',
+    joinColumn: { name: 'doctor_id', referencedColumnName: 'id' },
+    inverseJoinColumn: { name: 'specialty_id', referencedColumnName: 'id' },
+  })
+  specialties: Specialty[]
 
   @Column({ nullable: true, type: 'text' })
   bio: string | null

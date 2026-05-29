@@ -19,7 +19,7 @@ const model = {
   id: 'uuid-1',
   user: { id: 'user-uuid-1', fullName: 'Dr. João', email: 'joao@example.com' },
   crmNumber: '12345/SP',
-  specialty: 'Neurologia',
+  specialties: [{ id: 'spec-uuid-2', name: 'Neurologia' }],
   bio: null,
   createdAt: new Date(),
   updatedAt: new Date(),
@@ -36,10 +36,10 @@ describe('useUpdateDoctor', () => {
 
     const { result } = renderHook(() => useUpdateDoctor(), { wrapper })
 
-    act(() => result.current.mutate({ id: 'uuid-1', data: { specialty: 'Neurologia' } }))
+    act(() => result.current.mutate({ id: 'uuid-1', data: { specialtyIds: ['spec-uuid-2'] } }))
 
     await waitFor(() => {
-      expect(updateDoctorUseCase).toHaveBeenCalledWith('uuid-1', { specialty: 'Neurologia' })
+      expect(updateDoctorUseCase).toHaveBeenCalledWith('uuid-1', { specialtyIds: ['spec-uuid-2'] })
     })
   })
 
@@ -48,7 +48,7 @@ describe('useUpdateDoctor', () => {
 
     const { result } = renderHook(() => useUpdateDoctor(), { wrapper })
 
-    act(() => result.current.mutate({ id: 'uuid-1', data: { specialty: 'Neurologia' } }))
+    act(() => result.current.mutate({ id: 'uuid-1', data: { specialtyIds: ['spec-uuid-2'] } }))
 
     await waitFor(() => {
       expect(mockPush).toHaveBeenCalledWith('/doctors/uuid-1')
@@ -61,7 +61,7 @@ describe('useUpdateDoctor', () => {
 
     const { result } = renderHook(() => useUpdateDoctor(), { wrapper })
 
-    act(() => result.current.mutate({ id: 'uuid-1', data: { specialty: 'Neurologia' } }))
+    act(() => result.current.mutate({ id: 'uuid-1', data: { specialtyIds: ['spec-uuid-2'] } }))
 
     await waitFor(() => expect(result.current.isError).toBe(true))
 

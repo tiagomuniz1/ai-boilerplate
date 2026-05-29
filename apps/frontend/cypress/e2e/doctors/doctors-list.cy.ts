@@ -1,5 +1,8 @@
 const MOCK_TOKEN = 'mock-access-token'
 
+const SPEC_ID_1 = '00000000-0000-4000-a000-000000000001'
+const SPEC_ID_2 = '00000000-0000-4000-a000-000000000002'
+
 const mockAuthUser = {
   id: 'mock-auth-user-id',
   fullName: 'Mock Admin',
@@ -10,7 +13,7 @@ const mockDoctor = {
   id: 'aaaaaaaa-2222-2222-2222-000000000001',
   user: { id: 'user-uuid-1', fullName: 'Dr. João Silva', email: 'joao@test.com' },
   crmNumber: '12345/SP',
-  specialty: 'Cardiologia',
+  specialties: [{ id: SPEC_ID_1, name: 'Cardiologia' }],
   bio: null,
   createdAt: '2024-01-15T10:00:00.000Z',
   updatedAt: '2024-01-15T10:00:00.000Z',
@@ -87,7 +90,7 @@ describe('Doctors List', () => {
     cy.get('[data-testid="doctor-list-table"]').should('not.exist')
   })
 
-  it('shows doctor rows with name, email, CRM and specialty', () => {
+  it('shows doctor rows with name, email, CRM and specialty badge', () => {
     cy.intercept('GET', `${Cypress.env('API_URL')}/doctors*`, {
       statusCode: 200,
       body: populatedListResponse,
@@ -101,7 +104,30 @@ describe('Doctors List', () => {
     cy.get(`[data-testid="doctor-name-${mockDoctor.id}"]`).should('contain', mockDoctor.user.fullName)
     cy.get(`[data-testid="doctor-email-${mockDoctor.id}"]`).should('contain', mockDoctor.user.email)
     cy.get(`[data-testid="doctor-crm-${mockDoctor.id}"]`).should('contain', mockDoctor.crmNumber)
-    cy.get(`[data-testid="doctor-specialty-${mockDoctor.id}"]`).should('contain', mockDoctor.specialty)
+    cy.get(`[data-testid="doctor-specialty-badge-${SPEC_ID_1}"]`).should('contain', 'Cardiologia')
+  })
+
+  it('shows overflow indicator when doctor has more than 2 specialties', () => {
+    const doctorWithManySpecialties = {
+      ...mockDoctor,
+      specialties: [
+        { id: SPEC_ID_1, name: 'Cardiologia' },
+        { id: SPEC_ID_2, name: 'Neurologia' },
+        { id: '00000000-0000-4000-a000-000000000003', name: 'Ortopedia' },
+        { id: '00000000-0000-4000-a000-000000000004', name: 'Pediatria' },
+      ],
+    }
+    cy.intercept('GET', `${Cypress.env('API_URL')}/doctors*`, {
+      statusCode: 200,
+      body: { data: [doctorWithManySpecialties], total: 1, page: 1, limit: 20 },
+    }).as('getDoctors')
+
+    visitWithMockAuth('/doctors')
+    cy.wait('@getDoctors')
+
+    cy.get(`[data-testid="doctor-specialty-badge-${SPEC_ID_1}"]`).should('be.visible')
+    cy.get(`[data-testid="doctor-specialty-badge-${SPEC_ID_2}"]`).should('be.visible')
+    cy.get(`[data-testid="doctor-specialty-${mockDoctor.id}"]`).should('contain', '+2 mais')
   })
 
   it('shows "Novo médico" button that links to /doctors/new', () => {

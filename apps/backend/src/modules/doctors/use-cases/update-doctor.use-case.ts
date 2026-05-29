@@ -1,11 +1,13 @@
-import { ConflictException, ForbiddenException, Injectable, Logger, NotFoundException } from '@nestjs/common'
+import { ConflictException, ForbiddenException, Injectable, Logger, NotFoundException, UnprocessableEntityException } from '@nestjs/common'
 import { DataSource, OptimisticLockVersionMismatchError } from 'typeorm'
 import { DoctorResponseDto, UpdateDoctorDto, UserRole } from '@app/shared'
 import { BaseUseCase } from '../../../common/base.use-case'
 import { CacheService } from '../../../cache/cache.service'
 import { ICurrentUser } from '../../auth/types/current-user.type'
+import { ISpecialtiesRepository } from '../../specialties/repositories/specialties.repository.interface'
 import { IDoctorsRepository } from '../repositories/doctors.repository.interface'
 import { Doctor } from '../entities/doctor.entity'
+import { Specialty } from '../../specialties/entities/specialty.entity'
 
 @Injectable()
 export class UpdateDoctorUseCase extends BaseUseCase {
@@ -14,6 +16,7 @@ export class UpdateDoctorUseCase extends BaseUseCase {
   constructor(
     dataSource: DataSource,
     private readonly doctorsRepository: IDoctorsRepository,
+    private readonly specialtiesRepository: ISpecialtiesRepository,
     private readonly cacheService: CacheService,
   ) {
     super(dataSource)
@@ -35,9 +38,18 @@ export class UpdateDoctorUseCase extends BaseUseCase {
       if (existing) throw new ConflictException('CRM number already in use')
     }
 
+    let specialties: Specialty[] | null = null
+    if (dto.specialtyIds !== undefined) {
+      const uniqueIds = [...new Set(dto.specialtyIds)]
+      specialties = await this.specialtiesRepository.findByIds(uniqueIds)
+      if (specialties.length !== uniqueIds.length) {
+        throw new UnprocessableEntityException('One or more specialty IDs not found')
+      }
+    }
+
     let updated: Doctor
     try {
-      updated = await this.doctorsRepository.update(id, dto)
+      updated = await this.doctorsRepository.update(id, dto, specialties)
     } catch (error) {
       if (error instanceof OptimisticLockVersionMismatchError) {
         throw new ConflictException('Record was modified by another process. Please try again.')
@@ -64,7 +76,7 @@ export class UpdateDoctorUseCase extends BaseUseCase {
         email: doctor.user.email,
       },
       crmNumber: doctor.crmNumber,
-      specialty: doctor.specialty,
+      specialties: doctor.specialties.map((s) => ({ id: s.id, name: s.name })),
       bio: doctor.bio,
       createdAt: doctor.createdAt,
       updatedAt: doctor.updatedAt,

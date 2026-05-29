@@ -14,7 +14,7 @@ const doctor: IDoctorModel = {
   id: 'uuid-1',
   user: { id: 'user-uuid-1', fullName: 'Dr. João Silva', email: 'joao@example.com' },
   crmNumber: '12345/SP',
-  specialty: 'Cardiologia',
+  specialties: [{ id: 'spec-uuid-1', name: 'Cardiologia' }],
   bio: 'Especialista em cardiologia.',
   createdAt: new Date('2024-01-15'),
   updatedAt: new Date('2024-01-16'),
@@ -32,7 +32,35 @@ describe('DoctorDetails (integration)', () => {
     expect(screen.getByTestId('doctor-details-name')).toHaveTextContent('Dr. João Silva')
     expect(screen.getByTestId('doctor-details-email')).toHaveTextContent('joao@example.com')
     expect(screen.getByTestId('doctor-details-crm')).toHaveTextContent('12345/SP')
-    expect(screen.getByTestId('doctor-details-specialty')).toHaveTextContent('Cardiologia')
+    expect(screen.getByTestId('doctor-details-specialties')).toBeInTheDocument()
+    expect(screen.getByTestId('doctor-details-specialty-badge-spec-uuid-1')).toHaveTextContent('Cardiologia')
+  })
+
+  it('renders all specialties as badges', () => {
+    const multiSpecialtyDoctor: IDoctorModel = {
+      ...doctor,
+      specialties: [
+        { id: 'spec-uuid-1', name: 'Cardiologia' },
+        { id: 'spec-uuid-2', name: 'Neurologia' },
+        { id: 'spec-uuid-3', name: 'Ortopedia' },
+      ],
+    }
+
+    renderWithProviders(<DoctorDetails doctor={multiSpecialtyDoctor} onDeleteClick={jest.fn()} />)
+
+    expect(screen.getByTestId('doctor-details-specialties')).toBeInTheDocument()
+    expect(screen.getByTestId('doctor-details-specialty-badge-spec-uuid-1')).toHaveTextContent('Cardiologia')
+    expect(screen.getByTestId('doctor-details-specialty-badge-spec-uuid-2')).toHaveTextContent('Neurologia')
+    expect(screen.getByTestId('doctor-details-specialty-badge-spec-uuid-3')).toHaveTextContent('Ortopedia')
+  })
+
+  it('renders empty specialties container when no specialties', () => {
+    renderWithProviders(
+      <DoctorDetails doctor={{ ...doctor, specialties: [] }} onDeleteClick={jest.fn()} />,
+    )
+
+    expect(screen.getByTestId('doctor-details-specialties')).toBeInTheDocument()
+    expect(screen.queryByTestId(/doctor-details-specialty-badge-/)).not.toBeInTheDocument()
   })
 
   it('renders bio when set', () => {

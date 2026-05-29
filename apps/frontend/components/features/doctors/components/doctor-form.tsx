@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect } from 'react'
-import { useForm } from 'react-hook-form'
+import { useForm, useController } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { useQuery } from '@tanstack/react-query'
@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/atoms/button/button'
 import { Alert } from '@/components/ui/molecules/alert/alert'
 import { cn } from '@/lib/cn'
 import { userService } from '@/components/features/users/services/users.service'
+import { specialtiesService } from '@/components/features/specialties/services/specialties.service'
 import type { ICreateDoctorInput, IUpdateDoctorInput } from '../types/doctor-input.types'
 import type { IDoctorModel } from '../types/doctor-model.types'
 
@@ -20,23 +21,22 @@ const crmField = z
   .min(1, 'CRM obrigatório')
   .regex(crmRegex, 'CRM inválido. Use o formato NNNNN/UF (ex: 12345/SP)')
 
-const specialtyField = z
-  .string()
-  .min(3, 'Especialidade deve ter no mínimo 3 caracteres')
-  .max(100, 'Especialidade deve ter no máximo 100 caracteres')
+const specialtyIdsField = z
+  .array(z.string().uuid())
+  .min(1, 'Selecione ao menos uma especialidade')
 
 const bioField = z.string().max(500, 'Bio deve ter no máximo 500 caracteres').optional()
 
 const createSchema = z.object({
   userId: z.string().min(1, 'Selecione um usuário'),
   crmNumber: crmField,
-  specialty: specialtyField,
+  specialtyIds: specialtyIdsField,
   bio: bioField,
 })
 
 const updateSchema = z.object({
   crmNumber: crmField.optional().or(z.literal('')),
-  specialty: specialtyField.optional().or(z.literal('')),
+  specialtyIds: specialtyIdsField,
   bio: bioField,
 })
 
@@ -78,23 +78,42 @@ function DoctorFormCreate({ isPending, globalError, onSubmit }: DoctorFormCreate
     register,
     handleSubmit,
     setError,
+    control,
     formState: { errors },
   } = useForm<CreateFormValues>({
     resolver: zodResolver(createSchema),
+    defaultValues: { specialtyIds: [] },
   })
+
+  const { field: specialtyField } = useController({ name: 'specialtyIds', control })
 
   const { data: usersResponse, isPending: isLoadingUsers } = useQuery({
     queryKey: ['users-for-select'],
     queryFn: () => userService.getAll({ limit: 100 }),
   })
 
+  const { data: specialtiesResponse, isPending: isLoadingSpecialties } = useQuery({
+    queryKey: ['specialties-for-select'],
+    queryFn: () => specialtiesService.getAll({ limit: 100 }),
+  })
+
   const users = usersResponse?.data ?? []
+  const specialties = specialtiesResponse?.data ?? []
 
   function handleFormSubmit(data: CreateFormValues) {
     onSubmit(
-      { userId: data.userId, crmNumber: data.crmNumber, specialty: data.specialty, bio: data.bio || undefined },
+      { userId: data.userId, crmNumber: data.crmNumber, specialtyIds: data.specialtyIds, bio: data.bio || undefined },
       setError as (field: keyof ICreateDoctorInput, error: { message: string }) => void,
     )
+  }
+
+  function toggleSpecialty(id: string) {
+    const current = specialtyField.value
+    if (current.includes(id)) {
+      specialtyField.onChange(current.filter((v) => v !== id))
+    } else {
+      specialtyField.onChange([...current, id])
+    }
   }
 
   return (
@@ -122,13 +141,15 @@ function DoctorFormCreate({ isPending, globalError, onSubmit }: DoctorFormCreate
           error={errors.crmNumber?.message}
           {...register('crmNumber')}
         />
-        <Input
-          label="Especialidade"
-          id="specialty"
-          data-testid="doctor-form-specialty"
-          error={errors.specialty?.message}
-          {...register('specialty')}
+
+        <SpecialtyCheckboxGroup
+          specialties={specialties}
+          selectedIds={specialtyField.value}
+          isLoading={isLoadingSpecialties}
+          error={errors.specialtyIds?.message as string | undefined}
+          onToggle={toggleSpecialty}
         />
+
         <TextAreaField
           label="Bio"
           id="bio"
@@ -156,15 +177,26 @@ function DoctorFormEdit({ defaultValues, isPending, globalError, onSubmit }: Doc
     handleSubmit,
     setError,
     reset,
+    control,
     formState: { errors },
   } = useForm<UpdateFormValues>({
     resolver: zodResolver(updateSchema),
+    defaultValues: { specialtyIds: defaultValues.specialties.map((s) => s.id) },
   })
+
+  const { field: specialtyField } = useController({ name: 'specialtyIds', control })
+
+  const { data: specialtiesResponse, isPending: isLoadingSpecialties } = useQuery({
+    queryKey: ['specialties-for-select'],
+    queryFn: () => specialtiesService.getAll({ limit: 100 }),
+  })
+
+  const specialties = specialtiesResponse?.data ?? []
 
   useEffect(() => {
     reset({
       crmNumber: defaultValues.crmNumber,
-      specialty: defaultValues.specialty,
+      specialtyIds: defaultValues.specialties.map((s) => s.id),
       bio: defaultValues.bio ?? '',
     })
   }, [defaultValues, reset])
@@ -172,13 +204,22 @@ function DoctorFormEdit({ defaultValues, isPending, globalError, onSubmit }: Doc
   function handleFormSubmit(data: UpdateFormValues) {
     const input: IUpdateDoctorInput = {
       crmNumber: data.crmNumber || undefined,
-      specialty: data.specialty || undefined,
+      specialtyIds: data.specialtyIds,
       bio: data.bio || undefined,
     }
     onSubmit(
       input,
       setError as (field: keyof IUpdateDoctorInput, error: { message: string }) => void,
     )
+  }
+
+  function toggleSpecialty(id: string) {
+    const current = specialtyField.value
+    if (current.includes(id)) {
+      specialtyField.onChange(current.filter((v) => v !== id))
+    } else {
+      specialtyField.onChange([...current, id])
+    }
   }
 
   return (
@@ -209,13 +250,15 @@ function DoctorFormEdit({ defaultValues, isPending, globalError, onSubmit }: Doc
           error={errors.crmNumber?.message}
           {...register('crmNumber')}
         />
-        <Input
-          label="Especialidade"
-          id="specialty"
-          data-testid="doctor-form-specialty"
-          error={errors.specialty?.message}
-          {...register('specialty')}
+
+        <SpecialtyCheckboxGroup
+          specialties={specialties}
+          selectedIds={specialtyField.value}
+          isLoading={isLoadingSpecialties}
+          error={errors.specialtyIds?.message as string | undefined}
+          onToggle={toggleSpecialty}
         />
+
         <TextAreaField
           label="Bio"
           id="bio"
@@ -234,6 +277,64 @@ function DoctorFormEdit({ defaultValues, isPending, globalError, onSubmit }: Doc
         </Button>
       </div>
     </form>
+  )
+}
+
+function SpecialtyCheckboxGroup({
+  specialties,
+  selectedIds,
+  isLoading,
+  error,
+  onToggle,
+}: {
+  specialties: Array<{ id: string; name: string }>
+  selectedIds: string[]
+  isLoading: boolean
+  error?: string
+  onToggle: (id: string) => void
+}) {
+  return (
+    <div className="flex flex-col gap-1.5" data-testid="doctor-form-specialty-group">
+      <label className="text-sm font-medium text-text">Especialidades</label>
+      {isLoading ? (
+        <p className="text-sm text-text-mute" data-testid="doctor-form-specialty-loading">
+          Carregando especialidades...
+        </p>
+      ) : (
+        <div
+          className={cn(
+            'max-h-48 overflow-y-auto rounded-md border p-3',
+            'bg-surface',
+            error ? 'border-danger' : 'border-line',
+          )}
+        >
+          {specialties.length === 0 ? (
+            <p className="text-sm text-text-mute">Nenhuma especialidade cadastrada.</p>
+          ) : (
+            specialties.map((specialty) => (
+              <label
+                key={specialty.id}
+                className="flex cursor-pointer items-center gap-2 rounded px-1 py-1.5 text-sm text-text hover:bg-surface-2"
+              >
+                <input
+                  type="checkbox"
+                  checked={selectedIds.includes(specialty.id)}
+                  onChange={() => onToggle(specialty.id)}
+                  data-testid={`doctor-form-specialty-${specialty.id}`}
+                  className="accent-accent"
+                />
+                {specialty.name}
+              </label>
+            ))
+          )}
+        </div>
+      )}
+      {error && (
+        <span role="alert" className="text-xs text-danger">
+          {error}
+        </span>
+      )}
+    </div>
   )
 }
 

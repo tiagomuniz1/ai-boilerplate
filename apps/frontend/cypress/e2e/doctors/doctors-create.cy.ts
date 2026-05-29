@@ -1,5 +1,8 @@
 const MOCK_TOKEN = 'mock-access-token'
 
+const SPEC_ID_1 = '00000000-0000-4000-a000-000000000001'
+const SPEC_ID_2 = '00000000-0000-4000-a000-000000000002'
+
 const mockAuthUser = {
   id: 'mock-auth-user-id',
   fullName: 'Mock Admin',
@@ -16,11 +19,16 @@ const mockUser = {
   updatedAt: '2024-01-01T00:00:00.000Z',
 }
 
+const mockSpecialties = [
+  { id: SPEC_ID_1, name: 'Cardiologia', description: null, createdAt: '2024-01-01T00:00:00.000Z', updatedAt: '2024-01-01T00:00:00.000Z' },
+  { id: SPEC_ID_2, name: 'Neurologia', description: null, createdAt: '2024-01-01T00:00:00.000Z', updatedAt: '2024-01-01T00:00:00.000Z' },
+]
+
 const mockCreatedDoctor = {
   id: 'bbbbbbbb-2222-2222-2222-000000000001',
   user: { id: 'user-uuid-1', fullName: 'Dr. João Silva', email: 'joao@test.com' },
   crmNumber: '12345/SP',
-  specialty: 'Cardiologia',
+  specialties: [{ id: SPEC_ID_1, name: 'Cardiologia' }],
   bio: null,
   createdAt: '2024-01-15T10:00:00.000Z',
   updatedAt: '2024-01-15T10:00:00.000Z',
@@ -28,6 +36,7 @@ const mockCreatedDoctor = {
 
 const emptyListResponse = { data: [], total: 0, page: 1, limit: 20 }
 const usersListResponse = { data: [mockUser], total: 1, page: 1, limit: 100 }
+const specialtiesListResponse = { data: mockSpecialties, total: 2, page: 1, limit: 100 }
 
 function visitWithMockAuth(url: string) {
   cy.intercept('GET', `${Cypress.env('API_URL')}/auth/me`, {
@@ -59,6 +68,10 @@ describe('Doctors Create', () => {
       statusCode: 200,
       body: usersListResponse,
     }).as('getUsers')
+    cy.intercept('GET', `${Cypress.env('API_URL')}/specialties*`, {
+      statusCode: 200,
+      body: specialtiesListResponse,
+    }).as('getSpecialties')
   })
 
   it('shows validation errors when submitting empty form', () => {
@@ -75,11 +88,21 @@ describe('Doctors Create', () => {
     cy.contains('CRM inválido').should('be.visible')
   })
 
-  it('shows validation error when specialty is too short', () => {
+  it('shows validation error when no specialty is selected', () => {
     visitWithMockAuth('/doctors/new')
-    cy.get('[data-testid="doctor-form-specialty"]').type('ab')
+    cy.wait('@getUsers')
+    cy.wait('@getSpecialties')
+    cy.get('[data-testid="doctor-form-user"]').select('user-uuid-1')
+    cy.get('[data-testid="doctor-form-crm"]').type('12345/SP')
     cy.get('[data-testid="doctor-form-submit"]').click()
-    cy.contains('Especialidade deve ter no mínimo 3 caracteres').should('be.visible')
+    cy.contains('Selecione ao menos uma especialidade').should('be.visible')
+  })
+
+  it('renders specialty checkboxes after specialties load', () => {
+    visitWithMockAuth('/doctors/new')
+    cy.wait('@getSpecialties')
+    cy.get(`[data-testid="doctor-form-specialty-${SPEC_ID_1}"]`).should('exist')
+    cy.get(`[data-testid="doctor-form-specialty-${SPEC_ID_2}"]`).should('exist')
   })
 
   it('shows conflict error when CRM already exists (409)', () => {
@@ -90,9 +113,10 @@ describe('Doctors Create', () => {
 
     visitWithMockAuth('/doctors/new')
     cy.wait('@getUsers')
+    cy.wait('@getSpecialties')
     cy.get('[data-testid="doctor-form-user"]').select('user-uuid-1')
     cy.get('[data-testid="doctor-form-crm"]').type('12345/SP')
-    cy.get('[data-testid="doctor-form-specialty"]').type('Cardiologia')
+    cy.get(`[data-testid="doctor-form-specialty-${SPEC_ID_1}"]`).check()
     cy.get('[data-testid="doctor-form-submit"]').click()
     cy.wait('@createDoctor')
     cy.get('[data-testid="doctor-form-error"]').should('be.visible')
@@ -106,9 +130,10 @@ describe('Doctors Create', () => {
 
     visitWithMockAuth('/doctors/new')
     cy.wait('@getUsers')
+    cy.wait('@getSpecialties')
     cy.get('[data-testid="doctor-form-user"]').select('user-uuid-1')
     cy.get('[data-testid="doctor-form-crm"]').type('12345/SP')
-    cy.get('[data-testid="doctor-form-specialty"]').type('Cardiologia')
+    cy.get(`[data-testid="doctor-form-specialty-${SPEC_ID_1}"]`).check()
     cy.get('[data-testid="doctor-form-submit"]').click()
     cy.get('[data-testid="doctor-form-submit"]').should('be.disabled')
     cy.wait('@createDoctor')
@@ -137,14 +162,36 @@ describe('Doctors Create', () => {
 
     visitWithMockAuth('/doctors/new')
     cy.wait('@getUsers')
+    cy.wait('@getSpecialties')
     cy.get('[data-testid="doctor-form-user"]').select('user-uuid-1')
     cy.get('[data-testid="doctor-form-crm"]').type('12345/SP')
-    cy.get('[data-testid="doctor-form-specialty"]').type('Cardiologia')
+    cy.get(`[data-testid="doctor-form-specialty-${SPEC_ID_1}"]`).check()
     cy.get('[data-testid="doctor-form-submit"]').click()
     cy.wait('@createDoctor')
     cy.url().should('match', /\/doctors$/)
     cy.wait('@getDoctors')
     cy.get(`[data-testid="doctor-table-row-${mockCreatedDoctor.id}"]`).should('exist')
+  })
+
+  it('allows selecting multiple specialties', () => {
+    cy.intercept('POST', `${Cypress.env('API_URL')}/doctors`, (req) => {
+      expect(req.body.specialtyIds).to.have.length(2)
+      req.reply({ statusCode: 201, body: { ...mockCreatedDoctor, specialties: [{ id: SPEC_ID_1, name: 'Cardiologia' }, { id: SPEC_ID_2, name: 'Neurologia' }] } })
+    }).as('createDoctor')
+    cy.intercept('GET', `${Cypress.env('API_URL')}/doctors*`, {
+      statusCode: 200,
+      body: emptyListResponse,
+    })
+
+    visitWithMockAuth('/doctors/new')
+    cy.wait('@getUsers')
+    cy.wait('@getSpecialties')
+    cy.get('[data-testid="doctor-form-user"]').select('user-uuid-1')
+    cy.get('[data-testid="doctor-form-crm"]').type('12345/SP')
+    cy.get(`[data-testid="doctor-form-specialty-${SPEC_ID_1}"]`).check()
+    cy.get(`[data-testid="doctor-form-specialty-${SPEC_ID_2}"]`).check()
+    cy.get('[data-testid="doctor-form-submit"]').click()
+    cy.wait('@createDoctor')
   })
 })
 

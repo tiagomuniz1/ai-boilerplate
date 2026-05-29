@@ -1,17 +1,25 @@
 const MOCK_TOKEN = 'mock-access-token'
 const MOCK_DOCTOR_ID = 'cccccccc-2222-2222-2222-000000000001'
 
+const SPEC_ID_1 = '00000000-0000-4000-a000-000000000001'
+const SPEC_ID_2 = '00000000-0000-4000-a000-000000000002'
+
 const mockAuthUser = {
   id: 'mock-auth-user-id',
   fullName: 'Mock Admin',
   email: 'mock@admin.com',
 }
 
+const mockSpecialties = [
+  { id: SPEC_ID_1, name: 'Cardiologia', description: null, createdAt: '2024-01-01T00:00:00.000Z', updatedAt: '2024-01-01T00:00:00.000Z' },
+  { id: SPEC_ID_2, name: 'Neurologia', description: null, createdAt: '2024-01-01T00:00:00.000Z', updatedAt: '2024-01-01T00:00:00.000Z' },
+]
+
 const mockDoctor = {
   id: MOCK_DOCTOR_ID,
   user: { id: 'user-uuid-1', fullName: 'Dr. Original Silva', email: 'original@test.com' },
   crmNumber: '11111/SP',
-  specialty: 'Cardiologia',
+  specialties: [{ id: SPEC_ID_1, name: 'Cardiologia' }],
   bio: null,
   createdAt: '2024-01-15T10:00:00.000Z',
   updatedAt: '2024-01-15T10:00:00.000Z',
@@ -19,8 +27,13 @@ const mockDoctor = {
 
 const mockUpdatedDoctor = {
   ...mockDoctor,
-  specialty: 'Neurologia',
+  specialties: [
+    { id: SPEC_ID_1, name: 'Cardiologia' },
+    { id: SPEC_ID_2, name: 'Neurologia' },
+  ],
 }
+
+const specialtiesListResponse = { data: mockSpecialties, total: 2, page: 1, limit: 100 }
 
 function visitWithMockAuth(url: string) {
   cy.intercept('GET', `${Cypress.env('API_URL')}/auth/me`, {
@@ -48,6 +61,10 @@ describe('Doctors Update', () => {
   beforeEach(() => {
     cy.clearCookies()
     cy.clearLocalStorage()
+    cy.intercept('GET', `${Cypress.env('API_URL')}/specialties*`, {
+      statusCode: 200,
+      body: specialtiesListResponse,
+    }).as('getSpecialties')
   })
 
   it('shows skeleton while loading doctor data', () => {
@@ -69,10 +86,12 @@ describe('Doctors Update', () => {
 
     visitWithMockAuth(`/doctors/${MOCK_DOCTOR_ID}/edit`)
     cy.wait('@getDoctor')
+    cy.wait('@getSpecialties')
 
     cy.get('[data-testid="doctor-form-crm"]').should('have.value', mockDoctor.crmNumber)
-    cy.get('[data-testid="doctor-form-specialty"]').should('have.value', mockDoctor.specialty)
     cy.get('[data-testid="doctor-form-user-readonly"]').should('contain', mockDoctor.user.fullName)
+    cy.get(`[data-testid="doctor-form-specialty-${SPEC_ID_1}"]`).should('be.checked')
+    cy.get(`[data-testid="doctor-form-specialty-${SPEC_ID_2}"]`).should('not.be.checked')
   })
 
   it('shows user as readonly and not a select', () => {
@@ -126,7 +145,6 @@ describe('Doctors Update', () => {
 
     visitWithMockAuth(`/doctors/${MOCK_DOCTOR_ID}/edit`)
     cy.wait('@getDoctor')
-    cy.get('[data-testid="doctor-form-specialty"]').clear().type('Especialidade não salva')
     cy.get('[data-testid="edit-doctor-back-button"]').click()
     cy.url().should('include', `/doctors/${MOCK_DOCTOR_ID}`)
   })
@@ -142,7 +160,8 @@ describe('Doctors Update', () => {
 
     visitWithMockAuth(`/doctors/${MOCK_DOCTOR_ID}/edit`)
     cy.wait('@getDoctor')
-    cy.get('[data-testid="doctor-form-specialty"]').clear().type('Neurologia Atualizada')
+    cy.wait('@getSpecialties')
+    cy.get(`[data-testid="doctor-form-specialty-${SPEC_ID_2}"]`).check()
     cy.get('[data-testid="doctor-form-submit"]').click()
     cy.get('[data-testid="doctor-form-submit"]').should('be.disabled')
     cy.wait('@updateDoctor')
@@ -160,10 +179,12 @@ describe('Doctors Update', () => {
 
     visitWithMockAuth(`/doctors/${MOCK_DOCTOR_ID}/edit`)
     cy.wait('@getDoctor')
+    cy.wait('@getSpecialties')
 
     cy.fixture('doctors').then((fixture) => {
-      cy.get('[data-testid="doctor-form-specialty"]').clear().type(fixture.updatedDoctor.specialty)
+      cy.get('[data-testid="doctor-form-crm"]').clear().type(fixture.updatedDoctor.crmNumber)
     })
+    cy.get(`[data-testid="doctor-form-specialty-${SPEC_ID_2}"]`).check()
     cy.get('[data-testid="doctor-form-submit"]').click()
     cy.wait('@updateDoctor')
     cy.url().should('include', `/doctors/${MOCK_DOCTOR_ID}`)
