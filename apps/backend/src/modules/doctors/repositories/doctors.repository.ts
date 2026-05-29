@@ -68,7 +68,7 @@ export class DoctorsRepository implements IDoctorsRepository {
     const doctor = await repo.findOne({ where: { id }, relations: ['specialties'] })
     if (!doctor) throw new Error(`Doctor ${id} not found`)
     if (data.crmNumber !== undefined) doctor.crmNumber = data.crmNumber
-    if (data.bio !== undefined) doctor.bio = data.bio ?? null
+    if (data.bio !== undefined) doctor.bio = data.bio
     if (specialties !== null) doctor.specialties = specialties
     const saved = await repo.save(doctor)
     return this.repository.findOne({ where: { id: saved.id }, relations: ['user', 'specialties'] }) as Promise<Doctor>

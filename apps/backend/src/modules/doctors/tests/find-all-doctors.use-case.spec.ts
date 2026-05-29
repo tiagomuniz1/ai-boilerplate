@@ -155,4 +155,15 @@ describe('FindAllDoctorsUseCase', () => {
 
     await expect(useCase.execute(makeQuery(), doctorUser)).rejects.toThrow(NotFoundException)
   })
+
+  it('returns empty specialties array when doctor has no specialties', async () => {
+    const doctor = { ...makeDoctor(), specialties: null }
+    mockCacheService.get.mockResolvedValue(null)
+    mockDoctorsRepository.findAll.mockResolvedValue([[doctor as any], 1])
+    mockCacheService.set.mockResolvedValue(undefined)
+
+    const result = await useCase.execute(makeQuery(), adminUser)
+
+    expect(result.data[0].specialties).toEqual([])
+  })
 })

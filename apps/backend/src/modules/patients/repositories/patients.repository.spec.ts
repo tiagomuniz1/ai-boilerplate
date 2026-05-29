@@ -120,6 +120,24 @@ describe('PatientsRepository', () => {
     })
   })
 
+  describe('findByUserId', () => {
+    it('returns patient when found', async () => {
+      const patient = makePatient()
+      repo.findOneBy.mockResolvedValue(patient)
+
+      const result = await repository.findByUserId('user-uuid-1')
+
+      expect(repo.findOneBy).toHaveBeenCalledWith({ userId: 'user-uuid-1' })
+      expect(result).toBe(patient)
+    })
+
+    it('returns null when not found', async () => {
+      repo.findOneBy.mockResolvedValue(null)
+
+      expect(await repository.findByUserId('missing')).toBeNull()
+    })
+  })
+
   describe('findByDocumentNumber', () => {
     it('returns patient when found', async () => {
       const patient = makePatient()

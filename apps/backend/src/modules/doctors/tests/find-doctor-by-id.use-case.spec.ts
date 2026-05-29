@@ -154,4 +154,16 @@ describe('FindDoctorByIdUseCase', () => {
     await expect(useCase.execute(doctor.id, doctorUser)).rejects.toThrow(ForbiddenException)
     expect(mockDoctorsRepository.findById).not.toHaveBeenCalled()
   })
+
+  it('returns empty specialties array when doctor has no specialties', async () => {
+    const doctor = { ...makeDoctor(), specialties: null }
+    const adminUser: ICurrentUser = { id: faker.string.uuid(), role: UserRole.ADMIN }
+    mockCacheService.get.mockResolvedValue(null)
+    mockDoctorsRepository.findById.mockResolvedValue(doctor as any)
+    mockCacheService.set.mockResolvedValue(undefined)
+
+    const result = await useCase.execute(doctor.id, adminUser)
+
+    expect(result.specialties).toEqual([])
+  })
 })
