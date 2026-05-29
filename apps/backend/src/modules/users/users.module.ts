@@ -1,6 +1,8 @@
-import { Module } from '@nestjs/common'
+import { forwardRef, Module } from '@nestjs/common'
 import { TypeOrmModule } from '@nestjs/typeorm'
 import { CacheModule } from '../../cache/cache.module'
+import { DoctorsModule } from '../doctors/doctors.module'
+import { PatientsModule } from '../patients/patients.module'
 import { User } from './entities/user.entity'
 import { INotificationAdapter } from './adapters/notification.adapter.interface'
 import { NotificationAdapter } from './adapters/notification.adapter'
@@ -15,7 +17,12 @@ import { IUsersRepository } from './repositories/users.repository.interface'
 import { UsersRepository } from './repositories/users.repository'
 
 @Module({
-  imports: [TypeOrmModule.forFeature([User]), CacheModule],
+  imports: [
+    TypeOrmModule.forFeature([User]),
+    CacheModule,
+    forwardRef(() => DoctorsModule),
+    forwardRef(() => PatientsModule),
+  ],
   controllers: [UsersController],
   providers: [
     ActivateUserUseCase,

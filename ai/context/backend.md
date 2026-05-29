@@ -169,6 +169,47 @@ export class UsersModule {}
 
 ---
 
+## Módulos — Exports e Dependências Circulares
+
+**Regra:** módulos exportam **use-cases**, nunca repositories.
+
+Repositories são implementação interna do módulo. Quando outro módulo precisa de um comportamento, ele importa o módulo e usa o use-case exportado.
+
+```ts
+// ✅ correto — exporta use-case
+@Module({
+  providers: [DeleteDoctorUseCase, { provide: IDoctorsRepository, useClass: DoctorsRepository }],
+  exports: [DeleteDoctorUseCase],
+})
+export class DoctorsModule {}
+
+// ❌ errado — expõe implementação interna
+exports: [IDoctorsRepository]
+```
+
+**Dependências circulares** ocorrem quando dois módulos se importam mutuamente (ex: `UsersModule` ↔ `DoctorsModule`). Resolver com `forwardRef`:
+
+```ts
+// users.module.ts
+@Module({
+  imports: [forwardRef(() => DoctorsModule), forwardRef(() => PatientsModule)],
+  exports: [IUsersRepository],
+})
+export class UsersModule {}
+
+// doctors.module.ts
+@Module({
+  imports: [forwardRef(() => UsersModule), SpecialtiesModule],
+  exports: [DeleteDoctorUseCase],
+})
+export class DoctorsModule {}
+```
+
+* Usar `forwardRef` apenas quando a dependência circular é inevitável por regra de negócio
+* Nunca usar `forwardRef` como atalho para esconder acoplamento desnecessário
+
+---
+
 ## Transações
 
 | Situação | Transação |
@@ -176,6 +217,7 @@ export class UsersModule {}
 | Criar um registro simples | ❌ Não precisa |
 | Criar registro + atualizar outro | ✅ Obrigatório |
 | Deletar registro + registrar auditoria | ✅ Obrigatório |
+| Deletar entidade com cascade em outros módulos | ✅ Obrigatório |
 | Buscar dados (read-only) | ❌ Nunca |
 
 ```ts
@@ -205,6 +247,47 @@ export abstract class BaseUseCase {
 * `BaseUseCase` nunca deve crescer além de `runInTransaction()` — não é uma god class
 * `runInTransaction()` apenas quando há duas ou mais operações atômicas
 * O use-case abre e fecha a transação — nunca o repository
+
+**Cascade soft-delete entre módulos:**
+
+Quando deletar uma entidade que possui dependentes em outros módulos, o use-case orquestra o cascade chamando os use-cases exportados dos módulos dependentes dentro da mesma transação. Os use-cases de delete expostos para cascade aceitam `QueryRunner` opcional para participar da transação do chamador.
+
+```ts
+// delete-user.use-case.ts
+async execute(id: string): Promise<void> {
+  const user = await this.usersRepository.findById(id)
+  if (!user) throw new NotFoundException('User not found')
+
+  await this.runInTransaction(async (queryRunner) => {
+    await this.deleteDoctorUseCase.deleteByUserId(id, queryRunner)   // cascade
+    await this.deletePatientUseCase.deleteByUserId(id, queryRunner)  // cascade
+    await this.usersRepository.delete(id, queryRunner)
+  })
+
+  // cache invalidation fora da transação
+  try {
+    await this.cacheService.del(`user:${id}`)
+    await this.cacheService.delByPattern('users:list*')
+  } catch { ... }
+}
+
+// delete-doctor.use-case.ts — método para cascade
+async deleteByUserId(userId: string, queryRunner?: QueryRunner): Promise<void> {
+  const doctor = await this.doctorsRepository.findByUserId(userId)
+  if (!doctor) return  // silencioso — usuário pode não ter perfil de médico
+
+  await this.doctorsRepository.delete(doctor.id, queryRunner)
+
+  try {
+    await this.cacheService.del(`doctor:${doctor.id}`)
+    await this.cacheService.delByPattern('doctors:list*')
+  } catch { ... }
+}
+```
+
+* O método `deleteByUserId` é silencioso quando não encontra — ao contrário de `execute()` que lança `NotFoundException`
+* A busca (`findByUserId`) ocorre antes do user ser deletado, então o INNER JOIN funciona
+* Cache invalidation dos dependentes fica no próprio use-case de cascade
 
 ---
 
@@ -362,6 +445,31 @@ export abstract class IUsersRepository {
 * Use-cases dependem sempre da interface, nunca da implementação concreta
 * Métodos que participam de transações aceitam `QueryRunner` opcional
 
+**JOIN em relações obrigatórias:**
+
+Usar `innerJoinAndSelect` (não `leftJoinAndSelect`) para relações que sempre devem existir. O TypeORM aplica automaticamente `WHERE deleted_at IS NULL` no JOIN — se a entidade relacionada estiver soft-deleted, `INNER JOIN` exclui o registro do resultado em vez de retornar `null` na propriedade, evitando crash ao acessar `relation.property`.
+
+```ts
+// ✅ correto — doctor sem user ativo é excluído do resultado
+async findAll(page: number, limit: number): Promise<[Doctor[], number]> {
+  return this.repository
+    .createQueryBuilder('doctor')
+    .innerJoinAndSelect('doctor.user', 'user')       // obrigatório
+    .leftJoinAndSelect('doctor.specialties', 'spec') // opcional
+    .orderBy('doctor.createdAt', 'DESC')
+    .take(limit)
+    .skip((page - 1) * limit)
+    .getManyAndCount()
+}
+
+// ❌ errado — retorna doctor com user = null quando user está soft-deleted
+return this.repository.findAndCount({ relations: ['user', 'specialties'] })
+```
+
+* `innerJoinAndSelect` para relações ManyToOne/OneToOne obrigatórias (ex: `doctor.user`)
+* `leftJoinAndSelect` para relações opcionais ou ManyToMany (ex: `doctor.specialties`)
+* `findAndCount` com `relations:` e `findOne` com `relations:` usam LEFT JOIN — evitar quando a relação é obrigatória
+
 ---
 
 ## Tratamento de Erros nos Use-cases
@@ -422,6 +530,7 @@ async delete(id: string, queryRunner?: QueryRunner): Promise<void> {
 * TypeORM filtra `deletedAt != null` automaticamente em todas as queries
 * Hard delete permitido apenas em dados temporários ou logs
 * Método no repository chamado `delete()` — internamente usa `softDelete()`
+* Entidades com dependentes em outros módulos exigem cascade soft-delete — ver seção **Transações**
 
 ---
 

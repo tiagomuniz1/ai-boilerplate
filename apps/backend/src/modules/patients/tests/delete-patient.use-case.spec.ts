@@ -9,6 +9,7 @@ import { DeletePatientUseCase } from '../use-cases/delete-patient.use-case'
 const mockPatientsRepository: jest.Mocked<IPatientsRepository> = {
   findAll: jest.fn(),
   findById: jest.fn(),
+  findByUserId: jest.fn(),
   findByDocumentNumber: jest.fn(),
   create: jest.fn(),
   update: jest.fn(),
@@ -90,5 +91,51 @@ describe('DeletePatientUseCase', () => {
     const result = await useCase.execute(patient.id)
 
     expect(result).toBeUndefined()
+  })
+
+  describe('deleteByUserId', () => {
+    it('deletes and invalidates cache when patient with userId exists', async () => {
+      const userId = faker.string.uuid()
+      const patient = makePatient()
+      mockPatientsRepository.findByUserId.mockResolvedValue(patient as any)
+      mockPatientsRepository.delete.mockResolvedValue(undefined)
+      mockCacheService.del.mockResolvedValue(undefined)
+      mockCacheService.delByPattern.mockResolvedValue(undefined)
+
+      await useCase.deleteByUserId(userId)
+
+      expect(mockPatientsRepository.findByUserId).toHaveBeenCalledWith(userId)
+      expect(mockPatientsRepository.delete).toHaveBeenCalledWith(patient.id, undefined)
+      expect(mockCacheService.del).toHaveBeenCalledWith(`patient:${patient.id}`)
+      expect(mockCacheService.delByPattern).toHaveBeenCalledWith('patients:list*')
+    })
+
+    it('does nothing when no patient with userId exists', async () => {
+      mockPatientsRepository.findByUserId.mockResolvedValue(null)
+
+      await expect(useCase.deleteByUserId(faker.string.uuid())).resolves.toBeUndefined()
+      expect(mockPatientsRepository.delete).not.toHaveBeenCalled()
+    })
+
+    it('passes queryRunner to repository when provided', async () => {
+      const userId = faker.string.uuid()
+      const patient = makePatient()
+      const queryRunner = {} as any
+      mockPatientsRepository.findByUserId.mockResolvedValue(patient as any)
+      mockPatientsRepository.delete.mockResolvedValue(undefined)
+
+      await useCase.deleteByUserId(userId, queryRunner)
+
+      expect(mockPatientsRepository.delete).toHaveBeenCalledWith(patient.id, queryRunner)
+    })
+
+    it('continues without throwing when cache invalidation fails', async () => {
+      const patient = makePatient()
+      mockPatientsRepository.findByUserId.mockResolvedValue(patient as any)
+      mockPatientsRepository.delete.mockResolvedValue(undefined)
+      mockCacheService.del.mockRejectedValue(new Error('Redis error'))
+
+      await expect(useCase.deleteByUserId(faker.string.uuid())).resolves.toBeUndefined()
+    })
   })
 })

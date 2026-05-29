@@ -305,4 +305,28 @@ describe('SchedulesRepository', () => {
       expect(mockQrRepo.softDelete).toHaveBeenCalledWith('schedule-id')
     })
   })
+
+  describe('deleteAllByDoctorId', () => {
+    it('soft-deletes all schedules matching doctorId', async () => {
+      const doctorId = 'doctor-uuid-1'
+      mockRepository.softDelete.mockResolvedValue({ affected: 3 })
+
+      await repository.deleteAllByDoctorId(doctorId)
+
+      expect(mockRepository.softDelete).toHaveBeenCalledWith({ doctorId })
+    })
+
+    it('uses queryRunner repo when provided', async () => {
+      const doctorId = 'doctor-uuid-1'
+      const mockQrRepo = { softDelete: jest.fn().mockResolvedValue({ affected: 2 }) }
+      const mockQueryRunner = {
+        manager: { getRepository: jest.fn().mockReturnValue(mockQrRepo) },
+      }
+
+      await repository.deleteAllByDoctorId(doctorId, mockQueryRunner as any)
+
+      expect(mockQueryRunner.manager.getRepository).toHaveBeenCalledWith(Schedule)
+      expect(mockQrRepo.softDelete).toHaveBeenCalledWith({ doctorId })
+    })
+  })
 })

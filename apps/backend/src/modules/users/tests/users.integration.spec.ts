@@ -7,6 +7,9 @@ import * as request from 'supertest'
 import { Repository } from 'typeorm'
 import { UserRole } from '@app/shared'
 import { AppModule } from '../../../app.module'
+import { Doctor } from '../../doctors/entities/doctor.entity'
+import { Patient } from '../../patients/entities/patient.entity'
+import { Specialty } from '../../specialties/entities/specialty.entity'
 import { User } from '../entities/user.entity'
 
 process.env.NODE_ENV = 'test'
@@ -18,6 +21,9 @@ process.env.JWT_REFRESH_EXPIRATION = '7d'
 describe('UsersController (integration)', () => {
   let app: INestApplication
   let userRepository: Repository<User>
+  let doctorRepository: Repository<Doctor>
+  let patientRepository: Repository<Patient>
+  let specialtyRepository: Repository<Specialty>
   let accessToken: string
 
   beforeAll(async () => {
@@ -32,6 +38,9 @@ describe('UsersController (integration)', () => {
     await app.init()
 
     userRepository = module.get(getRepositoryToken(User))
+    doctorRepository = module.get(getRepositoryToken(Doctor))
+    patientRepository = module.get(getRepositoryToken(Patient))
+    specialtyRepository = module.get(getRepositoryToken(Specialty))
   })
 
   beforeEach(async () => {
@@ -57,6 +66,10 @@ describe('UsersController (integration)', () => {
   })
 
   afterEach(async () => {
+    await doctorRepository.query('DELETE FROM test.doctor_specialties')
+    await doctorRepository.query('DELETE FROM test.doctors')
+    await patientRepository.query('DELETE FROM test.patients')
+    await specialtyRepository.query('DELETE FROM test.specialties')
     await userRepository.query('DELETE FROM test.users')
   })
 
@@ -338,6 +351,69 @@ describe('UsersController (integration)', () => {
         .delete(`/users/${created.id}`)
         .set('Authorization', `Bearer ${accessToken}`)
         .expect(404)
+    })
+
+    it('soft-deletes linked doctor when user is deleted', async () => {
+      const { body: targetUser } = await createUser({ role: UserRole.DOCTOR }).expect(201)
+
+      const specialty = await specialtyRepository.save(
+        specialtyRepository.create({ name: 'Cardiologia' }),
+      )
+
+      const { body: doctor } = await request(app.getHttpServer())
+        .post('/doctors')
+        .set('Authorization', `Bearer ${accessToken}`)
+        .send({ userId: targetUser.id, crmNumber: '11111/SP', specialtyIds: [specialty.id] })
+        .expect(201)
+
+      await request(app.getHttpServer())
+        .delete(`/users/${targetUser.id}`)
+        .set('Authorization', `Bearer ${accessToken}`)
+        .expect(204)
+
+      const deletedDoctor = await doctorRepository.findOne({
+        where: { id: doctor.id },
+        withDeleted: true,
+      })
+      expect(deletedDoctor?.deletedAt).not.toBeNull()
+    })
+
+    it('soft-deletes linked patient when user is deleted', async () => {
+      const { body: patient } = await request(app.getHttpServer())
+        .post('/patients')
+        .set('Authorization', `Bearer ${accessToken}`)
+        .send({
+          fullName: faker.person.fullName(),
+          email: faker.internet.email(),
+          documentNumber: '12345678901',
+          phoneNumber: '(11) 99999-9999',
+          birthDate: '1990-05-15',
+          gender: 'male',
+        })
+        .expect(201)
+
+      await request(app.getHttpServer())
+        .delete(`/users/${patient.user.id}`)
+        .set('Authorization', `Bearer ${accessToken}`)
+        .expect(204)
+
+      const deletedPatient = await patientRepository.findOne({
+        where: { id: patient.id },
+        withDeleted: true,
+      })
+      expect(deletedPatient?.deletedAt).not.toBeNull()
+    })
+
+    it('deletes user without error when no doctor or patient is linked', async () => {
+      const { body: created } = await createUser().expect(201)
+
+      await request(app.getHttpServer())
+        .delete(`/users/${created.id}`)
+        .set('Authorization', `Bearer ${accessToken}`)
+        .expect(204)
+
+      const deleted = await userRepository.findOne({ where: { id: created.id }, withDeleted: true })
+      expect(deleted?.deletedAt).not.toBeNull()
     })
   })
 

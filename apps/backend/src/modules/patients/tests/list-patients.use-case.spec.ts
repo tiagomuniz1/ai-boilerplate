@@ -9,6 +9,7 @@ import { ListPatientsUseCase } from '../use-cases/list-patients.use-case'
 const mockPatientsRepository: jest.Mocked<IPatientsRepository> = {
   findAll: jest.fn(),
   findById: jest.fn(),
+  findByUserId: jest.fn(),
   findByDocumentNumber: jest.fn(),
   create: jest.fn(),
   update: jest.fn(),

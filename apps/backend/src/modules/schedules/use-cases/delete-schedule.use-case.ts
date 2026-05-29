@@ -5,7 +5,7 @@ import {
   Logger,
   NotFoundException,
 } from '@nestjs/common'
-import { DataSource } from 'typeorm'
+import { DataSource, QueryRunner } from 'typeorm'
 import { UserRole } from '@app/shared'
 import { BaseUseCase } from '../../../common/base.use-case'
 import { CacheService } from '../../../cache/cache.service'
@@ -53,6 +53,19 @@ export class DeleteScheduleUseCase extends BaseUseCase {
     try {
       await Promise.all([
         this.cacheService.delByPrefix(`schedules:list:${schedule.doctorId}:`),
+        this.cacheService.delByPrefix('schedules:list:all:'),
+      ])
+    } catch {
+      this.logger.warn('Cache invalidation failed', { context: DeleteScheduleUseCase.name })
+    }
+  }
+
+  async deleteByDoctorId(doctorId: string, queryRunner?: QueryRunner): Promise<void> {
+    await this.schedulesRepository.deleteAllByDoctorId(doctorId, queryRunner)
+
+    try {
+      await Promise.all([
+        this.cacheService.delByPrefix(`schedules:list:${doctorId}:`),
         this.cacheService.delByPrefix('schedules:list:all:'),
       ])
     } catch {

@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common'
+import { forwardRef, Module } from '@nestjs/common'
 import { TypeOrmModule } from '@nestjs/typeorm'
 import { CacheModule } from '../../cache/cache.module'
 import { UsersModule } from '../users/users.module'
@@ -13,7 +13,7 @@ import { IPatientsRepository } from './repositories/patients.repository.interfac
 import { PatientsRepository } from './repositories/patients.repository'
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Patient]), CacheModule, UsersModule],
+  imports: [TypeOrmModule.forFeature([Patient]), CacheModule, forwardRef(() => UsersModule)],
   controllers: [PatientsController],
   providers: [
     CreatePatientUseCase,
@@ -23,6 +23,6 @@ import { PatientsRepository } from './repositories/patients.repository'
     DeletePatientUseCase,
     { provide: IPatientsRepository, useClass: PatientsRepository },
   ],
-  exports: [IPatientsRepository],
+  exports: [IPatientsRepository, DeletePatientUseCase],
 })
 export class PatientsModule {}

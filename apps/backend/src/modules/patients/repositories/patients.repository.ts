@@ -32,6 +32,10 @@ export class PatientsRepository implements IPatientsRepository {
     return this.repository.findOne({ where: { id }, relations: ['user'] })
   }
 
+  async findByUserId(userId: string): Promise<Patient | null> {
+    return this.repository.findOneBy({ userId })
+  }
+
   async findByDocumentNumber(documentNumber: string): Promise<Patient | null> {
     return this.repository.findOneBy({ documentNumber })
   }

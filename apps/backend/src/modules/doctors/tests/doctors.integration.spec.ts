@@ -253,6 +253,48 @@ describe('DoctorsController (integration)', () => {
         .set('Authorization', `Bearer ${accessToken}`)
         .expect(400)
     })
+
+    it('excludes doctor from list when linked user is soft-deleted', async () => {
+      const activeUser = await createTargetUser()
+      const deletedUser = await createTargetUser()
+      await createDoctor(activeUser.id, { crmNumber: '11111/SP' }).expect(201)
+      const { body: deletedDoctor } = await createDoctor(deletedUser.id, { crmNumber: '22222/SP' }).expect(201)
+
+      await userRepository.softDelete(deletedUser.id)
+
+      const { body } = await request(app.getHttpServer())
+        .get('/doctors')
+        .set('Authorization', `Bearer ${accessToken}`)
+        .expect(200)
+
+      const returnedIds = body.data.map((d: any) => d.id)
+      expect(returnedIds).not.toContain(deletedDoctor.id)
+      expect(returnedIds).toContain(
+        body.data.find((d: any) => d.user.id === activeUser.id)?.id ?? body.data[0]?.id,
+      )
+    })
+
+    it('excludes doctor from search results when linked user is soft-deleted', async () => {
+      const activeUser = await createTargetUser()
+      const deletedUser = await userRepository.save(
+        userRepository.create({
+          fullName: 'Soft Deleted Doctor',
+          email: faker.internet.email(),
+          password: 'hashed',
+        }),
+      )
+      await createDoctor(activeUser.id, { crmNumber: '11111/SP' }).expect(201)
+      await createDoctor(deletedUser.id, { crmNumber: '22222/SP' }).expect(201)
+
+      await userRepository.softDelete(deletedUser.id)
+
+      const { body } = await request(app.getHttpServer())
+        .get('/doctors?search=Soft')
+        .set('Authorization', `Bearer ${accessToken}`)
+        .expect(200)
+
+      expect(body.data).toHaveLength(0)
+    })
   })
 
   describe('GET /doctors/:id', () => {
@@ -274,6 +316,18 @@ describe('DoctorsController (integration)', () => {
     it('returns 404 when doctor does not exist', async () => {
       await request(app.getHttpServer())
         .get(`/doctors/${faker.string.uuid()}`)
+        .set('Authorization', `Bearer ${accessToken}`)
+        .expect(404)
+    })
+
+    it('returns 404 when linked user is soft-deleted', async () => {
+      const targetUser = await createTargetUser()
+      const { body: created } = await createDoctor(targetUser.id).expect(201)
+
+      await userRepository.softDelete(targetUser.id)
+
+      await request(app.getHttpServer())
+        .get(`/doctors/${created.id}`)
         .set('Authorization', `Bearer ${accessToken}`)
         .expect(404)
     })

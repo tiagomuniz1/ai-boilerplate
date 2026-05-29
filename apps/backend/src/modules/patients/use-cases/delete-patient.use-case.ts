@@ -1,5 +1,5 @@
 import { Injectable, Logger, NotFoundException } from '@nestjs/common'
-import { DataSource } from 'typeorm'
+import { DataSource, QueryRunner } from 'typeorm'
 import { BaseUseCase } from '../../../common/base.use-case'
 import { CacheService } from '../../../cache/cache.service'
 import { IPatientsRepository } from '../repositories/patients.repository.interface'
@@ -24,6 +24,20 @@ export class DeletePatientUseCase extends BaseUseCase {
 
     try {
       await this.cacheService.del(`patient:${id}`)
+      await this.cacheService.delByPattern('patients:list*')
+    } catch {
+      this.logger.warn('Cache invalidation failed', { context: DeletePatientUseCase.name })
+    }
+  }
+
+  async deleteByUserId(userId: string, queryRunner?: QueryRunner): Promise<void> {
+    const patient = await this.patientsRepository.findByUserId(userId)
+    if (!patient) return
+
+    await this.patientsRepository.delete(patient.id, queryRunner)
+
+    try {
+      await this.cacheService.del(`patient:${patient.id}`)
       await this.cacheService.delByPattern('patients:list*')
     } catch {
       this.logger.warn('Cache invalidation failed', { context: DeletePatientUseCase.name })

@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common'
+import { forwardRef, Module } from '@nestjs/common'
 import { TypeOrmModule } from '@nestjs/typeorm'
 import { CacheModule } from '../../cache/cache.module'
 import { DoctorsModule } from '../doctors/doctors.module'
@@ -17,7 +17,7 @@ import {
 } from './repositories/appointments.repository.stub'
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Schedule]), CacheModule, DoctorsModule],
+  imports: [TypeOrmModule.forFeature([Schedule]), CacheModule, forwardRef(() => DoctorsModule)],
   controllers: [SchedulesController],
   providers: [
     CreateScheduleUseCase,
@@ -28,5 +28,6 @@ import {
     { provide: ISchedulesRepository, useClass: SchedulesRepository },
     { provide: IAppointmentsRepository, useClass: AppointmentsRepositoryStub },
   ],
+  exports: [DeleteScheduleUseCase],
 })
 export class SchedulesModule {}

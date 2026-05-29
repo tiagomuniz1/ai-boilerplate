@@ -130,4 +130,11 @@ export class SchedulesRepository implements ISchedulesRepository {
       : this.repository
     await repo.softDelete(id)
   }
+
+  async deleteAllByDoctorId(doctorId: string, queryRunner?: QueryRunner): Promise<void> {
+    const repo = queryRunner
+      ? queryRunner.manager.getRepository(Schedule)
+      : this.repository
+    await repo.softDelete({ doctorId })
+  }
 }
