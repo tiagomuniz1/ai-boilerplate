@@ -7,6 +7,7 @@ import * as bcrypt from 'bcrypt'
 import * as cookieParser from 'cookie-parser'
 import * as request from 'supertest'
 import { Repository } from 'typeorm'
+import { UserRole } from '@app/shared'
 import { AppModule } from '../../../app.module'
 import { User } from '../../users/entities/user.entity'
 import { RefreshToken } from '../entities/refresh-token.entity'
@@ -185,6 +186,26 @@ describe('AuthController (integration)', () => {
         .expect(400)
     })
 
+    it('returns 401 with generic message when PATIENT role tries to login', async () => {
+      const hashedPassword = await bcrypt.hash('password123', 10)
+      const patient = await userRepository.save(
+        userRepository.create({
+          fullName: faker.person.fullName(),
+          email: faker.internet.email(),
+          password: hashedPassword,
+          role: UserRole.PATIENT,
+          isActive: true,
+        }),
+      )
+
+      const { body } = await request(app.getHttpServer())
+        .post('/auth/login')
+        .send({ email: patient.email, password: 'password123' })
+        .expect(401)
+
+      expect(body.detail).toBe('Invalid credentials')
+    })
+
     it('returns 401 when account is inactive', async () => {
       const hashedPassword = await bcrypt.hash('password123', 10)
       await userRepository.save(
@@ -267,6 +288,18 @@ describe('AuthController (integration)', () => {
       const { refreshToken } = await loginAndExtractTokens(user.email)
 
       await refreshTokenRepository.query('DELETE FROM test.refresh_tokens')
+
+      await request(app.getHttpServer())
+        .post('/auth/refresh')
+        .send({ refreshToken })
+        .expect(401)
+    })
+
+    it('returns 401 when the user associated with the token has been deleted', async () => {
+      const user = await createTestUser()
+      const { refreshToken } = await loginAndExtractTokens(user.email)
+
+      await userRepository.softDelete(user.id)
 
       await request(app.getHttpServer())
         .post('/auth/refresh')

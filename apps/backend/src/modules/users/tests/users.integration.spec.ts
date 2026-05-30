@@ -25,6 +25,33 @@ describe('UsersController (integration)', () => {
   let patientRepository: Repository<Patient>
   let specialtyRepository: Repository<Specialty>
   let accessToken: string
+  let doctorToken: string
+  let doctorUserId: string
+  let userToken: string
+  let userUserId: string
+
+  async function loginAs(role: UserRole): Promise<{ token: string; id: string }> {
+    const password = 'Password123!'
+    const hashedPassword = await bcrypt.hash(password, 1)
+    const user = await userRepository.save(
+      userRepository.create({
+        fullName: `Test ${role} User`,
+        email: `${role}.${faker.string.alphanumeric(6)}@users.test`,
+        password: hashedPassword,
+        role,
+        isActive: true,
+      }),
+    )
+    const response = await request(app.getHttpServer())
+      .post('/auth/login')
+      .send({ email: user.email, password })
+    const setCookieHeader = response.headers['set-cookie'] as unknown as string[] | string | undefined
+    if (!setCookieHeader) return { token: '', id: user.id }
+    const cookies = Array.isArray(setCookieHeader) ? setCookieHeader : [setCookieHeader]
+    const match = cookies.find((c: string) => c?.startsWith('access_token='))
+    const token = match ? match.slice('access_token='.length).split(';')[0] : ''
+    return { token, id: user.id }
+  }
 
   beforeAll(async () => {
     const module = await Test.createTestingModule({
@@ -44,25 +71,14 @@ describe('UsersController (integration)', () => {
   })
 
   beforeEach(async () => {
-    const password = 'Password123!'
-    const hashedPassword = await bcrypt.hash(password, 1)
-    const authUser = await userRepository.save(
-      userRepository.create({
-        fullName: 'Test Auth User',
-        email: 'auth@test.com',
-        password: hashedPassword,
-        role: UserRole.ADMIN,
-      }),
-    )
-
-    const response = await request(app.getHttpServer())
-      .post('/auth/login')
-      .send({ email: authUser.email, password })
-
-    const setCookieHeader = response.headers['set-cookie'] as unknown as string[] | string
-    const cookies = Array.isArray(setCookieHeader) ? setCookieHeader : [setCookieHeader]
-    const match = cookies.find((c) => c.startsWith('access_token='))
-    accessToken = match ? match.slice('access_token='.length).split(';')[0] : ''
+    const admin = await loginAs(UserRole.ADMIN)
+    accessToken = admin.token
+    const doctor = await loginAs(UserRole.DOCTOR)
+    doctorToken = doctor.token
+    doctorUserId = doctor.id
+    const user = await loginAs(UserRole.USER)
+    userToken = user.token
+    userUserId = user.id
   })
 
   afterEach(async () => {
@@ -134,6 +150,33 @@ describe('UsersController (integration)', () => {
         .send({ fullName: faker.person.fullName(), email: faker.internet.email(), password: 'Password123!', isAdmin: true })
         .expect(400)
     })
+
+    it('returns 400 when email is invalid', async () => {
+      await createUser({ email: 'not-an-email' }).expect(400)
+    })
+
+    it('returns 401 without token', async () => {
+      await request(app.getHttpServer())
+        .post('/users')
+        .send({ fullName: faker.person.fullName(), email: faker.internet.email(), password: 'Password123!' })
+        .expect(401)
+    })
+
+    it('returns 403 when DOCTOR tries to create', async () => {
+      await request(app.getHttpServer())
+        .post('/users')
+        .set('Authorization', `Bearer ${doctorToken}`)
+        .send({ fullName: faker.person.fullName(), email: faker.internet.email(), password: 'Password123!' })
+        .expect(403)
+    })
+
+    it('returns 403 when USER tries to create', async () => {
+      await request(app.getHttpServer())
+        .post('/users')
+        .set('Authorization', `Bearer ${userToken}`)
+        .send({ fullName: faker.person.fullName(), email: faker.internet.email(), password: 'Password123!' })
+        .expect(403)
+    })
   })
 
   describe('GET /users', () => {
@@ -175,6 +218,24 @@ describe('UsersController (integration)', () => {
         expect(user.version).toBeUndefined()
       })
     })
+
+    it('returns 401 without token', async () => {
+      await request(app.getHttpServer()).get('/users').expect(401)
+    })
+
+    it('returns 403 when DOCTOR tries to list', async () => {
+      await request(app.getHttpServer())
+        .get('/users')
+        .set('Authorization', `Bearer ${doctorToken}`)
+        .expect(403)
+    })
+
+    it('returns 403 when USER tries to list', async () => {
+      await request(app.getHttpServer())
+        .get('/users')
+        .set('Authorization', `Bearer ${userToken}`)
+        .expect(403)
+    })
   })
 
   describe('GET /users/:id', () => {
@@ -207,6 +268,46 @@ describe('UsersController (integration)', () => {
 
       expect(body.password).toBeUndefined()
       expect(body.version).toBeUndefined()
+    })
+
+    it('returns 401 without token', async () => {
+      await request(app.getHttpServer()).get(`/users/${faker.string.uuid()}`).expect(401)
+    })
+
+    it('returns 200 when DOCTOR views own profile', async () => {
+      const { body } = await request(app.getHttpServer())
+        .get(`/users/${doctorUserId}`)
+        .set('Authorization', `Bearer ${doctorToken}`)
+        .expect(200)
+
+      expect(body.id).toBe(doctorUserId)
+    })
+
+    it('returns 403 when DOCTOR tries to view another user profile', async () => {
+      const { body: other } = await createUser().expect(201)
+
+      await request(app.getHttpServer())
+        .get(`/users/${other.id}`)
+        .set('Authorization', `Bearer ${doctorToken}`)
+        .expect(403)
+    })
+
+    it('returns 200 when USER views own profile', async () => {
+      const { body } = await request(app.getHttpServer())
+        .get(`/users/${userUserId}`)
+        .set('Authorization', `Bearer ${userToken}`)
+        .expect(200)
+
+      expect(body.id).toBe(userUserId)
+    })
+
+    it('returns 403 when USER tries to view another user profile', async () => {
+      const { body: other } = await createUser().expect(201)
+
+      await request(app.getHttpServer())
+        .get(`/users/${other.id}`)
+        .set('Authorization', `Bearer ${userToken}`)
+        .expect(403)
     })
   })
 
@@ -255,6 +356,69 @@ describe('UsersController (integration)', () => {
 
       expect(body.password).toBeUndefined()
       expect(body.version).toBeUndefined()
+    })
+
+    it('returns 401 without token', async () => {
+      await request(app.getHttpServer())
+        .patch(`/users/${faker.string.uuid()}`)
+        .send({ fullName: 'Updated' })
+        .expect(401)
+    })
+
+    it('returns 200 when DOCTOR edits own profile', async () => {
+      const newName = faker.person.fullName()
+
+      const { body } = await request(app.getHttpServer())
+        .patch(`/users/${doctorUserId}`)
+        .set('Authorization', `Bearer ${doctorToken}`)
+        .send({ fullName: newName })
+        .expect(200)
+
+      expect(body.fullName).toBe(newName)
+    })
+
+    it('returns 403 when DOCTOR tries to edit another user', async () => {
+      const { body: other } = await createUser().expect(201)
+
+      await request(app.getHttpServer())
+        .patch(`/users/${other.id}`)
+        .set('Authorization', `Bearer ${doctorToken}`)
+        .send({ fullName: 'Hacked' })
+        .expect(403)
+    })
+
+    it('returns 200 when USER edits own profile', async () => {
+      const newName = faker.person.fullName()
+
+      const { body } = await request(app.getHttpServer())
+        .patch(`/users/${userUserId}`)
+        .set('Authorization', `Bearer ${userToken}`)
+        .send({ fullName: newName })
+        .expect(200)
+
+      expect(body.fullName).toBe(newName)
+    })
+
+    it('returns 403 when USER tries to edit another user', async () => {
+      const { body: other } = await createUser().expect(201)
+
+      await request(app.getHttpServer())
+        .patch(`/users/${other.id}`)
+        .set('Authorization', `Bearer ${userToken}`)
+        .send({ fullName: 'Hacked' })
+        .expect(403)
+    })
+
+    it('returns 200 when updating email to the same current value (no conflict check)', async () => {
+      const { body: created } = await createUser().expect(201)
+
+      const { body } = await request(app.getHttpServer())
+        .patch(`/users/${created.id}`)
+        .set('Authorization', `Bearer ${accessToken}`)
+        .send({ email: created.email })
+        .expect(200)
+
+      expect(body.email).toBe(created.email)
     })
   })
 
@@ -307,6 +471,30 @@ describe('UsersController (integration)', () => {
 
       expect(body.password).toBeUndefined()
       expect(body.version).toBeUndefined()
+    })
+
+    it('returns 401 without token', async () => {
+      await request(app.getHttpServer())
+        .patch(`/users/${faker.string.uuid()}/activate`)
+        .expect(401)
+    })
+
+    it('returns 403 when DOCTOR tries to activate', async () => {
+      const { body: created } = await createUser().expect(201)
+
+      await request(app.getHttpServer())
+        .patch(`/users/${created.id}/activate`)
+        .set('Authorization', `Bearer ${doctorToken}`)
+        .expect(403)
+    })
+
+    it('returns 403 when USER tries to activate', async () => {
+      const { body: created } = await createUser().expect(201)
+
+      await request(app.getHttpServer())
+        .patch(`/users/${created.id}/activate`)
+        .set('Authorization', `Bearer ${userToken}`)
+        .expect(403)
     })
   })
 
@@ -415,11 +603,27 @@ describe('UsersController (integration)', () => {
       const deleted = await userRepository.findOne({ where: { id: created.id }, withDeleted: true })
       expect(deleted?.deletedAt).not.toBeNull()
     })
-  })
 
-  describe('JWT Guard', () => {
-    it('returns 401 on protected endpoint without token', async () => {
-      await request(app.getHttpServer()).get('/users').expect(401)
+    it('returns 401 without token', async () => {
+      await request(app.getHttpServer()).delete(`/users/${faker.string.uuid()}`).expect(401)
+    })
+
+    it('returns 403 when DOCTOR tries to delete', async () => {
+      const { body: created } = await createUser().expect(201)
+
+      await request(app.getHttpServer())
+        .delete(`/users/${created.id}`)
+        .set('Authorization', `Bearer ${doctorToken}`)
+        .expect(403)
+    })
+
+    it('returns 403 when USER tries to delete', async () => {
+      const { body: created } = await createUser().expect(201)
+
+      await request(app.getHttpServer())
+        .delete(`/users/${created.id}`)
+        .set('Authorization', `Bearer ${userToken}`)
+        .expect(403)
     })
   })
 })

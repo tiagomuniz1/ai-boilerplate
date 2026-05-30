@@ -28,6 +28,8 @@ describe('SchedulesController (integration)', () => {
 
   let doctorToken: string
   let adminToken: string
+  let userToken: string
+  let doctorWithoutProfileToken: string
   let doctorUserId: string
   let otherDoctorToken: string
   let doctorId: string
@@ -89,6 +91,25 @@ describe('SchedulesController (integration)', () => {
       }),
     )
 
+    await userRepository.save(
+      userRepository.create({
+        fullName: 'Regular User',
+        email: 'user@schedules.test',
+        password: hashed,
+        role: UserRole.USER,
+      }),
+    )
+
+    await userRepository.save(
+      userRepository.create({
+        fullName: 'Doctor Without Profile',
+        email: 'noprofile@schedules.test',
+        password: hashed,
+        role: UserRole.DOCTOR,
+        isActive: true,
+      }),
+    )
+
     const cardiologia = await specialtyRepository.save(
       specialtyRepository.create({ name: 'Cardiologia' }),
     )
@@ -123,6 +144,8 @@ describe('SchedulesController (integration)', () => {
     adminToken = await loginAndExtractToken('admin@schedules.test')
     doctorToken = await loginAndExtractToken('doctor@schedules.test')
     otherDoctorToken = await loginAndExtractToken('other.doctor@schedules.test')
+    userToken = await loginAndExtractToken('user@schedules.test')
+    doctorWithoutProfileToken = await loginAndExtractToken('noprofile@schedules.test')
   })
 
   afterAll(async () => {
@@ -264,6 +287,22 @@ describe('SchedulesController (integration)', () => {
     it('returns 401 without token', async () => {
       await request(app.getHttpServer()).post('/schedules').send(makeSchedulePayload()).expect(401)
     })
+
+    it('returns 403 when USER tries to create', async () => {
+      await request(app.getHttpServer())
+        .post('/schedules')
+        .set('Cookie', `access_token=${userToken}`)
+        .send(makeSchedulePayload())
+        .expect(403)
+    })
+
+    it('returns 404 when DOCTOR user has no doctor profile', async () => {
+      await request(app.getHttpServer())
+        .post('/schedules')
+        .set('Cookie', `access_token=${doctorWithoutProfileToken}`)
+        .send(makeSchedulePayload())
+        .expect(404)
+    })
   })
 
   describe('GET /schedules', () => {
@@ -378,6 +417,17 @@ describe('SchedulesController (integration)', () => {
         .set('Cookie', `access_token=${doctorToken}`)
         .expect(400)
     })
+
+    it('returns 401 without token', async () => {
+      await request(app.getHttpServer()).get('/schedules').expect(401)
+    })
+
+    it('returns 403 when USER tries to list', async () => {
+      await request(app.getHttpServer())
+        .get('/schedules')
+        .set('Cookie', `access_token=${userToken}`)
+        .expect(403)
+    })
   })
 
   describe('GET /schedules/:id', () => {
@@ -418,6 +468,17 @@ describe('SchedulesController (integration)', () => {
         .get(`/schedules/${faker.string.uuid()}`)
         .set('Cookie', `access_token=${doctorToken}`)
         .expect(404)
+    })
+
+    it('returns 401 without token', async () => {
+      await request(app.getHttpServer()).get(`/schedules/${faker.string.uuid()}`).expect(401)
+    })
+
+    it('returns 403 when USER tries to view', async () => {
+      await request(app.getHttpServer())
+        .get(`/schedules/${faker.string.uuid()}`)
+        .set('Cookie', `access_token=${userToken}`)
+        .expect(403)
     })
   })
 
@@ -540,6 +601,21 @@ describe('SchedulesController (integration)', () => {
         .send({ slotDurationInMinutes: 60 })
         .expect(404)
     })
+
+    it('returns 401 without token', async () => {
+      await request(app.getHttpServer())
+        .patch(`/schedules/${faker.string.uuid()}`)
+        .send({ slotDurationInMinutes: 60 })
+        .expect(401)
+    })
+
+    it('returns 403 when USER tries to update', async () => {
+      await request(app.getHttpServer())
+        .patch(`/schedules/${faker.string.uuid()}`)
+        .set('Cookie', `access_token=${userToken}`)
+        .send({ slotDurationInMinutes: 60 })
+        .expect(403)
+    })
   })
 
   describe('DELETE /schedules/:id', () => {
@@ -595,6 +671,17 @@ describe('SchedulesController (integration)', () => {
         .delete(`/schedules/${faker.string.uuid()}`)
         .set('Cookie', `access_token=${doctorToken}`)
         .expect(404)
+    })
+
+    it('returns 401 without token', async () => {
+      await request(app.getHttpServer()).delete(`/schedules/${faker.string.uuid()}`).expect(401)
+    })
+
+    it('returns 403 when USER tries to delete', async () => {
+      await request(app.getHttpServer())
+        .delete(`/schedules/${faker.string.uuid()}`)
+        .set('Cookie', `access_token=${userToken}`)
+        .expect(403)
     })
   })
 })

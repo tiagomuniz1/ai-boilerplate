@@ -266,6 +266,15 @@ describe('SpecialtiesController (integration)', () => {
         .expect(200)
     })
 
+    it('returns 200 for USER', async () => {
+      const { body: created } = await createSpecialty(adminToken, { name: 'Cardiologia' }).expect(201)
+
+      await request(app.getHttpServer())
+        .get(`/specialties/${created.id}`)
+        .set('Authorization', `Bearer ${userToken}`)
+        .expect(200)
+    })
+
     it('returns 401 when no token provided', async () => {
       await request(app.getHttpServer()).get(`/specialties/${faker.string.uuid()}`).expect(401)
     })
@@ -357,6 +366,16 @@ describe('SpecialtiesController (integration)', () => {
         .send({ name: 'Neurologia' })
         .expect(403)
     })
+
+    it('returns 403 when USER tries to update', async () => {
+      const { body: created } = await createSpecialty(adminToken, { name: 'Cardiologia' }).expect(201)
+
+      await request(app.getHttpServer())
+        .patch(`/specialties/${created.id}`)
+        .set('Authorization', `Bearer ${userToken}`)
+        .send({ name: 'Neurologia' })
+        .expect(403)
+    })
   })
 
   describe('DELETE /specialties/:id', () => {
@@ -415,6 +434,15 @@ describe('SpecialtiesController (integration)', () => {
       await request(app.getHttpServer())
         .delete(`/specialties/${created.id}`)
         .set('Authorization', `Bearer ${doctorToken}`)
+        .expect(403)
+    })
+
+    it('returns 403 when USER tries to delete', async () => {
+      const { body: created } = await createSpecialty(adminToken, { name: 'Cardiologia' }).expect(201)
+
+      await request(app.getHttpServer())
+        .delete(`/specialties/${created.id}`)
+        .set('Authorization', `Bearer ${userToken}`)
         .expect(403)
     })
   })

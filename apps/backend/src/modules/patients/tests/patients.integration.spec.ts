@@ -21,6 +21,30 @@ describe('PatientsController (integration)', () => {
   let userRepository: Repository<User>
   let patientRepository: Repository<Patient>
   let accessToken: string
+  let doctorToken: string
+  let userToken: string
+
+  async function loginAs(role: UserRole): Promise<string> {
+    const password = 'Password123!'
+    const hashedPassword = await bcrypt.hash(password, 1)
+    const user = await userRepository.save(
+      userRepository.create({
+        fullName: `Test ${role} User`,
+        email: `${role}.${faker.string.alphanumeric(6)}@patients.test`,
+        password: hashedPassword,
+        role,
+        isActive: true,
+      }),
+    )
+    const response = await request(app.getHttpServer())
+      .post('/auth/login')
+      .send({ email: user.email, password })
+    const setCookieHeader = response.headers['set-cookie'] as unknown as string[] | string | undefined
+    if (!setCookieHeader) return ''
+    const cookies = Array.isArray(setCookieHeader) ? setCookieHeader : [setCookieHeader]
+    const match = cookies.find((c: string) => c?.startsWith('access_token='))
+    return match ? match.slice('access_token='.length).split(';')[0] : ''
+  }
 
   beforeAll(async () => {
     const module = await Test.createTestingModule({
@@ -38,25 +62,9 @@ describe('PatientsController (integration)', () => {
   })
 
   beforeEach(async () => {
-    const password = 'Password123!'
-    const hashedPassword = await bcrypt.hash(password, 1)
-    const authUser = await userRepository.save(
-      userRepository.create({
-        fullName: 'Test Auth User',
-        email: 'auth@test.com',
-        password: hashedPassword,
-        role: UserRole.ADMIN,
-      }),
-    )
-
-    const response = await request(app.getHttpServer())
-      .post('/auth/login')
-      .send({ email: authUser.email, password })
-
-    const setCookieHeader = response.headers['set-cookie'] as unknown as string[] | string
-    const cookies = Array.isArray(setCookieHeader) ? setCookieHeader : [setCookieHeader]
-    const match = cookies.find((c) => c.startsWith('access_token='))
-    accessToken = match ? match.slice('access_token='.length).split(';')[0] : ''
+    accessToken = await loginAs(UserRole.ADMIN)
+    doctorToken = await loginAs(UserRole.DOCTOR)
+    userToken = await loginAs(UserRole.USER)
   })
 
   afterEach(async () => {
@@ -160,6 +168,26 @@ describe('PatientsController (integration)', () => {
         .send({ ...makePayload(), unknownField: 'value' })
         .expect(400)
     })
+
+    it('returns 401 without token', async () => {
+      await request(app.getHttpServer()).post('/patients').send(makePayload()).expect(401)
+    })
+
+    it('returns 403 when DOCTOR tries to create', async () => {
+      await request(app.getHttpServer())
+        .post('/patients')
+        .set('Authorization', `Bearer ${doctorToken}`)
+        .send(makePayload())
+        .expect(403)
+    })
+
+    it('returns 403 when USER tries to create', async () => {
+      await request(app.getHttpServer())
+        .post('/patients')
+        .set('Authorization', `Bearer ${userToken}`)
+        .send(makePayload())
+        .expect(403)
+    })
   })
 
   describe('GET /patients', () => {
@@ -223,6 +251,24 @@ describe('PatientsController (integration)', () => {
         expect(p.version).toBeUndefined()
       })
     })
+
+    it('returns 401 without token', async () => {
+      await request(app.getHttpServer()).get('/patients').expect(401)
+    })
+
+    it('returns 403 when DOCTOR tries to list', async () => {
+      await request(app.getHttpServer())
+        .get('/patients')
+        .set('Authorization', `Bearer ${doctorToken}`)
+        .expect(403)
+    })
+
+    it('returns 200 for USER', async () => {
+      await request(app.getHttpServer())
+        .get('/patients')
+        .set('Authorization', `Bearer ${userToken}`)
+        .expect(200)
+    })
   })
 
   describe('GET /patients/:id', () => {
@@ -244,6 +290,26 @@ describe('PatientsController (integration)', () => {
         .get(`/patients/${faker.string.uuid()}`)
         .set('Authorization', `Bearer ${accessToken}`)
         .expect(404)
+    })
+
+    it('returns 401 without token', async () => {
+      await request(app.getHttpServer()).get(`/patients/${faker.string.uuid()}`).expect(401)
+    })
+
+    it('returns 403 when DOCTOR tries to view', async () => {
+      await request(app.getHttpServer())
+        .get(`/patients/${faker.string.uuid()}`)
+        .set('Authorization', `Bearer ${doctorToken}`)
+        .expect(403)
+    })
+
+    it('returns 200 for USER', async () => {
+      const { body: created } = await createPatient().expect(201)
+
+      await request(app.getHttpServer())
+        .get(`/patients/${created.id}`)
+        .set('Authorization', `Bearer ${userToken}`)
+        .expect(200)
     })
   })
 
@@ -329,6 +395,61 @@ describe('PatientsController (integration)', () => {
 
       expect(body.version).toBeUndefined()
     })
+
+    it('returns 401 without token', async () => {
+      await request(app.getHttpServer())
+        .patch(`/patients/${faker.string.uuid()}`)
+        .send({ fullName: 'Updated' })
+        .expect(401)
+    })
+
+    it('returns 403 when DOCTOR tries to update', async () => {
+      const { body: created } = await createPatient().expect(201)
+
+      await request(app.getHttpServer())
+        .patch(`/patients/${created.id}`)
+        .set('Authorization', `Bearer ${doctorToken}`)
+        .send({ fullName: 'Updated' })
+        .expect(403)
+    })
+
+    it('returns 403 when USER tries to update', async () => {
+      const { body: created } = await createPatient().expect(201)
+
+      await request(app.getHttpServer())
+        .patch(`/patients/${created.id}`)
+        .set('Authorization', `Bearer ${userToken}`)
+        .send({ fullName: 'Updated' })
+        .expect(403)
+    })
+
+    it('returns 200 updating only patient fields (no user fields)', async () => {
+      const { body: created } = await createPatient().expect(201)
+      const newPhone = '(21) 98765-4321'
+
+      const { body } = await request(app.getHttpServer())
+        .patch(`/patients/${created.id}`)
+        .set('Authorization', `Bearer ${accessToken}`)
+        .send({ phoneNumber: newPhone })
+        .expect(200)
+
+      expect(body.phoneNumber).toBe(newPhone)
+      expect(body.user.fullName).toBe(created.user.fullName)
+    })
+
+    it('returns 200 with no changes when body is empty', async () => {
+      const { body: created } = await createPatient().expect(201)
+
+      const { body } = await request(app.getHttpServer())
+        .patch(`/patients/${created.id}`)
+        .set('Authorization', `Bearer ${accessToken}`)
+        .send({})
+        .expect(200)
+
+      expect(body.id).toBe(created.id)
+      expect(body.documentNumber).toBe(created.documentNumber)
+      expect(body.user.fullName).toBe(created.user.fullName)
+    })
   })
 
   describe('DELETE /patients/:id', () => {
@@ -390,11 +511,27 @@ describe('PatientsController (integration)', () => {
         .set('Authorization', `Bearer ${accessToken}`)
         .expect(404)
     })
-  })
 
-  describe('JWT Guard', () => {
-    it('returns 401 on protected endpoint without token', async () => {
-      await request(app.getHttpServer()).get('/patients').expect(401)
+    it('returns 401 without token', async () => {
+      await request(app.getHttpServer()).delete(`/patients/${faker.string.uuid()}`).expect(401)
+    })
+
+    it('returns 403 when DOCTOR tries to delete', async () => {
+      const { body: created } = await createPatient().expect(201)
+
+      await request(app.getHttpServer())
+        .delete(`/patients/${created.id}`)
+        .set('Authorization', `Bearer ${doctorToken}`)
+        .expect(403)
+    })
+
+    it('returns 403 when USER tries to delete', async () => {
+      const { body: created } = await createPatient().expect(201)
+
+      await request(app.getHttpServer())
+        .delete(`/patients/${created.id}`)
+        .set('Authorization', `Bearer ${userToken}`)
+        .expect(403)
     })
   })
 })
