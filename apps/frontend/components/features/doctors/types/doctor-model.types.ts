@@ -2,6 +2,7 @@ export interface IDoctorUserModel {
   id: string
   fullName: string
   email: string
+  isActive: boolean
 }
 
 export interface IDoctorSpecialtyModel {

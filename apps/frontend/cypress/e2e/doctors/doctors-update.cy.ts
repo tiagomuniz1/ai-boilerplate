@@ -8,6 +8,7 @@ const mockAuthUser = {
   id: 'mock-auth-user-id',
   fullName: 'Mock Admin',
   email: 'mock@admin.com',
+  role: 'admin',
 }
 
 const mockSpecialties = [
@@ -17,7 +18,7 @@ const mockSpecialties = [
 
 const mockDoctor = {
   id: MOCK_DOCTOR_ID,
-  user: { id: 'user-uuid-1', fullName: 'Dr. Original Silva', email: 'original@test.com' },
+  user: { id: 'user-uuid-1', fullName: 'Dr. Original Silva', email: 'original@test.com', isActive: true },
   crmNumber: '11111/SP',
   specialties: [{ id: SPEC_ID_1, name: 'Cardiologia' }],
   bio: null,
@@ -187,6 +188,70 @@ describe('Doctors Update', () => {
     cy.get(`[data-testid="doctor-form-specialty-${SPEC_ID_2}"]`).check()
     cy.get('[data-testid="doctor-form-submit"]').click()
     cy.wait('@updateDoctor')
+    cy.url().should('include', `/doctors/${MOCK_DOCTOR_ID}`)
+  })
+
+  it('shows isActive checkbox checked when doctor is active (ADMIN)', () => {
+    cy.intercept('GET', `${Cypress.env('API_URL')}/doctors/${MOCK_DOCTOR_ID}`, {
+      statusCode: 200,
+      body: mockDoctor,
+    }).as('getDoctor')
+
+    visitWithMockAuth(`/doctors/${MOCK_DOCTOR_ID}/edit`)
+    cy.wait('@getDoctor')
+    cy.get('[data-testid="doctor-form-isactive"]').should('be.checked')
+  })
+
+  it('shows isActive checkbox unchecked when doctor is inactive (ADMIN)', () => {
+    cy.intercept('GET', `${Cypress.env('API_URL')}/doctors/${MOCK_DOCTOR_ID}`, {
+      statusCode: 200,
+      body: { ...mockDoctor, user: { ...mockDoctor.user, isActive: false } },
+    }).as('getDoctor')
+
+    visitWithMockAuth(`/doctors/${MOCK_DOCTOR_ID}/edit`)
+    cy.wait('@getDoctor')
+    cy.get('[data-testid="doctor-form-isactive"]').should('not.be.checked')
+  })
+
+  it('deactivates doctor by unchecking isActive and saving', () => {
+    cy.intercept('GET', `${Cypress.env('API_URL')}/doctors/${MOCK_DOCTOR_ID}`, {
+      statusCode: 200,
+      body: mockDoctor,
+    }).as('getDoctor')
+    cy.intercept('PATCH', `${Cypress.env('API_URL')}/doctors/${MOCK_DOCTOR_ID}`, {
+      statusCode: 200,
+      body: { ...mockDoctor, user: { ...mockDoctor.user, isActive: false } },
+    }).as('updateDoctor')
+
+    visitWithMockAuth(`/doctors/${MOCK_DOCTOR_ID}/edit`)
+    cy.wait('@getDoctor')
+    cy.get('[data-testid="doctor-form-isactive"]').should('be.checked')
+    cy.get('[data-testid="doctor-form-isactive"]').uncheck()
+    cy.get('[data-testid="doctor-form-submit"]').click()
+    cy.wait('@updateDoctor').then((interception) => {
+      expect(interception.request.body.isActive).to.equal(false)
+    })
+    cy.url().should('include', `/doctors/${MOCK_DOCTOR_ID}`)
+  })
+
+  it('activates doctor by checking isActive and saving', () => {
+    cy.intercept('GET', `${Cypress.env('API_URL')}/doctors/${MOCK_DOCTOR_ID}`, {
+      statusCode: 200,
+      body: { ...mockDoctor, user: { ...mockDoctor.user, isActive: false } },
+    }).as('getDoctor')
+    cy.intercept('PATCH', `${Cypress.env('API_URL')}/doctors/${MOCK_DOCTOR_ID}`, {
+      statusCode: 200,
+      body: mockDoctor,
+    }).as('updateDoctor')
+
+    visitWithMockAuth(`/doctors/${MOCK_DOCTOR_ID}/edit`)
+    cy.wait('@getDoctor')
+    cy.get('[data-testid="doctor-form-isactive"]').should('not.be.checked')
+    cy.get('[data-testid="doctor-form-isactive"]').check()
+    cy.get('[data-testid="doctor-form-submit"]').click()
+    cy.wait('@updateDoctor').then((interception) => {
+      expect(interception.request.body.isActive).to.equal(true)
+    })
     cy.url().should('include', `/doctors/${MOCK_DOCTOR_ID}`)
   })
 

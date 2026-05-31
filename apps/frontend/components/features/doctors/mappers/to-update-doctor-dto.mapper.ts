@@ -6,5 +6,6 @@ export function toUpdateDoctorDto(input: IUpdateDoctorInput): UpdateDoctorDto {
     crmNumber: input.crmNumber,
     specialtyIds: input.specialtyIds,
     bio: input.bio,
+    isActive: input.isActive,
   }
 }

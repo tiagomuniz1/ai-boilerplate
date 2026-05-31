@@ -6,5 +6,6 @@ export function toUpdateUserDto(input: IUpdateUserInput): UpdateUserDto {
     fullName: input.fullName,
     email: input.email,
     role: input.role,
+    isActive: input.isActive,
   }
 }

@@ -1,0 +1,10 @@
+{
+  "newSpecialty": {
+    "name": "Cardiologia",
+    "description": "Especialidade focada em doenças do coração"
+  },
+  "updatedSpecialty": {
+    "name": "Cardiologia Avançada",
+    "description": "Descrição atualizada via E2E"
+  }
+}

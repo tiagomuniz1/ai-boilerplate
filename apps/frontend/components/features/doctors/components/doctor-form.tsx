@@ -9,6 +9,8 @@ import { Input } from '@/components/ui/atoms/input/input'
 import { Button } from '@/components/ui/atoms/button/button'
 import { Alert } from '@/components/ui/molecules/alert/alert'
 import { cn } from '@/lib/cn'
+import { UserRole } from '@app/shared'
+import { useAuthStore } from '@/stores/auth.store'
 import { userService } from '@/components/features/users/services/users.service'
 import { specialtiesService } from '@/components/features/specialties/services/specialties.service'
 import type { ICreateDoctorInput, IUpdateDoctorInput } from '../types/doctor-input.types'
@@ -38,6 +40,7 @@ const updateSchema = z.object({
   crmNumber: crmField.optional().or(z.literal('')),
   specialtyIds: specialtyIdsField,
   bio: bioField,
+  isActive: z.boolean(),
 })
 
 type CreateFormValues = z.infer<typeof createSchema>
@@ -172,6 +175,9 @@ function DoctorFormCreate({ isPending, globalError, onSubmit }: DoctorFormCreate
 }
 
 function DoctorFormEdit({ defaultValues, isPending, globalError, onSubmit }: DoctorFormEditProps) {
+  const authUser = useAuthStore((state) => state.user)
+  const isAdmin = authUser?.role === UserRole.ADMIN
+
   const {
     register,
     handleSubmit,
@@ -181,7 +187,10 @@ function DoctorFormEdit({ defaultValues, isPending, globalError, onSubmit }: Doc
     formState: { errors },
   } = useForm<UpdateFormValues>({
     resolver: zodResolver(updateSchema),
-    defaultValues: { specialtyIds: defaultValues.specialties.map((s) => s.id) },
+    defaultValues: {
+      specialtyIds: defaultValues.specialties.map((s) => s.id),
+      isActive: defaultValues.user.isActive,
+    },
   })
 
   const { field: specialtyField } = useController({ name: 'specialtyIds', control })
@@ -198,6 +207,7 @@ function DoctorFormEdit({ defaultValues, isPending, globalError, onSubmit }: Doc
       crmNumber: defaultValues.crmNumber,
       specialtyIds: defaultValues.specialties.map((s) => s.id),
       bio: defaultValues.bio ?? '',
+      isActive: defaultValues.user.isActive,
     })
   }, [defaultValues, reset])
 
@@ -206,6 +216,7 @@ function DoctorFormEdit({ defaultValues, isPending, globalError, onSubmit }: Doc
       crmNumber: data.crmNumber || undefined,
       specialtyIds: data.specialtyIds,
       bio: data.bio || undefined,
+      isActive: isAdmin ? data.isActive : undefined,
     }
     onSubmit(
       input,
@@ -267,6 +278,19 @@ function DoctorFormEdit({ defaultValues, isPending, globalError, onSubmit }: Doc
           registerProps={register('bio')}
           optional
         />
+
+        {isAdmin && (
+          <label className="flex cursor-pointer items-center gap-3">
+            <input
+              type="checkbox"
+              data-testid="doctor-form-isactive"
+              className="h-4 w-4 rounded border-line accent-accent"
+              {...register('isActive')}
+            />
+            <span className="text-sm text-text">Médico ativo</span>
+          </label>
+        )}
+
         <Button
           type="submit"
           isLoading={isPending}

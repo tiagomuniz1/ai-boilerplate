@@ -4,6 +4,7 @@ import { DoctorResponseDto, UpdateDoctorDto, UserRole } from '@app/shared'
 import { BaseUseCase } from '../../../common/base.use-case'
 import { CacheService } from '../../../cache/cache.service'
 import { ICurrentUser } from '../../auth/types/current-user.type'
+import { IUsersRepository } from '../../users/repositories/users.repository.interface'
 import { ISpecialtiesRepository } from '../../specialties/repositories/specialties.repository.interface'
 import { IDoctorsRepository } from '../repositories/doctors.repository.interface'
 import { Doctor } from '../entities/doctor.entity'
@@ -17,6 +18,7 @@ export class UpdateDoctorUseCase extends BaseUseCase {
     dataSource: DataSource,
     private readonly doctorsRepository: IDoctorsRepository,
     private readonly specialtiesRepository: ISpecialtiesRepository,
+    private readonly usersRepository: IUsersRepository,
     private readonly cacheService: CacheService,
   ) {
     super(dataSource)
@@ -28,6 +30,10 @@ export class UpdateDoctorUseCase extends BaseUseCase {
       if (!ownDoctor || ownDoctor.id !== id) {
         throw new ForbiddenException('You can only update your own doctor profile')
       }
+    }
+
+    if (dto.isActive !== undefined && currentUser.role !== UserRole.ADMIN) {
+      throw new ForbiddenException('Only admins can change the active status')
     }
 
     const doctor = await this.doctorsRepository.findById(id)
@@ -49,7 +55,15 @@ export class UpdateDoctorUseCase extends BaseUseCase {
 
     let updated: Doctor
     try {
-      updated = await this.doctorsRepository.update(id, dto, specialties)
+      if (dto.isActive !== undefined) {
+        await this.runInTransaction(async (queryRunner) => {
+          updated = await this.doctorsRepository.update(id, dto, specialties, queryRunner)
+          await this.usersRepository.update(doctor.userId, { isActive: dto.isActive }, queryRunner)
+        })
+        updated!.user.isActive = dto.isActive
+      } else {
+        updated = await this.doctorsRepository.update(id, dto, specialties)
+      }
     } catch (error) {
       if (error instanceof OptimisticLockVersionMismatchError) {
         throw new ConflictException('Record was modified by another process. Please try again.')
@@ -60,11 +74,15 @@ export class UpdateDoctorUseCase extends BaseUseCase {
     try {
       await this.cacheService.del(`doctor:${id}`)
       await this.cacheService.delByPattern('doctors:list*')
+      if (dto.isActive !== undefined) {
+        await this.cacheService.del(`user:${doctor.userId}`)
+        await this.cacheService.delByPattern('users:list*')
+      }
     } catch {
       this.logger.warn('Cache invalidation failed', { context: UpdateDoctorUseCase.name })
     }
 
-    return this.toResponse(updated)
+    return this.toResponse(updated!)
   }
 
   private toResponse(doctor: Doctor): DoctorResponseDto {
@@ -74,6 +92,7 @@ export class UpdateDoctorUseCase extends BaseUseCase {
         id: doctor.user.id,
         fullName: doctor.user.fullName,
         email: doctor.user.email,
+        isActive: doctor.user.isActive,
       },
       crmNumber: doctor.crmNumber,
       specialties: doctor.specialties.map((s) => ({ id: s.id, name: s.name })),

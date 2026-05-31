@@ -2,6 +2,7 @@ export class DoctorUserDto {
   id!: string
   fullName!: string
   email!: string
+  isActive!: boolean
 }
 
 export class DoctorSpecialtyDto {

@@ -5,6 +5,11 @@ interface CreateUserInput {
   role: string
 }
 
+interface CreateSpecialtyInput {
+  name: string
+  description?: string | null
+}
+
 interface CreateDoctorInput {
   userId: string
   crmNumber: string
@@ -34,6 +39,8 @@ declare global {
       createDoctorViaApi(input: CreateDoctorInput, accessToken: string): Chainable<{ id: string }>
       deleteDoctorViaApi(id: string, accessToken?: string): Chainable<void>
       deleteSpecialtyViaApi(id: string, accessToken?: string): Chainable<void>
+      createSpecialtyViaApi(input: CreateSpecialtyInput): Chainable<{ id: string; name: string }>
+      seedSpecialty(): Chainable<{ id: string; name: string; description: string }>
       seedDoctor(): Chainable<SeededDoctor>
     }
   }
@@ -113,6 +120,21 @@ Cypress.Commands.add('deleteDoctorViaApi', (id: string, accessToken?: string) =>
     failOnStatusCode: false,
     headers: accessToken ? { Authorization: `Bearer ${accessToken}` } : {},
   })
+})
+
+Cypress.Commands.add('createSpecialtyViaApi', (input: CreateSpecialtyInput) => {
+  cy.request({
+    method: 'POST',
+    url: `${Cypress.env('API_URL')}/specialties`,
+    body: input,
+  }).then((response) => ({ id: response.body.id as string, name: response.body.name as string }))
+})
+
+Cypress.Commands.add('seedSpecialty', () => {
+  const ts = Date.now()
+  const name = `Especialidade Teste ${ts}`
+  const description = `Descrição de teste ${ts}`
+  return cy.createSpecialtyViaApi({ name, description }).then(({ id }) => ({ id, name, description }))
 })
 
 Cypress.Commands.add('deleteSpecialtyViaApi', (id: string, accessToken?: string) => {

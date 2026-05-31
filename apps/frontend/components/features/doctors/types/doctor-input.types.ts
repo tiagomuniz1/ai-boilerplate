@@ -9,6 +9,7 @@ export interface IUpdateDoctorInput {
   crmNumber?: string
   specialtyIds?: string[]
   bio?: string
+  isActive?: boolean
 }
 
 export interface IDoctorListParams {

@@ -6,6 +6,7 @@ const makeDto = () => ({
     id: 'user-uuid-1',
     fullName: 'Dr. João Silva',
     email: 'joao@example.com',
+    isActive: true,
   },
   crmNumber: '12345/SP',
   specialties: [{ id: 'spec-uuid-1', name: 'Cardiologia' }],
@@ -47,14 +48,21 @@ describe('toDoctorModel', () => {
     expect(model.bio).toBeNull()
   })
 
-  it('maps user object correctly', () => {
+  it('maps user object correctly including isActive', () => {
     const model = toDoctorModel(makeDto())
 
     expect(model.user).toEqual({
       id: 'user-uuid-1',
       fullName: 'Dr. João Silva',
       email: 'joao@example.com',
+      isActive: true,
     })
+  })
+
+  it('maps user.isActive as false when user is inactive', () => {
+    const model = toDoctorModel({ ...makeDto(), user: { ...makeDto().user, isActive: false } })
+
+    expect(model.user.isActive).toBe(false)
   })
 
   it('maps multiple specialties correctly', () => {

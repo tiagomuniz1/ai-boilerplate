@@ -4,6 +4,7 @@ import { faker } from '@faker-js/faker'
 import { UserRole } from '@app/shared'
 import { CacheService } from '../../../cache/cache.service'
 import { ICurrentUser } from '../../auth/types/current-user.type'
+import { IUsersRepository } from '../../users/repositories/users.repository.interface'
 import { ISpecialtiesRepository } from '../../specialties/repositories/specialties.repository.interface'
 import { IDoctorsRepository } from '../repositories/doctors.repository.interface'
 import { UpdateDoctorUseCase } from '../use-cases/update-doctor.use-case'
@@ -13,6 +14,15 @@ const mockDoctorsRepository: jest.Mocked<IDoctorsRepository> = {
   findById: jest.fn(),
   findByUserId: jest.fn(),
   findByCrmNumber: jest.fn(),
+  create: jest.fn(),
+  update: jest.fn(),
+  delete: jest.fn(),
+}
+
+const mockUsersRepository: jest.Mocked<IUsersRepository> = {
+  findAll: jest.fn(),
+  findById: jest.fn(),
+  findByEmail: jest.fn(),
   create: jest.fn(),
   update: jest.fn(),
   delete: jest.fn(),
@@ -36,6 +46,18 @@ const mockCacheService = {
   delByPattern: jest.fn(),
 } as unknown as jest.Mocked<CacheService>
 
+const mockQueryRunner = {
+  connect: jest.fn().mockResolvedValue(undefined),
+  startTransaction: jest.fn().mockResolvedValue(undefined),
+  commitTransaction: jest.fn().mockResolvedValue(undefined),
+  rollbackTransaction: jest.fn().mockResolvedValue(undefined),
+  release: jest.fn().mockResolvedValue(undefined),
+}
+
+const mockDataSource = {
+  createQueryRunner: jest.fn().mockReturnValue(mockQueryRunner),
+} as unknown as DataSource
+
 const makeSpecialty = (overrides = {}) => ({
   id: faker.string.uuid(),
   name: 'Cardiologia',
@@ -50,7 +72,7 @@ const makeSpecialty = (overrides = {}) => ({
 const makeDoctor = (overrides = {}) => ({
   id: faker.string.uuid(),
   userId: faker.string.uuid(),
-  user: { id: faker.string.uuid(), fullName: faker.person.fullName(), email: faker.internet.email() } as any,
+  user: { id: faker.string.uuid(), fullName: faker.person.fullName(), email: faker.internet.email(), isActive: true } as any,
   crmNumber: '12345/SP',
   specialties: [makeSpecialty()],
   bio: null,
@@ -69,9 +91,10 @@ describe('UpdateDoctorUseCase', () => {
   beforeEach(() => {
     jest.clearAllMocks()
     useCase = new UpdateDoctorUseCase(
-      {} as DataSource,
+      mockDataSource,
       mockDoctorsRepository,
       mockSpecialtiesRepository,
+      mockUsersRepository,
       mockCacheService,
     )
   })
@@ -249,5 +272,88 @@ describe('UpdateDoctorUseCase', () => {
       ForbiddenException,
     )
     expect(mockDoctorsRepository.findById).not.toHaveBeenCalled()
+  })
+
+  it('deactivates user when ADMIN sets isActive to false', async () => {
+    const doctor = makeDoctor()
+    const updated = makeDoctor({ id: doctor.id, user: { ...doctor.user, isActive: false } })
+
+    mockDoctorsRepository.findById.mockResolvedValue(doctor as any)
+    mockDoctorsRepository.update.mockResolvedValue(updated as any)
+    mockUsersRepository.update.mockResolvedValue({ ...doctor.user, isActive: false } as any)
+    mockCacheService.del.mockResolvedValue(undefined)
+    mockCacheService.delByPattern.mockResolvedValue(undefined)
+
+    const result = await useCase.execute(doctor.id, { isActive: false }, adminUser)
+
+    expect(mockUsersRepository.update).toHaveBeenCalledWith(
+      doctor.userId,
+      { isActive: false },
+      expect.anything(),
+    )
+    expect(result.user.isActive).toBe(false)
+  })
+
+  it('activates user when ADMIN sets isActive to true', async () => {
+    const doctor = makeDoctor({ user: { ...makeDoctor().user, isActive: false } })
+    const updated = makeDoctor({ id: doctor.id, user: { ...doctor.user, isActive: true } })
+
+    mockDoctorsRepository.findById.mockResolvedValue(doctor as any)
+    mockDoctorsRepository.update.mockResolvedValue(updated as any)
+    mockUsersRepository.update.mockResolvedValue({ ...doctor.user, isActive: true } as any)
+    mockCacheService.del.mockResolvedValue(undefined)
+    mockCacheService.delByPattern.mockResolvedValue(undefined)
+
+    const result = await useCase.execute(doctor.id, { isActive: true }, adminUser)
+
+    expect(mockUsersRepository.update).toHaveBeenCalledWith(
+      doctor.userId,
+      { isActive: true },
+      expect.anything(),
+    )
+    expect(result.user.isActive).toBe(true)
+  })
+
+  it('throws ForbiddenException when DOCTOR tries to change isActive', async () => {
+    const doctor = makeDoctor()
+    const doctorUser: ICurrentUser = { id: doctor.user.id, role: UserRole.DOCTOR }
+
+    mockDoctorsRepository.findByUserId.mockResolvedValue(doctor as any)
+
+    await expect(useCase.execute(doctor.id, { isActive: false }, doctorUser)).rejects.toThrow(
+      ForbiddenException,
+    )
+    expect(mockDoctorsRepository.findById).not.toHaveBeenCalled()
+    expect(mockUsersRepository.update).not.toHaveBeenCalled()
+  })
+
+  it('does not call usersRepository when isActive is not provided', async () => {
+    const doctor = makeDoctor()
+    const updated = makeDoctor({ id: doctor.id, bio: 'Updated bio' })
+
+    mockDoctorsRepository.findById.mockResolvedValue(doctor as any)
+    mockDoctorsRepository.update.mockResolvedValue(updated as any)
+    mockCacheService.del.mockResolvedValue(undefined)
+    mockCacheService.delByPattern.mockResolvedValue(undefined)
+
+    await useCase.execute(doctor.id, { bio: 'Updated bio' }, adminUser)
+
+    expect(mockUsersRepository.update).not.toHaveBeenCalled()
+  })
+
+  it('also invalidates user cache when isActive is updated', async () => {
+    const doctor = makeDoctor()
+    const updated = makeDoctor({ id: doctor.id })
+
+    mockDoctorsRepository.findById.mockResolvedValue(doctor as any)
+    mockDoctorsRepository.update.mockResolvedValue(updated as any)
+    mockUsersRepository.update.mockResolvedValue({ ...doctor.user, isActive: false } as any)
+    mockCacheService.del.mockResolvedValue(undefined)
+    mockCacheService.delByPattern.mockResolvedValue(undefined)
+
+    await useCase.execute(doctor.id, { isActive: false }, adminUser)
+
+    expect(mockCacheService.del).toHaveBeenCalledWith(`user:${doctor.userId}`)
+    expect(mockCacheService.delByPattern).toHaveBeenCalledWith('users:list*')
   })
 })

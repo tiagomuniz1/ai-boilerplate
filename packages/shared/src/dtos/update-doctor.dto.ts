@@ -1,4 +1,4 @@
-import { ArrayMinSize, IsArray, IsOptional, IsString, IsUUID, Matches, MaxLength } from 'class-validator'
+import { ArrayMinSize, IsArray, IsBoolean, IsOptional, IsString, IsUUID, Matches, MaxLength } from 'class-validator'
 
 export class UpdateDoctorDto {
   @IsOptional()
@@ -16,4 +16,8 @@ export class UpdateDoctorDto {
   @IsString()
   @MaxLength(500)
   bio?: string
+
+  @IsOptional()
+  @IsBoolean()
+  isActive?: boolean
 }

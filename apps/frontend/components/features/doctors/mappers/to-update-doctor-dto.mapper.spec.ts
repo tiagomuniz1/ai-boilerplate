@@ -6,6 +6,7 @@ describe('toUpdateDoctorDto', () => {
       crmNumber: '12345/SP',
       specialtyIds: ['spec-uuid-1'],
       bio: 'Bio atualizada.',
+      isActive: false,
     }
 
     const dto = toUpdateDoctorDto(input)
@@ -13,6 +14,7 @@ describe('toUpdateDoctorDto', () => {
     expect(dto.crmNumber).toBe(input.crmNumber)
     expect(dto.specialtyIds).toEqual(input.specialtyIds)
     expect(dto.bio).toBe(input.bio)
+    expect(dto.isActive).toBe(false)
   })
 
   it('maps undefined fields correctly', () => {
@@ -21,6 +23,7 @@ describe('toUpdateDoctorDto', () => {
     expect(dto.crmNumber).toBeUndefined()
     expect(dto.specialtyIds).toBeUndefined()
     expect(dto.bio).toBeUndefined()
+    expect(dto.isActive).toBeUndefined()
   })
 
   it('maps partial update correctly', () => {

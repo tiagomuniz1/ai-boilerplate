@@ -2,12 +2,14 @@ jest.mock('next/navigation', () => ({ useRouter: jest.fn() }))
 jest.mock('../services/doctors.service')
 jest.mock('@/components/features/users/services/users.service')
 jest.mock('@/components/features/specialties/services/specialties.service')
+jest.mock('@/stores/auth.store')
 
 import { screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { useRouter } from 'next/navigation'
 import { userService } from '@/components/features/users/services/users.service'
 import { specialtiesService } from '@/components/features/specialties/services/specialties.service'
+import { useAuthStore } from '@/stores/auth.store'
 import { renderWithProviders } from '@/tests/utils/render-with-providers'
 import { DoctorForm } from './doctor-form'
 import type { IDoctorModel } from '../types/doctor-model.types'
@@ -26,9 +28,11 @@ const mockSpecialties = [
   { id: SPEC_ID_2, name: 'Neurologia', description: null, createdAt: new Date(), updatedAt: new Date() },
 ]
 
+const mockAdminUser = { id: 'auth-user-id', fullName: 'Admin', email: 'admin@test.com', role: 'admin' as const }
+
 const existingDoctor: IDoctorModel = {
   id: 'uuid-1',
-  user: { id: 'user-uuid-1', fullName: 'Dr. João Silva', email: 'joao@example.com' },
+  user: { id: 'user-uuid-1', fullName: 'Dr. João Silva', email: 'joao@example.com', isActive: true },
   crmNumber: '12345/SP',
   specialties: [{ id: SPEC_ID_1, name: 'Cardiologia' }],
   bio: 'Bio inicial.',
@@ -40,6 +44,9 @@ describe('DoctorForm (integration) — create mode', () => {
   beforeEach(() => {
     jest.clearAllMocks()
     ;(useRouter as jest.Mock).mockReturnValue({ push: mockPush })
+    ;(useAuthStore as unknown as jest.Mock).mockImplementation((selector: (s: { user: typeof mockAdminUser }) => unknown) =>
+      selector({ user: mockAdminUser }),
+    )
     ;(userService.getAll as jest.Mock).mockResolvedValue({ data: mockUsers, total: 1, page: 1, limit: 100 })
     ;(specialtiesService.getAll as jest.Mock).mockResolvedValue({ data: mockSpecialties, total: 2, page: 1, limit: 100 })
   })
@@ -197,6 +204,9 @@ describe('DoctorForm (integration) — edit mode', () => {
   beforeEach(() => {
     jest.clearAllMocks()
     ;(useRouter as jest.Mock).mockReturnValue({ push: mockPush })
+    ;(useAuthStore as unknown as jest.Mock).mockImplementation((selector: (s: { user: typeof mockAdminUser }) => unknown) =>
+      selector({ user: mockAdminUser }),
+    )
     ;(specialtiesService.getAll as jest.Mock).mockResolvedValue({ data: mockSpecialties, total: 2, page: 1, limit: 100 })
   })
 
@@ -338,5 +348,61 @@ describe('DoctorForm (integration) — edit mode', () => {
     )
 
     expect(screen.getByTestId('doctor-form-submit')).toBeDisabled()
+  })
+
+  it('shows isActive checkbox checked when doctor is active (ADMIN)', () => {
+    renderWithProviders(
+      <DoctorForm mode="edit" defaultValues={existingDoctor} isPending={false} onSubmit={jest.fn()} />,
+    )
+
+    expect(screen.getByTestId('doctor-form-isactive')).toBeChecked()
+  })
+
+  it('shows isActive checkbox unchecked when doctor is inactive (ADMIN)', () => {
+    const inactiveDoctor: IDoctorModel = {
+      ...existingDoctor,
+      user: { ...existingDoctor.user, isActive: false },
+    }
+
+    renderWithProviders(
+      <DoctorForm mode="edit" defaultValues={inactiveDoctor} isPending={false} onSubmit={jest.fn()} />,
+    )
+
+    expect(screen.getByTestId('doctor-form-isactive')).not.toBeChecked()
+  })
+
+  it('does not show isActive checkbox for non-admin', () => {
+    const nonAdminUser = { ...mockAdminUser, role: 'user' as const }
+    ;(useAuthStore as unknown as jest.Mock).mockImplementation((selector: (s: { user: typeof nonAdminUser }) => unknown) =>
+      selector({ user: nonAdminUser }),
+    )
+
+    renderWithProviders(
+      <DoctorForm mode="edit" defaultValues={existingDoctor} isPending={false} onSubmit={jest.fn()} />,
+    )
+
+    expect(screen.queryByTestId('doctor-form-isactive')).not.toBeInTheDocument()
+  })
+
+  it('submits isActive=false when admin unchecks checkbox', async () => {
+    const onSubmit = jest.fn()
+
+    renderWithProviders(
+      <DoctorForm mode="edit" defaultValues={existingDoctor} isPending={false} onSubmit={onSubmit} />,
+    )
+
+    await waitFor(() => {
+      expect(screen.getByTestId('doctor-form-isactive')).toBeChecked()
+    })
+
+    await userEvent.click(screen.getByTestId('doctor-form-isactive'))
+    await userEvent.click(screen.getByTestId('doctor-form-submit'))
+
+    await waitFor(() => {
+      expect(onSubmit).toHaveBeenCalledWith(
+        expect.objectContaining({ isActive: false }),
+        expect.any(Function),
+      )
+    })
   })
 })

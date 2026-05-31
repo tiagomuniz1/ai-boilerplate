@@ -198,6 +198,78 @@ describe('Users Update', () => {
       if (seededId) cy.deleteUserViaApi(seededId)
     })
   })
+
+  it('shows isActive checkbox checked when user is active', () => {
+    cy.intercept('GET', `${Cypress.env('API_URL')}/users/${MOCK_USER_ID}`, {
+      statusCode: 200,
+      body: { ...mockUser, isActive: true },
+    }).as('getUser')
+
+    visitWithMockAuth(`/users/${MOCK_USER_ID}/edit`)
+    cy.wait('@getUser')
+    cy.get('[data-testid="user-form-isactive"]').should('be.checked')
+  })
+
+  it('shows isActive checkbox unchecked when user is inactive', () => {
+    cy.intercept('GET', `${Cypress.env('API_URL')}/users/${MOCK_USER_ID}`, {
+      statusCode: 200,
+      body: { ...mockUser, isActive: false },
+    }).as('getUser')
+
+    visitWithMockAuth(`/users/${MOCK_USER_ID}/edit`)
+    cy.wait('@getUser')
+    cy.get('[data-testid="user-form-isactive"]').should('not.be.checked')
+  })
+
+  it('deactivates user by unchecking isActive and saving', () => {
+    cy.intercept('GET', `${Cypress.env('API_URL')}/users/${MOCK_USER_ID}`, {
+      statusCode: 200,
+      body: { ...mockUser, isActive: true },
+    }).as('getUser')
+    cy.intercept('PATCH', `${Cypress.env('API_URL')}/users/${MOCK_USER_ID}`, {
+      statusCode: 200,
+      body: { ...mockUpdatedUser, isActive: false },
+    }).as('updateUser')
+    cy.intercept('GET', `${Cypress.env('API_URL')}/users*`, {
+      statusCode: 200,
+      body: listWithUpdatedUser,
+    })
+
+    visitWithMockAuth(`/users/${MOCK_USER_ID}/edit`)
+    cy.wait('@getUser')
+    cy.get('[data-testid="user-form-isactive"]').should('be.checked')
+    cy.get('[data-testid="user-form-isactive"]').uncheck()
+    cy.get('[data-testid="user-form-submit"]').click()
+    cy.wait('@updateUser').then((interception) => {
+      expect(interception.request.body.isActive).to.equal(false)
+    })
+    cy.url().should('match', /\/users$/)
+  })
+
+  it('activates user by checking isActive and saving', () => {
+    cy.intercept('GET', `${Cypress.env('API_URL')}/users/${MOCK_USER_ID}`, {
+      statusCode: 200,
+      body: { ...mockUser, isActive: false },
+    }).as('getUser')
+    cy.intercept('PATCH', `${Cypress.env('API_URL')}/users/${MOCK_USER_ID}`, {
+      statusCode: 200,
+      body: { ...mockUpdatedUser, isActive: true },
+    }).as('updateUser')
+    cy.intercept('GET', `${Cypress.env('API_URL')}/users*`, {
+      statusCode: 200,
+      body: listWithUpdatedUser,
+    })
+
+    visitWithMockAuth(`/users/${MOCK_USER_ID}/edit`)
+    cy.wait('@getUser')
+    cy.get('[data-testid="user-form-isactive"]').should('not.be.checked')
+    cy.get('[data-testid="user-form-isactive"]').check()
+    cy.get('[data-testid="user-form-submit"]').click()
+    cy.wait('@updateUser').then((interception) => {
+      expect(interception.request.body.isActive).to.equal(true)
+    })
+    cy.url().should('match', /\/users$/)
+  })
 })
 
 export {}
