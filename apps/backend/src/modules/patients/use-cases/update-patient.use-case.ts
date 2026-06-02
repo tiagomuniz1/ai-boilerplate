@@ -63,6 +63,10 @@ export class UpdatePatientUseCase extends BaseUseCase {
     try {
       await this.cacheService.del(`patient:${id}`)
       await this.cacheService.delByPattern('patients:list*')
+      if (hasUserUpdate) {
+        await this.cacheService.del(`user:${patient.userId}`)
+        await this.cacheService.delByPattern('users:list*')
+      }
     } catch {
       this.logger.warn('Cache invalidation failed', { context: UpdatePatientUseCase.name })
     }

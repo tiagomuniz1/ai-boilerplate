@@ -51,10 +51,8 @@ export class DeleteScheduleUseCase extends BaseUseCase {
     await this.schedulesRepository.delete(id)
 
     try {
-      await Promise.all([
-        this.cacheService.delByPrefix(`schedules:list:${schedule.doctorId}:`),
-        this.cacheService.delByPrefix('schedules:list:all:'),
-      ])
+      await this.cacheService.delByPrefix(`schedules:list:${schedule.doctorId}:`)
+      await this.cacheService.delByPrefix('schedules:list:all:')
     } catch {
       this.logger.warn('Cache invalidation failed', { context: DeleteScheduleUseCase.name })
     }

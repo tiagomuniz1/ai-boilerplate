@@ -3,7 +3,7 @@ jest.mock('next/navigation', () => ({ useRouter: jest.fn() }))
 
 import React from 'react'
 import { renderHook, act, waitFor } from '@testing-library/react'
-import { QueryClientProvider } from '@tanstack/react-query'
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { useRouter } from 'next/navigation'
 import { createQueryClient } from '@/lib/react-query.config'
 import { updateDoctorUseCase } from '../use-cases/update-doctor.use-case'
@@ -11,8 +11,10 @@ import { useUpdateDoctor } from './use-update-doctor.hook'
 
 const mockPush = jest.fn()
 
-function wrapper({ children }: { children: React.ReactNode }) {
-  return React.createElement(QueryClientProvider, { client: createQueryClient() }, children)
+function makeWrapper(client: QueryClient) {
+  return function wrapper({ children }: { children: React.ReactNode }) {
+    return React.createElement(QueryClientProvider, { client }, children)
+  }
 }
 
 const model = {
@@ -34,7 +36,7 @@ describe('useUpdateDoctor', () => {
   it('calls updateDoctorUseCase with id and data', async () => {
     ;(updateDoctorUseCase as jest.Mock).mockResolvedValue(model)
 
-    const { result } = renderHook(() => useUpdateDoctor(), { wrapper })
+    const { result } = renderHook(() => useUpdateDoctor(), { wrapper: makeWrapper(createQueryClient()) })
 
     act(() => result.current.mutate({ id: 'uuid-1', data: { specialtyIds: ['spec-uuid-2'] } }))
 
@@ -43,10 +45,27 @@ describe('useUpdateDoctor', () => {
     })
   })
 
+  it('invalidates doctors and users queries on success', async () => {
+    ;(updateDoctorUseCase as jest.Mock).mockResolvedValue(model)
+
+    const client = createQueryClient()
+    const invalidate = jest.spyOn(client, 'invalidateQueries')
+
+    const { result } = renderHook(() => useUpdateDoctor(), { wrapper: makeWrapper(client) })
+
+    act(() => result.current.mutate({ id: 'uuid-1', data: { specialtyIds: ['spec-uuid-2'] } }))
+
+    await waitFor(() => expect(mockPush).toHaveBeenCalledWith('/doctors/uuid-1'))
+
+    expect(invalidate).toHaveBeenCalledWith({ queryKey: ['doctors'] })
+    expect(invalidate).toHaveBeenCalledWith({ queryKey: ['doctors', 'uuid-1'] })
+    expect(invalidate).toHaveBeenCalledWith({ queryKey: ['users'] })
+  })
+
   it('navigates to /doctors/:id on success', async () => {
     ;(updateDoctorUseCase as jest.Mock).mockResolvedValue(model)
 
-    const { result } = renderHook(() => useUpdateDoctor(), { wrapper })
+    const { result } = renderHook(() => useUpdateDoctor(), { wrapper: makeWrapper(createQueryClient()) })
 
     act(() => result.current.mutate({ id: 'uuid-1', data: { specialtyIds: ['spec-uuid-2'] } }))
 
@@ -59,7 +78,7 @@ describe('useUpdateDoctor', () => {
     const error = { status: 409, title: 'Conflict', detail: 'CRM already in use' }
     ;(updateDoctorUseCase as jest.Mock).mockRejectedValue(error)
 
-    const { result } = renderHook(() => useUpdateDoctor(), { wrapper })
+    const { result } = renderHook(() => useUpdateDoctor(), { wrapper: makeWrapper(createQueryClient()) })
 
     act(() => result.current.mutate({ id: 'uuid-1', data: { specialtyIds: ['spec-uuid-2'] } }))
 

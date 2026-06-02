@@ -1,4 +1,4 @@
-import { Injectable, Logger, NotFoundException } from '@nestjs/common'
+import { ConflictException, Injectable, Logger, NotFoundException } from '@nestjs/common'
 import { DataSource } from 'typeorm'
 import { BaseUseCase } from '../../../common/base.use-case'
 import { CacheService } from '../../../cache/cache.service'
@@ -19,6 +19,13 @@ export class DeleteSpecialtyUseCase extends BaseUseCase {
   async execute(id: string): Promise<void> {
     const specialty = await this.specialtiesRepository.findById(id)
     if (!specialty) throw new NotFoundException('Specialty not found')
+
+    const linkedDoctors = await this.specialtiesRepository.countLinkedDoctors(id)
+    if (linkedDoctors > 0) {
+      throw new ConflictException(
+        `Specialty is linked to ${linkedDoctors} doctor${linkedDoctors > 1 ? 's' : ''} and cannot be deleted`,
+      )
+    }
 
     await this.specialtiesRepository.delete(id)
 

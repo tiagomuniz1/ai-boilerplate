@@ -142,6 +142,29 @@ describe('Patients Delete', () => {
     cy.get('[data-testid="patient-list-empty"]').should('be.visible')
   })
 
+  it('deleting a patient also removes the linked user from the users list (real API)', () => {
+    cy.fixture('users').then((fixture) => {
+      cy.login(fixture.admin.email, fixture.admin.password)
+    })
+
+    cy.seedPatient().then(({ patientId, userId, fullName }) => {
+      cy.intercept('DELETE', `${Cypress.env('API_URL')}/patients/${patientId}`).as('deletePatient')
+
+      cy.visit('/patients')
+      cy.get(`[data-testid="patient-table-row-${patientId}"]`).should('exist')
+      cy.get(`[data-testid="patient-delete-button-${patientId}"]`).click()
+      cy.get('[data-testid="delete-patient-dialog"]').should('be.visible')
+      cy.get('[data-testid="delete-patient-dialog-confirm"]').click()
+      cy.wait('@deletePatient')
+      cy.get('[data-testid="patient-list-success"]').should('be.visible')
+      cy.get(`[data-testid="patient-table-row-${patientId}"]`).should('not.exist')
+
+      cy.visit('/users')
+      cy.get('[data-testid="user-list-table"]').should('be.visible')
+      cy.get(`[data-testid="user-table-row-${userId}"]`).should('not.exist')
+    })
+  })
+
   it('delete from details page navigates back to list', () => {
     cy.intercept('GET', `${Cypress.env('API_URL')}/patients/${MOCK_PATIENT_ID}`, {
       statusCode: 200,

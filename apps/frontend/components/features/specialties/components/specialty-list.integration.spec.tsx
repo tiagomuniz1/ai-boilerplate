@@ -68,6 +68,20 @@ describe('SpecialtyList (integration)', () => {
       expect(screen.getByTestId('specialty-description-uuid-1')).toHaveTextContent('Especialidade do coração')
     })
 
+    it('shows "—" when specialty description is null', async () => {
+      ;(specialtiesService.getAll as jest.Mock).mockResolvedValue(
+        makePaginatedResponse([makeDto({ description: null })]),
+      )
+
+      renderWithProviders(<SpecialtyList />)
+
+      await waitFor(() => {
+        expect(screen.getByTestId('specialty-list-table')).toBeInTheDocument()
+      })
+
+      expect(screen.getByTestId('specialty-description-uuid-1')).toHaveTextContent('—')
+    })
+
     it('renders empty state when no specialties', async () => {
       ;(specialtiesService.getAll as jest.Mock).mockResolvedValue(makePaginatedResponse([]))
 
@@ -160,6 +174,26 @@ describe('SpecialtyList (integration)', () => {
 
       await waitFor(() => {
         expect(screen.queryByTestId('delete-specialty-dialog-cancel')).not.toBeInTheDocument()
+      })
+    })
+
+    it('shows 409 conflict error message when specialty is linked to doctors', async () => {
+      ;(specialtiesService.getAll as jest.Mock).mockResolvedValue(makePaginatedResponse())
+      ;(deleteSpecialtyUseCase as jest.Mock).mockRejectedValue({ status: 409 })
+
+      renderWithProviders(<SpecialtyList />)
+
+      await waitFor(() => {
+        expect(screen.getByTestId('specialty-list-table')).toBeInTheDocument()
+      })
+
+      await userEvent.click(screen.getByTestId('specialty-delete-button-uuid-1'))
+      await userEvent.click(screen.getByTestId('delete-specialty-dialog-confirm'))
+
+      await waitFor(() => {
+        expect(screen.getByTestId('specialty-list-delete-error')).toHaveTextContent(
+          'Não é possível excluir "Cardiologia" pois ela está vinculada a médicos ativos.',
+        )
       })
     })
 

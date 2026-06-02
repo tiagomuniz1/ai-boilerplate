@@ -142,6 +142,29 @@ describe('Doctors Delete', () => {
     cy.get('[data-testid="doctor-list-empty"]').should('be.visible')
   })
 
+  it('deleting a doctor also removes the linked user from the users list (real API)', () => {
+    cy.fixture('users').then((fixture) => {
+      cy.login(fixture.admin.email, fixture.admin.password)
+    })
+
+    cy.seedDoctor().then(({ doctorId, userId, accessToken: adminToken }) => {
+      cy.intercept('DELETE', `${Cypress.env('API_URL')}/doctors/${doctorId}`).as('deleteDoctor')
+
+      cy.visit('/doctors')
+      cy.get(`[data-testid="doctor-table-row-${doctorId}"]`).should('exist')
+      cy.get(`[data-testid="doctor-delete-button-${doctorId}"]`).click()
+      cy.get('[data-testid="delete-doctor-dialog"]').should('be.visible')
+      cy.get('[data-testid="delete-doctor-dialog-confirm"]').click()
+      cy.wait('@deleteDoctor')
+      cy.get('[data-testid="doctor-list-success"]').should('be.visible')
+      cy.get(`[data-testid="doctor-table-row-${doctorId}"]`).should('not.exist')
+
+      cy.visit('/users')
+      cy.get('[data-testid="user-list-table"]').should('be.visible')
+      cy.get(`[data-testid="user-table-row-${userId}"]`).should('not.exist')
+    })
+  })
+
   it('delete from details page navigates back to list', () => {
     cy.intercept('GET', `${Cypress.env('API_URL')}/doctors/${MOCK_DOCTOR_ID}`, {
       statusCode: 200,

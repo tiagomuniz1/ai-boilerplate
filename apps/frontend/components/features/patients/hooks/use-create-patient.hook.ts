@@ -15,6 +15,7 @@ export function useCreatePatient() {
     mutationFn: createPatientUseCase,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['patients'] })
+      queryClient.invalidateQueries({ queryKey: ['users'] })
       router.push('/patients')
     },
   })

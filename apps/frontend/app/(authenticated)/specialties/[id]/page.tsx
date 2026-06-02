@@ -10,6 +10,7 @@ import { SpecialtyDetails } from '@/components/features/specialties/components/s
 import { SpecialtyDeleteDialog } from '@/components/features/specialties/components/specialty-delete-dialog'
 import { useSpecialty } from '@/components/features/specialties/hooks/use-specialty.hook'
 import { useDeleteSpecialty } from '@/components/features/specialties/hooks/use-delete-specialty.hook'
+import type { IApiError } from '@/types/api.types'
 
 export default function SpecialtyDetailsPage() {
   const { id } = useParams<{ id: string }>()
@@ -17,14 +18,20 @@ export default function SpecialtyDetailsPage() {
   const { data: specialty, isPending, isError } = useSpecialty(id)
   const { mutate: deleteSpecialty, isPending: isDeleting } = useDeleteSpecialty()
   const [showDeleteDialog, setShowDeleteDialog] = useState(false)
+  const [deleteError, setDeleteError] = useState<string | null>(null)
 
   function handleDeleteConfirm() {
     deleteSpecialty(id, {
       onSuccess: () => {
         router.push('/specialties')
       },
-      onError: () => {
+      onError: (error: IApiError) => {
         setShowDeleteDialog(false)
+        if (error.status === 409) {
+          setDeleteError(`Não é possível excluir "${specialty?.name}" pois ela está vinculada a médicos ativos.`)
+        } else {
+          setDeleteError('Não foi possível excluir a especialidade. Tente novamente.')
+        }
       },
     })
   }
@@ -53,6 +60,12 @@ export default function SpecialtyDetailsPage() {
       {isError && (
         <Alert variant="error" data-testid="specialty-details-error">
           Não foi possível carregar os dados da especialidade. Verifique o ID e tente novamente.
+        </Alert>
+      )}
+
+      {deleteError && (
+        <Alert variant="error" data-testid="specialty-details-delete-error">
+          {deleteError}
         </Alert>
       )}
 

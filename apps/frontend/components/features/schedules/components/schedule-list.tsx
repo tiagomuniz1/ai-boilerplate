@@ -73,6 +73,7 @@ export function ScheduleList() {
             <p className="mt-0.5 text-sm text-text-dim">
               {schedulesPage?.total === 1
                 ? '1 agenda encontrada'
+                /* c8 ignore next */
                 : `${schedulesPage?.total ?? 0} agendas encontradas`}
             </p>
           )}

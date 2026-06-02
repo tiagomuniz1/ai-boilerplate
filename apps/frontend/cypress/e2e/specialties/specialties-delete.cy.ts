@@ -208,6 +208,40 @@ describe('Specialties Delete', () => {
     })
   })
 
+  it('shows error when trying to delete a specialty linked to active doctors (real API)', () => {
+    let seededDoctorId: string
+    let seededSpecialtyId: string
+    let seededAdminToken: string
+
+    cy.fixture('users').then((fixture) => {
+      cy.login(fixture.admin.email, fixture.admin.password)
+    })
+
+    cy.seedDoctor().then(({ doctorId, specialtyId, accessToken: adminToken }) => {
+      seededDoctorId = doctorId
+      seededSpecialtyId = specialtyId
+      seededAdminToken = adminToken
+
+      cy.intercept('DELETE', `${Cypress.env('API_URL')}/specialties/${specialtyId}`).as('deleteSpecialty')
+
+      cy.visit('/specialties')
+      cy.get(`[data-testid="specialty-table-row-${specialtyId}"]`).should('exist')
+      cy.get(`[data-testid="specialty-delete-button-${specialtyId}"]`).click()
+      cy.get('[data-testid="delete-specialty-dialog"]').should('be.visible')
+      cy.get('[data-testid="delete-specialty-dialog-confirm"]').click()
+      cy.wait('@deleteSpecialty')
+
+      cy.get('[data-testid="specialty-list-delete-error"]').should('be.visible')
+      cy.get('[data-testid="specialty-list-delete-error"]').should('contain', 'vinculada a médicos')
+      cy.get(`[data-testid="specialty-table-row-${specialtyId}"]`).should('exist')
+    })
+
+    cy.then(() => {
+      if (seededDoctorId) cy.deleteDoctorViaApi(seededDoctorId, seededAdminToken)
+      if (seededSpecialtyId) cy.deleteSpecialtyViaApi(seededSpecialtyId, seededAdminToken)
+    })
+  })
+
   it('deletes specialty via real API and verifies removal', () => {
     let seededId: string
 

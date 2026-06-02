@@ -41,6 +41,8 @@ declare global {
       deleteSpecialtyViaApi(id: string, accessToken?: string): Chainable<void>
       createSpecialtyViaApi(input: CreateSpecialtyInput): Chainable<{ id: string; name: string }>
       seedSpecialty(): Chainable<{ id: string; name: string; description: string }>
+      seedPatient(): Chainable<{ patientId: string; userId: string; fullName: string }>
+      deletePatientViaApi(id: string): Chainable<void>
       seedDoctor(): Chainable<SeededDoctor>
     }
   }
@@ -135,6 +137,34 @@ Cypress.Commands.add('seedSpecialty', () => {
   const name = `Especialidade Teste ${ts}`
   const description = `Descrição de teste ${ts}`
   return cy.createSpecialtyViaApi({ name, description }).then(({ id }) => ({ id, name, description }))
+})
+
+Cypress.Commands.add('seedPatient', () => {
+  const ts = Date.now()
+  return cy.request({
+    method: 'POST',
+    url: `${Cypress.env('API_URL')}/patients`,
+    body: {
+      fullName: `Paciente Teste ${ts}`,
+      email: `patient.${ts}@e2e.test`,
+      phoneNumber: '(11) 99999-9999',
+      birthDate: '1990-05-15',
+      documentNumber: String(ts).slice(-11).padStart(11, '0'),
+      gender: 'male',
+    },
+  }).then((response) => ({
+    patientId: response.body.id as string,
+    userId: response.body.user.id as string,
+    fullName: response.body.user.fullName as string,
+  }))
+})
+
+Cypress.Commands.add('deletePatientViaApi', (id: string) => {
+  cy.request({
+    method: 'DELETE',
+    url: `${Cypress.env('API_URL')}/patients/${id}`,
+    failOnStatusCode: false,
+  })
 })
 
 Cypress.Commands.add('deleteSpecialtyViaApi', (id: string, accessToken?: string) => {

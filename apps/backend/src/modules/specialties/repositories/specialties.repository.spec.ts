@@ -1,5 +1,6 @@
 import { ILike, Repository } from 'typeorm'
 import { faker } from '@faker-js/faker'
+import { Doctor } from '../../doctors/entities/doctor.entity'
 import { Specialty } from '../entities/specialty.entity'
 import { SpecialtiesRepository } from './specialties.repository'
 
@@ -234,6 +235,37 @@ describe('SpecialtiesRepository', () => {
       const result = await repository.findByIds(['id-1', 'id-2'])
 
       expect(result).toHaveLength(2)
+    })
+  })
+
+  describe('countLinkedDoctors', () => {
+    it('returns the count of doctors linked to the specialty', async () => {
+      const mockQueryBuilder = {
+        innerJoin: jest.fn().mockReturnThis(),
+        where: jest.fn().mockReturnThis(),
+        getCount: jest.fn().mockResolvedValue(2),
+      }
+      ;(repo.manager as any).createQueryBuilder = jest.fn().mockReturnValue(mockQueryBuilder)
+
+      const result = await repository.countLinkedDoctors('uuid-1')
+
+      expect((repo.manager as any).createQueryBuilder).toHaveBeenCalledWith(Doctor, 'doctor')
+      expect(mockQueryBuilder.innerJoin).toHaveBeenCalledWith('doctor.specialties', 'specialty')
+      expect(mockQueryBuilder.where).toHaveBeenCalledWith('specialty.id = :id', { id: 'uuid-1' })
+      expect(result).toBe(2)
+    })
+
+    it('returns zero when no doctors are linked', async () => {
+      const mockQueryBuilder = {
+        innerJoin: jest.fn().mockReturnThis(),
+        where: jest.fn().mockReturnThis(),
+        getCount: jest.fn().mockResolvedValue(0),
+      }
+      ;(repo.manager as any).createQueryBuilder = jest.fn().mockReturnValue(mockQueryBuilder)
+
+      const result = await repository.countLinkedDoctors('uuid-unlinked')
+
+      expect(result).toBe(0)
     })
   })
 

@@ -46,13 +46,18 @@ describe('AuthController (integration)', () => {
     app.useGlobalPipes(
       new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true, transform: true }),
     )
-    await app.init()
+    await app.listen(0)
 
     userRepository = module.get(getRepositoryToken(User))
     refreshTokenRepository = module.get(getRepositoryToken(RefreshToken))
   })
 
   afterEach(async () => {
+    await refreshTokenRepository.query('DELETE FROM test.schedules')
+    await refreshTokenRepository.query('DELETE FROM test.doctor_specialties')
+    await refreshTokenRepository.query('DELETE FROM test.doctors')
+    await refreshTokenRepository.query('DELETE FROM test.patients')
+    await refreshTokenRepository.query('DELETE FROM test.specialties')
     await refreshTokenRepository.query('DELETE FROM test.refresh_tokens')
     await userRepository.query('DELETE FROM test.users')
   })

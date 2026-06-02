@@ -1,7 +1,9 @@
-import { Injectable, Logger, NotFoundException } from '@nestjs/common'
+import { ForbiddenException, Injectable, Logger, NotFoundException } from '@nestjs/common'
 import { DataSource, QueryRunner } from 'typeorm'
+import { UserRole } from '@app/shared'
 import { BaseUseCase } from '../../../common/base.use-case'
 import { CacheService } from '../../../cache/cache.service'
+import { IUsersRepository } from '../../users/repositories/users.repository.interface'
 import { DeleteScheduleUseCase } from '../../schedules/use-cases/delete-schedule.use-case'
 import { IDoctorsRepository } from '../repositories/doctors.repository.interface'
 
@@ -12,24 +14,39 @@ export class DeleteDoctorUseCase extends BaseUseCase {
   constructor(
     dataSource: DataSource,
     private readonly doctorsRepository: IDoctorsRepository,
+    private readonly usersRepository: IUsersRepository,
     private readonly cacheService: CacheService,
     private readonly deleteScheduleUseCase: DeleteScheduleUseCase,
   ) {
     super(dataSource)
   }
 
-  async execute(id: string): Promise<void> {
+  async execute(id: string, currentUserId: string): Promise<void> {
     const doctor = await this.doctorsRepository.findById(id)
     if (!doctor) throw new NotFoundException('Doctor not found')
+
+    if (doctor.userId === currentUserId) {
+      throw new ForbiddenException('Cannot delete your own doctor profile')
+    }
+
+    const userId = doctor.userId
+    const shouldDeleteUser = doctor.user.role === UserRole.DOCTOR
 
     await this.runInTransaction(async (queryRunner) => {
       await this.deleteScheduleUseCase.deleteByDoctorId(id, queryRunner)
       await this.doctorsRepository.delete(id, queryRunner)
+      if (shouldDeleteUser) {
+        await this.usersRepository.delete(userId, queryRunner)
+      }
     })
 
     try {
       await this.cacheService.del(`doctor:${id}`)
       await this.cacheService.delByPattern('doctors:list*')
+      if (shouldDeleteUser) {
+        await this.cacheService.del(`user:${userId}`)
+        await this.cacheService.delByPattern('users:list*')
+      }
     } catch {
       this.logger.warn('Cache invalidation failed', { context: DeleteDoctorUseCase.name })
     }

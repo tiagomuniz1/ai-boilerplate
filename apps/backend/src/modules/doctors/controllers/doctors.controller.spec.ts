@@ -16,7 +16,7 @@ const mockDelete = { execute: jest.fn() } as unknown as jest.Mocked<DeleteDoctor
 
 const makeResponse = (overrides = {}) => ({
   id: 'uuid-1',
-  user: { id: 'user-uuid-1', fullName: 'Dr. Alice', email: 'alice@clinic.com' },
+  user: { id: 'user-uuid-1', fullName: 'Dr. Alice', email: 'alice@clinic.com', isActive: true },
   crmNumber: '12345/SP',
   specialties: [{ id: 'spec-uuid-1', name: 'Cardiologia' }],
   bio: null,
@@ -101,11 +101,11 @@ describe('DoctorsController', () => {
     expect(result).toBe(response)
   })
 
-  it('delete delegates to DeleteDoctorUseCase', async () => {
+  it('delete delegates to DeleteDoctorUseCase with currentUser id', async () => {
     mockDelete.execute.mockResolvedValue(undefined)
 
-    await controller.delete('uuid-1')
+    await controller.delete('uuid-1', currentUser)
 
-    expect(mockDelete.execute).toHaveBeenCalledWith('uuid-1')
+    expect(mockDelete.execute).toHaveBeenCalledWith('uuid-1', currentUser.id)
   })
 })

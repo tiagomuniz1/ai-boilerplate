@@ -79,10 +79,8 @@ export class CreateScheduleUseCase extends BaseUseCase {
     const schedule = await this.schedulesRepository.create({ ...dto, doctorId })
 
     try {
-      await Promise.all([
-        this.cacheService.delByPrefix(`schedules:list:${doctorId}:`),
-        this.cacheService.delByPrefix('schedules:list:all:'),
-      ])
+      await this.cacheService.delByPrefix(`schedules:list:${doctorId}:`)
+      await this.cacheService.delByPrefix('schedules:list:all:')
     } catch {
       this.logger.warn('Cache invalidation failed', { context: CreateScheduleUseCase.name })
     }

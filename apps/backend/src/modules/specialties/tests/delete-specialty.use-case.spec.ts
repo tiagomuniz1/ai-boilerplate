@@ -1,4 +1,4 @@
-import { NotFoundException } from '@nestjs/common'
+import { ConflictException, NotFoundException } from '@nestjs/common'
 import { DataSource } from 'typeorm'
 import { faker } from '@faker-js/faker'
 import { CacheService } from '../../../cache/cache.service'
@@ -10,6 +10,7 @@ const mockSpecialtiesRepository: jest.Mocked<ISpecialtiesRepository> = {
   findById: jest.fn(),
   findByIds: jest.fn(),
   findByName: jest.fn(),
+  countLinkedDoctors: jest.fn(),
   create: jest.fn(),
   update: jest.fn(),
   delete: jest.fn(),
@@ -46,9 +47,10 @@ describe('DeleteSpecialtyUseCase', () => {
     )
     mockCacheService.del.mockResolvedValue(undefined)
     mockCacheService.delByPattern.mockResolvedValue(undefined)
+    mockSpecialtiesRepository.countLinkedDoctors.mockResolvedValue(0)
   })
 
-  it('deletes specialty successfully', async () => {
+  it('deletes specialty when no doctors are linked', async () => {
     const specialty = makeSpecialty()
     mockSpecialtiesRepository.findById.mockResolvedValue(specialty as any)
     mockSpecialtiesRepository.delete.mockResolvedValue(undefined)
@@ -56,6 +58,24 @@ describe('DeleteSpecialtyUseCase', () => {
     await expect(useCase.execute(specialty.id)).resolves.toBeUndefined()
 
     expect(mockSpecialtiesRepository.delete).toHaveBeenCalledWith(specialty.id)
+  })
+
+  it('throws ConflictException when specialty is linked to one doctor', async () => {
+    const specialty = makeSpecialty()
+    mockSpecialtiesRepository.findById.mockResolvedValue(specialty as any)
+    mockSpecialtiesRepository.countLinkedDoctors.mockResolvedValue(1)
+
+    await expect(useCase.execute(specialty.id)).rejects.toThrow(ConflictException)
+    expect(mockSpecialtiesRepository.delete).not.toHaveBeenCalled()
+  })
+
+  it('throws ConflictException when specialty is linked to multiple doctors', async () => {
+    const specialty = makeSpecialty()
+    mockSpecialtiesRepository.findById.mockResolvedValue(specialty as any)
+    mockSpecialtiesRepository.countLinkedDoctors.mockResolvedValue(3)
+
+    await expect(useCase.execute(specialty.id)).rejects.toThrow(ConflictException)
+    expect(mockSpecialtiesRepository.delete).not.toHaveBeenCalled()
   })
 
   it('throws NotFoundException when specialty does not exist', async () => {

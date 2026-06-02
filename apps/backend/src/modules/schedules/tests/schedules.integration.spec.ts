@@ -45,7 +45,7 @@ describe('SchedulesController (integration)', () => {
     app.useGlobalPipes(
       new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true, transform: true }),
     )
-    await app.init()
+    await app.listen(0)
 
     userRepository = module.get(getRepositoryToken(User))
     doctorRepository = module.get(getRepositoryToken(Doctor))
@@ -57,6 +57,7 @@ describe('SchedulesController (integration)', () => {
     await scheduleRepository.query('DELETE FROM test.schedules')
     await doctorRepository.query('DELETE FROM test.doctor_specialties')
     await doctorRepository.query('DELETE FROM test.doctors')
+    await doctorRepository.query('DELETE FROM test.patients')
     await specialtyRepository.query('DELETE FROM test.specialties')
     await userRepository.query('DELETE FROM test.users')
 
@@ -134,10 +135,10 @@ describe('SchedulesController (integration)', () => {
       const res = await request(app.getHttpServer())
         .post('/auth/login')
         .send({ email, password })
-      const cookies = Array.isArray(res.headers['set-cookie'])
-        ? res.headers['set-cookie']
-        : [res.headers['set-cookie'] as string]
-      const match = cookies.find((c: string) => c.startsWith('access_token='))
+      const rawCookies = res.headers['set-cookie']
+      if (!rawCookies) throw new Error(`Login failed for ${email}: status ${res.status}`)
+      const cookies = Array.isArray(rawCookies) ? rawCookies : [rawCookies as string]
+      const match = cookies.find((c: string) => c?.startsWith('access_token='))
       return match ? match.slice('access_token='.length).split(';')[0] : ''
     }
 
@@ -152,6 +153,7 @@ describe('SchedulesController (integration)', () => {
     await scheduleRepository.query('DELETE FROM test.schedules')
     await doctorRepository.query('DELETE FROM test.doctor_specialties')
     await doctorRepository.query('DELETE FROM test.doctors')
+    await doctorRepository.query('DELETE FROM test.patients')
     await specialtyRepository.query('DELETE FROM test.specialties')
     await userRepository.query('DELETE FROM test.users')
     await app.close()

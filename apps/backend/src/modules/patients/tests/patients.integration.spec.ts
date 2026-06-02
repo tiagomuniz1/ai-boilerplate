@@ -55,7 +55,7 @@ describe('PatientsController (integration)', () => {
     app.useGlobalPipes(
       new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true, transform: true }),
     )
-    await app.init()
+    await app.listen(0)
 
     userRepository = module.get(getRepositoryToken(User))
     patientRepository = module.get(getRepositoryToken(Patient))
@@ -68,7 +68,11 @@ describe('PatientsController (integration)', () => {
   })
 
   afterEach(async () => {
+    await patientRepository.query('DELETE FROM test.schedules')
+    await patientRepository.query('DELETE FROM test.doctor_specialties')
+    await patientRepository.query('DELETE FROM test.doctors')
     await patientRepository.query('DELETE FROM test.patients')
+    await patientRepository.query('DELETE FROM test.specialties')
     await userRepository.query('DELETE FROM test.users')
   })
 
@@ -532,6 +536,37 @@ describe('PatientsController (integration)', () => {
         .delete(`/patients/${created.id}`)
         .set('Authorization', `Bearer ${userToken}`)
         .expect(403)
+    })
+
+    it('soft-deletes the linked user when patient is deleted', async () => {
+      const { body: created } = await createPatient().expect(201)
+      const userId = created.user.id
+
+      await request(app.getHttpServer())
+        .delete(`/patients/${created.id}`)
+        .set('Authorization', `Bearer ${accessToken}`)
+        .expect(204)
+
+      const user = await userRepository.findOne({ where: { id: userId }, withDeleted: true })
+      expect(user?.deletedAt).not.toBeNull()
+    })
+
+    it('linked user no longer appears in users list after patient deletion', async () => {
+      const { body: created } = await createPatient().expect(201)
+      const userId = created.user.id
+
+      await request(app.getHttpServer())
+        .delete(`/patients/${created.id}`)
+        .set('Authorization', `Bearer ${accessToken}`)
+        .expect(204)
+
+      const { body: usersPage } = await request(app.getHttpServer())
+        .get('/users')
+        .set('Authorization', `Bearer ${accessToken}`)
+        .expect(200)
+
+      const ids = usersPage.data.map((u: { id: string }) => u.id)
+      expect(ids).not.toContain(userId)
     })
   })
 })

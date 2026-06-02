@@ -79,11 +79,11 @@ describe('UsersController', () => {
     expect(result).toBe(response)
   })
 
-  it('delete delegates to DeleteUserUseCase', async () => {
+  it('delete delegates to DeleteUserUseCase with currentUser id', async () => {
     mockDelete.execute.mockResolvedValue(undefined)
 
-    await controller.delete('u1')
+    await controller.delete('u1', currentUser)
 
-    expect(mockDelete.execute).toHaveBeenCalledWith('u1')
+    expect(mockDelete.execute).toHaveBeenCalledWith('u1', currentUser.id)
   })
 })

@@ -1,4 +1,4 @@
-import { Injectable, Logger, NotFoundException } from '@nestjs/common'
+import { ForbiddenException, Injectable, Logger, NotFoundException } from '@nestjs/common'
 import { DataSource } from 'typeorm'
 import { BaseUseCase } from '../../../common/base.use-case'
 import { CacheService } from '../../../cache/cache.service'
@@ -20,7 +20,9 @@ export class DeleteUserUseCase extends BaseUseCase {
     super(dataSource)
   }
 
-  async execute(id: string): Promise<void> {
+  async execute(id: string, currentUserId: string): Promise<void> {
+    if (id === currentUserId) throw new ForbiddenException('Cannot delete your own account')
+
     const user = await this.usersRepository.findById(id)
     if (!user) throw new NotFoundException('User not found')
 

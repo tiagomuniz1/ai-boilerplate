@@ -1,8 +1,9 @@
-import { NotFoundException } from '@nestjs/common'
+import { ForbiddenException, NotFoundException } from '@nestjs/common'
 import { DataSource } from 'typeorm'
 import { faker } from '@faker-js/faker'
 import { PatientGender } from '@app/shared'
 import { CacheService } from '../../../cache/cache.service'
+import { IUsersRepository } from '../../users/repositories/users.repository.interface'
 import { IPatientsRepository } from '../repositories/patients.repository.interface'
 import { DeletePatientUseCase } from '../use-cases/delete-patient.use-case'
 
@@ -16,6 +17,15 @@ const mockPatientsRepository: jest.Mocked<IPatientsRepository> = {
   delete: jest.fn(),
 }
 
+const mockUsersRepository: jest.Mocked<IUsersRepository> = {
+  findAll: jest.fn(),
+  findById: jest.fn(),
+  findByEmail: jest.fn(),
+  create: jest.fn(),
+  update: jest.fn(),
+  delete: jest.fn(),
+}
+
 const mockCacheService = {
   get: jest.fn(),
   set: jest.fn(),
@@ -24,11 +34,23 @@ const mockCacheService = {
   delByPattern: jest.fn(),
 } as unknown as jest.Mocked<CacheService>
 
+const mockQueryRunner = {
+  connect: jest.fn().mockResolvedValue(undefined),
+  startTransaction: jest.fn().mockResolvedValue(undefined),
+  commitTransaction: jest.fn().mockResolvedValue(undefined),
+  rollbackTransaction: jest.fn().mockResolvedValue(undefined),
+  release: jest.fn().mockResolvedValue(undefined),
+}
+
+const mockDataSource = {
+  createQueryRunner: jest.fn().mockReturnValue(mockQueryRunner),
+} as unknown as DataSource
+
 const makePatient = () => ({
   id: faker.string.uuid(),
-  fullName: faker.person.fullName(),
+  userId: faker.string.uuid(),
+  user: { id: faker.string.uuid(), fullName: faker.person.fullName(), email: faker.internet.email() } as any,
   documentNumber: '12345678901',
-  email: faker.internet.email(),
   phoneNumber: '(11) 99999-9999',
   birthDate: '1990-05-15',
   gender: PatientGender.MALE,
@@ -38,57 +60,88 @@ const makePatient = () => ({
   deletedAt: null,
 })
 
+const OTHER_USER_ID = faker.string.uuid()
+
 describe('DeletePatientUseCase', () => {
   let useCase: DeletePatientUseCase
 
   beforeEach(() => {
     jest.clearAllMocks()
     useCase = new DeletePatientUseCase(
-      {} as DataSource,
+      mockDataSource,
       mockPatientsRepository,
+      mockUsersRepository,
       mockCacheService,
     )
   })
 
-  it('deletes patient and invalidates cache', async () => {
+  it('throws ForbiddenException when trying to delete own patient record', async () => {
+    const patient = makePatient()
+    mockPatientsRepository.findById.mockResolvedValue(patient as any)
+
+    await expect(useCase.execute(patient.id, patient.userId)).rejects.toThrow(ForbiddenException)
+    expect(mockPatientsRepository.delete).not.toHaveBeenCalled()
+    expect(mockUsersRepository.delete).not.toHaveBeenCalled()
+  })
+
+  it('deletes patient and linked user in transaction', async () => {
     const patient = makePatient()
     mockPatientsRepository.findById.mockResolvedValue(patient as any)
     mockPatientsRepository.delete.mockResolvedValue(undefined)
+    mockUsersRepository.delete.mockResolvedValue(undefined)
     mockCacheService.del.mockResolvedValue(undefined)
     mockCacheService.delByPattern.mockResolvedValue(undefined)
 
-    await useCase.execute(patient.id)
+    await useCase.execute(patient.id, OTHER_USER_ID)
 
     expect(mockPatientsRepository.findById).toHaveBeenCalledWith(patient.id)
-    expect(mockPatientsRepository.delete).toHaveBeenCalledWith(patient.id)
+    expect(mockPatientsRepository.delete).toHaveBeenCalledWith(patient.id, expect.anything())
+    expect(mockUsersRepository.delete).toHaveBeenCalledWith(patient.userId, expect.anything())
+  })
+
+  it('invalidates patient and user caches after deletion', async () => {
+    const patient = makePatient()
+    mockPatientsRepository.findById.mockResolvedValue(patient as any)
+    mockPatientsRepository.delete.mockResolvedValue(undefined)
+    mockUsersRepository.delete.mockResolvedValue(undefined)
+    mockCacheService.del.mockResolvedValue(undefined)
+    mockCacheService.delByPattern.mockResolvedValue(undefined)
+
+    await useCase.execute(patient.id, OTHER_USER_ID)
+
     expect(mockCacheService.del).toHaveBeenCalledWith(`patient:${patient.id}`)
     expect(mockCacheService.delByPattern).toHaveBeenCalledWith('patients:list*')
+    expect(mockCacheService.del).toHaveBeenCalledWith(`user:${patient.userId}`)
+    expect(mockCacheService.delByPattern).toHaveBeenCalledWith('users:list*')
   })
 
   it('throws NotFoundException when patient does not exist', async () => {
     mockPatientsRepository.findById.mockResolvedValue(null)
 
-    await expect(useCase.execute(faker.string.uuid())).rejects.toThrow(NotFoundException)
+    await expect(useCase.execute(faker.string.uuid(), OTHER_USER_ID)).rejects.toThrow(NotFoundException)
     expect(mockPatientsRepository.delete).not.toHaveBeenCalled()
+    expect(mockUsersRepository.delete).not.toHaveBeenCalled()
   })
 
   it('continues without throwing when cache invalidation fails', async () => {
     const patient = makePatient()
     mockPatientsRepository.findById.mockResolvedValue(patient as any)
     mockPatientsRepository.delete.mockResolvedValue(undefined)
+    mockUsersRepository.delete.mockResolvedValue(undefined)
     mockCacheService.del.mockRejectedValue(new Error('Redis error'))
 
-    await expect(useCase.execute(patient.id)).resolves.toBeUndefined()
+    await expect(useCase.execute(patient.id, OTHER_USER_ID)).resolves.toBeUndefined()
   })
 
   it('returns void on success', async () => {
     const patient = makePatient()
     mockPatientsRepository.findById.mockResolvedValue(patient as any)
     mockPatientsRepository.delete.mockResolvedValue(undefined)
+    mockUsersRepository.delete.mockResolvedValue(undefined)
     mockCacheService.del.mockResolvedValue(undefined)
     mockCacheService.delByPattern.mockResolvedValue(undefined)
 
-    const result = await useCase.execute(patient.id)
+    const result = await useCase.execute(patient.id, OTHER_USER_ID)
 
     expect(result).toBeUndefined()
   })

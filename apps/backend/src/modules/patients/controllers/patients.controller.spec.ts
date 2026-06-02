@@ -1,5 +1,6 @@
-import { PatientGender } from '@app/shared'
+import { PatientGender, UserRole } from '@app/shared'
 import { PatientsController } from './patients.controller'
+import { AuthenticatedUser } from '../../auth/strategies/jwt.strategy'
 import { CreatePatientUseCase } from '../use-cases/create-patient.use-case'
 import { ListPatientsUseCase } from '../use-cases/list-patients.use-case'
 import { FindPatientByIdUseCase } from '../use-cases/find-patient-by-id.use-case'
@@ -12,6 +13,8 @@ const mockList = { execute: jest.fn() } as unknown as jest.Mocked<ListPatientsUs
 const mockFindById = { execute: jest.fn() } as unknown as jest.Mocked<FindPatientByIdUseCase>
 const mockUpdate = { execute: jest.fn() } as unknown as jest.Mocked<UpdatePatientUseCase>
 const mockDelete = { execute: jest.fn() } as unknown as jest.Mocked<DeletePatientUseCase>
+
+const currentUser: AuthenticatedUser = { id: 'user-uuid-admin', role: UserRole.ADMIN, email: 'admin@example.com' }
 
 const makeResponse = (overrides = {}) => ({
   id: 'uuid-1',
@@ -98,11 +101,11 @@ describe('PatientsController', () => {
     expect(result).toBe(response)
   })
 
-  it('delete delegates to DeletePatientUseCase', async () => {
+  it('delete delegates to DeletePatientUseCase with currentUser id', async () => {
     mockDelete.execute.mockResolvedValue(undefined)
 
-    await controller.delete('uuid-1')
+    await controller.delete('uuid-1', currentUser)
 
-    expect(mockDelete.execute).toHaveBeenCalledWith('uuid-1')
+    expect(mockDelete.execute).toHaveBeenCalledWith('uuid-1', currentUser.id)
   })
 })

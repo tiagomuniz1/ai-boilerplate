@@ -3,7 +3,7 @@ jest.mock('next/navigation', () => ({ useRouter: jest.fn() }))
 
 import React from 'react'
 import { renderHook, act, waitFor } from '@testing-library/react'
-import { QueryClientProvider } from '@tanstack/react-query'
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { useRouter } from 'next/navigation'
 import { PatientGender } from '@app/shared'
 import { createQueryClient } from '@/lib/react-query.config'
@@ -12,8 +12,10 @@ import { useCreatePatient } from './use-create-patient.hook'
 
 const mockPush = jest.fn()
 
-function wrapper({ children }: { children: React.ReactNode }) {
-  return React.createElement(QueryClientProvider, { client: createQueryClient() }, children)
+function makeWrapper(client: QueryClient) {
+  return function wrapper({ children }: { children: React.ReactNode }) {
+    return React.createElement(QueryClientProvider, { client }, children)
+  }
 }
 
 describe('useCreatePatient', () => {
@@ -35,7 +37,7 @@ describe('useCreatePatient', () => {
   it('calls createPatientUseCase with input', async () => {
     ;(createPatientUseCase as jest.Mock).mockResolvedValue(model)
 
-    const { result } = renderHook(() => useCreatePatient(), { wrapper })
+    const { result } = renderHook(() => useCreatePatient(), { wrapper: makeWrapper(createQueryClient()) })
 
     act(() => result.current.mutate(input))
 
@@ -46,23 +48,27 @@ describe('useCreatePatient', () => {
     })
   })
 
-  it('invalidates patients cache and navigates to /patients on success', async () => {
+  it('invalidates patients and users queries and navigates to /patients on success', async () => {
     ;(createPatientUseCase as jest.Mock).mockResolvedValue(model)
 
-    const { result } = renderHook(() => useCreatePatient(), { wrapper })
+    const client = createQueryClient()
+    const invalidate = jest.spyOn(client, 'invalidateQueries')
+
+    const { result } = renderHook(() => useCreatePatient(), { wrapper: makeWrapper(client) })
 
     act(() => result.current.mutate(input))
 
-    await waitFor(() => {
-      expect(mockPush).toHaveBeenCalledWith('/patients')
-    })
+    await waitFor(() => expect(mockPush).toHaveBeenCalledWith('/patients'))
+
+    expect(invalidate).toHaveBeenCalledWith({ queryKey: ['patients'] })
+    expect(invalidate).toHaveBeenCalledWith({ queryKey: ['users'] })
   })
 
   it('does not navigate on error', async () => {
     const error = { status: 422, title: 'Unprocessable Entity', detail: 'Validation failed' }
     ;(createPatientUseCase as jest.Mock).mockRejectedValue(error)
 
-    const { result } = renderHook(() => useCreatePatient(), { wrapper })
+    const { result } = renderHook(() => useCreatePatient(), { wrapper: makeWrapper(createQueryClient()) })
 
     act(() => result.current.mutate(input))
 

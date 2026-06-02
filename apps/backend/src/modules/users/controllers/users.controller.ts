@@ -63,7 +63,10 @@ export class UsersController {
   @Delete(':id')
   @Roles(UserRole.ADMIN)
   @HttpCode(204)
-  delete(@Param('id') id: string): Promise<void> {
-    return this.deleteUserUseCase.execute(id)
+  delete(
+    @Param('id') id: string,
+    @CurrentUser() currentUser: AuthenticatedUser,
+  ): Promise<void> {
+    return this.deleteUserUseCase.execute(id, currentUser.id)
   }
 }

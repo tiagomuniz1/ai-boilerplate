@@ -1,6 +1,6 @@
 jest.mock('next/navigation', () => ({ useRouter: jest.fn() }))
 
-import { screen, waitFor } from '@testing-library/react'
+import { screen, waitFor, fireEvent } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { useRouter } from 'next/navigation'
 import { UserRole, DayOfWeek } from '@app/shared'
@@ -13,9 +13,12 @@ beforeEach(() => {
   ;(useRouter as jest.Mock).mockReturnValue({ push: jest.fn() })
 })
 
+const DOC_UUID_1 = '00000000-0000-4000-a000-000000000001'
+const DOC_UUID_2 = '00000000-0000-4000-a000-000000000002'
+
 const mockDoctors = [
-  { id: 'doc-uuid-1', user: { fullName: 'Dr. João Silva' } },
-  { id: 'doc-uuid-2', user: { fullName: 'Dra. Ana Costa' } },
+  { id: DOC_UUID_1, user: { fullName: 'Dr. João Silva' } },
+  { id: DOC_UUID_2, user: { fullName: 'Dra. Ana Costa' } },
 ]
 
 const mockDefaultValues: IScheduleModel = {
@@ -121,6 +124,174 @@ describe('ScheduleForm — create mode', () => {
     expect(onSubmit).not.toHaveBeenCalled()
   })
 
+  it('shows validation errors for empty required fields in DOCTOR mode', async () => {
+    renderWithProviders(
+      <ScheduleForm mode="create" role={UserRole.DOCTOR} isPending={false} onSubmit={jest.fn()} />,
+    )
+
+    await userEvent.click(screen.getByTestId('schedule-form-submit'))
+
+    await waitFor(() => {
+      expect(screen.getByTestId('schedule-form-day')).toHaveAttribute('aria-invalid', 'true')
+    })
+
+    expect(screen.getByTestId('schedule-form-start-time')).toHaveAttribute('aria-invalid', 'true')
+    expect(screen.getByTestId('schedule-form-end-time')).toHaveAttribute('aria-invalid', 'true')
+  })
+
+  it('shows validation error when no doctor is selected in ADMIN mode', async () => {
+    renderWithProviders(
+      <ScheduleForm
+        mode="create"
+        role={UserRole.ADMIN}
+        doctors={mockDoctors}
+        isPending={false}
+        onSubmit={jest.fn()}
+      />,
+    )
+
+    await userEvent.click(screen.getByTestId('schedule-form-submit'))
+
+    await waitFor(() => {
+      expect(screen.getByText('Selecione um médico')).toBeInTheDocument()
+    })
+  })
+
+  it('calls onSubmit for DOCTOR without doctorId on valid submit', async () => {
+    const onSubmit = jest.fn()
+    renderWithProviders(
+      <ScheduleForm mode="create" role={UserRole.DOCTOR} isPending={false} onSubmit={onSubmit} />,
+    )
+
+    await userEvent.selectOptions(screen.getByTestId('schedule-form-day'), 'MONDAY')
+    await userEvent.clear(screen.getByTestId('schedule-form-start-time'))
+    await userEvent.type(screen.getByTestId('schedule-form-start-time'), '08:00')
+    await userEvent.clear(screen.getByTestId('schedule-form-end-time'))
+    await userEvent.type(screen.getByTestId('schedule-form-end-time'), '12:00')
+
+    await userEvent.click(screen.getByTestId('schedule-form-submit'))
+
+    await waitFor(() => {
+      expect(onSubmit).toHaveBeenCalledWith(
+        expect.objectContaining({
+          dayOfWeek: 'MONDAY',
+          startTime: '08:00',
+          endTime: '12:00',
+          slotDurationInMinutes: 30,
+        }),
+        expect.any(Function),
+      )
+    })
+
+    expect(onSubmit.mock.calls[0][0]).not.toHaveProperty('doctorId')
+  })
+
+  it('shows error when slot duration does not evenly divide the time interval', async () => {
+    renderWithProviders(
+      <ScheduleForm mode="create" role={UserRole.DOCTOR} isPending={false} onSubmit={jest.fn()} />,
+    )
+
+    await userEvent.selectOptions(screen.getByTestId('schedule-form-day'), 'MONDAY')
+    await userEvent.clear(screen.getByTestId('schedule-form-start-time'))
+    await userEvent.type(screen.getByTestId('schedule-form-start-time'), '08:00')
+    await userEvent.clear(screen.getByTestId('schedule-form-end-time'))
+    await userEvent.type(screen.getByTestId('schedule-form-end-time'), '12:00')
+
+    await userEvent.clear(screen.getByTestId('schedule-form-slot'))
+    await userEvent.type(screen.getByTestId('schedule-form-slot'), '17')
+
+    await userEvent.click(screen.getByTestId('schedule-form-submit'))
+
+    await waitFor(() => {
+      expect(
+        screen.getByText('O intervalo de tempo deve ser divisível pela duração do slot'),
+      ).toBeInTheDocument()
+    })
+  })
+
+  it('calls onSubmit for ADMIN with doctorId on valid submit', async () => {
+    const onSubmit = jest.fn()
+    renderWithProviders(
+      <ScheduleForm
+        mode="create"
+        role={UserRole.ADMIN}
+        doctors={mockDoctors}
+        isPending={false}
+        onSubmit={onSubmit}
+      />,
+    )
+
+    await userEvent.selectOptions(screen.getByTestId('schedule-form-doctor'), DOC_UUID_1)
+    await userEvent.selectOptions(screen.getByTestId('schedule-form-day'), 'MONDAY')
+    await userEvent.clear(screen.getByTestId('schedule-form-start-time'))
+    await userEvent.type(screen.getByTestId('schedule-form-start-time'), '08:00')
+    await userEvent.clear(screen.getByTestId('schedule-form-end-time'))
+    await userEvent.type(screen.getByTestId('schedule-form-end-time'), '12:00')
+    await userEvent.clear(screen.getByTestId('schedule-form-slot'))
+    await userEvent.type(screen.getByTestId('schedule-form-slot'), '30')
+
+    await userEvent.click(screen.getByTestId('schedule-form-submit'))
+
+    await waitFor(() => {
+      expect(onSubmit).toHaveBeenCalledWith(
+        expect.objectContaining({
+          doctorId: DOC_UUID_1,
+          dayOfWeek: 'MONDAY',
+          startTime: '08:00',
+          endTime: '12:00',
+          slotDurationInMinutes: 30,
+        }),
+        expect.any(Function),
+      )
+    })
+  })
+
+  it('includes validFrom and validUntil in submit payload when set', async () => {
+    const onSubmit = jest.fn()
+    renderWithProviders(
+      <ScheduleForm mode="create" role={UserRole.DOCTOR} isPending={false} onSubmit={onSubmit} />,
+    )
+
+    await userEvent.selectOptions(screen.getByTestId('schedule-form-day'), 'TUESDAY')
+    await userEvent.clear(screen.getByTestId('schedule-form-start-time'))
+    await userEvent.type(screen.getByTestId('schedule-form-start-time'), '09:00')
+    await userEvent.clear(screen.getByTestId('schedule-form-end-time'))
+    await userEvent.type(screen.getByTestId('schedule-form-end-time'), '12:00')
+    fireEvent.change(screen.getByTestId('schedule-form-valid-from'), { target: { value: '2025-01-01' } })
+    fireEvent.change(screen.getByTestId('schedule-form-valid-until'), { target: { value: '2025-12-31' } })
+
+    await userEvent.click(screen.getByTestId('schedule-form-submit'))
+
+    await waitFor(() => {
+      expect(onSubmit).toHaveBeenCalledWith(
+        expect.objectContaining({ validFrom: '2025-01-01', validUntil: '2025-12-31' }),
+        expect.any(Function),
+      )
+    })
+  })
+
+  it('shows error when validUntil is before validFrom', async () => {
+    renderWithProviders(
+      <ScheduleForm mode="create" role={UserRole.DOCTOR} isPending={false} onSubmit={jest.fn()} />,
+    )
+
+    await userEvent.selectOptions(screen.getByTestId('schedule-form-day'), 'MONDAY')
+    await userEvent.clear(screen.getByTestId('schedule-form-start-time'))
+    await userEvent.type(screen.getByTestId('schedule-form-start-time'), '08:00')
+    await userEvent.clear(screen.getByTestId('schedule-form-end-time'))
+    await userEvent.type(screen.getByTestId('schedule-form-end-time'), '12:00')
+
+    fireEvent.change(screen.getByTestId('schedule-form-valid-from'), { target: { value: '2025-12-01' } })
+    fireEvent.change(screen.getByTestId('schedule-form-valid-until'), { target: { value: '2025-11-01' } })
+
+    await userEvent.click(screen.getByTestId('schedule-form-submit'))
+
+    await waitFor(() => {
+      expect(screen.getByText('Data final deve ser após a data inicial')).toBeInTheDocument()
+    })
+  })
+
+
   it('disables submit button while pending', () => {
     const onSubmit = jest.fn()
     renderWithProviders(
@@ -170,6 +341,152 @@ describe('ScheduleForm — edit mode', () => {
     expect(screen.getByTestId('schedule-form-error')).toHaveTextContent(
       'Esta agenda conflita com outra já existente',
     )
+  })
+
+  it('shows validation error when endTime is cleared in edit mode', async () => {
+    renderWithProviders(
+      <ScheduleForm mode="edit" defaultValues={mockDefaultValues} isPending={false} onSubmit={jest.fn()} />,
+    )
+
+    await waitFor(() => {
+      expect((screen.getByTestId('schedule-form-end-time') as HTMLInputElement).value).toBe('12:00')
+    })
+
+    await userEvent.clear(screen.getByTestId('schedule-form-end-time'))
+    await userEvent.click(screen.getByTestId('schedule-form-submit'))
+
+    await waitFor(() => {
+      expect(screen.getByTestId('schedule-form-end-time')).toHaveAttribute('aria-invalid', 'true')
+    })
+  })
+
+  it('shows validation error when slot duration is too small in edit mode', async () => {
+    renderWithProviders(
+      <ScheduleForm mode="edit" defaultValues={mockDefaultValues} isPending={false} onSubmit={jest.fn()} />,
+    )
+
+    await waitFor(() => {
+      expect((screen.getByTestId('schedule-form-day') as HTMLSelectElement).value).toBe('MONDAY')
+    })
+
+    await userEvent.clear(screen.getByTestId('schedule-form-slot'))
+    await userEvent.type(screen.getByTestId('schedule-form-slot'), '5')
+    await userEvent.click(screen.getByTestId('schedule-form-submit'))
+
+    await waitFor(() => {
+      expect(screen.getByText('Mínimo 15 minutos')).toBeInTheDocument()
+    })
+  })
+
+  it('shows error when validUntil is before validFrom in edit mode', async () => {
+    renderWithProviders(
+      <ScheduleForm mode="edit" defaultValues={mockDefaultValues} isPending={false} onSubmit={jest.fn()} />,
+    )
+
+    await waitFor(() => {
+      expect((screen.getByTestId('schedule-form-day') as HTMLSelectElement).value).toBe('MONDAY')
+    })
+
+    fireEvent.change(screen.getByTestId('schedule-form-valid-from'), { target: { value: '2025-12-01' } })
+    fireEvent.change(screen.getByTestId('schedule-form-valid-until'), { target: { value: '2025-11-01' } })
+
+    await userEvent.click(screen.getByTestId('schedule-form-submit'))
+
+    await waitFor(() => {
+      expect(screen.getByText('Data final deve ser após a data inicial')).toBeInTheDocument()
+    })
+  })
+
+  it('shows validation error when startTime is cleared in edit mode', async () => {
+    renderWithProviders(
+      <ScheduleForm mode="edit" defaultValues={mockDefaultValues} isPending={false} onSubmit={jest.fn()} />,
+    )
+
+    await waitFor(() => {
+      expect((screen.getByTestId('schedule-form-start-time') as HTMLInputElement).value).toBe('08:00')
+    })
+
+    await userEvent.clear(screen.getByTestId('schedule-form-start-time'))
+    await userEvent.click(screen.getByTestId('schedule-form-submit'))
+
+    await waitFor(() => {
+      expect(screen.getByText('Horário inválido. Use HH:MM')).toBeInTheDocument()
+    })
+  })
+
+  it('shows validation error when day is changed to empty in edit mode', async () => {
+    renderWithProviders(
+      <ScheduleForm mode="edit" defaultValues={mockDefaultValues} isPending={false} onSubmit={jest.fn()} />,
+    )
+
+    await waitFor(() => {
+      expect((screen.getByTestId('schedule-form-day') as HTMLSelectElement).value).toBe('MONDAY')
+    })
+
+    await userEvent.selectOptions(screen.getByTestId('schedule-form-day'), '')
+    await userEvent.click(screen.getByTestId('schedule-form-submit'))
+
+    await waitFor(() => {
+      expect(screen.getByTestId('schedule-form-day')).toHaveAttribute('aria-invalid', 'true')
+    })
+  })
+
+  it('calls onSubmit with defaultValues on submit', async () => {
+    const onSubmit = jest.fn()
+    renderWithProviders(
+      <ScheduleForm mode="edit" defaultValues={mockDefaultValues} isPending={false} onSubmit={onSubmit} />,
+    )
+
+    await waitFor(() => {
+      expect((screen.getByTestId('schedule-form-day') as HTMLSelectElement).value).toBe('MONDAY')
+    })
+
+    await userEvent.click(screen.getByTestId('schedule-form-submit'))
+
+    await waitFor(() => {
+      expect(onSubmit).toHaveBeenCalledWith(
+        expect.objectContaining({
+          dayOfWeek: 'MONDAY',
+          startTime: '08:00',
+          endTime: '12:00',
+          slotDurationInMinutes: 30,
+          validFrom: null,
+          validUntil: null,
+        }),
+        expect.any(Function),
+      )
+    })
+  })
+
+  it('calls onSubmit when time fields are typed directly in edit mode', async () => {
+    const onSubmit = jest.fn()
+    renderWithProviders(
+      <ScheduleForm mode="edit" defaultValues={mockDefaultValues} isPending={false} onSubmit={onSubmit} />,
+    )
+
+    await waitFor(() => {
+      expect((screen.getByTestId('schedule-form-day') as HTMLSelectElement).value).toBe('MONDAY')
+    })
+
+    await userEvent.clear(screen.getByTestId('schedule-form-start-time'))
+    await userEvent.type(screen.getByTestId('schedule-form-start-time'), '09:00')
+    await userEvent.clear(screen.getByTestId('schedule-form-end-time'))
+    await userEvent.type(screen.getByTestId('schedule-form-end-time'), '12:00')
+    await userEvent.clear(screen.getByTestId('schedule-form-slot'))
+    await userEvent.type(screen.getByTestId('schedule-form-slot'), '30')
+
+    await userEvent.click(screen.getByTestId('schedule-form-submit'))
+
+    await waitFor(() => {
+      expect(onSubmit).toHaveBeenCalledWith(
+        expect.objectContaining({
+          startTime: '09:00',
+          endTime: '12:00',
+          slotDurationInMinutes: 30,
+        }),
+        expect.any(Function),
+      )
+    })
   })
 
   it('disables submit button while pending', () => {

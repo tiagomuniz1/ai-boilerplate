@@ -180,6 +180,30 @@ describe('DoctorForm (integration) — create mode', () => {
     expect(screen.getByTestId('doctor-form-bio')).toHaveAttribute('aria-invalid', 'true')
   })
 
+  it('deselects specialty when checkbox is clicked again in create mode', async () => {
+    renderWithProviders(<DoctorForm mode="create" isPending={false} onSubmit={jest.fn()} />)
+
+    await waitFor(() => {
+      expect(screen.getByTestId(`doctor-form-specialty-${SPEC_ID_1}`)).toBeInTheDocument()
+    })
+
+    await userEvent.click(screen.getByTestId(`doctor-form-specialty-${SPEC_ID_1}`))
+    expect(screen.getByTestId(`doctor-form-specialty-${SPEC_ID_1}`)).toBeChecked()
+
+    await userEvent.click(screen.getByTestId(`doctor-form-specialty-${SPEC_ID_1}`))
+    expect(screen.getByTestId(`doctor-form-specialty-${SPEC_ID_1}`)).not.toBeChecked()
+  })
+
+  it('shows empty specialties message when no specialties are available', async () => {
+    ;(specialtiesService.getAll as jest.Mock).mockResolvedValue({ data: [], total: 0, page: 1, limit: 100 })
+
+    renderWithProviders(<DoctorForm mode="create" isPending={false} onSubmit={jest.fn()} />)
+
+    await waitFor(() => {
+      expect(screen.getByText('Nenhuma especialidade cadastrada.')).toBeInTheDocument()
+    })
+  })
+
   it('shows global error when provided', () => {
     renderWithProviders(
       <DoctorForm
@@ -297,6 +321,131 @@ describe('DoctorForm (integration) — edit mode', () => {
 
     await waitFor(() => {
       expect(screen.getByText(/CRM inválido/)).toBeInTheDocument()
+    })
+  })
+
+  it('deselects pre-selected specialty when clicked in edit mode', async () => {
+    renderWithProviders(
+      <DoctorForm mode="edit" defaultValues={existingDoctor} isPending={false} onSubmit={jest.fn()} />,
+    )
+
+    await waitFor(() => {
+      expect(screen.getByTestId(`doctor-form-specialty-${SPEC_ID_1}`)).toBeChecked()
+    })
+
+    await userEvent.click(screen.getByTestId(`doctor-form-specialty-${SPEC_ID_1}`))
+    expect(screen.getByTestId(`doctor-form-specialty-${SPEC_ID_1}`)).not.toBeChecked()
+  })
+
+  it('pre-fills bio as empty string when doctor bio is null', async () => {
+    const doctorNoBio: IDoctorModel = { ...existingDoctor, bio: null }
+
+    renderWithProviders(
+      <DoctorForm mode="edit" defaultValues={doctorNoBio} isPending={false} onSubmit={jest.fn()} />,
+    )
+
+    await waitFor(() => {
+      expect(screen.getByTestId('doctor-form-crm')).toHaveValue('12345/SP')
+    })
+
+    expect(screen.getByTestId('doctor-form-bio')).toHaveValue('')
+  })
+
+  it('submits with crmNumber: undefined when CRM is cleared', async () => {
+    const onSubmit = jest.fn()
+
+    renderWithProviders(
+      <DoctorForm mode="edit" defaultValues={existingDoctor} isPending={false} onSubmit={onSubmit} />,
+    )
+
+    await waitFor(() => {
+      expect(screen.getByTestId('doctor-form-crm')).toHaveValue('12345/SP')
+    })
+
+    await waitFor(() => {
+      expect(screen.getByTestId(`doctor-form-specialty-${SPEC_ID_1}`)).toBeChecked()
+    })
+
+    await userEvent.clear(screen.getByTestId('doctor-form-crm'))
+    await userEvent.click(screen.getByTestId('doctor-form-submit'))
+
+    await waitFor(() => {
+      expect(onSubmit).toHaveBeenCalledWith(
+        expect.objectContaining({ crmNumber: undefined }),
+        expect.any(Function),
+      )
+    })
+  })
+
+  it('submits with bio: undefined when bio is cleared', async () => {
+    const onSubmit = jest.fn()
+
+    renderWithProviders(
+      <DoctorForm mode="edit" defaultValues={existingDoctor} isPending={false} onSubmit={onSubmit} />,
+    )
+
+    await waitFor(() => {
+      expect(screen.getByTestId('doctor-form-crm')).toHaveValue('12345/SP')
+    })
+
+    await waitFor(() => {
+      expect(screen.getByTestId(`doctor-form-specialty-${SPEC_ID_1}`)).toBeChecked()
+    })
+
+    await userEvent.clear(screen.getByTestId('doctor-form-bio'))
+    await userEvent.click(screen.getByTestId('doctor-form-submit'))
+
+    await waitFor(() => {
+      expect(onSubmit).toHaveBeenCalledWith(
+        expect.objectContaining({ bio: undefined }),
+        expect.any(Function),
+      )
+    })
+  })
+
+  it('submits without isActive when user is not admin', async () => {
+    const onSubmit = jest.fn()
+    const nonAdminUser = { ...mockAdminUser, role: 'user' as const }
+    ;(useAuthStore as unknown as jest.Mock).mockImplementation((selector: (s: { user: typeof nonAdminUser }) => unknown) =>
+      selector({ user: nonAdminUser }),
+    )
+
+    renderWithProviders(
+      <DoctorForm mode="edit" defaultValues={existingDoctor} isPending={false} onSubmit={onSubmit} />,
+    )
+
+    await waitFor(() => {
+      expect(screen.getByTestId('doctor-form-crm')).toHaveValue('12345/SP')
+    })
+
+    await waitFor(() => {
+      expect(screen.getByTestId(`doctor-form-specialty-${SPEC_ID_1}`)).toBeChecked()
+    })
+
+    await userEvent.click(screen.getByTestId('doctor-form-submit'))
+
+    await waitFor(() => {
+      expect(onSubmit).toHaveBeenCalledWith(
+        expect.objectContaining({ isActive: undefined }),
+        expect.any(Function),
+      )
+    })
+  })
+
+  it('shows specialty validation error when all specialties are deselected and form is submitted', async () => {
+    renderWithProviders(
+      <DoctorForm mode="edit" defaultValues={existingDoctor} isPending={false} onSubmit={jest.fn()} />,
+    )
+
+    await waitFor(() => {
+      expect(screen.getByTestId(`doctor-form-specialty-${SPEC_ID_1}`)).toBeChecked()
+    })
+
+    await userEvent.click(screen.getByTestId(`doctor-form-specialty-${SPEC_ID_1}`))
+    await userEvent.click(screen.getByTestId('doctor-form-submit'))
+
+    await waitFor(() => {
+      expect(screen.getByText('Selecione ao menos uma especialidade')).toBeInTheDocument()
     })
   })
 

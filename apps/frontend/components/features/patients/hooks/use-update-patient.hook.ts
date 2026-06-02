@@ -16,6 +16,7 @@ export function useUpdatePatient() {
     onSuccess: (_, { id }) => {
       queryClient.invalidateQueries({ queryKey: ['patients'] })
       queryClient.invalidateQueries({ queryKey: ['patients', id] })
+      queryClient.invalidateQueries({ queryKey: ['users'] })
       router.push(`/patients/${id}`)
     },
   })

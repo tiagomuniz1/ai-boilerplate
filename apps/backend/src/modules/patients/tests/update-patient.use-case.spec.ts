@@ -237,7 +237,7 @@ describe('UpdatePatientUseCase', () => {
     await expect(useCase.execute(patient.id, { phoneNumber: '(11) 99999-9999' })).rejects.toThrow('Database error')
   })
 
-  it('invalidates patient and list cache after update', async () => {
+  it('invalidates patient and list cache when updating patient-only fields', async () => {
     const patient = makePatient()
     mockPatientsRepository.findById.mockResolvedValue(patient as any)
     mockPatientsRepository.update.mockResolvedValue(patient as any)
@@ -248,6 +248,37 @@ describe('UpdatePatientUseCase', () => {
 
     expect(mockCacheService.del).toHaveBeenCalledWith(`patient:${patient.id}`)
     expect(mockCacheService.delByPattern).toHaveBeenCalledWith('patients:list*')
+    expect(mockCacheService.del).not.toHaveBeenCalledWith(`user:${patient.userId}`)
+    expect(mockCacheService.delByPattern).not.toHaveBeenCalledWith('users:list*')
+  })
+
+  it('also invalidates user caches when fullName is updated', async () => {
+    const patient = makePatient()
+    mockPatientsRepository.findById.mockResolvedValue(patient as any)
+    mockUsersRepository.update.mockResolvedValue(patient.user as any)
+    mockCacheService.del.mockResolvedValue(undefined)
+    mockCacheService.delByPattern.mockResolvedValue(undefined)
+
+    await useCase.execute(patient.id, { fullName: 'Nome Atualizado' })
+
+    expect(mockCacheService.del).toHaveBeenCalledWith(`patient:${patient.id}`)
+    expect(mockCacheService.delByPattern).toHaveBeenCalledWith('patients:list*')
+    expect(mockCacheService.del).toHaveBeenCalledWith(`user:${patient.userId}`)
+    expect(mockCacheService.delByPattern).toHaveBeenCalledWith('users:list*')
+  })
+
+  it('also invalidates user caches when email is updated', async () => {
+    const patient = makePatient()
+    mockPatientsRepository.findById.mockResolvedValue(patient as any)
+    mockUsersRepository.findByEmail.mockResolvedValue(null)
+    mockUsersRepository.update.mockResolvedValue(patient.user as any)
+    mockCacheService.del.mockResolvedValue(undefined)
+    mockCacheService.delByPattern.mockResolvedValue(undefined)
+
+    await useCase.execute(patient.id, { email: 'new@email.com' })
+
+    expect(mockCacheService.del).toHaveBeenCalledWith(`user:${patient.userId}`)
+    expect(mockCacheService.delByPattern).toHaveBeenCalledWith('users:list*')
   })
 
   it('continues and returns response when cache invalidation fails', async () => {

@@ -4,7 +4,7 @@ jest.mock('../services/schedules.service')
 jest.mock('../use-cases/delete-schedule.use-case')
 jest.mock('@/components/features/doctors/services/doctors.service')
 
-import { screen, waitFor } from '@testing-library/react'
+import { screen, waitFor, fireEvent } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { useRouter } from 'next/navigation'
 import { UserRole, DayOfWeek } from '@app/shared'
@@ -47,9 +47,9 @@ const makePaginatedResponse = (items = [makeScheduleDto()]) => ({
 
 const makeDoctorDto = (overrides = {}) => ({
   id: 'doc-uuid-1',
-  user: { id: 'user-uuid-1', fullName: 'Dr. João Silva', email: 'joao@example.com' },
+  user: { id: 'user-uuid-1', fullName: 'Dr. João Silva', email: 'joao@example.com', isActive: true },
   crmNumber: '12345/SP',
-  specialty: 'Cardiologia',
+  specialties: [],
   bio: null,
   createdAt: '2025-01-01T10:00:00.000Z',
   updatedAt: '2025-01-01T10:00:00.000Z',
@@ -141,6 +141,72 @@ describe('ScheduleList (integration)', () => {
       await waitFor(() => expect(screen.getByTestId('schedule-list-success')).toBeInTheDocument())
     })
 
+    it('closes dialog on delete error without showing success message', async () => {
+      ;(schedulesService.getAll as jest.Mock).mockResolvedValue(makePaginatedResponse())
+      ;(deleteScheduleUseCase as jest.Mock).mockRejectedValue({ status: 500 })
+
+      renderWithProviders(<ScheduleList />)
+
+      await waitFor(() => expect(screen.getByTestId('schedule-list-table')).toBeInTheDocument())
+
+      await userEvent.click(screen.getByTestId('schedule-delete-button-uuid-1'))
+      await userEvent.click(screen.getByTestId('delete-schedule-dialog-confirm'))
+
+      await waitFor(() => {
+        expect(screen.queryByTestId('delete-schedule-dialog-confirm')).not.toBeInTheDocument()
+      })
+
+      expect(screen.queryByTestId('schedule-list-success')).not.toBeInTheDocument()
+    })
+
+    it('shows "∞" when validFrom is set but validUntil is null', async () => {
+      ;(schedulesService.getAll as jest.Mock).mockResolvedValue(
+        makePaginatedResponse([makeScheduleDto({ validFrom: '2025-01-01', validUntil: null })]),
+      )
+
+      renderWithProviders(<ScheduleList />)
+
+      await waitFor(() => expect(screen.getByTestId('schedule-validity-uuid-1')).toBeInTheDocument())
+
+      expect(screen.getByTestId('schedule-validity-uuid-1')).toHaveTextContent('2025-01-01 → ∞')
+    })
+
+    it('shows "∞" for validFrom when validFrom is null but validUntil is set', async () => {
+      ;(schedulesService.getAll as jest.Mock).mockResolvedValue(
+        makePaginatedResponse([makeScheduleDto({ validFrom: null, validUntil: '2025-12-31' })]),
+      )
+
+      renderWithProviders(<ScheduleList />)
+
+      await waitFor(() => expect(screen.getByTestId('schedule-validity-uuid-1')).toBeInTheDocument())
+
+      expect(screen.getByTestId('schedule-validity-uuid-1')).toHaveTextContent('∞ → 2025-12-31')
+    })
+
+    it('filters by dayOfWeek when day filter is changed', async () => {
+      ;(schedulesService.getAll as jest.Mock).mockResolvedValue(makePaginatedResponse())
+
+      renderWithProviders(<ScheduleList />)
+
+      await userEvent.selectOptions(screen.getByTestId('schedule-filter-day'), 'MONDAY')
+
+      await waitFor(() => {
+        expect(schedulesService.getAll).toHaveBeenCalledWith(expect.objectContaining({ dayOfWeek: 'MONDAY' }))
+      })
+    })
+
+    it('filters by activeOn when date filter is changed', async () => {
+      ;(schedulesService.getAll as jest.Mock).mockResolvedValue(makePaginatedResponse())
+
+      renderWithProviders(<ScheduleList />)
+
+      fireEvent.change(screen.getByTestId('schedule-filter-active-on'), { target: { value: '2025-06-01' } })
+
+      await waitFor(() => {
+        expect(schedulesService.getAll).toHaveBeenCalledWith(expect.objectContaining({ activeOn: '2025-06-01' }))
+      })
+    })
+
     it('closes delete dialog when cancel is clicked', async () => {
       ;(schedulesService.getAll as jest.Mock).mockResolvedValue(makePaginatedResponse())
 
@@ -178,6 +244,46 @@ describe('ScheduleList (integration)', () => {
       await waitFor(() => expect(screen.getByTestId('schedule-list-table')).toBeInTheDocument())
 
       expect(screen.getByTestId('schedule-doctor-uuid-1')).toBeInTheDocument()
+    })
+
+    it('updates doctorId filter when doctor select is changed', async () => {
+      ;(schedulesService.getAll as jest.Mock).mockResolvedValue(makePaginatedResponse())
+
+      renderWithProviders(<ScheduleList />)
+
+      await waitFor(() => {
+        const select = screen.getByTestId('schedule-filter-doctor-select') as HTMLSelectElement
+        expect(select.options.length).toBeGreaterThan(1)
+      })
+
+      const select = screen.getByTestId('schedule-filter-doctor-select') as HTMLSelectElement
+      fireEvent.change(select, { target: { value: 'doc-uuid-1' } })
+
+      expect(select.value).toBe('doc-uuid-1')
+    })
+
+    it('shows plural count when more than one schedule is found', async () => {
+      ;(schedulesService.getAll as jest.Mock).mockResolvedValue(
+        makePaginatedResponse([makeScheduleDto(), makeScheduleDto({ id: 'uuid-2', doctorId: 'doc-uuid-1' })]),
+      )
+
+      renderWithProviders(<ScheduleList />)
+
+      await waitFor(() => expect(screen.getByTestId('schedule-list-table')).toBeInTheDocument())
+
+      expect(screen.getByText('2 agendas encontradas')).toBeInTheDocument()
+    })
+
+    it('shows doctorId as fallback when doctor is not in the doctors list', async () => {
+      ;(schedulesService.getAll as jest.Mock).mockResolvedValue(
+        makePaginatedResponse([makeScheduleDto({ doctorId: 'unknown-doctor-id' })]),
+      )
+
+      renderWithProviders(<ScheduleList />)
+
+      await waitFor(() => expect(screen.getByTestId('schedule-doctor-uuid-1')).toBeInTheDocument())
+
+      expect(screen.getByTestId('schedule-doctor-uuid-1')).toHaveTextContent('unknown-doctor-id')
     })
   })
 })

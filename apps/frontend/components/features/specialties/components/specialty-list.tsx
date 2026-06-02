@@ -11,6 +11,7 @@ import { useSpecialties } from '../hooks/use-specialties.hook'
 import { useDeleteSpecialty } from '../hooks/use-delete-specialty.hook'
 import { SpecialtyListSkeleton } from './specialty-list-skeleton'
 import { SpecialtyDeleteDialog } from './specialty-delete-dialog'
+import type { IApiError } from '@/types/api.types'
 import type { ISpecialtyModel } from '../types/specialty-model.types'
 
 export function SpecialtyList() {
@@ -21,6 +22,7 @@ export function SpecialtyList() {
   const [debouncedSearch, setDebouncedSearch] = useState('')
   const [specialtyToDelete, setSpecialtyToDelete] = useState<ISpecialtyModel | null>(null)
   const [successMessage, setSuccessMessage] = useState<string | null>(null)
+  const [deleteError, setDeleteError] = useState<string | null>(null)
 
   useEffect(() => {
     const timer = setTimeout(() => setDebouncedSearch(searchTerm), 300)
@@ -48,11 +50,18 @@ export function SpecialtyList() {
     deleteSpecialty(specialtyToDelete.id, {
       onSuccess: () => {
         setSpecialtyToDelete(null)
+        setDeleteError(null)
         setSuccessMessage(`Especialidade ${specialtyToDelete.name} excluída com sucesso.`)
         setTimeout(() => setSuccessMessage(null), 5000)
       },
-      onError: () => {
+      onError: (error: IApiError) => {
         setSpecialtyToDelete(null)
+        if (error.status === 409) {
+          setDeleteError(`Não é possível excluir "${specialtyToDelete.name}" pois ela está vinculada a médicos ativos.`)
+        } else {
+          setDeleteError('Não foi possível excluir a especialidade. Tente novamente.')
+        }
+        setTimeout(() => setDeleteError(null), 6000)
       },
     })
   }
@@ -91,6 +100,12 @@ export function SpecialtyList() {
       {successMessage && (
         <Alert variant="success" data-testid="specialty-list-success">
           {successMessage}
+        </Alert>
+      )}
+
+      {deleteError && (
+        <Alert variant="error" data-testid="specialty-list-delete-error">
+          {deleteError}
         </Alert>
       )}
 

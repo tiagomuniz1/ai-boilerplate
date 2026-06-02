@@ -9,6 +9,7 @@ export function useDeletePatient() {
     mutationFn: deletePatientUseCase,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['patients'] })
+      queryClient.invalidateQueries({ queryKey: ['users'] })
     },
   })
 }

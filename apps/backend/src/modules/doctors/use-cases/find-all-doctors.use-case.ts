@@ -67,6 +67,7 @@ export class FindAllDoctorsUseCase extends BaseUseCase {
         id: doctor.user.id,
         fullName: doctor.user.fullName,
         email: doctor.user.email,
+        isActive: doctor.user.isActive,
       },
       crmNumber: doctor.crmNumber,
       specialties: (doctor.specialties ?? []).map((s) => ({ id: s.id, name: s.name })),

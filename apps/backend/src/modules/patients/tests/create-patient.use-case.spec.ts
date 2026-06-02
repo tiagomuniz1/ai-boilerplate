@@ -160,7 +160,7 @@ describe('CreatePatientUseCase', () => {
     expect(mockPatientsRepository.create).not.toHaveBeenCalled()
   })
 
-  it('invalidates list cache after creation', async () => {
+  it('invalidates patients and users list caches after creation', async () => {
     const dto = makeDto()
     const user = makeUser()
     mockPatientsRepository.findByDocumentNumber.mockResolvedValue(null)
@@ -172,6 +172,7 @@ describe('CreatePatientUseCase', () => {
     await useCase.execute(dto)
 
     expect(mockCacheService.delByPattern).toHaveBeenCalledWith('patients:list*')
+    expect(mockCacheService.delByPattern).toHaveBeenCalledWith('users:list*')
   })
 
   it('continues and returns response when cache invalidation fails', async () => {

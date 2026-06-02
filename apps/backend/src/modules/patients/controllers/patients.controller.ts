@@ -1,6 +1,8 @@
 import { Body, Controller, Delete, Get, HttpCode, Param, Patch, Post, Query } from '@nestjs/common'
 import { CreatePatientDto, PaginatedPatientsResponseDto, PatientResponseDto, UpdatePatientDto, UserRole } from '@app/shared'
+import { CurrentUser } from '../../auth/decorators/current-user.decorator'
 import { Roles } from '../../auth/decorators/roles.decorator'
+import { AuthenticatedUser } from '../../auth/strategies/jwt.strategy'
 import { ListPatientsQueryDto } from '../dto/list-patients-query.dto'
 import { CreatePatientUseCase } from '../use-cases/create-patient.use-case'
 import { DeletePatientUseCase } from '../use-cases/delete-patient.use-case'
@@ -46,7 +48,10 @@ export class PatientsController {
   @Delete(':id')
   @Roles(UserRole.ADMIN)
   @HttpCode(204)
-  delete(@Param('id') id: string): Promise<void> {
-    return this.deletePatientUseCase.execute(id)
+  delete(
+    @Param('id') id: string,
+    @CurrentUser() currentUser: AuthenticatedUser,
+  ): Promise<void> {
+    return this.deletePatientUseCase.execute(id, currentUser.id)
   }
 }

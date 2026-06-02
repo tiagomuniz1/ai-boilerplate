@@ -25,6 +25,7 @@ describe('UsersController (integration)', () => {
   let patientRepository: Repository<Patient>
   let specialtyRepository: Repository<Specialty>
   let accessToken: string
+  let authUserId: string
   let doctorToken: string
   let doctorUserId: string
   let userToken: string
@@ -62,7 +63,7 @@ describe('UsersController (integration)', () => {
     app.useGlobalPipes(
       new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true, transform: true }),
     )
-    await app.init()
+    await app.listen(0)
 
     userRepository = module.get(getRepositoryToken(User))
     doctorRepository = module.get(getRepositoryToken(Doctor))
@@ -73,6 +74,7 @@ describe('UsersController (integration)', () => {
   beforeEach(async () => {
     const admin = await loginAs(UserRole.ADMIN)
     accessToken = admin.token
+    authUserId = admin.id
     const doctor = await loginAs(UserRole.DOCTOR)
     doctorToken = doctor.token
     doctorUserId = doctor.id
@@ -82,6 +84,7 @@ describe('UsersController (integration)', () => {
   })
 
   afterEach(async () => {
+    await doctorRepository.query('DELETE FROM test.schedules')
     await doctorRepository.query('DELETE FROM test.doctor_specialties')
     await doctorRepository.query('DELETE FROM test.doctors')
     await patientRepository.query('DELETE FROM test.patients')
@@ -602,6 +605,13 @@ describe('UsersController (integration)', () => {
 
       const deleted = await userRepository.findOne({ where: { id: created.id }, withDeleted: true })
       expect(deleted?.deletedAt).not.toBeNull()
+    })
+
+    it('returns 403 when admin tries to delete own account', async () => {
+      await request(app.getHttpServer())
+        .delete(`/users/${authUserId}`)
+        .set('Authorization', `Bearer ${accessToken}`)
+        .expect(403)
     })
 
     it('returns 401 without token', async () => {

@@ -55,7 +55,7 @@ describe('SpecialtiesController (integration)', () => {
     app.useGlobalPipes(
       new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true, transform: true }),
     )
-    await app.init()
+    await app.listen(0)
 
     userRepository = module.get(getRepositoryToken(User))
     specialtyRepository = module.get(getRepositoryToken(Specialty))
@@ -68,6 +68,10 @@ describe('SpecialtiesController (integration)', () => {
   })
 
   afterEach(async () => {
+    await specialtyRepository.query('DELETE FROM test.schedules')
+    await specialtyRepository.query('DELETE FROM test.doctor_specialties')
+    await specialtyRepository.query('DELETE FROM test.doctors')
+    await specialtyRepository.query('DELETE FROM test.patients')
     await specialtyRepository.query('DELETE FROM test.specialties')
     await userRepository.query('DELETE FROM test.users')
   })
@@ -444,6 +448,70 @@ describe('SpecialtiesController (integration)', () => {
         .delete(`/specialties/${created.id}`)
         .set('Authorization', `Bearer ${userToken}`)
         .expect(403)
+    })
+
+    it('returns 409 when specialty is linked to an active doctor', async () => {
+      const { body: specialty } = await createSpecialty(adminToken, { name: 'Ortopedia' }).expect(201)
+
+      const hashedPassword = await (await import('bcrypt')).hash('Password123!', 1)
+      const doctorUser = await userRepository.save(
+        userRepository.create({
+          fullName: 'Dr. Ortopedista',
+          email: `ortopedista.${faker.string.alphanumeric(6)}@test.com`,
+          password: hashedPassword,
+          role: UserRole.DOCTOR,
+          isActive: true,
+        }),
+      )
+
+      await request(app.getHttpServer())
+        .post('/doctors')
+        .set('Authorization', `Bearer ${adminToken}`)
+        .send({ userId: doctorUser.id, crmNumber: '77777/SP', specialtyIds: [specialty.id] })
+        .expect(201)
+
+      const { body } = await request(app.getHttpServer())
+        .delete(`/specialties/${specialty.id}`)
+        .set('Authorization', `Bearer ${adminToken}`)
+        .expect(409)
+
+      expect(body.detail).toContain('doctor')
+    })
+
+    it('allows deletion after all linked doctors are removed', async () => {
+      const { body: specialty } = await createSpecialty(adminToken, { name: 'Reumatologia' }).expect(201)
+
+      const hashedPassword = await (await import('bcrypt')).hash('Password123!', 1)
+      const doctorUser = await userRepository.save(
+        userRepository.create({
+          fullName: 'Dr. Reumatologista',
+          email: `reumatologista.${faker.string.alphanumeric(6)}@test.com`,
+          password: hashedPassword,
+          role: UserRole.DOCTOR,
+          isActive: true,
+        }),
+      )
+
+      const { body: doctor } = await request(app.getHttpServer())
+        .post('/doctors')
+        .set('Authorization', `Bearer ${adminToken}`)
+        .send({ userId: doctorUser.id, crmNumber: '88888/SP', specialtyIds: [specialty.id] })
+        .expect(201)
+
+      await request(app.getHttpServer())
+        .delete(`/specialties/${specialty.id}`)
+        .set('Authorization', `Bearer ${adminToken}`)
+        .expect(409)
+
+      await request(app.getHttpServer())
+        .delete(`/doctors/${doctor.id}`)
+        .set('Authorization', `Bearer ${adminToken}`)
+        .expect(204)
+
+      await request(app.getHttpServer())
+        .delete(`/specialties/${specialty.id}`)
+        .set('Authorization', `Bearer ${adminToken}`)
+        .expect(204)
     })
   })
 })

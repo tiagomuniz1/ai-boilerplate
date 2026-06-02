@@ -8,7 +8,12 @@ export async function devSeed(dataSource: DataSource): Promise<void> {
 
   const existing = await repository.findOneBy({ email: 'tiagomuniz1@gmail.com' })
   if (existing) {
-    console.log('Dev seed: user already exists, skipping.')
+    if (existing.role !== UserRole.ADMIN) {
+      await repository.update(existing.id, { role: UserRole.ADMIN })
+      console.log('Dev seed: updated user role to admin.')
+    } else {
+      console.log('Dev seed: user already exists, skipping.')
+    }
     return
   }
 
@@ -18,7 +23,7 @@ export async function devSeed(dataSource: DataSource): Promise<void> {
       fullName: 'Tiago Muniz',
       email: 'tiagomuniz1@gmail.com',
       password,
-      role: UserRole.USER,
+      role: UserRole.ADMIN,
     }),
   )
 

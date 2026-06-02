@@ -50,7 +50,7 @@ describe('DoctorsController (integration)', () => {
     app.useGlobalPipes(
       new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true, transform: true }),
     )
-    await app.init()
+    await app.listen(0)
 
     userRepository = module.get(getRepositoryToken(User))
     doctorRepository = module.get(getRepositoryToken(Doctor))
@@ -117,8 +117,10 @@ describe('DoctorsController (integration)', () => {
   })
 
   afterEach(async () => {
+    await doctorRepository.query('DELETE FROM test.schedules')
     await doctorRepository.query('DELETE FROM test.doctor_specialties')
     await doctorRepository.query('DELETE FROM test.doctors')
+    await doctorRepository.query('DELETE FROM test.patients')
     await specialtyRepository.query('DELETE FROM test.specialties')
     await userRepository.query('DELETE FROM test.users')
   })
@@ -725,6 +727,79 @@ describe('DoctorsController (integration)', () => {
         .delete(`/doctors/${created.id}`)
         .set('Authorization', `Bearer ${userToken}`)
         .expect(403)
+    })
+
+    it('soft-deletes the linked user when DOCTOR-role user doctor profile is deleted', async () => {
+      const password = 'Password123!'
+      const hashedPassword = await bcrypt.hash(password, 1)
+      const doctorRoleUser = await userRepository.save(
+        userRepository.create({
+          fullName: 'Doctor Role User',
+          email: 'doctorrole@doctors.test',
+          password: hashedPassword,
+          role: UserRole.DOCTOR,
+          isActive: true,
+        }),
+      )
+      const { body: created } = await createDoctor(doctorRoleUser.id, { crmNumber: '44444/SP' }).expect(201)
+
+      await request(app.getHttpServer())
+        .delete(`/doctors/${created.id}`)
+        .set('Authorization', `Bearer ${accessToken}`)
+        .expect(204)
+
+      const user = await userRepository.findOne({ where: { id: doctorRoleUser.id }, withDeleted: true })
+      expect(user?.deletedAt).not.toBeNull()
+    })
+
+    it('does not delete linked user when user role is not DOCTOR', async () => {
+      const targetUser = await createTargetUser()
+      const { body: created } = await createDoctor(targetUser.id, { crmNumber: '44440/SP' }).expect(201)
+
+      await request(app.getHttpServer())
+        .delete(`/doctors/${created.id}`)
+        .set('Authorization', `Bearer ${accessToken}`)
+        .expect(204)
+
+      const user = await userRepository.findOne({ where: { id: targetUser.id }, withDeleted: true })
+      expect(user?.deletedAt).toBeNull()
+    })
+
+    it('returns 403 when admin tries to delete own doctor profile', async () => {
+      const { body: created } = await createDoctor(authUserId, { crmNumber: '11111/SP' }).expect(201)
+
+      await request(app.getHttpServer())
+        .delete(`/doctors/${created.id}`)
+        .set('Authorization', `Bearer ${accessToken}`)
+        .expect(403)
+    })
+
+    it('linked DOCTOR-role user no longer appears in users list after doctor deletion', async () => {
+      const password = 'Password123!'
+      const hashedPassword = await bcrypt.hash(password, 1)
+      const doctorRoleUser = await userRepository.save(
+        userRepository.create({
+          fullName: 'Another Doctor Role User',
+          email: 'anotherdoctorrole@doctors.test',
+          password: hashedPassword,
+          role: UserRole.DOCTOR,
+          isActive: true,
+        }),
+      )
+      const { body: created } = await createDoctor(doctorRoleUser.id, { crmNumber: '55555/SP' }).expect(201)
+
+      await request(app.getHttpServer())
+        .delete(`/doctors/${created.id}`)
+        .set('Authorization', `Bearer ${accessToken}`)
+        .expect(204)
+
+      const { body: usersPage } = await request(app.getHttpServer())
+        .get('/users')
+        .set('Authorization', `Bearer ${accessToken}`)
+        .expect(200)
+
+      const ids = usersPage.data.map((u: { id: string }) => u.id)
+      expect(ids).not.toContain(doctorRoleUser.id)
     })
   })
 })

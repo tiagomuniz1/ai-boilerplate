@@ -1,4 +1,4 @@
-import { NotFoundException } from '@nestjs/common'
+import { ForbiddenException, NotFoundException } from '@nestjs/common'
 import { DataSource, QueryRunner } from 'typeorm'
 import { faker } from '@faker-js/faker'
 import { UserRole } from '@app/shared'
@@ -62,6 +62,8 @@ function makeUser(): User {
   }
 }
 
+const OTHER_USER_ID = faker.string.uuid()
+
 describe('DeleteUserUseCase', () => {
   let useCase: DeleteUserUseCase
 
@@ -81,11 +83,19 @@ describe('DeleteUserUseCase', () => {
     mockCacheService.delByPattern.mockResolvedValue(undefined)
   })
 
+  it('throws ForbiddenException when trying to delete own account', async () => {
+    const currentUserId = faker.string.uuid()
+
+    await expect(useCase.execute(currentUserId, currentUserId)).rejects.toThrow(ForbiddenException)
+    expect(mockUsersRepository.findById).not.toHaveBeenCalled()
+    expect(mockUsersRepository.delete).not.toHaveBeenCalled()
+  })
+
   it('deletes user and cascades to doctor and patient in a transaction', async () => {
     const user = makeUser()
     mockUsersRepository.findById.mockResolvedValue(user)
 
-    await expect(useCase.execute(user.id)).resolves.toBeUndefined()
+    await expect(useCase.execute(user.id, OTHER_USER_ID)).resolves.toBeUndefined()
 
     expect(mockDeleteDoctorUseCase.deleteByUserId).toHaveBeenCalledWith(user.id, mockQueryRunner)
     expect(mockDeletePatientUseCase.deleteByUserId).toHaveBeenCalledWith(user.id, mockQueryRunner)
@@ -96,7 +106,7 @@ describe('DeleteUserUseCase', () => {
   it('throws NotFoundException when user does not exist', async () => {
     mockUsersRepository.findById.mockResolvedValue(null)
 
-    await expect(useCase.execute('nonexistent')).rejects.toThrow(NotFoundException)
+    await expect(useCase.execute('nonexistent', OTHER_USER_ID)).rejects.toThrow(NotFoundException)
     expect(mockUsersRepository.delete).not.toHaveBeenCalled()
     expect(mockDeleteDoctorUseCase.deleteByUserId).not.toHaveBeenCalled()
     expect(mockDeletePatientUseCase.deleteByUserId).not.toHaveBeenCalled()
@@ -107,7 +117,7 @@ describe('DeleteUserUseCase', () => {
     mockUsersRepository.findById.mockResolvedValue(user)
     mockUsersRepository.delete.mockRejectedValue(new Error('DB error'))
 
-    await expect(useCase.execute(user.id)).rejects.toThrow('DB error')
+    await expect(useCase.execute(user.id, OTHER_USER_ID)).rejects.toThrow('DB error')
     expect(mockQueryRunner.rollbackTransaction).toHaveBeenCalled()
     expect(mockQueryRunner.commitTransaction).not.toHaveBeenCalled()
   })
@@ -116,7 +126,7 @@ describe('DeleteUserUseCase', () => {
     const user = makeUser()
     mockUsersRepository.findById.mockResolvedValue(user)
 
-    await useCase.execute(user.id)
+    await useCase.execute(user.id, OTHER_USER_ID)
 
     expect(mockCacheService.del).toHaveBeenCalledWith(`user:${user.id}`)
     expect(mockCacheService.delByPattern).toHaveBeenCalledWith('users:list*')
@@ -127,6 +137,6 @@ describe('DeleteUserUseCase', () => {
     mockUsersRepository.findById.mockResolvedValue(user)
     mockCacheService.del.mockRejectedValue(new Error('Redis down'))
 
-    await expect(useCase.execute(user.id)).resolves.toBeUndefined()
+    await expect(useCase.execute(user.id, OTHER_USER_ID)).resolves.toBeUndefined()
   })
 })
