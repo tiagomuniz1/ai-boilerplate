@@ -49,16 +49,35 @@ export class UpdateUserUseCase extends BaseUseCase {
       this.logger.warn('Cache invalidation failed', { context: UpdateUserUseCase.name, userId: id })
     }
 
-    return this.toResponse(updated)
+    const [isDoctor, isPatient] = await Promise.all([
+      this.hasProfile('doctors', updated.id),
+      this.hasProfile('patients', updated.id),
+    ])
+
+    return this.toResponse(updated, isDoctor, isPatient)
   }
 
-  private toResponse(user: User): UserResponseDto {
+  private async hasProfile(table: 'doctors' | 'patients', userId: string): Promise<boolean> {
+    const rows: unknown[] = await this.dataSource
+      .createQueryBuilder()
+      .select('1')
+      .from(table, 't')
+      .where('t.user_id = :userId', { userId })
+      .andWhere('t.deleted_at IS NULL')
+      .limit(1)
+      .getRawMany()
+    return rows.length > 0
+  }
+
+  private toResponse(user: User, isDoctor: boolean, isPatient: boolean): UserResponseDto {
     return {
       id: user.id,
       fullName: user.fullName,
       email: user.email,
       role: user.role,
       isActive: user.isActive,
+      isDoctor,
+      isPatient,
       createdAt: user.createdAt,
       updatedAt: user.updatedAt,
     }

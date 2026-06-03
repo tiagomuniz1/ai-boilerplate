@@ -5,6 +5,7 @@ export function toScheduleModel(dto: ScheduleResponseDto): IScheduleModel {
   return {
     id: dto.id,
     doctorId: dto.doctorId,
+    doctorName: dto.doctorName,
     dayOfWeek: dto.dayOfWeek,
     startTime: dto.startTime,
     endTime: dto.endTime,

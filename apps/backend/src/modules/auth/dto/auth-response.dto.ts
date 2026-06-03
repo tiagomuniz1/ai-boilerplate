@@ -8,4 +8,5 @@ export class RefreshResponseDto {
   accessToken: string
   refreshToken: string
   expiresIn: number
+  refreshTokenExpiresIn: number
 }

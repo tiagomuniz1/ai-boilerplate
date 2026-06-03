@@ -16,7 +16,7 @@ const existingPatient: IPatientModel = {
   id: 'uuid-1',
   fullName: 'João Silva',
   email: 'joao@example.com',
-  phoneNumber: '(11) 99999-9999',
+  phoneNumber: '11999999999',
   birthDate: new Date('1990-05-15'),
   documentNumber: '12345678901',
   gender: PatientGender.MALE,
@@ -62,7 +62,7 @@ describe('PatientForm (integration) — create mode', () => {
         expect.objectContaining({
           fullName: 'Maria Oliveira',
           email: 'maria@example.com',
-          phoneNumber: '(11) 98765-4321',
+          phoneNumber: '11987654321',
           documentNumber: '98765432100',
           gender: PatientGender.FEMALE,
         }),
@@ -158,7 +158,7 @@ describe('PatientForm (integration) — edit mode', () => {
 
     expect(screen.getByTestId('patient-form-email')).toHaveValue('joao@example.com')
     expect(screen.getByTestId('patient-form-phone')).toHaveValue('(11) 99999-9999')
-    expect(screen.getByTestId('patient-form-document')).toHaveValue('12345678901')
+    expect(screen.getByTestId('patient-form-document')).toHaveValue('123.456.789-01')
     expect(screen.getByTestId('patient-form-gender')).toHaveValue(PatientGender.MALE)
   })
 

@@ -60,13 +60,25 @@ const makeSchedule = (overrides = {}) => ({
   ...overrides,
 })
 
+function makeMockDataSource(): DataSource {
+  const builder = {
+    select: jest.fn().mockReturnThis(),
+    from: jest.fn().mockReturnThis(),
+    innerJoin: jest.fn().mockReturnThis(),
+    where: jest.fn().mockReturnThis(),
+    andWhere: jest.fn().mockReturnThis(),
+    getRawMany: jest.fn().mockResolvedValue([{ fullName: 'Dr. Test Doctor' }]),
+  }
+  return { createQueryBuilder: jest.fn().mockReturnValue(builder) } as unknown as DataSource
+}
+
 describe('FindScheduleByIdUseCase', () => {
   let useCase: FindScheduleByIdUseCase
 
   beforeEach(() => {
     jest.clearAllMocks()
     useCase = new FindScheduleByIdUseCase(
-      {} as DataSource,
+      makeMockDataSource(),
       mockSchedulesRepository,
       mockDoctorsRepository,
       mockCacheService,
@@ -186,5 +198,29 @@ describe('FindScheduleByIdUseCase', () => {
 
     expect(result).not.toHaveProperty('version')
     expect(result).not.toHaveProperty('deletedAt')
+  })
+
+  it('returns empty doctorName when name query returns no rows', async () => {
+    const builder = {
+      select: jest.fn().mockReturnThis(),
+      from: jest.fn().mockReturnThis(),
+      innerJoin: jest.fn().mockReturnThis(),
+      where: jest.fn().mockReturnThis(),
+      andWhere: jest.fn().mockReturnThis(),
+      getRawMany: jest.fn().mockResolvedValue([]),
+    }
+    const emptyDataSource = { createQueryBuilder: jest.fn().mockReturnValue(builder) } as unknown as DataSource
+    const useCaseWithEmptyNames = new FindScheduleByIdUseCase(
+      emptyDataSource,
+      mockSchedulesRepository,
+      mockDoctorsRepository,
+      mockCacheService,
+    )
+    const schedule = makeSchedule()
+    mockSchedulesRepository.findById.mockResolvedValue(schedule as any)
+
+    const result = await useCaseWithEmptyNames.execute(schedule.id, ownerUser)
+
+    expect(result.doctorName).toBe('')
   })
 })

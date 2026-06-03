@@ -36,7 +36,12 @@ export class FindUserByIdUseCase extends BaseUseCase {
     const user = await this.usersRepository.findById(id)
     if (!user) throw new NotFoundException('User not found')
 
-    const response = this.toResponse(user)
+    const [isDoctor, isPatient] = await Promise.all([
+      this.hasProfile('doctors', user.id),
+      this.hasProfile('patients', user.id),
+    ])
+
+    const response = this.toResponse(user, isDoctor, isPatient)
 
     try {
       await this.cacheService.set(cacheKey, response, 300)
@@ -47,13 +52,27 @@ export class FindUserByIdUseCase extends BaseUseCase {
     return response
   }
 
-  private toResponse(user: User): UserResponseDto {
+  private async hasProfile(table: 'doctors' | 'patients', userId: string): Promise<boolean> {
+    const rows: unknown[] = await this.dataSource
+      .createQueryBuilder()
+      .select('1')
+      .from(table, 't')
+      .where('t.user_id = :userId', { userId })
+      .andWhere('t.deleted_at IS NULL')
+      .limit(1)
+      .getRawMany()
+    return rows.length > 0
+  }
+
+  private toResponse(user: User, isDoctor: boolean, isPatient: boolean): UserResponseDto {
     return {
       id: user.id,
       fullName: user.fullName,
       email: user.email,
       role: user.role,
       isActive: user.isActive,
+      isDoctor,
+      isPatient,
       createdAt: user.createdAt,
       updatedAt: user.updatedAt,
     }

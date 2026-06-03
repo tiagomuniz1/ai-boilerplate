@@ -25,6 +25,29 @@ const mockCacheService = {
   delByPattern: jest.fn(),
 } as unknown as jest.Mocked<CacheService>
 
+function makeQueryBuilder(rawResult: unknown[] = []) {
+  return {
+    select: jest.fn().mockReturnThis(),
+    from: jest.fn().mockReturnThis(),
+    where: jest.fn().mockReturnThis(),
+    andWhere: jest.fn().mockReturnThis(),
+    limit: jest.fn().mockReturnThis(),
+    getRawMany: jest.fn().mockResolvedValue(rawResult),
+  }
+}
+
+function makeMockDataSource(
+  isDoctorResult: unknown[] = [],
+  isPatientResult: unknown[] = [],
+): DataSource {
+  return {
+    createQueryBuilder: jest.fn()
+      .mockReturnValueOnce(makeQueryBuilder(isDoctorResult))
+      .mockReturnValueOnce(makeQueryBuilder(isPatientResult)),
+    createQueryRunner: jest.fn(),
+  } as unknown as DataSource
+}
+
 function makeUser(overrides: Partial<User> = {}): User {
   return {
     id: faker.string.uuid(),
@@ -48,7 +71,7 @@ describe('UpdateUserUseCase', () => {
 
   beforeEach(() => {
     jest.clearAllMocks()
-    useCase = new UpdateUserUseCase({} as DataSource, mockUsersRepository, mockCacheService)
+    useCase = new UpdateUserUseCase(makeMockDataSource(), mockUsersRepository, mockCacheService)
     mockCacheService.del.mockResolvedValue(undefined)
     mockCacheService.delByPattern.mockResolvedValue(undefined)
   })
@@ -65,6 +88,17 @@ describe('UpdateUserUseCase', () => {
     expect(result.isActive).toBe(true)
     expect(result).not.toHaveProperty('password')
     expect(result).not.toHaveProperty('version')
+  })
+
+  it('response includes isDoctor and isPatient flags', async () => {
+    const user = makeUser()
+    mockUsersRepository.findById.mockResolvedValue(user)
+    mockUsersRepository.update.mockResolvedValue(user)
+
+    const result = await useCase.execute(user.id, { fullName: 'X' }, adminUser)
+
+    expect(result.isDoctor).toBe(false)
+    expect(result.isPatient).toBe(false)
   })
 
   it('can update isActive to false', async () => {

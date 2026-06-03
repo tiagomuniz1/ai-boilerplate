@@ -66,13 +66,25 @@ const makeSchedule = (overrides = {}) => ({
   ...overrides,
 })
 
+function makeMockDataSource(): DataSource {
+  const builder = {
+    select: jest.fn().mockReturnThis(),
+    from: jest.fn().mockReturnThis(),
+    innerJoin: jest.fn().mockReturnThis(),
+    where: jest.fn().mockReturnThis(),
+    andWhere: jest.fn().mockReturnThis(),
+    getRawMany: jest.fn().mockResolvedValue([{ fullName: 'Dr. Test Doctor' }]),
+  }
+  return { createQueryBuilder: jest.fn().mockReturnValue(builder) } as unknown as DataSource
+}
+
 describe('UpdateScheduleUseCase', () => {
   let useCase: UpdateScheduleUseCase
 
   beforeEach(() => {
     jest.clearAllMocks()
     useCase = new UpdateScheduleUseCase(
-      {} as DataSource,
+      makeMockDataSource(),
       mockSchedulesRepository,
       mockDoctorsRepository,
       mockAppointmentsRepository,
@@ -291,6 +303,36 @@ describe('UpdateScheduleUseCase', () => {
     await expect(
       useCase.execute(schedule.id, { slotDurationInMinutes: 60 }, ownerUser),
     ).rejects.toThrow('Database connection lost')
+  })
+
+  it('returns empty doctorName when name query returns no rows', async () => {
+    const builder = {
+      select: jest.fn().mockReturnThis(),
+      from: jest.fn().mockReturnThis(),
+      innerJoin: jest.fn().mockReturnThis(),
+      where: jest.fn().mockReturnThis(),
+      andWhere: jest.fn().mockReturnThis(),
+      getRawMany: jest.fn().mockResolvedValue([]),
+    }
+    const emptyDataSource = { createQueryBuilder: jest.fn().mockReturnValue(builder) } as unknown as DataSource
+    const useCaseWithEmptyNames = new UpdateScheduleUseCase(
+      emptyDataSource,
+      mockSchedulesRepository,
+      mockDoctorsRepository,
+      mockAppointmentsRepository,
+      mockCacheService,
+    )
+    const schedule = makeSchedule()
+    mockSchedulesRepository.findById.mockResolvedValue(schedule as any)
+    mockSchedulesRepository.update.mockResolvedValue(schedule as any)
+
+    const result = await useCaseWithEmptyNames.execute(
+      schedule.id,
+      { slotDurationInMinutes: 60 },
+      ownerUser,
+    )
+
+    expect(result.doctorName).toBe('')
   })
 
   it('invalidates cache after update using schedule.doctorId', async () => {

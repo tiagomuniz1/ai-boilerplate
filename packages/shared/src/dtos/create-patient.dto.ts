@@ -51,8 +51,7 @@ export class CreatePatientDto {
   email!: string
 
   @IsString()
-  @MinLength(8)
-  @MaxLength(20)
+  @Matches(/^\(\d{2}\) \d{4,5}-\d{4}$/, { message: 'phoneNumber must be in format (XX) XXXXX-XXXX' })
   phoneNumber!: string
 
   @IsDateString()

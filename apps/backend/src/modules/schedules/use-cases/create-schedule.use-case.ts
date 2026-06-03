@@ -78,6 +78,8 @@ export class CreateScheduleUseCase extends BaseUseCase {
 
     const schedule = await this.schedulesRepository.create({ ...dto, doctorId })
 
+    const doctorName = await this.fetchDoctorName(doctorId)
+
     try {
       await this.cacheService.delByPrefix(`schedules:list:${doctorId}:`)
       await this.cacheService.delByPrefix('schedules:list:all:')
@@ -85,13 +87,26 @@ export class CreateScheduleUseCase extends BaseUseCase {
       this.logger.warn('Cache invalidation failed', { context: CreateScheduleUseCase.name })
     }
 
-    return this.toResponse(schedule)
+    return this.toResponse(schedule, doctorName)
   }
 
-  private toResponse(schedule: Schedule): ScheduleResponseDto {
+  private async fetchDoctorName(doctorId: string): Promise<string> {
+    const rows: Array<{ fullName: string }> = await this.dataSource
+      .createQueryBuilder()
+      .select('u.full_name', 'fullName')
+      .from('doctors', 'd')
+      .innerJoin('users', 'u', 'u.id = d.user_id AND u.deleted_at IS NULL')
+      .where('d.id = :doctorId', { doctorId })
+      .andWhere('d.deleted_at IS NULL')
+      .getRawMany()
+    return rows[0]?.fullName ?? ''
+  }
+
+  private toResponse(schedule: Schedule, doctorName: string): ScheduleResponseDto {
     return {
       id: schedule.id,
       doctorId: schedule.doctorId,
+      doctorName,
       dayOfWeek: schedule.dayOfWeek,
       startTime: schedule.startTime,
       endTime: schedule.endTime,

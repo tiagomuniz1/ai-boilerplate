@@ -2,7 +2,7 @@
   "newPatient": {
     "fullName": "Paciente E2E Teste",
     "email": "paciente.e2e@test.com",
-    "phone": "(11) 99999-9999",
+    "phone": "11999999999",
     "birthDate": "1990-05-15",
     "documentNumber": "12345678901",
     "gender": "male"

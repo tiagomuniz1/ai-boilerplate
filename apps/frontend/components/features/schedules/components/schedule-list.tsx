@@ -209,9 +209,7 @@ export function ScheduleList() {
               </thead>
               <tbody>
                 {schedules.map((schedule) => {
-                  const doctorName = isAdmin
-                    ? doctors.find((d) => d.id === schedule.doctorId)?.user.fullName ?? schedule.doctorId
-                    : null
+                  const doctorName = isAdmin ? schedule.doctorName : null
                   return (
                     <tr
                       key={schedule.id}

@@ -7,6 +7,7 @@ import * as request from 'supertest'
 import { Repository } from 'typeorm'
 import { UserRole } from '@app/shared'
 import { AppModule } from '../../../app.module'
+import { CacheService } from '../../../cache/cache.service'
 import { Doctor } from '../../doctors/entities/doctor.entity'
 import { Patient } from '../../patients/entities/patient.entity'
 import { Specialty } from '../../specialties/entities/specialty.entity'
@@ -24,6 +25,7 @@ describe('UsersController (integration)', () => {
   let doctorRepository: Repository<Doctor>
   let patientRepository: Repository<Patient>
   let specialtyRepository: Repository<Specialty>
+  let cacheService: CacheService
   let accessToken: string
   let authUserId: string
   let doctorToken: string
@@ -69,6 +71,7 @@ describe('UsersController (integration)', () => {
     doctorRepository = module.get(getRepositoryToken(Doctor))
     patientRepository = module.get(getRepositoryToken(Patient))
     specialtyRepository = module.get(getRepositoryToken(Specialty))
+    cacheService = module.get(CacheService)
   })
 
   beforeEach(async () => {
@@ -90,6 +93,7 @@ describe('UsersController (integration)', () => {
     await patientRepository.query('DELETE FROM test.patients')
     await specialtyRepository.query('DELETE FROM test.specialties')
     await userRepository.query('DELETE FROM test.users')
+    await cacheService.delByPattern('users:list*').catch(() => {})
   })
 
   afterAll(async () => {
@@ -220,6 +224,40 @@ describe('UsersController (integration)', () => {
         expect(user.password).toBeUndefined()
         expect(user.version).toBeUndefined()
       })
+    })
+
+    it('returns isDoctor false and isPatient false for plain users', async () => {
+      const { body: created } = await createUser().expect(201)
+
+      const { body } = await request(app.getHttpServer())
+        .get('/users')
+        .set('Authorization', `Bearer ${accessToken}`)
+        .expect(200)
+
+      const found = body.data.find((u: any) => u.id === created.id)
+      expect(found.isDoctor).toBe(false)
+      expect(found.isPatient).toBe(false)
+    })
+
+    it('returns isDoctor true for users with a linked doctor profile', async () => {
+      const specialty = await specialtyRepository.save(
+        specialtyRepository.create({ name: `Spec ${faker.string.alphanumeric(6)}` }),
+      )
+      const doctor = await doctorRepository.save(
+        doctorRepository.create({ userId: doctorUserId, crmNumber: `${faker.string.numeric(5)}/SP`, specialties: [specialty] }),
+      )
+
+      const { body } = await request(app.getHttpServer())
+        .get('/users')
+        .set('Authorization', `Bearer ${accessToken}`)
+        .expect(200)
+
+      const found = body.data.find((u: any) => u.id === doctorUserId)
+      expect(found.isDoctor).toBe(true)
+      expect(found.isPatient).toBe(false)
+
+      await doctorRepository.softDelete(doctor.id)
+      await specialtyRepository.softDelete(specialty.id)
     })
 
     it('returns 401 without token', async () => {

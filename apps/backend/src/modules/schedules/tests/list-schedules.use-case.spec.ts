@@ -58,13 +58,26 @@ const makeSchedule = (overrides = {}) => ({
   ...overrides,
 })
 
+function makeMockDataSource(doctorName = 'Dr. Test Doctor'): DataSource {
+  const builder = {
+    select: jest.fn().mockReturnThis(),
+    addSelect: jest.fn().mockReturnThis(),
+    from: jest.fn().mockReturnThis(),
+    innerJoin: jest.fn().mockReturnThis(),
+    where: jest.fn().mockReturnThis(),
+    andWhere: jest.fn().mockReturnThis(),
+    getRawMany: jest.fn().mockResolvedValue([{ doctorId, fullName: doctorName }]),
+  }
+  return { createQueryBuilder: jest.fn().mockReturnValue(builder) } as unknown as DataSource
+}
+
 describe('ListSchedulesUseCase', () => {
   let useCase: ListSchedulesUseCase
 
   beforeEach(() => {
     jest.clearAllMocks()
     useCase = new ListSchedulesUseCase(
-      {} as DataSource,
+      makeMockDataSource(),
       mockSchedulesRepository,
       mockDoctorsRepository,
       mockCacheService,
@@ -210,5 +223,30 @@ describe('ListSchedulesUseCase', () => {
     mockCacheService.set.mockRejectedValue(new Error('Redis error'))
 
     await expect(useCase.execute({ page: 1, limit: 20 }, doctorUser)).resolves.toBeDefined()
+  })
+
+  it('returns empty doctorName when name query returns no rows', async () => {
+    const builder = {
+      select: jest.fn().mockReturnThis(),
+      addSelect: jest.fn().mockReturnThis(),
+      from: jest.fn().mockReturnThis(),
+      innerJoin: jest.fn().mockReturnThis(),
+      where: jest.fn().mockReturnThis(),
+      andWhere: jest.fn().mockReturnThis(),
+      getRawMany: jest.fn().mockResolvedValue([]),
+    }
+    const emptyDataSource = { createQueryBuilder: jest.fn().mockReturnValue(builder) } as unknown as DataSource
+    const useCaseWithEmptyNames = new ListSchedulesUseCase(
+      emptyDataSource,
+      mockSchedulesRepository,
+      mockDoctorsRepository,
+      mockCacheService,
+    )
+    const schedule = makeSchedule()
+    mockSchedulesRepository.findAll.mockResolvedValue([[schedule as any], 1])
+
+    const result = await useCaseWithEmptyNames.execute({ page: 1, limit: 20 }, doctorUser)
+
+    expect(result.data[0].doctorName).toBe('')
   })
 })

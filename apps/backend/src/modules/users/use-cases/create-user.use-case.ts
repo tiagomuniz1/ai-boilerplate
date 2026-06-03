@@ -42,6 +42,8 @@ export class CreateUserUseCase extends BaseUseCase {
       email: user.email,
       role: user.role,
       isActive: user.isActive,
+      isDoctor: false,
+      isPatient: false,
       createdAt: user.createdAt,
       updatedAt: user.updatedAt,
     }

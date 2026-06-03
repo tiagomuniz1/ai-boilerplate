@@ -6,6 +6,8 @@ export interface IUserModel {
   email: string
   role: UserRole
   isActive: boolean
+  isDoctor: boolean
+  isPatient: boolean
   createdAt: Date
   updatedAt: Date
 }

@@ -10,6 +10,8 @@ import * as cookieParser from 'cookie-parser'
 import { WinstonModule } from 'nest-winston'
 import { AppModule } from './app.module'
 import { createWinstonConfig } from './config/env.config'
+import { RequestIdInterceptor } from './common/interceptors/request-id.interceptor'
+import { HttpLoggingInterceptor } from './common/interceptors/http-logging.interceptor'
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule, {
@@ -31,6 +33,8 @@ async function bootstrap() {
       transform: true,
     }),
   )
+
+  app.useGlobalInterceptors(new RequestIdInterceptor(), new HttpLoggingInterceptor())
 
   const port = process.env.PORT ?? 3001
   await app.listen(port)

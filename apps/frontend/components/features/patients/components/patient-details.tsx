@@ -4,6 +4,8 @@ import Link from 'next/link'
 import { PatientGender } from '@app/shared'
 import { Button } from '@/components/ui/atoms/button/button'
 import { Typography } from '@/components/ui/atoms/typography/typography'
+import { formatPhone } from '@/lib/format-phone'
+import { formatCpf } from '@/lib/format-cpf'
 import type { IPatientModel } from '../types/patient-model.types'
 
 const genderLabel: Record<PatientGender, string> = {
@@ -63,7 +65,7 @@ export function PatientDetails({ patient, onDeleteClick }: PatientDetailsProps) 
           <div className="bg-surface px-6 py-4">
             <DetailRow
               label="Telefone"
-              value={patient.phoneNumber}
+              value={formatPhone(patient.phoneNumber)}
               testId="patient-details-phone"
             />
           </div>
@@ -81,7 +83,7 @@ export function PatientDetails({ patient, onDeleteClick }: PatientDetailsProps) 
           <div className="bg-surface px-6 py-4">
             <DetailRow
               label="Documento (CPF)"
-              value={patient.documentNumber}
+              value={formatCpf(patient.documentNumber)}
               testId="patient-details-document"
             />
           </div>

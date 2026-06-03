@@ -239,18 +239,22 @@ describe('AuthController (integration)', () => {
   })
 
   describe('POST /auth/refresh', () => {
-    it('returns 200 with new token pair on valid refresh token', async () => {
+    it('returns 204 and sets new access_token and refresh_token cookies on valid cookie', async () => {
       const user = await createTestUser()
       const { refreshToken } = await loginAndExtractTokens(user.email)
 
-      const { body } = await request(app.getHttpServer())
+      const response = await request(app.getHttpServer())
         .post('/auth/refresh')
-        .send({ refreshToken })
-        .expect(200)
+        .set('Cookie', `refresh_token=${refreshToken}`)
+        .expect(204)
 
-      expect(body.accessToken).toBeDefined()
-      expect(body.refreshToken).toBeDefined()
-      expect(body.refreshToken).not.toBe(refreshToken)
+      const cookies = response.headers['set-cookie'] as unknown as string[]
+      const newAccessCookie = cookies.find((c) => c.startsWith('access_token='))
+      const newRefreshCookie = cookies.find((c) => c.startsWith('refresh_token='))
+
+      expect(newAccessCookie).toBeDefined()
+      expect(newRefreshCookie).toBeDefined()
+      expect(extractCookieValue(cookies, 'refresh_token')).not.toBe(refreshToken)
     })
 
     it('revokes old refresh token after rotation', async () => {
@@ -259,8 +263,8 @@ describe('AuthController (integration)', () => {
 
       await request(app.getHttpServer())
         .post('/auth/refresh')
-        .send({ refreshToken })
-        .expect(200)
+        .set('Cookie', `refresh_token=${refreshToken}`)
+        .expect(204)
 
       const oldHash = createHash('sha256').update(refreshToken).digest('hex')
       const oldStored = await refreshTokenRepository.findOneBy({ tokenHash: oldHash })
@@ -273,18 +277,24 @@ describe('AuthController (integration)', () => {
 
       await request(app.getHttpServer())
         .post('/auth/refresh')
-        .send({ refreshToken })
+        .set('Cookie', `refresh_token=${refreshToken}`)
 
       await request(app.getHttpServer())
         .post('/auth/refresh')
-        .send({ refreshToken })
+        .set('Cookie', `refresh_token=${refreshToken}`)
         .expect(401)
     })
 
-    it('returns 401 on malformed/invalid refresh token', async () => {
+    it('returns 401 on malformed/invalid refresh token in cookie', async () => {
       await request(app.getHttpServer())
         .post('/auth/refresh')
-        .send({ refreshToken: 'not.a.valid.jwt' })
+        .set('Cookie', 'refresh_token=not.a.valid.jwt')
+        .expect(401)
+    })
+
+    it('returns 401 when no refresh_token cookie is present', async () => {
+      await request(app.getHttpServer())
+        .post('/auth/refresh')
         .expect(401)
     })
 
@@ -296,7 +306,7 @@ describe('AuthController (integration)', () => {
 
       await request(app.getHttpServer())
         .post('/auth/refresh')
-        .send({ refreshToken })
+        .set('Cookie', `refresh_token=${refreshToken}`)
         .expect(401)
     })
 
@@ -308,7 +318,7 @@ describe('AuthController (integration)', () => {
 
       await request(app.getHttpServer())
         .post('/auth/refresh')
-        .send({ refreshToken })
+        .set('Cookie', `refresh_token=${refreshToken}`)
         .expect(401)
     })
   })

@@ -66,13 +66,25 @@ const makeDto = (overrides = {}) => ({
 const doctorUser: ICurrentUser = { id: faker.string.uuid(), role: UserRole.DOCTOR }
 const adminUser: ICurrentUser = { id: faker.string.uuid(), role: UserRole.ADMIN }
 
+function makeMockDataSource(): DataSource {
+  const builder = {
+    select: jest.fn().mockReturnThis(),
+    from: jest.fn().mockReturnThis(),
+    innerJoin: jest.fn().mockReturnThis(),
+    where: jest.fn().mockReturnThis(),
+    andWhere: jest.fn().mockReturnThis(),
+    getRawMany: jest.fn().mockResolvedValue([{ fullName: 'Dr. Test Doctor' }]),
+  }
+  return { createQueryBuilder: jest.fn().mockReturnValue(builder) } as unknown as DataSource
+}
+
 describe('CreateScheduleUseCase', () => {
   let useCase: CreateScheduleUseCase
 
   beforeEach(() => {
     jest.clearAllMocks()
     useCase = new CreateScheduleUseCase(
-      {} as DataSource,
+      makeMockDataSource(),
       mockSchedulesRepository,
       mockDoctorsRepository,
       mockCacheService,
@@ -217,5 +229,31 @@ describe('CreateScheduleUseCase', () => {
 
     expect(result).not.toHaveProperty('version')
     expect(result).not.toHaveProperty('deletedAt')
+  })
+
+  it('returns empty doctorName when name query returns no rows', async () => {
+    const builder = {
+      select: jest.fn().mockReturnThis(),
+      from: jest.fn().mockReturnThis(),
+      innerJoin: jest.fn().mockReturnThis(),
+      where: jest.fn().mockReturnThis(),
+      andWhere: jest.fn().mockReturnThis(),
+      getRawMany: jest.fn().mockResolvedValue([]),
+    }
+    const emptyDataSource = { createQueryBuilder: jest.fn().mockReturnValue(builder) } as unknown as DataSource
+    const useCaseWithEmptyNames = new CreateScheduleUseCase(
+      emptyDataSource,
+      mockSchedulesRepository,
+      mockDoctorsRepository,
+      mockCacheService,
+    )
+    const schedule = makeSchedule()
+    mockDoctorsRepository.findByUserId.mockResolvedValue(makeDoctor())
+    mockSchedulesRepository.findOverlapping.mockResolvedValue(null)
+    mockSchedulesRepository.create.mockResolvedValue(schedule as any)
+
+    const result = await useCaseWithEmptyNames.execute(makeDto(), doctorUser)
+
+    expect(result.doctorName).toBe('')
   })
 })

@@ -11,7 +11,7 @@ const mockAuthUser = {
 const mockPatient = {
   id: MOCK_PATIENT_ID,
   user: { id: 'user-uuid-1', fullName: 'Paciente Detalhe', email: 'detalhe@test.com', isActive: true },
-  phoneNumber: '(11) 98765-4321',
+  phoneNumber: '11987654321',
   birthDate: '1990-05-15',
   documentNumber: '12345678901',
   gender: 'male',
@@ -87,8 +87,8 @@ describe('Patients Detail', () => {
     cy.get('[data-testid="patient-details"]').should('be.visible')
     cy.get('[data-testid="patient-details-name"]').should('contain', mockPatient.user.fullName)
     cy.get('[data-testid="patient-details-email"]').should('contain', mockPatient.user.email)
-    cy.get('[data-testid="patient-details-phone"]').should('contain', mockPatient.phoneNumber)
-    cy.get('[data-testid="patient-details-document"]').should('contain', mockPatient.documentNumber)
+    cy.get('[data-testid="patient-details-phone"]').should('contain', '(11) 98765-4321')
+    cy.get('[data-testid="patient-details-document"]').should('contain', '123.456.789-01')
     cy.get('[data-testid="patient-details-gender"]').should('contain', 'Masculino')
     cy.get('[data-testid="patient-details-birthdate"]').should('be.visible')
     cy.get('[data-testid="patient-details-created-at"]').should('be.visible')

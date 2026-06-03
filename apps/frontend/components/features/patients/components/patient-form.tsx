@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect } from 'react'
-import { useForm } from 'react-hook-form'
+import { useForm, Controller } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { PatientGender } from '@app/shared'
@@ -9,11 +9,13 @@ import { Input } from '@/components/ui/atoms/input/input'
 import { Button } from '@/components/ui/atoms/button/button'
 import { Alert } from '@/components/ui/molecules/alert/alert'
 import { cn } from '@/lib/cn'
+import { applyPhoneMask, formatPhone } from '@/lib/format-phone'
+import { applyCpfMask, formatCpf } from '@/lib/format-cpf'
 import type { ICreatePatientInput, IUpdatePatientInput } from '../types/patient-input.types'
 import type { IPatientModel } from '../types/patient-model.types'
 
-const phoneRegex = /^\(?\d{2}\)?\s?\d{4,5}-?\d{4}$/
-const documentNumberRegex = /^\d{11}$/
+const phoneRegex = /^\(\d{2}\) \d{4,5}-\d{4}$/
+const documentNumberRegex = /^\d{3}\.\d{3}\.\d{3}-\d{2}$/
 
 const baseFields = {
   fullName: z.string().min(3, 'Nome deve ter no mínimo 3 caracteres'),
@@ -84,6 +86,7 @@ export function PatientForm(props: PatientFormProps) {
 function PatientFormCreate({ isPending, globalError, onSubmit }: PatientFormCreateProps) {
   const {
     register,
+    control,
     handleSubmit,
     setError,
     formState: { errors },
@@ -92,7 +95,14 @@ function PatientFormCreate({ isPending, globalError, onSubmit }: PatientFormCrea
   })
 
   function handleFormSubmit(data: CreateFormValues) {
-    onSubmit(data, setError as (field: keyof ICreatePatientInput, error: { message: string }) => void)
+    onSubmit(
+      {
+        ...data,
+        phoneNumber: data.phoneNumber.replace(/\D/g, ''),
+        documentNumber: data.documentNumber.replace(/\D/g, ''),
+      },
+      setError as (field: keyof ICreatePatientInput, error: { message: string }) => void,
+    )
   }
 
   return (
@@ -118,14 +128,22 @@ function PatientFormCreate({ isPending, globalError, onSubmit }: PatientFormCrea
           error={errors.email?.message}
           {...register('email')}
         />
-        <Input
-          label="Telefone"
-          id="phoneNumber"
-          type="tel"
-          placeholder="(11) 99999-9999"
-          data-testid="patient-form-phone"
-          error={errors.phoneNumber?.message}
-          {...register('phoneNumber')}
+        <Controller
+          name="phoneNumber"
+          control={control}
+          render={({ field }) => (
+            <Input
+              {...field}
+              value={applyPhoneMask(field.value ?? '')}
+              onChange={(e) => field.onChange(applyPhoneMask(e.target.value))}
+              label="Telefone"
+              id="phoneNumber"
+              type="tel"
+              placeholder="(11) 99999-9999"
+              data-testid="patient-form-phone"
+              error={errors.phoneNumber?.message}
+            />
+          )}
         />
         <Input
           label="Data de nascimento"
@@ -135,12 +153,21 @@ function PatientFormCreate({ isPending, globalError, onSubmit }: PatientFormCrea
           error={errors.birthDate?.message}
           {...register('birthDate')}
         />
-        <Input
-          label="Número do documento (CPF)"
-          id="documentNumber"
-          data-testid="patient-form-document"
-          error={errors.documentNumber?.message}
-          {...register('documentNumber')}
+        <Controller
+          name="documentNumber"
+          control={control}
+          render={({ field }) => (
+            <Input
+              {...field}
+              value={applyCpfMask(field.value ?? '')}
+              onChange={(e) => field.onChange(applyCpfMask(e.target.value))}
+              label="Número do documento (CPF)"
+              id="documentNumber"
+              placeholder="000.000.000-00"
+              data-testid="patient-form-document"
+              error={errors.documentNumber?.message}
+            />
+          )}
         />
         <GenderSelect registerProps={register('gender')} error={errors.gender?.message} />
         <Button
@@ -159,6 +186,7 @@ function PatientFormCreate({ isPending, globalError, onSubmit }: PatientFormCrea
 function PatientFormEdit({ defaultValues, isPending, globalError, onSubmit }: PatientFormEditProps) {
   const {
     register,
+    control,
     handleSubmit,
     setError,
     reset,
@@ -171,18 +199,19 @@ function PatientFormEdit({ defaultValues, isPending, globalError, onSubmit }: Pa
     reset({
       fullName: defaultValues.fullName,
       email: defaultValues.email,
-      phoneNumber: defaultValues.phoneNumber,
+      phoneNumber: formatPhone(defaultValues.phoneNumber),
       birthDate: defaultValues.birthDate.toISOString().split('T')[0],
-      documentNumber: defaultValues.documentNumber,
+      documentNumber: formatCpf(defaultValues.documentNumber),
       gender: defaultValues.gender,
     })
   }, [defaultValues, reset])
 
   function handleFormSubmit(data: UpdateFormValues) {
+    const rawPhone = data.phoneNumber?.replace(/\D/g, '') || undefined
     const input: IUpdatePatientInput = {
       fullName: data.fullName || undefined,
       email: data.email || undefined,
-      phoneNumber: data.phoneNumber || undefined,
+      phoneNumber: rawPhone,
       birthDate: data.birthDate || undefined,
       gender: data.gender,
     }
@@ -212,14 +241,22 @@ function PatientFormEdit({ defaultValues, isPending, globalError, onSubmit }: Pa
           error={errors.email?.message}
           {...register('email')}
         />
-        <Input
-          label="Telefone"
-          id="phoneNumber"
-          type="tel"
-          placeholder="(11) 99999-9999"
-          data-testid="patient-form-phone"
-          error={errors.phoneNumber?.message}
-          {...register('phoneNumber')}
+        <Controller
+          name="phoneNumber"
+          control={control}
+          render={({ field }) => (
+            <Input
+              {...field}
+              value={applyPhoneMask(field.value ?? '')}
+              onChange={(e) => field.onChange(applyPhoneMask(e.target.value))}
+              label="Telefone"
+              id="phoneNumber"
+              type="tel"
+              placeholder="(11) 99999-9999"
+              data-testid="patient-form-phone"
+              error={errors.phoneNumber?.message}
+            />
+          )}
         />
         <Input
           label="Data de nascimento"
@@ -229,12 +266,21 @@ function PatientFormEdit({ defaultValues, isPending, globalError, onSubmit }: Pa
           error={errors.birthDate?.message}
           {...register('birthDate')}
         />
-        <Input
-          label="Número do documento (CPF)"
-          id="documentNumber"
-          data-testid="patient-form-document"
-          error={errors.documentNumber?.message}
-          {...register('documentNumber')}
+        <Controller
+          name="documentNumber"
+          control={control}
+          render={({ field }) => (
+            <Input
+              {...field}
+              value={applyCpfMask(field.value ?? '')}
+              onChange={(e) => field.onChange(applyCpfMask(e.target.value))}
+              label="Número do documento (CPF)"
+              id="documentNumber"
+              placeholder="000.000.000-00"
+              data-testid="patient-form-document"
+              error={errors.documentNumber?.message}
+            />
+          )}
         />
         <GenderSelect registerProps={register('gender')} error={errors.gender?.message} />
         <Button

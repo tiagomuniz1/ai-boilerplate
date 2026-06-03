@@ -10,7 +10,7 @@ const mockAuthUser = {
 const mockPatient = {
   id: 'aaaaaaaa-1111-1111-1111-000000000001',
   user: { id: 'user-uuid-1', fullName: 'João Silva', email: 'joao@test.com', isActive: true },
-  phoneNumber: '(11) 99999-9999',
+  phoneNumber: '11999999999',
   birthDate: '1990-05-15',
   documentNumber: '12345678901',
   gender: 'male',
@@ -102,7 +102,7 @@ describe('Patients List', () => {
     cy.get(`[data-testid="patient-table-row-${mockPatient.id}"]`).should('exist')
     cy.get(`[data-testid="patient-name-${mockPatient.id}"]`).should('contain', mockPatient.user.fullName)
     cy.get(`[data-testid="patient-email-${mockPatient.id}"]`).should('contain', mockPatient.user.email)
-    cy.get(`[data-testid="patient-phone-${mockPatient.id}"]`).should('contain', mockPatient.phoneNumber)
+    cy.get(`[data-testid="patient-phone-${mockPatient.id}"]`).should('contain', '(11) 99999-9999')
   })
 
   it('shows "Novo paciente" button that links to /patients/new', () => {

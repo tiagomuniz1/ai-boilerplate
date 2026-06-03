@@ -11,7 +11,7 @@ const mockAuthUser = {
 const mockPatient = {
   id: MOCK_PATIENT_ID,
   user: { id: 'user-uuid-1', fullName: 'Paciente Original', email: 'original@test.com', isActive: true },
-  phoneNumber: '(11) 99999-9999',
+  phoneNumber: '11999999999',
   birthDate: '1990-05-15',
   documentNumber: '12345678901',
   gender: 'male',
@@ -74,8 +74,8 @@ describe('Patients Update', () => {
 
     cy.get('[data-testid="patient-form-fullname"]').should('have.value', mockPatient.user.fullName)
     cy.get('[data-testid="patient-form-email"]').should('have.value', mockPatient.user.email)
-    cy.get('[data-testid="patient-form-phone"]').should('have.value', mockPatient.phoneNumber)
-    cy.get('[data-testid="patient-form-document"]').should('have.value', mockPatient.documentNumber)
+    cy.get('[data-testid="patient-form-phone"]').should('have.value', '(11) 99999-9999')
+    cy.get('[data-testid="patient-form-document"]').should('have.value', '123.456.789-01')
     cy.get('[data-testid="patient-form-gender"]').should('have.value', mockPatient.gender)
   })
 

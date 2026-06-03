@@ -28,8 +28,10 @@ export class HttpExceptionFilter implements ExceptionFilter {
     if (status >= 500) {
       this.logger.error('Unhandled exception', {
         requestId: request.requestId,
+        method: request.method,
         path: request.url,
         error: exception instanceof Error ? exception.message : String(exception),
+        stack: exception instanceof Error ? exception.stack : undefined,
       })
     }
 

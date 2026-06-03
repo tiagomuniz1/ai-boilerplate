@@ -1,3 +1,4 @@
+import { UnauthorizedException } from '@nestjs/common'
 import { Response } from 'express'
 import { UserRole } from '@app/shared'
 import { AuthController } from './auth.controller'
@@ -112,15 +113,72 @@ describe('AuthController', () => {
     })
   })
 
-  it('delegates refresh to RefreshTokenUseCase', async () => {
-    const dto = { refreshToken: 'rt' } as any
-    const response = { accessToken: 'new-at', refreshToken: 'new-rt', expiresIn: 900 }
-    mockRefreshTokenUseCase.execute.mockResolvedValue(response as any)
+  describe('refresh', () => {
+    const useCaseResult = {
+      accessToken: 'new-at',
+      refreshToken: 'new-rt',
+      expiresIn: 900,
+      refreshTokenExpiresIn: 604800,
+    }
 
-    const result = await controller.refresh(dto)
+    it('reads refresh_token from cookie and delegates to RefreshTokenUseCase', async () => {
+      mockRefreshTokenUseCase.execute.mockResolvedValue(useCaseResult as any)
+      const mockReq = { cookies: { refresh_token: 'rt' } } as any
+      const mockRes = makeMockResponse() as any
 
-    expect(mockRefreshTokenUseCase.execute).toHaveBeenCalledWith(dto)
-    expect(result).toBe(response)
+      await controller.refresh(mockReq, mockRes)
+
+      expect(mockRefreshTokenUseCase.execute).toHaveBeenCalledWith({ refreshToken: 'rt' })
+    })
+
+    it('sets new access_token and refresh_token cookies', async () => {
+      mockRefreshTokenUseCase.execute.mockResolvedValue(useCaseResult as any)
+      const mockReq = { cookies: { refresh_token: 'rt' } } as any
+      const mockRes = makeMockResponse() as any
+
+      await controller.refresh(mockReq, mockRes)
+
+      expect(mockRes.cookie).toHaveBeenCalledWith(
+        'access_token',
+        'new-at',
+        expect.objectContaining({ httpOnly: true, sameSite: 'strict', path: '/' }),
+      )
+      expect(mockRes.cookie).toHaveBeenCalledWith(
+        'refresh_token',
+        'new-rt',
+        expect.objectContaining({ httpOnly: true, sameSite: 'strict', path: '/' }),
+      )
+    })
+
+    it('maxAge of access_token equals expiresIn * 1000', async () => {
+      mockRefreshTokenUseCase.execute.mockResolvedValue(useCaseResult as any)
+      const mockReq = { cookies: { refresh_token: 'rt' } } as any
+      const mockRes = makeMockResponse() as any
+
+      await controller.refresh(mockReq, mockRes)
+
+      const [, , options] = (mockRes.cookie as jest.Mock).mock.calls[0]
+      expect(options.maxAge).toBe(900 * 1000)
+    })
+
+    it('maxAge of refresh_token equals refreshTokenExpiresIn * 1000', async () => {
+      mockRefreshTokenUseCase.execute.mockResolvedValue(useCaseResult as any)
+      const mockReq = { cookies: { refresh_token: 'rt' } } as any
+      const mockRes = makeMockResponse() as any
+
+      await controller.refresh(mockReq, mockRes)
+
+      const [, , options] = (mockRes.cookie as jest.Mock).mock.calls[1]
+      expect(options.maxAge).toBe(604800 * 1000)
+    })
+
+    it('throws UnauthorizedException when refresh_token cookie is absent', async () => {
+      const mockReq = { cookies: {} } as any
+      const mockRes = makeMockResponse() as any
+
+      await expect(controller.refresh(mockReq, mockRes)).rejects.toThrow(UnauthorizedException)
+      expect(mockRefreshTokenUseCase.execute).not.toHaveBeenCalled()
+    })
   })
 
   describe('logout', () => {

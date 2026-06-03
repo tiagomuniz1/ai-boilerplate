@@ -10,6 +10,7 @@ const mockDoctorUser = {
 const mockSchedule = {
   id: 'schedule-uuid-1',
   doctorId: 'doc-uuid-1',
+  doctorName: 'Dr. Test',
   dayOfWeek: 'MONDAY',
   startTime: '08:00',
   endTime: '12:00',

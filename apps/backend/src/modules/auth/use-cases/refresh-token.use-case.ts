@@ -80,6 +80,6 @@ export class RefreshTokenUseCase extends BaseUseCase {
       await this.refreshTokensRepository.create(user.id, newRefreshToken, newExpiresAt, queryRunner)
     })
 
-    return { accessToken, refreshToken: newRefreshToken, expiresIn: accessExpiresIn }
+    return { accessToken, refreshToken: newRefreshToken, expiresIn: accessExpiresIn, refreshTokenExpiresIn: refreshExpiresIn }
   }
 }

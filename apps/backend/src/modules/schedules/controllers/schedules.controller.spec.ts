@@ -19,6 +19,7 @@ const currentUser = { id: faker.string.uuid(), role: UserRole.DOCTOR }
 const makeScheduleResponse = (overrides = {}) => ({
   id: faker.string.uuid(),
   doctorId: faker.string.uuid(),
+  doctorName: 'Dr. Test Doctor',
   dayOfWeek: DayOfWeek.MONDAY,
   startTime: '08:00',
   endTime: '12:00',

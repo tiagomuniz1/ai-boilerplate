@@ -85,6 +85,30 @@ export function UserTableRow({ user, isCurrentUser, onDeleteClick }: UserTableRo
         </span>
       </td>
 
+      <td className="px-6 py-4" data-testid={`user-profiles-${user.id}`}>
+        <div className="flex items-center gap-1.5">
+          {user.isDoctor && (
+            <span
+              className="inline-flex items-center rounded-full bg-accent-soft px-2.5 py-0.5 text-xs font-medium text-accent"
+              data-testid={`user-profile-doctor-${user.id}`}
+            >
+              Médico
+            </span>
+          )}
+          {user.isPatient && (
+            <span
+              className="inline-flex items-center rounded-full bg-warm-soft px-2.5 py-0.5 text-xs font-medium text-warm"
+              data-testid={`user-profile-patient-${user.id}`}
+            >
+              Paciente
+            </span>
+          )}
+          {!user.isDoctor && !user.isPatient && (
+            <span className="text-xs text-text-mute">—</span>
+          )}
+        </div>
+      </td>
+
       <td className="px-6 py-4 text-sm text-text-dim whitespace-nowrap" data-testid={`user-created-at-${user.id}`}>
         {user.createdAt.toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' })}
       </td>

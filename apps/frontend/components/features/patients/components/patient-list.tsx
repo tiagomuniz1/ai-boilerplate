@@ -6,6 +6,7 @@ import { Alert } from '@/components/ui/molecules/alert/alert'
 import { Button } from '@/components/ui/atoms/button/button'
 import { Input } from '@/components/ui/atoms/input/input'
 import { PatientGender } from '@app/shared'
+import { formatPhone } from '@/lib/format-phone'
 import { usePatients } from '../hooks/use-patients.hook'
 import { useDeletePatient } from '../hooks/use-delete-patient.hook'
 import { PatientListSkeleton } from './patient-list-skeleton'
@@ -162,7 +163,7 @@ export function PatientList() {
                       className="px-6 py-4 text-sm text-text-dim whitespace-nowrap"
                       data-testid={`patient-phone-${patient.id}`}
                     >
-                      {patient.phoneNumber}
+                      {formatPhone(patient.phoneNumber)}
                     </td>
                     <td
                       className="px-6 py-4 text-sm text-text-dim whitespace-nowrap"

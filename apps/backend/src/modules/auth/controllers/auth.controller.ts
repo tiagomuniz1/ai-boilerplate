@@ -1,13 +1,11 @@
-import { Controller, Get, HttpCode, Post, Req, Res, Body } from '@nestjs/common'
+import { Controller, Get, HttpCode, Post, Req, Res, Body, UnauthorizedException } from '@nestjs/common'
 import { Throttle } from '@nestjs/throttler'
 import { Request, Response } from 'express'
 import { Public } from '../decorators/public.decorator'
 import { CurrentUser } from '../decorators/current-user.decorator'
-import { RefreshResponseDto } from '../dto/auth-response.dto'
 import { LoginDto } from '../dto/login.dto'
 import { LoginResponseDto } from '../dto/login-response.dto'
 import { MeResponseDto } from '../dto/me-response.dto'
-import { RefreshTokenDto } from '../dto/refresh-token.dto'
 import { LoginUseCase } from '../use-cases/login.use-case'
 import { LogoutUseCase } from '../use-cases/logout.use-case'
 import { MeUseCase } from '../use-cases/me.use-case'
@@ -49,10 +47,27 @@ export class AuthController {
 
   @Post('refresh')
   @Public()
-  @HttpCode(200)
+  @HttpCode(204)
   @Throttle({ default: { limit: 20, ttl: 60000 } })
-  refresh(@Body() dto: RefreshTokenDto): Promise<RefreshResponseDto> {
-    return this.refreshTokenUseCase.execute(dto)
+  async refresh(
+    @Req() req: Request,
+    @Res({ passthrough: true }) res: Response,
+  ): Promise<void> {
+    const refreshToken = req.cookies?.refresh_token as string | undefined
+    if (!refreshToken) throw new UnauthorizedException('Refresh token not found')
+
+    const { accessToken, refreshToken: newRefreshToken, expiresIn, refreshTokenExpiresIn } =
+      await this.refreshTokenUseCase.execute({ refreshToken })
+
+    const cookieOptions = {
+      httpOnly: true,
+      secure: true,
+      sameSite: 'strict' as const,
+      path: '/',
+    }
+
+    res.cookie('access_token', accessToken, { ...cookieOptions, maxAge: expiresIn * 1000 })
+    res.cookie('refresh_token', newRefreshToken, { ...cookieOptions, maxAge: refreshTokenExpiresIn * 1000 })
   }
 
   @Post('logout')

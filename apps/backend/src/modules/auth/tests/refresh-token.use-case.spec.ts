@@ -113,6 +113,7 @@ describe('RefreshTokenUseCase', () => {
       accessToken: 'new-access-token',
       refreshToken: 'new-refresh-token',
       expiresIn: 900,
+      refreshTokenExpiresIn: 604800,
     })
   })
 

@@ -147,7 +147,7 @@ Cypress.Commands.add('seedPatient', () => {
     body: {
       fullName: `Paciente Teste ${ts}`,
       email: `patient.${ts}@e2e.test`,
-      phoneNumber: '(11) 99999-9999',
+      phoneNumber: '11999999999',
       birthDate: '1990-05-15',
       documentNumber: String(ts).slice(-11).padStart(11, '0'),
       gender: 'male',

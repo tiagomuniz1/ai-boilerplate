@@ -11,6 +11,8 @@ const mockCreatedUser = {
   fullName: 'Novo Usuário E2E',
   email: 'novo.usuario.e2e@test.com',
   role: 'user',
+  isDoctor: false,
+  isPatient: false,
   createdAt: '2024-01-15T10:00:00.000Z',
   updatedAt: '2024-01-15T10:00:00.000Z',
 }

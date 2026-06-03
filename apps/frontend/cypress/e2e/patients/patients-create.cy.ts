@@ -15,7 +15,7 @@ const mockCreatedPatient = {
     email: 'paciente.criado@test.com',
     isActive: true,
   },
-  phoneNumber: '(11) 99999-9999',
+  phoneNumber: '11999999999',
   birthDate: '1990-05-15',
   documentNumber: '12345678901',
   gender: 'male',

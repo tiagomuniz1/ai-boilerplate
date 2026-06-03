@@ -24,7 +24,30 @@ const mockCacheService = {
   delByPattern: jest.fn(),
 } as unknown as jest.Mocked<CacheService>
 
-function makeUser(): User {
+function makeQueryBuilder(rawResult: Array<{ user_id: string }> = []) {
+  return {
+    select: jest.fn().mockReturnThis(),
+    from: jest.fn().mockReturnThis(),
+    where: jest.fn().mockReturnThis(),
+    andWhere: jest.fn().mockReturnThis(),
+    getRawMany: jest.fn().mockResolvedValue(rawResult),
+  }
+}
+
+function makeMockDataSource(
+  doctorRows: Array<{ user_id: string }> = [],
+  patientRows: Array<{ user_id: string }> = [],
+): DataSource {
+  const mock = {
+    createQueryBuilder: jest.fn()
+      .mockReturnValueOnce(makeQueryBuilder(doctorRows))
+      .mockReturnValueOnce(makeQueryBuilder(patientRows)),
+    createQueryRunner: jest.fn(),
+  }
+  return mock as unknown as DataSource
+}
+
+function makeUser(overrides: Partial<User> = {}): User {
   return {
     id: faker.string.uuid(),
     fullName: faker.person.fullName(),
@@ -36,6 +59,7 @@ function makeUser(): User {
     createdAt: new Date(),
     updatedAt: new Date(),
     deletedAt: null,
+    ...overrides,
   }
 }
 
@@ -45,7 +69,7 @@ describe('FindAllUsersUseCase', () => {
 
   beforeEach(() => {
     jest.clearAllMocks()
-    useCase = new FindAllUsersUseCase({} as DataSource, mockUsersRepository, mockCacheService)
+    useCase = new FindAllUsersUseCase(makeMockDataSource(), mockUsersRepository, mockCacheService)
   })
 
   it('returns cached result when cache hit', async () => {
@@ -84,6 +108,69 @@ describe('FindAllUsersUseCase', () => {
 
     expect(result.data[0]).not.toHaveProperty('password')
     expect(result.data[0]).not.toHaveProperty('version')
+  })
+
+  it('response includes isDoctor false and isPatient false when user has no profiles', async () => {
+    const user = makeUser()
+    mockCacheService.get.mockResolvedValue(null)
+    mockUsersRepository.findAll.mockResolvedValue([[user], 1])
+    mockCacheService.set.mockResolvedValue(undefined)
+
+    const result = await useCase.execute(pagination)
+
+    expect(result.data[0].isDoctor).toBe(false)
+    expect(result.data[0].isPatient).toBe(false)
+  })
+
+  it('response includes isDoctor true when user has a linked doctor profile', async () => {
+    const user = makeUser()
+    useCase = new FindAllUsersUseCase(
+      makeMockDataSource([{ user_id: user.id }], []),
+      mockUsersRepository,
+      mockCacheService,
+    )
+    mockCacheService.get.mockResolvedValue(null)
+    mockUsersRepository.findAll.mockResolvedValue([[user], 1])
+    mockCacheService.set.mockResolvedValue(undefined)
+
+    const result = await useCase.execute(pagination)
+
+    expect(result.data[0].isDoctor).toBe(true)
+    expect(result.data[0].isPatient).toBe(false)
+  })
+
+  it('response includes isPatient true when user has a linked patient profile', async () => {
+    const user = makeUser()
+    useCase = new FindAllUsersUseCase(
+      makeMockDataSource([], [{ user_id: user.id }]),
+      mockUsersRepository,
+      mockCacheService,
+    )
+    mockCacheService.get.mockResolvedValue(null)
+    mockUsersRepository.findAll.mockResolvedValue([[user], 1])
+    mockCacheService.set.mockResolvedValue(undefined)
+
+    const result = await useCase.execute(pagination)
+
+    expect(result.data[0].isDoctor).toBe(false)
+    expect(result.data[0].isPatient).toBe(true)
+  })
+
+  it('response includes both isDoctor and isPatient true when user has both profiles', async () => {
+    const user = makeUser()
+    useCase = new FindAllUsersUseCase(
+      makeMockDataSource([{ user_id: user.id }], [{ user_id: user.id }]),
+      mockUsersRepository,
+      mockCacheService,
+    )
+    mockCacheService.get.mockResolvedValue(null)
+    mockUsersRepository.findAll.mockResolvedValue([[user], 1])
+    mockCacheService.set.mockResolvedValue(undefined)
+
+    const result = await useCase.execute(pagination)
+
+    expect(result.data[0].isDoctor).toBe(true)
+    expect(result.data[0].isPatient).toBe(true)
   })
 
   it('returns correct pagination metadata', async () => {

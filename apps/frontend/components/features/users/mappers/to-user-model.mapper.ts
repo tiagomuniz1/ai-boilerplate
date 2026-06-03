@@ -8,6 +8,8 @@ export function toUserModel(dto: UserResponseDto): IUserModel {
     email: dto.email,
     role: dto.role,
     isActive: dto.isActive,
+    isDoctor: dto.isDoctor,
+    isPatient: dto.isPatient,
     createdAt: new Date(dto.createdAt),
     updatedAt: new Date(dto.updatedAt),
   }

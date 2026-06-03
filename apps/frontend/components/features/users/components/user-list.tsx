@@ -129,6 +129,7 @@ export function UserList() {
                   <th className="px-6 py-3 text-xs font-medium uppercase tracking-wider text-text-mute">Usuário</th>
                   <th className="px-6 py-3 text-xs font-medium uppercase tracking-wider text-text-mute">Status</th>
                   <th className="px-6 py-3 text-xs font-medium uppercase tracking-wider text-text-mute">Role</th>
+                  <th className="px-6 py-3 text-xs font-medium uppercase tracking-wider text-text-mute">Perfis</th>
                   <th className="px-6 py-3 text-xs font-medium uppercase tracking-wider text-text-mute">Criado em</th>
                   <th className="px-6 py-3 text-xs font-medium uppercase tracking-wider text-text-mute">Ações</th>
                 </tr>

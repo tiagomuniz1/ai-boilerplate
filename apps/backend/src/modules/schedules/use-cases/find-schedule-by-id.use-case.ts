@@ -51,7 +51,8 @@ export class FindScheduleByIdUseCase extends BaseUseCase {
       throw new ForbiddenException('You are not allowed to view this schedule')
     }
 
-    const response = this.toResponse(schedule)
+    const doctorName = await this.fetchDoctorName(schedule.doctorId)
+    const response = this.toResponse(schedule, doctorName)
 
     try {
       await this.cacheService.set(cacheKey, response, 300)
@@ -62,10 +63,23 @@ export class FindScheduleByIdUseCase extends BaseUseCase {
     return response
   }
 
-  private toResponse(schedule: Schedule): ScheduleResponseDto {
+  private async fetchDoctorName(doctorId: string): Promise<string> {
+    const rows: Array<{ fullName: string }> = await this.dataSource
+      .createQueryBuilder()
+      .select('u.full_name', 'fullName')
+      .from('doctors', 'd')
+      .innerJoin('users', 'u', 'u.id = d.user_id AND u.deleted_at IS NULL')
+      .where('d.id = :doctorId', { doctorId })
+      .andWhere('d.deleted_at IS NULL')
+      .getRawMany()
+    return rows[0]?.fullName ?? ''
+  }
+
+  private toResponse(schedule: Schedule, doctorName: string): ScheduleResponseDto {
     return {
       id: schedule.id,
       doctorId: schedule.doctorId,
+      doctorName,
       dayOfWeek: schedule.dayOfWeek,
       startTime: schedule.startTime,
       endTime: schedule.endTime,

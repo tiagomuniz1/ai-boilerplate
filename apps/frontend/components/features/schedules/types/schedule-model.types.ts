@@ -3,6 +3,7 @@ import type { DayOfWeek } from '@app/shared'
 export interface IScheduleModel {
   id: string
   doctorId: string
+  doctorName: string
   dayOfWeek: DayOfWeek
   startTime: string
   endTime: string

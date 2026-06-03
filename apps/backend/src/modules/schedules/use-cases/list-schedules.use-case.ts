@@ -47,8 +47,11 @@ export class ListSchedulesUseCase extends BaseUseCase {
 
     const [schedules, total] = await this.schedulesRepository.findAll(effectiveQuery)
 
+    const doctorIds = [...new Set(schedules.map((s) => s.doctorId))]
+    const doctorNames = await this.fetchDoctorNames(doctorIds)
+
     const result: PaginatedSchedulesResponseDto = {
-      data: schedules.map((s) => this.toResponse(s)),
+      data: schedules.map((s) => this.toResponse(s, doctorNames.get(s.doctorId) ?? '')),
       total,
       page,
       limit,
@@ -63,10 +66,25 @@ export class ListSchedulesUseCase extends BaseUseCase {
     return result
   }
 
-  private toResponse(schedule: Schedule): ScheduleResponseDto {
+  private async fetchDoctorNames(doctorIds: string[]): Promise<Map<string, string>> {
+    if (doctorIds.length === 0) return new Map()
+    const rows: Array<{ doctorId: string; fullName: string }> = await this.dataSource
+      .createQueryBuilder()
+      .select('d.id', 'doctorId')
+      .addSelect('u.full_name', 'fullName')
+      .from('doctors', 'd')
+      .innerJoin('users', 'u', 'u.id = d.user_id AND u.deleted_at IS NULL')
+      .where('d.id IN (:...ids)', { ids: doctorIds })
+      .andWhere('d.deleted_at IS NULL')
+      .getRawMany()
+    return new Map(rows.map((r) => [r.doctorId, r.fullName]))
+  }
+
+  private toResponse(schedule: Schedule, doctorName: string): ScheduleResponseDto {
     return {
       id: schedule.id,
       doctorId: schedule.doctorId,
+      doctorName,
       dayOfWeek: schedule.dayOfWeek,
       startTime: schedule.startTime,
       endTime: schedule.endTime,

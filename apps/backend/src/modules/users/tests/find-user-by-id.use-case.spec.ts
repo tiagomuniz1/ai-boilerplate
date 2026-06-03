@@ -25,6 +25,29 @@ const mockCacheService = {
   delByPattern: jest.fn(),
 } as unknown as jest.Mocked<CacheService>
 
+function makeQueryBuilder(rawResult: unknown[] = []) {
+  return {
+    select: jest.fn().mockReturnThis(),
+    from: jest.fn().mockReturnThis(),
+    where: jest.fn().mockReturnThis(),
+    andWhere: jest.fn().mockReturnThis(),
+    limit: jest.fn().mockReturnThis(),
+    getRawMany: jest.fn().mockResolvedValue(rawResult),
+  }
+}
+
+function makeMockDataSource(
+  isDoctorResult: unknown[] = [],
+  isPatientResult: unknown[] = [],
+): DataSource {
+  return {
+    createQueryBuilder: jest.fn()
+      .mockReturnValueOnce(makeQueryBuilder(isDoctorResult))
+      .mockReturnValueOnce(makeQueryBuilder(isPatientResult)),
+    createQueryRunner: jest.fn(),
+  } as unknown as DataSource
+}
+
 function makeUser(id = faker.string.uuid()): User {
   return {
     id,
@@ -47,12 +70,12 @@ describe('FindUserByIdUseCase', () => {
 
   beforeEach(() => {
     jest.clearAllMocks()
-    useCase = new FindUserByIdUseCase({} as DataSource, mockUsersRepository, mockCacheService)
+    useCase = new FindUserByIdUseCase(makeMockDataSource(), mockUsersRepository, mockCacheService)
   })
 
   it('returns cached result when cache hit', async () => {
     const id = faker.string.uuid()
-    const cached = { id, fullName: 'Alice', email: 'a@b.com', role: UserRole.USER, createdAt: new Date(), updatedAt: new Date() }
+    const cached = { id, fullName: 'Alice', email: 'a@b.com', role: UserRole.USER, isActive: true, isDoctor: false, isPatient: false, createdAt: new Date(), updatedAt: new Date() }
     mockCacheService.get.mockResolvedValue(cached)
 
     const result = await useCase.execute(id, adminUser)
@@ -91,6 +114,31 @@ describe('FindUserByIdUseCase', () => {
 
     expect(result).not.toHaveProperty('password')
     expect(result).not.toHaveProperty('version')
+  })
+
+  it('response includes isDoctor false and isPatient false when no profiles exist', async () => {
+    const user = makeUser()
+    mockCacheService.get.mockResolvedValue(null)
+    mockUsersRepository.findById.mockResolvedValue(user)
+    mockCacheService.set.mockResolvedValue(undefined)
+
+    const result = await useCase.execute(user.id, adminUser)
+
+    expect(result.isDoctor).toBe(false)
+    expect(result.isPatient).toBe(false)
+  })
+
+  it('response includes isDoctor true when user has a doctor profile', async () => {
+    const user = makeUser()
+    useCase = new FindUserByIdUseCase(makeMockDataSource([1], []), mockUsersRepository, mockCacheService)
+    mockCacheService.get.mockResolvedValue(null)
+    mockUsersRepository.findById.mockResolvedValue(user)
+    mockCacheService.set.mockResolvedValue(undefined)
+
+    const result = await useCase.execute(user.id, adminUser)
+
+    expect(result.isDoctor).toBe(true)
+    expect(result.isPatient).toBe(false)
   })
 
   it('does not throw when cache read fails', async () => {

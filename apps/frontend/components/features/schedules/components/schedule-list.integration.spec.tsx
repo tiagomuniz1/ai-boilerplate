@@ -27,6 +27,7 @@ function mockAuthStoreAs(role: UserRole) {
 const makeScheduleDto = (overrides = {}) => ({
   id: 'uuid-1',
   doctorId: 'doc-uuid-1',
+  doctorName: 'Dr. João Silva',
   dayOfWeek: DayOfWeek.MONDAY,
   startTime: '08:00',
   endTime: '12:00',
@@ -274,16 +275,16 @@ describe('ScheduleList (integration)', () => {
       expect(screen.getByText('2 agendas encontradas')).toBeInTheDocument()
     })
 
-    it('shows doctorId as fallback when doctor is not in the doctors list', async () => {
+    it('renders doctorName from the schedule DTO', async () => {
       ;(schedulesService.getAll as jest.Mock).mockResolvedValue(
-        makePaginatedResponse([makeScheduleDto({ doctorId: 'unknown-doctor-id' })]),
+        makePaginatedResponse([makeScheduleDto({ doctorName: 'Dr. Maria Santos' })]),
       )
 
       renderWithProviders(<ScheduleList />)
 
       await waitFor(() => expect(screen.getByTestId('schedule-doctor-uuid-1')).toBeInTheDocument())
 
-      expect(screen.getByTestId('schedule-doctor-uuid-1')).toHaveTextContent('unknown-doctor-id')
+      expect(screen.getByTestId('schedule-doctor-uuid-1')).toHaveTextContent('Dr. Maria Santos')
     })
   })
 })

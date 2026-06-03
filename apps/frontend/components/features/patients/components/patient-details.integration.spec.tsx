@@ -15,7 +15,7 @@ const patient: IPatientModel = {
   id: 'uuid-1',
   fullName: 'João Silva',
   email: 'joao@example.com',
-  phoneNumber: '(11) 99999-9999',
+  phoneNumber: '11999999999',
   birthDate: new Date('1990-05-15'),
   documentNumber: '12345678901',
   gender: PatientGender.MALE,
@@ -35,7 +35,7 @@ describe('PatientDetails (integration)', () => {
     expect(screen.getByTestId('patient-details-name')).toHaveTextContent('João Silva')
     expect(screen.getByTestId('patient-details-email')).toHaveTextContent('joao@example.com')
     expect(screen.getByTestId('patient-details-phone')).toHaveTextContent('(11) 99999-9999')
-    expect(screen.getByTestId('patient-details-document')).toHaveTextContent('12345678901')
+    expect(screen.getByTestId('patient-details-document')).toHaveTextContent('123.456.789-01')
     expect(screen.getByTestId('patient-details-gender')).toHaveTextContent('Masculino')
   })
 

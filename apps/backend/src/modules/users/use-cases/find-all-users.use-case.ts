@@ -31,8 +31,15 @@ export class FindAllUsersUseCase extends BaseUseCase {
     }
 
     const [users, total] = await this.usersRepository.findAll(page, limit, search)
+
+    const userIds = users.map((u) => u.id)
+    const [doctorUserIds, patientUserIds] = await Promise.all([
+      this.getDoctorUserIds(userIds),
+      this.getPatientUserIds(userIds),
+    ])
+
     const result: PaginatedUsersResponseDto = {
-      data: users.map((u) => this.toResponse(u)),
+      data: users.map((u) => this.toResponse(u, doctorUserIds, patientUserIds)),
       total,
       page,
       limit,
@@ -47,13 +54,39 @@ export class FindAllUsersUseCase extends BaseUseCase {
     return result
   }
 
-  private toResponse(user: User): UserResponseDto {
+  private async getDoctorUserIds(userIds: string[]): Promise<Set<string>> {
+    if (userIds.length === 0) return new Set()
+    const rows: Array<{ user_id: string }> = await this.dataSource
+      .createQueryBuilder()
+      .select('d.user_id', 'user_id')
+      .from('doctors', 'd')
+      .where('d.user_id IN (:...userIds)', { userIds })
+      .andWhere('d.deleted_at IS NULL')
+      .getRawMany()
+    return new Set(rows.map((r) => r.user_id))
+  }
+
+  private async getPatientUserIds(userIds: string[]): Promise<Set<string>> {
+    if (userIds.length === 0) return new Set()
+    const rows: Array<{ user_id: string }> = await this.dataSource
+      .createQueryBuilder()
+      .select('p.user_id', 'user_id')
+      .from('patients', 'p')
+      .where('p.user_id IN (:...userIds)', { userIds })
+      .andWhere('p.deleted_at IS NULL')
+      .getRawMany()
+    return new Set(rows.map((r) => r.user_id))
+  }
+
+  private toResponse(user: User, doctorUserIds: Set<string>, patientUserIds: Set<string>): UserResponseDto {
     return {
       id: user.id,
       fullName: user.fullName,
       email: user.email,
       role: user.role,
       isActive: user.isActive,
+      isDoctor: doctorUserIds.has(user.id),
+      isPatient: patientUserIds.has(user.id),
       createdAt: user.createdAt,
       updatedAt: user.updatedAt,
     }
