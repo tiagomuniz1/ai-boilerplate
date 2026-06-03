@@ -4,6 +4,7 @@ import { DataSource } from 'typeorm'
 import { CreateUserDto, UserResponseDto } from '@app/shared'
 import { BaseUseCase } from '../../../common/base.use-case'
 import { CacheService } from '../../../cache/cache.service'
+import { DB_UNIQUE_CONSTRAINTS, isUniqueConstraintViolation } from '../../../common/utils/db-constraint.utils'
 import { IUsersRepository } from '../repositories/users.repository.interface'
 import { User } from '../entities/user.entity'
 
@@ -24,7 +25,15 @@ export class CreateUserUseCase extends BaseUseCase {
     if (existing) throw new ConflictException('Email already in use')
 
     const hashedPassword = await bcrypt.hash(dto.password, 10)
-    const user = await this.usersRepository.create({ ...dto, password: hashedPassword })
+    let user: User
+    try {
+      user = await this.usersRepository.create({ ...dto, password: hashedPassword })
+    } catch (error) {
+      if (isUniqueConstraintViolation(error, DB_UNIQUE_CONSTRAINTS.USERS_EMAIL)) {
+        throw new ConflictException('Email already in use')
+      }
+      throw error
+    }
 
     try {
       await this.cacheService.delByPattern('users:list*')

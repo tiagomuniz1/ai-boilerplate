@@ -1,12 +1,20 @@
 import { ConflictException } from '@nestjs/common'
-import { DataSource } from 'typeorm'
+import { DataSource, QueryFailedError } from 'typeorm'
 import { faker } from '@faker-js/faker'
 import * as bcrypt from 'bcrypt'
 import { UserRole } from '@app/shared'
+import { DB_UNIQUE_CONSTRAINTS } from '../../../common/utils/db-constraint.utils'
 import { CreateUserUseCase } from '../use-cases/create-user.use-case'
 import { IUsersRepository } from '../repositories/users.repository.interface'
 import { CacheService } from '../../../cache/cache.service'
 import { User } from '../entities/user.entity'
+
+function makeUniqueViolation(constraint: string): QueryFailedError {
+  const error = new QueryFailedError('INSERT', [], new Error())
+  ;(error as any).code = '23505'
+  ;(error as any).constraint = constraint
+  return error
+}
 
 const mockUsersRepository: jest.Mocked<IUsersRepository> = {
   findAll: jest.fn(),
@@ -122,6 +130,24 @@ describe('CreateUserUseCase', () => {
     await useCase.execute(dto)
 
     expect(mockCacheService.delByPattern).toHaveBeenCalledWith('users:list*')
+  })
+
+  it('throws ConflictException when DB email unique constraint fires (race condition)', async () => {
+    mockUsersRepository.findByEmail.mockResolvedValue(null)
+    mockUsersRepository.create.mockRejectedValue(makeUniqueViolation(DB_UNIQUE_CONSTRAINTS.USERS_EMAIL))
+
+    await expect(
+      useCase.execute({ fullName: 'Alice', email: 'race@example.com', password: 'Password123', role: UserRole.USER }),
+    ).rejects.toThrow(ConflictException)
+  })
+
+  it('rethrows non-unique-constraint errors from repository create', async () => {
+    mockUsersRepository.findByEmail.mockResolvedValue(null)
+    mockUsersRepository.create.mockRejectedValue(new Error('Database connection lost'))
+
+    await expect(
+      useCase.execute({ fullName: 'Alice', email: 'a@b.com', password: 'Password123', role: UserRole.USER }),
+    ).rejects.toThrow('Database connection lost')
   })
 
   it('does not throw when cache invalidation fails', async () => {

@@ -1,11 +1,19 @@
 import { ConflictException, NotFoundException } from '@nestjs/common'
-import { DataSource, OptimisticLockVersionMismatchError } from 'typeorm'
+import { DataSource, OptimisticLockVersionMismatchError, QueryFailedError } from 'typeorm'
 import { faker } from '@faker-js/faker'
 import { PatientGender, UserRole } from '@app/shared'
+import { DB_UNIQUE_CONSTRAINTS } from '../../../common/utils/db-constraint.utils'
 import { CacheService } from '../../../cache/cache.service'
 import { IUsersRepository } from '../../users/repositories/users.repository.interface'
 import { IPatientsRepository } from '../repositories/patients.repository.interface'
 import { UpdatePatientUseCase } from '../use-cases/update-patient.use-case'
+
+function makeUniqueViolation(constraint: string): QueryFailedError {
+  const error = new QueryFailedError('UPDATE', [], new Error())
+  ;(error as any).code = '23505'
+  ;(error as any).constraint = constraint
+  return error
+}
 
 const mockPatientsRepository: jest.Mocked<IPatientsRepository> = {
   findAll: jest.fn(),
@@ -279,6 +287,44 @@ describe('UpdatePatientUseCase', () => {
 
     expect(mockCacheService.del).toHaveBeenCalledWith(`user:${patient.userId}`)
     expect(mockCacheService.delByPattern).toHaveBeenCalledWith('users:list*')
+  })
+
+  it('throws ConflictException when OptimisticLock fires on user-only update', async () => {
+    const patient = makePatient()
+    mockPatientsRepository.findById.mockResolvedValue(patient as any)
+    mockUsersRepository.update.mockRejectedValue(new OptimisticLockVersionMismatchError('User', 1, 2))
+
+    await expect(useCase.execute(patient.id, { fullName: 'New Name' })).rejects.toThrow(ConflictException)
+  })
+
+  it('throws ConflictException when OptimisticLock fires on user update inside transaction', async () => {
+    const patient = makePatient()
+    mockPatientsRepository.findById.mockResolvedValue(patient as any)
+    mockUsersRepository.update.mockRejectedValue(new OptimisticLockVersionMismatchError('User', 1, 2))
+
+    await expect(
+      useCase.execute(patient.id, { fullName: 'New Name', phoneNumber: '(11) 99999-9999' }),
+    ).rejects.toThrow(ConflictException)
+  })
+
+  it('throws ConflictException when DB email unique constraint fires on user-only update (race condition)', async () => {
+    const patient = makePatient()
+    mockPatientsRepository.findById.mockResolvedValue(patient as any)
+    mockUsersRepository.findByEmail.mockResolvedValue(null)
+    mockUsersRepository.update.mockRejectedValue(makeUniqueViolation(DB_UNIQUE_CONSTRAINTS.USERS_EMAIL))
+
+    await expect(useCase.execute(patient.id, { email: 'race@example.com' })).rejects.toThrow(ConflictException)
+  })
+
+  it('throws ConflictException when DB email unique constraint fires inside transaction (race condition)', async () => {
+    const patient = makePatient()
+    mockPatientsRepository.findById.mockResolvedValue(patient as any)
+    mockUsersRepository.findByEmail.mockResolvedValue(null)
+    mockUsersRepository.update.mockRejectedValue(makeUniqueViolation(DB_UNIQUE_CONSTRAINTS.USERS_EMAIL))
+
+    await expect(
+      useCase.execute(patient.id, { email: 'race@example.com', phoneNumber: '(11) 99999-9999' }),
+    ).rejects.toThrow(ConflictException)
   })
 
   it('continues and returns response when cache invalidation fails', async () => {

@@ -3,6 +3,7 @@ import { DataSource, OptimisticLockVersionMismatchError } from 'typeorm'
 import { PatientResponseDto, UpdatePatientDto } from '@app/shared'
 import { BaseUseCase } from '../../../common/base.use-case'
 import { CacheService } from '../../../cache/cache.service'
+import { DB_UNIQUE_CONSTRAINTS, isUniqueConstraintViolation } from '../../../common/utils/db-constraint.utils'
 import { IUsersRepository } from '../../users/repositories/users.repository.interface'
 import { IPatientsRepository } from '../repositories/patients.repository.interface'
 import { Patient } from '../entities/patient.entity'
@@ -33,29 +34,25 @@ export class UpdatePatientUseCase extends BaseUseCase {
       if (existing) throw new ConflictException('Email already in use')
     }
 
-    if (hasUserUpdate && hasPatientUpdate) {
-      await this.runInTransaction(async (queryRunner) => {
-        await this.usersRepository.update(patient.userId, { fullName, email }, queryRunner)
-        try {
+    try {
+      if (hasUserUpdate && hasPatientUpdate) {
+        await this.runInTransaction(async (queryRunner) => {
+          await this.usersRepository.update(patient.userId, { fullName, email }, queryRunner)
           await this.patientsRepository.update(id, patientFields, queryRunner)
-        } catch (error) {
-          if (error instanceof OptimisticLockVersionMismatchError) {
-            throw new ConflictException('Record was modified by another process. Please try again.')
-          }
-          throw error
-        }
-      })
-    } else if (hasUserUpdate) {
-      await this.usersRepository.update(patient.userId, { fullName, email })
-    } else if (hasPatientUpdate) {
-      try {
+        })
+      } else if (hasUserUpdate) {
+        await this.usersRepository.update(patient.userId, { fullName, email })
+      } else if (hasPatientUpdate) {
         await this.patientsRepository.update(id, patientFields)
-      } catch (error) {
-        if (error instanceof OptimisticLockVersionMismatchError) {
-          throw new ConflictException('Record was modified by another process. Please try again.')
-        }
-        throw error
       }
+    } catch (error) {
+      if (error instanceof OptimisticLockVersionMismatchError) {
+        throw new ConflictException('Record was modified by another process. Please try again.')
+      }
+      if (isUniqueConstraintViolation(error, DB_UNIQUE_CONSTRAINTS.USERS_EMAIL)) {
+        throw new ConflictException('Email already in use')
+      }
+      throw error
     }
 
     const updated = (await this.patientsRepository.findById(id))!

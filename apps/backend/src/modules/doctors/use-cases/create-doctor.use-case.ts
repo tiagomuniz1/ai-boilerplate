@@ -3,6 +3,7 @@ import { DataSource } from 'typeorm'
 import { CreateDoctorDto, DoctorResponseDto } from '@app/shared'
 import { BaseUseCase } from '../../../common/base.use-case'
 import { CacheService } from '../../../cache/cache.service'
+import { DB_UNIQUE_CONSTRAINTS, isUniqueConstraintViolation } from '../../../common/utils/db-constraint.utils'
 import { IUsersRepository } from '../../users/repositories/users.repository.interface'
 import { ISpecialtiesRepository } from '../../specialties/repositories/specialties.repository.interface'
 import { IDoctorsRepository } from '../repositories/doctors.repository.interface'
@@ -38,7 +39,18 @@ export class CreateDoctorUseCase extends BaseUseCase {
       throw new UnprocessableEntityException('One or more specialty IDs not found')
     }
 
-    const doctor = await this.doctorsRepository.create(dto, specialties)
+    let doctor: Doctor
+    try {
+      doctor = await this.doctorsRepository.create(dto, specialties)
+    } catch (error) {
+      if (isUniqueConstraintViolation(error, DB_UNIQUE_CONSTRAINTS.DOCTORS_CRM)) {
+        throw new ConflictException('CRM number already in use')
+      }
+      if (isUniqueConstraintViolation(error, DB_UNIQUE_CONSTRAINTS.DOCTORS_USER_ID)) {
+        throw new ConflictException('User already has a doctor profile')
+      }
+      throw error
+    }
 
     try {
       await this.cacheService.delByPattern('doctors:list*')

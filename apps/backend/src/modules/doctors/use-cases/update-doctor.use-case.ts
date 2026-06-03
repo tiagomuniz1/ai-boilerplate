@@ -3,6 +3,7 @@ import { DataSource, OptimisticLockVersionMismatchError } from 'typeorm'
 import { DoctorResponseDto, UpdateDoctorDto, UserRole } from '@app/shared'
 import { BaseUseCase } from '../../../common/base.use-case'
 import { CacheService } from '../../../cache/cache.service'
+import { DB_UNIQUE_CONSTRAINTS, isUniqueConstraintViolation } from '../../../common/utils/db-constraint.utils'
 import { ICurrentUser } from '../../auth/types/current-user.type'
 import { IUsersRepository } from '../../users/repositories/users.repository.interface'
 import { ISpecialtiesRepository } from '../../specialties/repositories/specialties.repository.interface'
@@ -67,6 +68,9 @@ export class UpdateDoctorUseCase extends BaseUseCase {
     } catch (error) {
       if (error instanceof OptimisticLockVersionMismatchError) {
         throw new ConflictException('Record was modified by another process. Please try again.')
+      }
+      if (isUniqueConstraintViolation(error, DB_UNIQUE_CONSTRAINTS.DOCTORS_CRM)) {
+        throw new ConflictException('CRM number already in use')
       }
       throw error
     }

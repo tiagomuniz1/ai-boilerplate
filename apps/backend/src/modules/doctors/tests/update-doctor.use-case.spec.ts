@@ -1,7 +1,15 @@
 import { ConflictException, ForbiddenException, NotFoundException, UnprocessableEntityException } from '@nestjs/common'
-import { DataSource, OptimisticLockVersionMismatchError } from 'typeorm'
+import { DataSource, OptimisticLockVersionMismatchError, QueryFailedError } from 'typeorm'
 import { faker } from '@faker-js/faker'
 import { UserRole } from '@app/shared'
+import { DB_UNIQUE_CONSTRAINTS } from '../../../common/utils/db-constraint.utils'
+
+function makeUniqueViolation(constraint: string): QueryFailedError {
+  const error = new QueryFailedError('UPDATE', [], new Error())
+  ;(error as any).code = '23505'
+  ;(error as any).constraint = constraint
+  return error
+}
 import { CacheService } from '../../../cache/cache.service'
 import { ICurrentUser } from '../../auth/types/current-user.type'
 import { IUsersRepository } from '../../users/repositories/users.repository.interface'
@@ -206,6 +214,15 @@ describe('UpdateDoctorUseCase', () => {
     await expect(useCase.execute(doctor.id, { bio: 'test' }, adminUser)).rejects.toThrow(
       ConflictException,
     )
+  })
+
+  it('throws ConflictException when DB CRM unique constraint fires (race condition)', async () => {
+    const doctor = makeDoctor()
+    mockDoctorsRepository.findById.mockResolvedValue(doctor as any)
+    mockDoctorsRepository.findByCrmNumber.mockResolvedValue(null)
+    mockDoctorsRepository.update.mockRejectedValue(makeUniqueViolation(DB_UNIQUE_CONSTRAINTS.DOCTORS_CRM))
+
+    await expect(useCase.execute(doctor.id, { crmNumber: '99999/SP' }, adminUser)).rejects.toThrow(ConflictException)
   })
 
   it('rethrows non-OptimisticLock errors from repository update', async () => {

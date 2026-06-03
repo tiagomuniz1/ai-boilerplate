@@ -5,6 +5,7 @@ import { DataSource } from 'typeorm'
 import { CreatePatientDto, PatientResponseDto, UserRole } from '@app/shared'
 import { BaseUseCase } from '../../../common/base.use-case'
 import { CacheService } from '../../../cache/cache.service'
+import { DB_UNIQUE_CONSTRAINTS, isUniqueConstraintViolation } from '../../../common/utils/db-constraint.utils'
 import { IUsersRepository } from '../../users/repositories/users.repository.interface'
 import { IPatientsRepository } from '../repositories/patients.repository.interface'
 import { Patient } from '../entities/patient.entity'
@@ -31,29 +32,40 @@ export class CreatePatientUseCase extends BaseUseCase {
 
     const hashedPassword = await bcrypt.hash(randomUUID(), 10)
 
-    const patient = await this.runInTransaction(async (queryRunner) => {
-      const user = await this.usersRepository.create(
-        {
-          fullName: dto.fullName,
-          email: dto.email,
-          password: hashedPassword,
-          role: UserRole.PATIENT,
-          isActive: false,
-        },
-        queryRunner,
-      )
+    let patient: Patient
+    try {
+      patient = await this.runInTransaction(async (queryRunner) => {
+        const user = await this.usersRepository.create(
+          {
+            fullName: dto.fullName,
+            email: dto.email,
+            password: hashedPassword,
+            role: UserRole.PATIENT,
+            isActive: false,
+          },
+          queryRunner,
+        )
 
-      return this.patientsRepository.create(
-        {
-          userId: user.id,
-          documentNumber: dto.documentNumber,
-          phoneNumber: dto.phoneNumber,
-          birthDate: dto.birthDate,
-          gender: dto.gender,
-        },
-        queryRunner,
-      )
-    })
+        return this.patientsRepository.create(
+          {
+            userId: user.id,
+            documentNumber: dto.documentNumber,
+            phoneNumber: dto.phoneNumber,
+            birthDate: dto.birthDate,
+            gender: dto.gender,
+          },
+          queryRunner,
+        )
+      })
+    } catch (error) {
+      if (isUniqueConstraintViolation(error, DB_UNIQUE_CONSTRAINTS.USERS_EMAIL)) {
+        throw new ConflictException('Email already in use')
+      }
+      if (isUniqueConstraintViolation(error, DB_UNIQUE_CONSTRAINTS.PATIENTS_DOCUMENT)) {
+        throw new ConflictException('Patient with this document number already exists')
+      }
+      throw error
+    }
 
     try {
       await this.cacheService.delByPattern('patients:list*')

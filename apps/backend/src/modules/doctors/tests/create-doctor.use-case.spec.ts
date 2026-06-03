@@ -1,11 +1,19 @@
 import { ConflictException, NotFoundException, UnprocessableEntityException } from '@nestjs/common'
-import { DataSource } from 'typeorm'
+import { DataSource, QueryFailedError } from 'typeorm'
 import { faker } from '@faker-js/faker'
+import { DB_UNIQUE_CONSTRAINTS } from '../../../common/utils/db-constraint.utils'
 import { CacheService } from '../../../cache/cache.service'
 import { IUsersRepository } from '../../users/repositories/users.repository.interface'
 import { ISpecialtiesRepository } from '../../specialties/repositories/specialties.repository.interface'
 import { IDoctorsRepository } from '../repositories/doctors.repository.interface'
 import { CreateDoctorUseCase } from '../use-cases/create-doctor.use-case'
+
+function makeUniqueViolation(constraint: string): QueryFailedError {
+  const error = new QueryFailedError('INSERT', [], new Error())
+  ;(error as any).code = '23505'
+  ;(error as any).constraint = constraint
+  return error
+}
 
 const mockDoctorsRepository: jest.Mocked<IDoctorsRepository> = {
   findAll: jest.fn(),
@@ -231,6 +239,42 @@ describe('CreateDoctorUseCase', () => {
     await useCase.execute(dto)
 
     expect(mockCacheService.delByPattern).toHaveBeenCalledWith('doctors:list*')
+  })
+
+  it('throws ConflictException when DB CRM unique constraint fires (race condition)', async () => {
+    const user = makeUser()
+    const specialty = makeSpecialty()
+    mockUsersRepository.findById.mockResolvedValue(user)
+    mockDoctorsRepository.findByUserId.mockResolvedValue(null)
+    mockDoctorsRepository.findByCrmNumber.mockResolvedValue(null)
+    mockSpecialtiesRepository.findByIds.mockResolvedValue([specialty] as any)
+    mockDoctorsRepository.create.mockRejectedValue(makeUniqueViolation(DB_UNIQUE_CONSTRAINTS.DOCTORS_CRM))
+
+    await expect(useCase.execute(makeDto(user.id, [specialty.id]))).rejects.toThrow(ConflictException)
+  })
+
+  it('throws ConflictException when DB user_id unique constraint fires (race condition)', async () => {
+    const user = makeUser()
+    const specialty = makeSpecialty()
+    mockUsersRepository.findById.mockResolvedValue(user)
+    mockDoctorsRepository.findByUserId.mockResolvedValue(null)
+    mockDoctorsRepository.findByCrmNumber.mockResolvedValue(null)
+    mockSpecialtiesRepository.findByIds.mockResolvedValue([specialty] as any)
+    mockDoctorsRepository.create.mockRejectedValue(makeUniqueViolation(DB_UNIQUE_CONSTRAINTS.DOCTORS_USER_ID))
+
+    await expect(useCase.execute(makeDto(user.id, [specialty.id]))).rejects.toThrow(ConflictException)
+  })
+
+  it('rethrows non-unique-constraint errors from repository create', async () => {
+    const user = makeUser()
+    const specialty = makeSpecialty()
+    mockUsersRepository.findById.mockResolvedValue(user)
+    mockDoctorsRepository.findByUserId.mockResolvedValue(null)
+    mockDoctorsRepository.findByCrmNumber.mockResolvedValue(null)
+    mockSpecialtiesRepository.findByIds.mockResolvedValue([specialty] as any)
+    mockDoctorsRepository.create.mockRejectedValue(new Error('Database failure'))
+
+    await expect(useCase.execute(makeDto(user.id, [specialty.id]))).rejects.toThrow('Database failure')
   })
 
   it('continues when cache invalidation fails', async () => {

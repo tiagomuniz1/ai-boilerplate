@@ -1,11 +1,19 @@
 import { ConflictException } from '@nestjs/common'
-import { DataSource } from 'typeorm'
+import { DataSource, QueryFailedError } from 'typeorm'
 import { faker } from '@faker-js/faker'
 import { PatientGender, UserRole } from '@app/shared'
+import { DB_UNIQUE_CONSTRAINTS } from '../../../common/utils/db-constraint.utils'
 import { CacheService } from '../../../cache/cache.service'
 import { IUsersRepository } from '../../users/repositories/users.repository.interface'
 import { IPatientsRepository } from '../repositories/patients.repository.interface'
 import { CreatePatientUseCase } from '../use-cases/create-patient.use-case'
+
+function makeUniqueViolation(constraint: string): QueryFailedError {
+  const error = new QueryFailedError('INSERT', [], new Error())
+  ;(error as any).code = '23505'
+  ;(error as any).constraint = constraint
+  return error
+}
 
 const mockPatientsRepository: jest.Mocked<IPatientsRepository> = {
   findAll: jest.fn(),
@@ -173,6 +181,31 @@ describe('CreatePatientUseCase', () => {
 
     expect(mockCacheService.delByPattern).toHaveBeenCalledWith('patients:list*')
     expect(mockCacheService.delByPattern).toHaveBeenCalledWith('users:list*')
+  })
+
+  it('throws ConflictException when DB email unique constraint fires (race condition)', async () => {
+    mockPatientsRepository.findByDocumentNumber.mockResolvedValue(null)
+    mockUsersRepository.findByEmail.mockResolvedValue(null)
+    mockUsersRepository.create.mockRejectedValue(makeUniqueViolation(DB_UNIQUE_CONSTRAINTS.USERS_EMAIL))
+
+    await expect(useCase.execute(makeDto())).rejects.toThrow(ConflictException)
+  })
+
+  it('throws ConflictException when DB document_number unique constraint fires (race condition)', async () => {
+    mockPatientsRepository.findByDocumentNumber.mockResolvedValue(null)
+    mockUsersRepository.findByEmail.mockResolvedValue(null)
+    mockUsersRepository.create.mockResolvedValue(makeUser() as any)
+    mockPatientsRepository.create.mockRejectedValue(makeUniqueViolation(DB_UNIQUE_CONSTRAINTS.PATIENTS_DOCUMENT))
+
+    await expect(useCase.execute(makeDto())).rejects.toThrow(ConflictException)
+  })
+
+  it('rethrows non-unique-constraint errors from transaction', async () => {
+    mockPatientsRepository.findByDocumentNumber.mockResolvedValue(null)
+    mockUsersRepository.findByEmail.mockResolvedValue(null)
+    mockUsersRepository.create.mockRejectedValue(new Error('Database failure'))
+
+    await expect(useCase.execute(makeDto())).rejects.toThrow('Database failure')
   })
 
   it('continues and returns response when cache invalidation fails', async () => {
