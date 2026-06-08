@@ -6,6 +6,7 @@ import { CreatePatientDto, PatientResponseDto, UserRole } from '@app/shared'
 import { BaseUseCase } from '../../../common/base.use-case'
 import { CacheService } from '../../../cache/cache.service'
 import { DB_UNIQUE_CONSTRAINTS, isUniqueConstraintViolation } from '../../../common/utils/db-constraint.utils'
+import { ICurrentUser } from '../../auth/types/current-user.type'
 import { IUsersRepository } from '../../users/repositories/users.repository.interface'
 import { IPatientsRepository } from '../repositories/patients.repository.interface'
 import { Patient } from '../entities/patient.entity'
@@ -23,8 +24,10 @@ export class CreatePatientUseCase extends BaseUseCase {
     super(dataSource)
   }
 
-  async execute(dto: CreatePatientDto): Promise<PatientResponseDto> {
-    const existingDocument = await this.patientsRepository.findByDocumentNumber(dto.documentNumber)
+  async execute(dto: CreatePatientDto, currentUser: ICurrentUser): Promise<PatientResponseDto> {
+    const { clinicId } = currentUser
+
+    const existingDocument = await this.patientsRepository.findByDocumentNumber(dto.documentNumber, clinicId)
     if (existingDocument) throw new ConflictException('Patient with this document number already exists')
 
     const existingEmail = await this.usersRepository.findByEmail(dto.email)
@@ -43,6 +46,7 @@ export class CreatePatientUseCase extends BaseUseCase {
             role: UserRole.PATIENT,
             isActive: false,
           },
+          clinicId,
           queryRunner,
         )
 
@@ -68,8 +72,8 @@ export class CreatePatientUseCase extends BaseUseCase {
     }
 
     try {
-      await this.cacheService.delByPattern('patients:list*')
-      await this.cacheService.delByPattern('users:list*')
+      await this.cacheService.delByPattern(`patients:list:${clinicId}*`)
+      await this.cacheService.delByPattern(`users:list:${clinicId}*`)
     } catch {
       this.logger.warn('Cache invalidation failed', { context: CreatePatientUseCase.name })
     }

@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
-import { ILike, QueryRunner, Repository } from 'typeorm'
+import { QueryRunner, Repository } from 'typeorm'
 import { Patient } from '../entities/patient.entity'
 import { CreatePatientData, IPatientsRepository, UpdatePatientData } from './patients.repository.interface'
 
@@ -11,33 +11,45 @@ export class PatientsRepository implements IPatientsRepository {
     private readonly repository: Repository<Patient>,
   ) {}
 
-  async findAll(page: number, limit: number, search?: string): Promise<[Patient[], number]> {
-    const where = search
-      ? [
-          { user: { fullName: ILike(`%${search}%`) } },
-          { documentNumber: search },
-        ]
-      : {}
+  async findAll(page: number, limit: number, clinicId: string, search?: string): Promise<[Patient[], number]> {
+    const qb = this.repository
+      .createQueryBuilder('patient')
+      .innerJoinAndSelect('patient.user', 'user')
+      .where('user.clinicId = :clinicId', { clinicId })
+      .orderBy('patient.createdAt', 'DESC')
+      .skip((page - 1) * limit)
+      .take(limit)
 
-    return this.repository.findAndCount({
-      relations: ['user'],
-      where,
-      skip: (page - 1) * limit,
-      take: limit,
-      order: { createdAt: 'DESC' },
-    })
+    if (search) {
+      qb.andWhere(
+        '(user.full_name ILIKE :search OR patient.document_number = :exactSearch)',
+        { search: `%${search}%`, exactSearch: search },
+      )
+    }
+
+    return qb.getManyAndCount()
   }
 
-  async findById(id: string): Promise<Patient | null> {
-    return this.repository.findOne({ where: { id }, relations: ['user'] })
+  async findById(id: string, clinicId: string): Promise<Patient | null> {
+    return this.repository
+      .createQueryBuilder('patient')
+      .innerJoinAndSelect('patient.user', 'user')
+      .where('patient.id = :id', { id })
+      .andWhere('user.clinicId = :clinicId', { clinicId })
+      .getOne()
   }
 
   async findByUserId(userId: string): Promise<Patient | null> {
     return this.repository.findOneBy({ userId })
   }
 
-  async findByDocumentNumber(documentNumber: string): Promise<Patient | null> {
-    return this.repository.findOneBy({ documentNumber })
+  async findByDocumentNumber(documentNumber: string, clinicId: string): Promise<Patient | null> {
+    return this.repository
+      .createQueryBuilder('patient')
+      .innerJoin('patient.user', 'user')
+      .where('patient.document_number = :documentNumber', { documentNumber })
+      .andWhere('user.clinicId = :clinicId', { clinicId })
+      .getOne()
   }
 
   async create(data: CreatePatientData, queryRunner?: QueryRunner): Promise<Patient> {

@@ -3,6 +3,7 @@ import { DataSource } from 'typeorm'
 import { faker } from '@faker-js/faker'
 import { PatientGender, UserRole } from '@app/shared'
 import { CacheService } from '../../../cache/cache.service'
+import { ICurrentUser } from '../../auth/types/current-user.type'
 import { IPatientsRepository } from '../repositories/patients.repository.interface'
 import { FindPatientByIdUseCase } from '../use-cases/find-patient-by-id.use-case'
 
@@ -56,6 +57,9 @@ const makePatient = (overrides = {}) => {
   }
 }
 
+const CLINIC_ID = 'fixed-clinic-uuid'
+const adminCurrentUser: ICurrentUser = { id: faker.string.uuid(), role: UserRole.ADMIN, clinicId: CLINIC_ID }
+
 describe('FindPatientByIdUseCase', () => {
   let useCase: FindPatientByIdUseCase
 
@@ -73,7 +77,7 @@ describe('FindPatientByIdUseCase', () => {
     const cached = { id, user: { fullName: 'João' } }
     mockCacheService.get.mockResolvedValue(cached)
 
-    const result = await useCase.execute(id)
+    const result = await useCase.execute(id, adminCurrentUser)
 
     expect(result).toBe(cached)
     expect(mockPatientsRepository.findById).not.toHaveBeenCalled()
@@ -85,11 +89,11 @@ describe('FindPatientByIdUseCase', () => {
     mockPatientsRepository.findById.mockResolvedValue(patient as any)
     mockCacheService.set.mockResolvedValue(undefined)
 
-    const result = await useCase.execute(patient.id)
+    const result = await useCase.execute(patient.id, adminCurrentUser)
 
-    expect(mockPatientsRepository.findById).toHaveBeenCalledWith(patient.id)
+    expect(mockPatientsRepository.findById).toHaveBeenCalledWith(patient.id, CLINIC_ID)
     expect(mockCacheService.set).toHaveBeenCalledWith(
-      `patient:${patient.id}`,
+      `patient:${CLINIC_ID}:${patient.id}`,
       expect.objectContaining({ id: patient.id }),
       300,
     )
@@ -102,7 +106,7 @@ describe('FindPatientByIdUseCase', () => {
     mockCacheService.get.mockResolvedValue(null)
     mockPatientsRepository.findById.mockResolvedValue(null)
 
-    await expect(useCase.execute(id)).rejects.toThrow(NotFoundException)
+    await expect(useCase.execute(id, adminCurrentUser)).rejects.toThrow(NotFoundException)
   })
 
   it('continues without cache when cache read fails', async () => {
@@ -111,7 +115,7 @@ describe('FindPatientByIdUseCase', () => {
     mockPatientsRepository.findById.mockResolvedValue(patient as any)
     mockCacheService.set.mockResolvedValue(undefined)
 
-    const result = await useCase.execute(patient.id)
+    const result = await useCase.execute(patient.id, adminCurrentUser)
 
     expect(result.id).toBe(patient.id)
   })
@@ -122,7 +126,7 @@ describe('FindPatientByIdUseCase', () => {
     mockPatientsRepository.findById.mockResolvedValue(patient as any)
     mockCacheService.set.mockRejectedValue(new Error('Redis error'))
 
-    const result = await useCase.execute(patient.id)
+    const result = await useCase.execute(patient.id, adminCurrentUser)
 
     expect(result.id).toBe(patient.id)
   })

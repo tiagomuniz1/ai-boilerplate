@@ -7,7 +7,7 @@ import { FindUserByIdUseCase } from '../use-cases/find-user-by-id.use-case'
 import { UpdateUserUseCase } from '../use-cases/update-user.use-case'
 import { DeleteUserUseCase } from '../use-cases/delete-user.use-case'
 import { PaginationDto } from '../../../common/dto/pagination.dto'
-import { AuthenticatedUser } from '../../auth/strategies/jwt.strategy'
+import { ICurrentUser } from '../../auth/types/current-user.type'
 
 const mockCreateUser = { execute: jest.fn() } as unknown as jest.Mocked<CreateUserUseCase>
 const mockFindAll = { execute: jest.fn() } as unknown as jest.Mocked<FindAllUsersUseCase>
@@ -16,7 +16,7 @@ const mockUpdate = { execute: jest.fn() } as unknown as jest.Mocked<UpdateUserUs
 const mockDelete = { execute: jest.fn() } as unknown as jest.Mocked<DeleteUserUseCase>
 const mockActivate = { execute: jest.fn() } as unknown as jest.Mocked<ActivateUserUseCase>
 
-const currentUser: AuthenticatedUser = { id: 'user-uuid-admin', role: UserRole.ADMIN, email: 'admin@example.com' }
+const currentUser: ICurrentUser = { id: 'user-uuid-admin', role: UserRole.ADMIN, clinicId: 'clinic-uuid' }
 
 describe('UsersController', () => {
   let controller: UsersController
@@ -26,25 +26,25 @@ describe('UsersController', () => {
     controller = new UsersController(mockCreateUser, mockFindAll, mockFindById, mockUpdate, mockDelete, mockActivate)
   })
 
-  it('create delegates to CreateUserUseCase', async () => {
+  it('create delegates to CreateUserUseCase with currentUser', async () => {
     const dto = { fullName: 'Alice', email: 'a@b.com', password: 'Pass1234', role: UserRole.USER }
     const response = { id: 'u1', ...dto, isActive: true, isDoctor: false, isPatient: false, createdAt: new Date(), updatedAt: new Date() }
     mockCreateUser.execute.mockResolvedValue(response)
 
-    const result = await controller.create(dto as any)
+    const result = await controller.create(dto as any, currentUser)
 
-    expect(mockCreateUser.execute).toHaveBeenCalledWith(dto)
+    expect(mockCreateUser.execute).toHaveBeenCalledWith(dto, currentUser)
     expect(result).toBe(response)
   })
 
-  it('findAll delegates to FindAllUsersUseCase', async () => {
+  it('findAll delegates to FindAllUsersUseCase with currentUser', async () => {
     const pagination: PaginationDto = Object.assign(new PaginationDto(), { page: 1, limit: 20 })
     const response = { data: [], total: 0, page: 1, limit: 20 }
     mockFindAll.execute.mockResolvedValue(response)
 
-    const result = await controller.findAll(pagination)
+    const result = await controller.findAll(pagination, currentUser)
 
-    expect(mockFindAll.execute).toHaveBeenCalledWith(pagination)
+    expect(mockFindAll.execute).toHaveBeenCalledWith(pagination, currentUser)
     expect(result).toBe(response)
   })
 
@@ -69,21 +69,21 @@ describe('UsersController', () => {
     expect(result).toBe(response)
   })
 
-  it('activate delegates to ActivateUserUseCase', async () => {
+  it('activate delegates to ActivateUserUseCase with currentUser', async () => {
     const response = { id: 'u1', fullName: 'Alice', email: 'a@b.com', role: UserRole.USER, isActive: true, isDoctor: false, isPatient: false, createdAt: new Date(), updatedAt: new Date() }
     mockActivate.execute.mockResolvedValue(response)
 
-    const result = await controller.activate('u1')
+    const result = await controller.activate('u1', currentUser)
 
-    expect(mockActivate.execute).toHaveBeenCalledWith('u1')
+    expect(mockActivate.execute).toHaveBeenCalledWith('u1', currentUser)
     expect(result).toBe(response)
   })
 
-  it('delete delegates to DeleteUserUseCase with currentUser id', async () => {
+  it('delete delegates to DeleteUserUseCase with full currentUser', async () => {
     mockDelete.execute.mockResolvedValue(undefined)
 
     await controller.delete('u1', currentUser)
 
-    expect(mockDelete.execute).toHaveBeenCalledWith('u1', currentUser.id)
+    expect(mockDelete.execute).toHaveBeenCalledWith('u1', currentUser)
   })
 })

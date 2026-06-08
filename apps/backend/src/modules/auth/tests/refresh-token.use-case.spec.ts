@@ -57,13 +57,14 @@ function makeUser(overrides: Partial<User> = {}): User {
     email: faker.internet.email(),
     password: 'hashed',
     role: UserRole.USER,
+    clinicId: faker.string.uuid(),
     version: 1,
     createdAt: new Date(),
     updatedAt: new Date(),
     isActive: true,
     deletedAt: null,
     ...overrides,
-  }
+  } as User
 }
 
 function makeStoredToken(overrides: Partial<RefreshToken> = {}): RefreshToken {
@@ -98,7 +99,7 @@ describe('RefreshTokenUseCase', () => {
     const user = makeUser()
     const storedToken = makeStoredToken({ userId: user.id })
 
-    mockJwtService.verifyAsync.mockResolvedValue({ sub: user.id, type: 'refresh' })
+    mockJwtService.verifyAsync.mockResolvedValue({ sub: user.id, type: 'refresh', clinicId: user.clinicId })
     mockRefreshTokensRepository.findByToken.mockResolvedValue(storedToken)
     mockUsersRepository.findById.mockResolvedValue(user)
     mockJwtService.signAsync
@@ -119,7 +120,7 @@ describe('RefreshTokenUseCase', () => {
 
   it('revokes old token and creates new one in transaction', async () => {
     const user = makeUser()
-    mockJwtService.verifyAsync.mockResolvedValue({ sub: user.id, type: 'refresh' })
+    mockJwtService.verifyAsync.mockResolvedValue({ sub: user.id, type: 'refresh', clinicId: user.clinicId })
     mockRefreshTokensRepository.findByToken.mockResolvedValue(makeStoredToken())
     mockUsersRepository.findById.mockResolvedValue(user)
     mockJwtService.signAsync.mockResolvedValue('token')
@@ -137,6 +138,28 @@ describe('RefreshTokenUseCase', () => {
       'token',
       expect.any(Date),
       mockQueryRunner,
+    )
+  })
+
+  it('propagates clinicId from original token into new access and refresh tokens', async () => {
+    const user = makeUser()
+    const clinicId = user.clinicId
+    mockJwtService.verifyAsync.mockResolvedValue({ sub: user.id, type: 'refresh', clinicId })
+    mockRefreshTokensRepository.findByToken.mockResolvedValue(makeStoredToken())
+    mockUsersRepository.findById.mockResolvedValue(user)
+    mockJwtService.signAsync.mockResolvedValue('token')
+    mockRefreshTokensRepository.revokeByToken.mockResolvedValue(undefined)
+    mockRefreshTokensRepository.create.mockResolvedValue({} as any)
+
+    await useCase.execute({ refreshToken: 'old-refresh-token' })
+
+    expect(mockJwtService.signAsync).toHaveBeenCalledWith(
+      expect.objectContaining({ clinicId }),
+      expect.anything(),
+    )
+    expect(mockJwtService.signAsync).toHaveBeenCalledWith(
+      expect.objectContaining({ type: 'refresh', clinicId }),
+      expect.anything(),
     )
   })
 

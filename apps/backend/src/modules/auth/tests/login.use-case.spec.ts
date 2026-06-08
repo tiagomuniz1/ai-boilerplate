@@ -47,13 +47,14 @@ function makeUser(overrides: Partial<User> = {}): User {
     email: faker.internet.email(),
     password: 'hashed_password',
     role: UserRole.USER,
+    clinicId: faker.string.uuid(),
     version: 1,
     createdAt: new Date(),
     updatedAt: new Date(),
     isActive: true,
     deletedAt: null,
     ...overrides,
-  }
+  } as User
 }
 
 describe('LoginUseCase', () => {
@@ -90,6 +91,48 @@ describe('LoginUseCase', () => {
     })
   })
 
+  it('includes clinicId in access token payload', async () => {
+    const user = makeUser()
+    mockUsersRepository.findByEmail.mockResolvedValue(user)
+    ;(bcrypt.compare as jest.Mock).mockResolvedValue(true)
+    mockJwtService.signAsync.mockResolvedValue('token')
+    mockRefreshTokensRepository.create.mockResolvedValue({} as any)
+
+    await useCase.execute({ email: user.email, password: 'password123' })
+
+    expect(mockJwtService.signAsync).toHaveBeenCalledWith(
+      expect.objectContaining({ sub: user.id, clinicId: user.clinicId }),
+      expect.anything(),
+    )
+  })
+
+  it('includes clinicId in refresh token payload', async () => {
+    const user = makeUser()
+    mockUsersRepository.findByEmail.mockResolvedValue(user)
+    ;(bcrypt.compare as jest.Mock).mockResolvedValue(true)
+    mockJwtService.signAsync.mockResolvedValue('token')
+    mockRefreshTokensRepository.create.mockResolvedValue({} as any)
+
+    await useCase.execute({ email: user.email, password: 'password123' })
+
+    expect(mockJwtService.signAsync).toHaveBeenCalledWith(
+      expect.objectContaining({ type: 'refresh', clinicId: user.clinicId }),
+      expect.anything(),
+    )
+  })
+
+  it('throws UnauthorizedException when user has no clinicId', async () => {
+    const user = makeUser({ clinicId: undefined as any })
+    mockUsersRepository.findByEmail.mockResolvedValue(user)
+    ;(bcrypt.compare as jest.Mock).mockResolvedValue(true)
+
+    await expect(
+      useCase.execute({ email: user.email, password: 'password123' }),
+    ).rejects.toThrow(new UnauthorizedException('User is not associated with a clinic'))
+
+    expect(mockJwtService.signAsync).not.toHaveBeenCalled()
+  })
+
   it('signs access token with correct payload and expiration', async () => {
     const user = makeUser()
     mockUsersRepository.findByEmail.mockResolvedValue(user)
@@ -100,7 +143,7 @@ describe('LoginUseCase', () => {
     await useCase.execute({ email: user.email, password: 'password123' })
 
     expect(mockJwtService.signAsync).toHaveBeenCalledWith(
-      { sub: user.id, email: user.email, role: user.role },
+      { sub: user.id, email: user.email, role: user.role, clinicId: user.clinicId },
       { expiresIn: '900s' },
     )
   })

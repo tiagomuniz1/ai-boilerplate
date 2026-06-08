@@ -51,16 +51,20 @@ export class LoginUseCase extends BaseUseCase {
       throw new UnauthorizedException('Invalid credentials')
     }
 
+    if (!user.clinicId) {
+      throw new UnauthorizedException('User is not associated with a clinic')
+    }
+
     const accessExpiresInSeconds = parseTtlToSeconds(this.authEnv.jwtExpiration)
     const refreshExpiresInSeconds = parseTtlToSeconds(this.authEnv.jwtRefreshExpiration)
 
     const [accessToken, refreshToken] = await Promise.all([
       this.jwtService.signAsync(
-        { sub: user.id, email: user.email, role: user.role },
+        { sub: user.id, email: user.email, role: user.role, clinicId: user.clinicId },
         { expiresIn: this.authEnv.jwtExpiration },
       ),
       this.jwtService.signAsync(
-        { sub: user.id, type: 'refresh', jti: randomUUID() },
+        { sub: user.id, type: 'refresh', jti: randomUUID(), clinicId: user.clinicId },
         { expiresIn: this.authEnv.jwtRefreshExpiration },
       ),
     ])

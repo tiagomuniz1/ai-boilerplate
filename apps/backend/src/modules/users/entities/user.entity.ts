@@ -3,11 +3,14 @@ import {
   CreateDateColumn,
   DeleteDateColumn,
   Entity,
+  JoinColumn,
+  ManyToOne,
   PrimaryGeneratedColumn,
   UpdateDateColumn,
   VersionColumn,
 } from 'typeorm'
 import { UserRole } from '@app/shared'
+import { Clinic } from '../../clinics/entities/clinic.entity'
 
 @Entity('users')
 export class User {
@@ -28,6 +31,13 @@ export class User {
 
   @Column({ name: 'is_active', default: true })
   isActive: boolean
+
+  @ManyToOne(() => Clinic, { eager: false })
+  @JoinColumn({ name: 'clinic_id' })
+  clinic: Clinic
+
+  @Column({ name: 'clinic_id' })
+  clinicId: string
 
   @VersionColumn()
   version: number

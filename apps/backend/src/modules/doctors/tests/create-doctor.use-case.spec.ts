@@ -1,8 +1,10 @@
 import { ConflictException, NotFoundException, UnprocessableEntityException } from '@nestjs/common'
 import { DataSource, QueryFailedError } from 'typeorm'
 import { faker } from '@faker-js/faker'
+import { UserRole } from '@app/shared'
 import { DB_UNIQUE_CONSTRAINTS } from '../../../common/utils/db-constraint.utils'
 import { CacheService } from '../../../cache/cache.service'
+import { ICurrentUser } from '../../auth/types/current-user.type'
 import { IUsersRepository } from '../../users/repositories/users.repository.interface'
 import { ISpecialtiesRepository } from '../../specialties/repositories/specialties.repository.interface'
 import { IDoctorsRepository } from '../repositories/doctors.repository.interface'
@@ -60,11 +62,12 @@ const makeUser = () => ({
   password: 'hashed',
   role: 'user' as any,
   isActive: true,
+  clinicId: faker.string.uuid(),
   version: 1,
   createdAt: new Date(),
   updatedAt: new Date(),
   deletedAt: null,
-})
+}) as any
 
 const makeSpecialty = (overrides = {}) => ({
   id: faker.string.uuid(),
@@ -97,6 +100,9 @@ const makeDto = (userId = faker.string.uuid(), specialtyIds = [faker.string.uuid
   specialtyIds,
 })
 
+const CLINIC_ID = 'fixed-clinic-uuid'
+const adminCurrentUser: ICurrentUser = { id: faker.string.uuid(), role: UserRole.ADMIN, clinicId: CLINIC_ID }
+
 describe('CreateDoctorUseCase', () => {
   let useCase: CreateDoctorUseCase
 
@@ -124,7 +130,7 @@ describe('CreateDoctorUseCase', () => {
     mockDoctorsRepository.create.mockResolvedValue(created as any)
     mockCacheService.delByPattern.mockResolvedValue(undefined)
 
-    const result = await useCase.execute(dto)
+    const result = await useCase.execute(dto, adminCurrentUser)
 
     expect(result.id).toBe(created.id)
     expect(result.user.id).toBe(user.id)
@@ -146,7 +152,7 @@ describe('CreateDoctorUseCase', () => {
     mockDoctorsRepository.create.mockResolvedValue(created as any)
     mockCacheService.delByPattern.mockResolvedValue(undefined)
 
-    const result = await useCase.execute(dto)
+    const result = await useCase.execute(dto, adminCurrentUser)
 
     expect(result).not.toHaveProperty('version')
     expect(result).not.toHaveProperty('deletedAt')
@@ -155,7 +161,7 @@ describe('CreateDoctorUseCase', () => {
   it('throws NotFoundException when user does not exist', async () => {
     mockUsersRepository.findById.mockResolvedValue(null)
 
-    await expect(useCase.execute(makeDto())).rejects.toThrow(NotFoundException)
+    await expect(useCase.execute(makeDto(), adminCurrentUser)).rejects.toThrow(NotFoundException)
     expect(mockDoctorsRepository.create).not.toHaveBeenCalled()
   })
 
@@ -164,7 +170,7 @@ describe('CreateDoctorUseCase', () => {
     mockUsersRepository.findById.mockResolvedValue(user)
     mockDoctorsRepository.findByUserId.mockResolvedValue(makeDoctor() as any)
 
-    await expect(useCase.execute(makeDto(user.id))).rejects.toThrow(ConflictException)
+    await expect(useCase.execute(makeDto(user.id), adminCurrentUser)).rejects.toThrow(ConflictException)
     expect(mockDoctorsRepository.create).not.toHaveBeenCalled()
   })
 
@@ -174,7 +180,7 @@ describe('CreateDoctorUseCase', () => {
     mockDoctorsRepository.findByUserId.mockResolvedValue(null)
     mockDoctorsRepository.findByCrmNumber.mockResolvedValue(makeDoctor() as any)
 
-    await expect(useCase.execute(makeDto(user.id))).rejects.toThrow(ConflictException)
+    await expect(useCase.execute(makeDto(user.id), adminCurrentUser)).rejects.toThrow(ConflictException)
     expect(mockDoctorsRepository.create).not.toHaveBeenCalled()
   })
 
@@ -185,7 +191,7 @@ describe('CreateDoctorUseCase', () => {
     mockDoctorsRepository.findByCrmNumber.mockResolvedValue(null)
     mockSpecialtiesRepository.findByIds.mockResolvedValue([])
 
-    await expect(useCase.execute(makeDto(user.id, [faker.string.uuid()]))).rejects.toThrow(
+    await expect(useCase.execute(makeDto(user.id, [faker.string.uuid()]), adminCurrentUser)).rejects.toThrow(
       UnprocessableEntityException,
     )
     expect(mockDoctorsRepository.create).not.toHaveBeenCalled()
@@ -203,7 +209,7 @@ describe('CreateDoctorUseCase', () => {
     mockDoctorsRepository.create.mockResolvedValue(makeDoctor({ user, specialties: [specialty] }) as any)
     mockCacheService.delByPattern.mockResolvedValue(undefined)
 
-    await useCase.execute(dto)
+    await useCase.execute(dto, adminCurrentUser)
 
     expect(mockSpecialtiesRepository.findByIds).toHaveBeenCalledWith([specialty.id])
   })
@@ -220,7 +226,7 @@ describe('CreateDoctorUseCase', () => {
     mockDoctorsRepository.create.mockResolvedValue(makeDoctor({ user, specialties: [specialty] }) as any)
     mockCacheService.delByPattern.mockResolvedValue(undefined)
 
-    await useCase.execute(dto)
+    await useCase.execute(dto, adminCurrentUser)
 
     expect(mockDoctorsRepository.create).toHaveBeenCalledWith(dto, [specialty])
   })
@@ -236,9 +242,9 @@ describe('CreateDoctorUseCase', () => {
     mockDoctorsRepository.create.mockResolvedValue(makeDoctor({ user }) as any)
     mockCacheService.delByPattern.mockResolvedValue(undefined)
 
-    await useCase.execute(dto)
+    await useCase.execute(dto, adminCurrentUser)
 
-    expect(mockCacheService.delByPattern).toHaveBeenCalledWith('doctors:list*')
+    expect(mockCacheService.delByPattern).toHaveBeenCalledWith(`doctors:list:${CLINIC_ID}*`)
   })
 
   it('throws ConflictException when DB CRM unique constraint fires (race condition)', async () => {
@@ -250,7 +256,7 @@ describe('CreateDoctorUseCase', () => {
     mockSpecialtiesRepository.findByIds.mockResolvedValue([specialty] as any)
     mockDoctorsRepository.create.mockRejectedValue(makeUniqueViolation(DB_UNIQUE_CONSTRAINTS.DOCTORS_CRM))
 
-    await expect(useCase.execute(makeDto(user.id, [specialty.id]))).rejects.toThrow(ConflictException)
+    await expect(useCase.execute(makeDto(user.id, [specialty.id]), adminCurrentUser)).rejects.toThrow(ConflictException)
   })
 
   it('throws ConflictException when DB user_id unique constraint fires (race condition)', async () => {
@@ -262,7 +268,7 @@ describe('CreateDoctorUseCase', () => {
     mockSpecialtiesRepository.findByIds.mockResolvedValue([specialty] as any)
     mockDoctorsRepository.create.mockRejectedValue(makeUniqueViolation(DB_UNIQUE_CONSTRAINTS.DOCTORS_USER_ID))
 
-    await expect(useCase.execute(makeDto(user.id, [specialty.id]))).rejects.toThrow(ConflictException)
+    await expect(useCase.execute(makeDto(user.id, [specialty.id]), adminCurrentUser)).rejects.toThrow(ConflictException)
   })
 
   it('rethrows non-unique-constraint errors from repository create', async () => {
@@ -274,7 +280,7 @@ describe('CreateDoctorUseCase', () => {
     mockSpecialtiesRepository.findByIds.mockResolvedValue([specialty] as any)
     mockDoctorsRepository.create.mockRejectedValue(new Error('Database failure'))
 
-    await expect(useCase.execute(makeDto(user.id, [specialty.id]))).rejects.toThrow('Database failure')
+    await expect(useCase.execute(makeDto(user.id, [specialty.id]), adminCurrentUser)).rejects.toThrow('Database failure')
   })
 
   it('continues when cache invalidation fails', async () => {
@@ -288,7 +294,7 @@ describe('CreateDoctorUseCase', () => {
     mockDoctorsRepository.create.mockResolvedValue(makeDoctor({ user }) as any)
     mockCacheService.delByPattern.mockRejectedValue(new Error('Redis error'))
 
-    const result = await useCase.execute(dto)
+    const result = await useCase.execute(dto, adminCurrentUser)
 
     expect(result.id).toBeDefined()
   })

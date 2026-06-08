@@ -8,10 +8,13 @@ import * as request from 'supertest'
 import { Repository } from 'typeorm'
 import { DayOfWeek, UserRole } from '@app/shared'
 import { AppModule } from '../../../app.module'
+import { Clinic } from '../../clinics/entities/clinic.entity'
 import { User } from '../../users/entities/user.entity'
 import { Doctor } from '../../doctors/entities/doctor.entity'
 import { Specialty } from '../../specialties/entities/specialty.entity'
 import { Schedule } from '../entities/schedule.entity'
+
+const SEED_CLINIC_ID = '10000000-0000-0000-0000-000000000000'
 
 process.env.NODE_ENV = 'test'
 process.env.DB_SCHEMA = 'test'
@@ -22,6 +25,7 @@ process.env.JWT_REFRESH_EXPIRATION = '7d'
 describe('SchedulesController (integration)', () => {
   let app: INestApplication
   let userRepository: Repository<User>
+  let clinicRepository: Repository<Clinic>
   let doctorRepository: Repository<Doctor>
   let specialtyRepository: Repository<Specialty>
   let scheduleRepository: Repository<Schedule>
@@ -48,6 +52,7 @@ describe('SchedulesController (integration)', () => {
     await app.listen(0)
 
     userRepository = module.get(getRepositoryToken(User))
+    clinicRepository = module.get(getRepositoryToken(Clinic))
     doctorRepository = module.get(getRepositoryToken(Doctor))
     specialtyRepository = module.get(getRepositoryToken(Specialty))
     scheduleRepository = module.get(getRepositoryToken(Schedule))
@@ -60,16 +65,22 @@ describe('SchedulesController (integration)', () => {
     await doctorRepository.query('DELETE FROM test.patients')
     await specialtyRepository.query('DELETE FROM test.specialties')
     await userRepository.query('DELETE FROM test.users')
+    await clinicRepository.query('DELETE FROM test.clinics')
+
+    await clinicRepository.save(
+      clinicRepository.create({ id: SEED_CLINIC_ID, name: 'Seed Clinic', slug: 'seed-clinic', isActive: true }),
+    )
 
     const password = 'Password123!'
     const hashed = await bcrypt.hash(password, 1)
 
-    const adminUser = await userRepository.save(
+    await userRepository.save(
       userRepository.create({
         fullName: 'Admin User',
         email: 'admin@schedules.test',
         password: hashed,
         role: UserRole.ADMIN,
+        clinicId: SEED_CLINIC_ID,
       }),
     )
 
@@ -79,6 +90,7 @@ describe('SchedulesController (integration)', () => {
         email: 'doctor@schedules.test',
         password: hashed,
         role: UserRole.DOCTOR,
+        clinicId: SEED_CLINIC_ID,
       }),
     )
     doctorUserId = doctorUserRecord.id
@@ -89,6 +101,7 @@ describe('SchedulesController (integration)', () => {
         email: 'other.doctor@schedules.test',
         password: hashed,
         role: UserRole.DOCTOR,
+        clinicId: SEED_CLINIC_ID,
       }),
     )
 
@@ -98,6 +111,7 @@ describe('SchedulesController (integration)', () => {
         email: 'user@schedules.test',
         password: hashed,
         role: UserRole.USER,
+        clinicId: SEED_CLINIC_ID,
       }),
     )
 
@@ -108,6 +122,7 @@ describe('SchedulesController (integration)', () => {
         password: hashed,
         role: UserRole.DOCTOR,
         isActive: true,
+        clinicId: SEED_CLINIC_ID,
       }),
     )
 
@@ -118,7 +133,7 @@ describe('SchedulesController (integration)', () => {
       specialtyRepository.create({ name: 'Neurologia' }),
     )
 
-    const doctorEntity = doctorRepository.create({ userId: doctorUserId, crmNumber: '11111/SP' })
+    const doctorEntity = doctorRepository.create({ userId: doctorUserId, crmNumber: '11111/SP', clinicId: SEED_CLINIC_ID })
     doctorEntity.specialties = [cardiologia]
     const doctorProfile = await doctorRepository.save(doctorEntity)
     doctorId = doctorProfile.id
@@ -126,6 +141,7 @@ describe('SchedulesController (integration)', () => {
     const otherDoctorEntity = doctorRepository.create({
       userId: otherDoctorUserRecord.id,
       crmNumber: '22222/SP',
+      clinicId: SEED_CLINIC_ID,
     })
     otherDoctorEntity.specialties = [neurologia]
     const otherDoctorProfile = await doctorRepository.save(otherDoctorEntity)
@@ -156,6 +172,7 @@ describe('SchedulesController (integration)', () => {
     await doctorRepository.query('DELETE FROM test.patients')
     await specialtyRepository.query('DELETE FROM test.specialties')
     await userRepository.query('DELETE FROM test.users')
+    await clinicRepository.query('DELETE FROM test.clinics')
     await app.close()
   })
 

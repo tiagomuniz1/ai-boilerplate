@@ -26,17 +26,18 @@ export class ListSchedulesUseCase extends BaseUseCase {
     query: ListSchedulesQueryDto,
     currentUser: ICurrentUser,
   ): Promise<PaginatedSchedulesResponseDto> {
+    const { clinicId } = currentUser
     const effectiveQuery = { ...query }
 
     if (currentUser.role === UserRole.DOCTOR) {
-      const doctor = await this.doctorsRepository.findByUserId(currentUser.id)
+      const doctor = await this.doctorsRepository.findByUserId(currentUser.id, clinicId)
       if (!doctor) throw new NotFoundException('Doctor not found')
       effectiveQuery.doctorId = doctor.id
     }
 
     const { doctorId, dayOfWeek, activeOn, page = 1, limit = 20 } = effectiveQuery
 
-    const cacheKey = `schedules:list:${doctorId ?? 'all'}:${dayOfWeek ?? 'all'}:${activeOn ?? 'all'}:${page}:${limit}`
+    const cacheKey = `schedules:list:${clinicId}:${doctorId ?? 'all'}:${dayOfWeek ?? 'all'}:${activeOn ?? 'all'}:${page}:${limit}`
 
     try {
       const cached = await this.cacheService.get<PaginatedSchedulesResponseDto>(cacheKey)
@@ -45,7 +46,7 @@ export class ListSchedulesUseCase extends BaseUseCase {
       this.logger.warn('Cache read failed', { context: ListSchedulesUseCase.name })
     }
 
-    const [schedules, total] = await this.schedulesRepository.findAll(effectiveQuery)
+    const [schedules, total] = await this.schedulesRepository.findAll(effectiveQuery, clinicId)
 
     const doctorIds = [...new Set(schedules.map((s) => s.doctorId))]
     const doctorNames = await this.fetchDoctorNames(doctorIds)

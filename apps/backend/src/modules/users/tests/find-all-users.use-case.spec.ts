@@ -4,6 +4,7 @@ import { UserRole } from '@app/shared'
 import { FindAllUsersUseCase } from '../use-cases/find-all-users.use-case'
 import { IUsersRepository } from '../repositories/users.repository.interface'
 import { CacheService } from '../../../cache/cache.service'
+import { ICurrentUser } from '../../auth/types/current-user.type'
 import { ListUsersQueryDto } from '../dto/list-users-query.dto'
 import { User } from '../entities/user.entity'
 
@@ -55,13 +56,17 @@ function makeUser(overrides: Partial<User> = {}): User {
     password: 'hash',
     role: UserRole.USER,
     isActive: true,
+    clinicId: faker.string.uuid(),
     version: 1,
     createdAt: new Date(),
     updatedAt: new Date(),
     deletedAt: null,
     ...overrides,
-  }
+  } as User
 }
+
+const CLINIC_ID = 'fixed-clinic-uuid'
+const adminCurrentUser: ICurrentUser = { id: faker.string.uuid(), role: UserRole.ADMIN, clinicId: CLINIC_ID }
 
 describe('FindAllUsersUseCase', () => {
   let useCase: FindAllUsersUseCase
@@ -76,7 +81,7 @@ describe('FindAllUsersUseCase', () => {
     const cached = { data: [], total: 0, page: 1, limit: 20 }
     mockCacheService.get.mockResolvedValue(cached)
 
-    const result = await useCase.execute(pagination)
+    const result = await useCase.execute(pagination, adminCurrentUser)
 
     expect(result).toBe(cached)
     expect(mockUsersRepository.findAll).not.toHaveBeenCalled()
@@ -88,14 +93,14 @@ describe('FindAllUsersUseCase', () => {
     mockUsersRepository.findAll.mockResolvedValue([users, 2])
     mockCacheService.set.mockResolvedValue(undefined)
 
-    const result = await useCase.execute(pagination)
+    const result = await useCase.execute(pagination, adminCurrentUser)
 
-    expect(mockUsersRepository.findAll).toHaveBeenCalledWith(1, 20, undefined)
+    expect(mockUsersRepository.findAll).toHaveBeenCalledWith(1, 20, CLINIC_ID, undefined)
     expect(result.total).toBe(2)
     expect(result.page).toBe(1)
     expect(result.limit).toBe(20)
     expect(result.data).toHaveLength(2)
-    expect(mockCacheService.set).toHaveBeenCalledWith('users:list:1:20:all', result, 60)
+    expect(mockCacheService.set).toHaveBeenCalledWith(`users:list:${CLINIC_ID}:1:20:all`, result, 60)
   })
 
   it('response data does not include password or version', async () => {
@@ -104,7 +109,7 @@ describe('FindAllUsersUseCase', () => {
     mockUsersRepository.findAll.mockResolvedValue([[user], 1])
     mockCacheService.set.mockResolvedValue(undefined)
 
-    const result = await useCase.execute(pagination)
+    const result = await useCase.execute(pagination, adminCurrentUser)
 
     expect(result.data[0]).not.toHaveProperty('password')
     expect(result.data[0]).not.toHaveProperty('version')
@@ -116,7 +121,7 @@ describe('FindAllUsersUseCase', () => {
     mockUsersRepository.findAll.mockResolvedValue([[user], 1])
     mockCacheService.set.mockResolvedValue(undefined)
 
-    const result = await useCase.execute(pagination)
+    const result = await useCase.execute(pagination, adminCurrentUser)
 
     expect(result.data[0].isDoctor).toBe(false)
     expect(result.data[0].isPatient).toBe(false)
@@ -133,7 +138,7 @@ describe('FindAllUsersUseCase', () => {
     mockUsersRepository.findAll.mockResolvedValue([[user], 1])
     mockCacheService.set.mockResolvedValue(undefined)
 
-    const result = await useCase.execute(pagination)
+    const result = await useCase.execute(pagination, adminCurrentUser)
 
     expect(result.data[0].isDoctor).toBe(true)
     expect(result.data[0].isPatient).toBe(false)
@@ -150,7 +155,7 @@ describe('FindAllUsersUseCase', () => {
     mockUsersRepository.findAll.mockResolvedValue([[user], 1])
     mockCacheService.set.mockResolvedValue(undefined)
 
-    const result = await useCase.execute(pagination)
+    const result = await useCase.execute(pagination, adminCurrentUser)
 
     expect(result.data[0].isDoctor).toBe(false)
     expect(result.data[0].isPatient).toBe(true)
@@ -167,7 +172,7 @@ describe('FindAllUsersUseCase', () => {
     mockUsersRepository.findAll.mockResolvedValue([[user], 1])
     mockCacheService.set.mockResolvedValue(undefined)
 
-    const result = await useCase.execute(pagination)
+    const result = await useCase.execute(pagination, adminCurrentUser)
 
     expect(result.data[0].isDoctor).toBe(true)
     expect(result.data[0].isPatient).toBe(true)
@@ -179,7 +184,7 @@ describe('FindAllUsersUseCase', () => {
     mockCacheService.set.mockResolvedValue(undefined)
 
     const pag: ListUsersQueryDto = Object.assign(new ListUsersQueryDto(), { page: 3, limit: 10 })
-    const result = await useCase.execute(pag)
+    const result = await useCase.execute(pag, adminCurrentUser)
 
     expect(result.total).toBe(42)
     expect(result.page).toBe(3)
@@ -192,10 +197,10 @@ describe('FindAllUsersUseCase', () => {
     mockCacheService.set.mockResolvedValue(undefined)
 
     const searchQuery: ListUsersQueryDto = Object.assign(new ListUsersQueryDto(), { page: 1, limit: 20, search: 'alice' })
-    await useCase.execute(searchQuery)
+    await useCase.execute(searchQuery, adminCurrentUser)
 
-    expect(mockUsersRepository.findAll).toHaveBeenCalledWith(1, 20, 'alice')
-    expect(mockCacheService.set).toHaveBeenCalledWith('users:list:1:20:alice', expect.any(Object), 60)
+    expect(mockUsersRepository.findAll).toHaveBeenCalledWith(1, 20, CLINIC_ID, 'alice')
+    expect(mockCacheService.set).toHaveBeenCalledWith(`users:list:${CLINIC_ID}:1:20:alice`, expect.any(Object), 60)
   })
 
   it('does not throw when cache read fails', async () => {
@@ -203,7 +208,7 @@ describe('FindAllUsersUseCase', () => {
     mockUsersRepository.findAll.mockResolvedValue([[], 0])
     mockCacheService.set.mockResolvedValue(undefined)
 
-    await expect(useCase.execute(pagination)).resolves.toBeDefined()
+    await expect(useCase.execute(pagination, adminCurrentUser)).resolves.toBeDefined()
     expect(mockUsersRepository.findAll).toHaveBeenCalled()
   })
 
@@ -212,6 +217,6 @@ describe('FindAllUsersUseCase', () => {
     mockUsersRepository.findAll.mockResolvedValue([[], 0])
     mockCacheService.set.mockRejectedValue(new Error('Redis down'))
 
-    await expect(useCase.execute(pagination)).resolves.toBeDefined()
+    await expect(useCase.execute(pagination, adminCurrentUser)).resolves.toBeDefined()
   })
 })

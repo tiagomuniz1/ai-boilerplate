@@ -21,8 +21,10 @@ export class FindAllDoctorsUseCase extends BaseUseCase {
   }
 
   async execute(query: ListDoctorsQueryDto, currentUser: ICurrentUser): Promise<PaginatedDoctorsResponseDto> {
+    const { clinicId } = currentUser
+
     if (currentUser.role === UserRole.DOCTOR) {
-      const doctor = await this.doctorsRepository.findByUserId(currentUser.id)
+      const doctor = await this.doctorsRepository.findByUserId(currentUser.id, clinicId)
       if (!doctor) throw new NotFoundException('Doctor not found')
       const result: PaginatedDoctorsResponseDto = {
         data: [this.toResponse(doctor)],
@@ -34,7 +36,7 @@ export class FindAllDoctorsUseCase extends BaseUseCase {
     }
 
     const { page, limit, search } = query
-    const cacheKey = `doctors:list:${page}:${limit}:${search ?? 'all'}`
+    const cacheKey = `doctors:list:${clinicId}:${page}:${limit}:${search ?? 'all'}`
 
     try {
       const cached = await this.cacheService.get<PaginatedDoctorsResponseDto>(cacheKey)
@@ -43,7 +45,7 @@ export class FindAllDoctorsUseCase extends BaseUseCase {
       this.logger.warn('Cache read failed', { context: FindAllDoctorsUseCase.name })
     }
 
-    const [doctors, total] = await this.doctorsRepository.findAll(page, limit, search)
+    const [doctors, total] = await this.doctorsRepository.findAll(page, limit, clinicId, search)
     const result: PaginatedDoctorsResponseDto = {
       data: doctors.map((d) => this.toResponse(d)),
       total,

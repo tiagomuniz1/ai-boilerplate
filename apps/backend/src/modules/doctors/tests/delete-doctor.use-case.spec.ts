@@ -3,6 +3,7 @@ import { DataSource, QueryRunner } from 'typeorm'
 import { faker } from '@faker-js/faker'
 import { UserRole } from '@app/shared'
 import { CacheService } from '../../../cache/cache.service'
+import { ICurrentUser } from '../../auth/types/current-user.type'
 import { IUsersRepository } from '../../users/repositories/users.repository.interface'
 import { DeleteScheduleUseCase } from '../../schedules/use-cases/delete-schedule.use-case'
 import { IDoctorsRepository } from '../repositories/doctors.repository.interface'
@@ -65,7 +66,8 @@ const makeDoctor = (role = UserRole.DOCTOR) => ({
   deletedAt: null,
 })
 
-const OTHER_USER_ID = faker.string.uuid()
+const CLINIC_ID = 'fixed-clinic-uuid'
+const adminCurrentUser: ICurrentUser = { id: faker.string.uuid(), role: UserRole.ADMIN, clinicId: CLINIC_ID }
 
 describe('DeleteDoctorUseCase', () => {
   let useCase: DeleteDoctorUseCase
@@ -90,9 +92,9 @@ describe('DeleteDoctorUseCase', () => {
     const doctor = makeDoctor(UserRole.DOCTOR)
     mockDoctorsRepository.findById.mockResolvedValue(doctor as any)
 
-    await expect(useCase.execute(doctor.id, OTHER_USER_ID)).resolves.toBeUndefined()
+    await expect(useCase.execute(doctor.id, adminCurrentUser)).resolves.toBeUndefined()
 
-    expect(mockDeleteScheduleUseCase.deleteByDoctorId).toHaveBeenCalledWith(doctor.id, mockQueryRunner)
+    expect(mockDeleteScheduleUseCase.deleteByDoctorId).toHaveBeenCalledWith(doctor.id, CLINIC_ID, mockQueryRunner)
     expect(mockDoctorsRepository.delete).toHaveBeenCalledWith(doctor.id, mockQueryRunner)
     expect(mockUsersRepository.delete).toHaveBeenCalledWith(doctor.userId, mockQueryRunner)
     expect(mockQueryRunner.commitTransaction).toHaveBeenCalled()
@@ -102,7 +104,7 @@ describe('DeleteDoctorUseCase', () => {
     const doctor = makeDoctor(UserRole.ADMIN)
     mockDoctorsRepository.findById.mockResolvedValue(doctor as any)
 
-    await useCase.execute(doctor.id, OTHER_USER_ID)
+    await useCase.execute(doctor.id, adminCurrentUser)
 
     expect(mockDoctorsRepository.delete).toHaveBeenCalledWith(doctor.id, mockQueryRunner)
     expect(mockUsersRepository.delete).not.toHaveBeenCalled()
@@ -111,8 +113,9 @@ describe('DeleteDoctorUseCase', () => {
   it('throws ForbiddenException when trying to delete own doctor profile', async () => {
     const doctor = makeDoctor()
     mockDoctorsRepository.findById.mockResolvedValue(doctor as any)
+    const selfCurrentUser: ICurrentUser = { id: doctor.userId, role: UserRole.ADMIN, clinicId: CLINIC_ID }
 
-    await expect(useCase.execute(doctor.id, doctor.userId)).rejects.toThrow(ForbiddenException)
+    await expect(useCase.execute(doctor.id, selfCurrentUser)).rejects.toThrow(ForbiddenException)
     expect(mockDoctorsRepository.delete).not.toHaveBeenCalled()
     expect(mockUsersRepository.delete).not.toHaveBeenCalled()
   })
@@ -120,7 +123,7 @@ describe('DeleteDoctorUseCase', () => {
   it('throws NotFoundException when doctor does not exist', async () => {
     mockDoctorsRepository.findById.mockResolvedValue(null)
 
-    await expect(useCase.execute(faker.string.uuid(), OTHER_USER_ID)).rejects.toThrow(NotFoundException)
+    await expect(useCase.execute(faker.string.uuid(), adminCurrentUser)).rejects.toThrow(NotFoundException)
     expect(mockDoctorsRepository.delete).not.toHaveBeenCalled()
     expect(mockUsersRepository.delete).not.toHaveBeenCalled()
     expect(mockDeleteScheduleUseCase.deleteByDoctorId).not.toHaveBeenCalled()
@@ -131,7 +134,7 @@ describe('DeleteDoctorUseCase', () => {
     mockDoctorsRepository.findById.mockResolvedValue(doctor as any)
     mockDoctorsRepository.delete.mockRejectedValue(new Error('DB error'))
 
-    await expect(useCase.execute(doctor.id, OTHER_USER_ID)).rejects.toThrow('DB error')
+    await expect(useCase.execute(doctor.id, adminCurrentUser)).rejects.toThrow('DB error')
     expect(mockQueryRunner.rollbackTransaction).toHaveBeenCalled()
     expect(mockQueryRunner.commitTransaction).not.toHaveBeenCalled()
   })
@@ -140,24 +143,24 @@ describe('DeleteDoctorUseCase', () => {
     const doctor = makeDoctor(UserRole.DOCTOR)
     mockDoctorsRepository.findById.mockResolvedValue(doctor as any)
 
-    await useCase.execute(doctor.id, OTHER_USER_ID)
+    await useCase.execute(doctor.id, adminCurrentUser)
 
-    expect(mockCacheService.del).toHaveBeenCalledWith(`doctor:${doctor.id}`)
-    expect(mockCacheService.delByPattern).toHaveBeenCalledWith('doctors:list*')
-    expect(mockCacheService.del).toHaveBeenCalledWith(`user:${doctor.userId}`)
-    expect(mockCacheService.delByPattern).toHaveBeenCalledWith('users:list*')
+    expect(mockCacheService.del).toHaveBeenCalledWith(`doctor:${CLINIC_ID}:${doctor.id}`)
+    expect(mockCacheService.delByPattern).toHaveBeenCalledWith(`doctors:list:${CLINIC_ID}*`)
+    expect(mockCacheService.del).toHaveBeenCalledWith(`user:${CLINIC_ID}:${doctor.userId}`)
+    expect(mockCacheService.delByPattern).toHaveBeenCalledWith(`users:list:${CLINIC_ID}*`)
   })
 
   it('invalidates only doctor cache when linked user role is not DOCTOR', async () => {
     const doctor = makeDoctor(UserRole.ADMIN)
     mockDoctorsRepository.findById.mockResolvedValue(doctor as any)
 
-    await useCase.execute(doctor.id, OTHER_USER_ID)
+    await useCase.execute(doctor.id, adminCurrentUser)
 
-    expect(mockCacheService.del).toHaveBeenCalledWith(`doctor:${doctor.id}`)
-    expect(mockCacheService.delByPattern).toHaveBeenCalledWith('doctors:list*')
-    expect(mockCacheService.del).not.toHaveBeenCalledWith(`user:${doctor.userId}`)
-    expect(mockCacheService.delByPattern).not.toHaveBeenCalledWith('users:list*')
+    expect(mockCacheService.del).toHaveBeenCalledWith(`doctor:${CLINIC_ID}:${doctor.id}`)
+    expect(mockCacheService.delByPattern).toHaveBeenCalledWith(`doctors:list:${CLINIC_ID}*`)
+    expect(mockCacheService.del).not.toHaveBeenCalledWith(`user:${CLINIC_ID}:${doctor.userId}`)
+    expect(mockCacheService.delByPattern).not.toHaveBeenCalledWith(`users:list:${CLINIC_ID}*`)
   })
 
   it('continues when cache invalidation fails', async () => {
@@ -165,7 +168,7 @@ describe('DeleteDoctorUseCase', () => {
     mockDoctorsRepository.findById.mockResolvedValue(doctor as any)
     mockCacheService.del.mockRejectedValue(new Error('Redis error'))
 
-    await expect(useCase.execute(doctor.id, OTHER_USER_ID)).resolves.toBeUndefined()
+    await expect(useCase.execute(doctor.id, adminCurrentUser)).resolves.toBeUndefined()
   })
 
   describe('deleteByUserId', () => {
@@ -174,16 +177,16 @@ describe('DeleteDoctorUseCase', () => {
       const doctor = makeDoctor()
       mockDoctorsRepository.findByUserId.mockResolvedValue(doctor as any)
 
-      await useCase.deleteByUserId(userId)
+      await useCase.deleteByUserId(userId, CLINIC_ID)
 
-      expect(mockDeleteScheduleUseCase.deleteByDoctorId).toHaveBeenCalledWith(doctor.id, undefined)
+      expect(mockDeleteScheduleUseCase.deleteByDoctorId).toHaveBeenCalledWith(doctor.id, CLINIC_ID, undefined)
       expect(mockDoctorsRepository.delete).toHaveBeenCalledWith(doctor.id, undefined)
     })
 
     it('does nothing when no doctor with userId exists', async () => {
       mockDoctorsRepository.findByUserId.mockResolvedValue(null)
 
-      await expect(useCase.deleteByUserId(faker.string.uuid())).resolves.toBeUndefined()
+      await expect(useCase.deleteByUserId(faker.string.uuid(), CLINIC_ID)).resolves.toBeUndefined()
       expect(mockDeleteScheduleUseCase.deleteByDoctorId).not.toHaveBeenCalled()
       expect(mockDoctorsRepository.delete).not.toHaveBeenCalled()
     })
@@ -194,9 +197,9 @@ describe('DeleteDoctorUseCase', () => {
       const queryRunner = {} as any
       mockDoctorsRepository.findByUserId.mockResolvedValue(doctor as any)
 
-      await useCase.deleteByUserId(userId, queryRunner)
+      await useCase.deleteByUserId(userId, CLINIC_ID, queryRunner)
 
-      expect(mockDeleteScheduleUseCase.deleteByDoctorId).toHaveBeenCalledWith(doctor.id, queryRunner)
+      expect(mockDeleteScheduleUseCase.deleteByDoctorId).toHaveBeenCalledWith(doctor.id, CLINIC_ID, queryRunner)
       expect(mockDoctorsRepository.delete).toHaveBeenCalledWith(doctor.id, queryRunner)
     })
 
@@ -205,7 +208,7 @@ describe('DeleteDoctorUseCase', () => {
       mockDoctorsRepository.findByUserId.mockResolvedValue(doctor as any)
       mockCacheService.del.mockRejectedValue(new Error('Redis error'))
 
-      await expect(useCase.deleteByUserId(faker.string.uuid())).resolves.toBeUndefined()
+      await expect(useCase.deleteByUserId(faker.string.uuid(), CLINIC_ID)).resolves.toBeUndefined()
     })
   })
 })

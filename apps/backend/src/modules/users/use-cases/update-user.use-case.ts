@@ -24,7 +24,8 @@ export class UpdateUserUseCase extends BaseUseCase {
       throw new ForbiddenException('You can only update your own profile')
     }
 
-    const user = await this.usersRepository.findById(id)
+    const { clinicId } = currentUser
+    const user = await this.usersRepository.findById(id, clinicId)
     if (!user) throw new NotFoundException('User not found')
 
     if (dto.email && dto.email !== user.email) {
@@ -43,8 +44,8 @@ export class UpdateUserUseCase extends BaseUseCase {
     }
 
     try {
-      await this.cacheService.del(`user:${id}`)
-      await this.cacheService.delByPattern('users:list*')
+      await this.cacheService.del(`user:${clinicId}:${id}`)
+      await this.cacheService.delByPattern(`users:list:${clinicId}*`)
     } catch {
       this.logger.warn('Cache invalidation failed', { context: UpdateUserUseCase.name, userId: id })
     }

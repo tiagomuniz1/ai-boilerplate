@@ -4,6 +4,7 @@ import { CreateDoctorDto, DoctorResponseDto } from '@app/shared'
 import { BaseUseCase } from '../../../common/base.use-case'
 import { CacheService } from '../../../cache/cache.service'
 import { DB_UNIQUE_CONSTRAINTS, isUniqueConstraintViolation } from '../../../common/utils/db-constraint.utils'
+import { ICurrentUser } from '../../auth/types/current-user.type'
 import { IUsersRepository } from '../../users/repositories/users.repository.interface'
 import { ISpecialtiesRepository } from '../../specialties/repositories/specialties.repository.interface'
 import { IDoctorsRepository } from '../repositories/doctors.repository.interface'
@@ -23,14 +24,16 @@ export class CreateDoctorUseCase extends BaseUseCase {
     super(dataSource)
   }
 
-  async execute(dto: CreateDoctorDto): Promise<DoctorResponseDto> {
-    const user = await this.usersRepository.findById(dto.userId)
+  async execute(dto: CreateDoctorDto, currentUser: ICurrentUser): Promise<DoctorResponseDto> {
+    const { clinicId } = currentUser
+
+    const user = await this.usersRepository.findById(dto.userId, clinicId)
     if (!user) throw new NotFoundException('User not found')
 
-    const existingProfile = await this.doctorsRepository.findByUserId(dto.userId)
+    const existingProfile = await this.doctorsRepository.findByUserId(dto.userId, clinicId)
     if (existingProfile) throw new ConflictException('User already has a doctor profile')
 
-    const existingCrm = await this.doctorsRepository.findByCrmNumber(dto.crmNumber)
+    const existingCrm = await this.doctorsRepository.findByCrmNumber(dto.crmNumber, clinicId)
     if (existingCrm) throw new ConflictException('CRM number already in use')
 
     const uniqueIds = [...new Set(dto.specialtyIds)]
@@ -53,7 +56,7 @@ export class CreateDoctorUseCase extends BaseUseCase {
     }
 
     try {
-      await this.cacheService.delByPattern('doctors:list*')
+      await this.cacheService.delByPattern(`doctors:list:${clinicId}*`)
     } catch {
       this.logger.warn('Cache invalidation failed', { context: CreateDoctorUseCase.name })
     }

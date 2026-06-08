@@ -29,14 +29,16 @@ export class DeleteScheduleUseCase extends BaseUseCase {
   }
 
   async execute(id: string, currentUser: ICurrentUser): Promise<void> {
-    const schedule = await this.schedulesRepository.findById(id)
+    const { clinicId } = currentUser
+
+    const schedule = await this.schedulesRepository.findById(id, clinicId)
     if (!schedule) throw new NotFoundException('Schedule not found')
 
     if (currentUser.role !== UserRole.ADMIN) {
       if (currentUser.role !== UserRole.DOCTOR) {
         throw new ForbiddenException('Only doctors and admins can manage schedules')
       }
-      const doctor = await this.doctorsRepository.findByUserId(currentUser.id)
+      const doctor = await this.doctorsRepository.findByUserId(currentUser.id, clinicId)
       if (!doctor) throw new NotFoundException('Doctor not found')
       if (schedule.doctorId !== doctor.id) {
         throw new ForbiddenException('You are not allowed to manage this schedule')
@@ -51,21 +53,18 @@ export class DeleteScheduleUseCase extends BaseUseCase {
     await this.schedulesRepository.delete(id)
 
     try {
-      await this.cacheService.delByPrefix(`schedules:list:${schedule.doctorId}:`)
-      await this.cacheService.delByPrefix('schedules:list:all:')
+      await this.cacheService.del(`schedule:${clinicId}:${id}`)
+      await this.cacheService.delByPrefix(`schedules:list:${clinicId}:`)
     } catch {
       this.logger.warn('Cache invalidation failed', { context: DeleteScheduleUseCase.name })
     }
   }
 
-  async deleteByDoctorId(doctorId: string, queryRunner?: QueryRunner): Promise<void> {
-    await this.schedulesRepository.deleteAllByDoctorId(doctorId, queryRunner)
+  async deleteByDoctorId(doctorId: string, clinicId: string, queryRunner?: QueryRunner): Promise<void> {
+    await this.schedulesRepository.deleteAllByDoctorId(doctorId, clinicId, queryRunner)
 
     try {
-      await Promise.all([
-        this.cacheService.delByPrefix(`schedules:list:${doctorId}:`),
-        this.cacheService.delByPrefix('schedules:list:all:'),
-      ])
+      await this.cacheService.delByPrefix(`schedules:list:${clinicId}:`)
     } catch {
       this.logger.warn('Cache invalidation failed', { context: DeleteScheduleUseCase.name })
     }

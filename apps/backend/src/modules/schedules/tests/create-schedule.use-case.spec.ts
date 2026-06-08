@@ -63,8 +63,9 @@ const makeDto = (overrides = {}) => ({
   ...overrides,
 })
 
-const doctorUser: ICurrentUser = { id: faker.string.uuid(), role: UserRole.DOCTOR }
-const adminUser: ICurrentUser = { id: faker.string.uuid(), role: UserRole.ADMIN }
+const CLINIC_ID = 'fixed-clinic-uuid'
+const doctorUser: ICurrentUser = { id: faker.string.uuid(), role: UserRole.DOCTOR, clinicId: CLINIC_ID }
+const adminUser: ICurrentUser = { id: faker.string.uuid(), role: UserRole.ADMIN, clinicId: CLINIC_ID }
 
 function makeMockDataSource(): DataSource {
   const builder = {
@@ -104,7 +105,7 @@ describe('CreateScheduleUseCase', () => {
       doctorUser,
     )
 
-    expect(mockDoctorsRepository.findByUserId).toHaveBeenCalledWith(doctorUser.id)
+    expect(mockDoctorsRepository.findByUserId).toHaveBeenCalledWith(doctorUser.id, CLINIC_ID)
     expect(mockDoctorsRepository.findById).not.toHaveBeenCalled()
     expect(result.id).toBeDefined()
   })
@@ -119,17 +120,17 @@ describe('CreateScheduleUseCase', () => {
 
     await useCase.execute(dto, adminUser)
 
-    expect(mockDoctorsRepository.findById).toHaveBeenCalledWith(targetDoctorId)
+    expect(mockDoctorsRepository.findById).toHaveBeenCalledWith(targetDoctorId, CLINIC_ID)
   })
 
   it('throws ForbiddenException when role is USER', async () => {
-    const userUser: ICurrentUser = { id: faker.string.uuid(), role: UserRole.USER }
+    const userUser: ICurrentUser = { id: faker.string.uuid(), role: UserRole.USER, clinicId: faker.string.uuid() }
     await expect(useCase.execute(makeDto(), userUser)).rejects.toThrow(ForbiddenException)
     expect(mockSchedulesRepository.create).not.toHaveBeenCalled()
   })
 
   it('throws ForbiddenException when role is PATIENT', async () => {
-    const patientUser: ICurrentUser = { id: faker.string.uuid(), role: UserRole.PATIENT }
+    const patientUser: ICurrentUser = { id: faker.string.uuid(), role: UserRole.PATIENT, clinicId: faker.string.uuid() }
     await expect(useCase.execute(makeDto(), patientUser)).rejects.toThrow(ForbiddenException)
     expect(mockSchedulesRepository.create).not.toHaveBeenCalled()
   })
@@ -203,8 +204,7 @@ describe('CreateScheduleUseCase', () => {
 
     await useCase.execute(makeDto(), doctorUser)
 
-    expect(mockCacheService.delByPrefix).toHaveBeenCalledWith(`schedules:list:${doctor.id}:`)
-    expect(mockCacheService.delByPrefix).toHaveBeenCalledWith('schedules:list:all:')
+    expect(mockCacheService.delByPrefix).toHaveBeenCalledWith(`schedules:list:${CLINIC_ID}:`)
   })
 
   it('continues when cache invalidation fails', async () => {

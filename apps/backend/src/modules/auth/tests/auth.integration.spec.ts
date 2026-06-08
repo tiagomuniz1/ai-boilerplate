@@ -9,10 +9,13 @@ import * as request from 'supertest'
 import { Repository } from 'typeorm'
 import { UserRole } from '@app/shared'
 import { AppModule } from '../../../app.module'
+import { Clinic } from '../../clinics/entities/clinic.entity'
 import { User } from '../../users/entities/user.entity'
 import { RefreshToken } from '../entities/refresh-token.entity'
 import { JwtAuthGuard } from '../guards/jwt-auth.guard'
 import { createHash } from 'crypto'
+
+const SEED_CLINIC_ID = '10000000-0000-0000-0000-000000000000'
 
 process.env.NODE_ENV = 'test'
 process.env.DB_SCHEMA = 'test'
@@ -31,6 +34,7 @@ function extractCookieValue(setCookieHeaders: string[] | string | undefined, nam
 describe('AuthController (integration)', () => {
   let app: INestApplication
   let userRepository: Repository<User>
+  let clinicRepository: Repository<Clinic>
   let refreshTokenRepository: Repository<RefreshToken>
 
   beforeAll(async () => {
@@ -49,7 +53,14 @@ describe('AuthController (integration)', () => {
     await app.listen(0)
 
     userRepository = module.get(getRepositoryToken(User))
+    clinicRepository = module.get(getRepositoryToken(Clinic))
     refreshTokenRepository = module.get(getRepositoryToken(RefreshToken))
+  })
+
+  beforeEach(async () => {
+    await clinicRepository.save(
+      clinicRepository.create({ id: SEED_CLINIC_ID, name: 'Seed Clinic', slug: 'seed-clinic', isActive: true }),
+    )
   })
 
   afterEach(async () => {
@@ -60,6 +71,7 @@ describe('AuthController (integration)', () => {
     await refreshTokenRepository.query('DELETE FROM test.specialties')
     await refreshTokenRepository.query('DELETE FROM test.refresh_tokens')
     await userRepository.query('DELETE FROM test.users')
+    await clinicRepository.query('DELETE FROM test.clinics')
   })
 
   afterAll(async () => {
@@ -73,6 +85,7 @@ describe('AuthController (integration)', () => {
         fullName: faker.person.fullName(),
         email: faker.internet.email(),
         password: hashedPassword,
+        clinicId: SEED_CLINIC_ID,
       }),
     )
   }
@@ -200,6 +213,7 @@ describe('AuthController (integration)', () => {
           password: hashedPassword,
           role: UserRole.PATIENT,
           isActive: true,
+          clinicId: SEED_CLINIC_ID,
         }),
       )
 
@@ -219,6 +233,7 @@ describe('AuthController (integration)', () => {
           email: 'inactive@test.com',
           password: hashedPassword,
           isActive: false,
+          clinicId: SEED_CLINIC_ID,
         }),
       )
 
@@ -414,6 +429,7 @@ describe('AuthController (integration)', () => {
       expect(body.fullName).toBe(user.fullName)
       expect(body.email).toBe(user.email)
       expect(body.role).toBe(user.role)
+      expect(body.clinicId).toBe(SEED_CLINIC_ID)
     })
 
     it('response does not contain password or version', async () => {

@@ -26,8 +26,10 @@ export class UpdateDoctorUseCase extends BaseUseCase {
   }
 
   async execute(id: string, dto: UpdateDoctorDto, currentUser: ICurrentUser): Promise<DoctorResponseDto> {
+    const { clinicId } = currentUser
+
     if (currentUser.role === UserRole.DOCTOR) {
-      const ownDoctor = await this.doctorsRepository.findByUserId(currentUser.id)
+      const ownDoctor = await this.doctorsRepository.findByUserId(currentUser.id, clinicId)
       if (!ownDoctor || ownDoctor.id !== id) {
         throw new ForbiddenException('You can only update your own doctor profile')
       }
@@ -37,11 +39,11 @@ export class UpdateDoctorUseCase extends BaseUseCase {
       throw new ForbiddenException('Only admins can change the active status')
     }
 
-    const doctor = await this.doctorsRepository.findById(id)
+    const doctor = await this.doctorsRepository.findById(id, clinicId)
     if (!doctor) throw new NotFoundException('Doctor not found')
 
     if (dto.crmNumber && dto.crmNumber !== doctor.crmNumber) {
-      const existing = await this.doctorsRepository.findByCrmNumber(dto.crmNumber)
+      const existing = await this.doctorsRepository.findByCrmNumber(dto.crmNumber, clinicId)
       if (existing) throw new ConflictException('CRM number already in use')
     }
 
@@ -76,11 +78,11 @@ export class UpdateDoctorUseCase extends BaseUseCase {
     }
 
     try {
-      await this.cacheService.del(`doctor:${id}`)
-      await this.cacheService.delByPattern('doctors:list*')
+      await this.cacheService.del(`doctor:${clinicId}:${id}`)
+      await this.cacheService.delByPattern(`doctors:list:${clinicId}*`)
       if (dto.isActive !== undefined) {
-        await this.cacheService.del(`user:${doctor.userId}`)
-        await this.cacheService.delByPattern('users:list*')
+        await this.cacheService.del(`user:${clinicId}:${doctor.userId}`)
+        await this.cacheService.delByPattern(`users:list:${clinicId}*`)
       }
     } catch {
       this.logger.warn('Cache invalidation failed', { context: UpdateDoctorUseCase.name })

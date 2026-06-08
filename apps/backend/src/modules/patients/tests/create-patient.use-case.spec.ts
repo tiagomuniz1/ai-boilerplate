@@ -4,6 +4,7 @@ import { faker } from '@faker-js/faker'
 import { PatientGender, UserRole } from '@app/shared'
 import { DB_UNIQUE_CONSTRAINTS } from '../../../common/utils/db-constraint.utils'
 import { CacheService } from '../../../cache/cache.service'
+import { ICurrentUser } from '../../auth/types/current-user.type'
 import { IUsersRepository } from '../../users/repositories/users.repository.interface'
 import { IPatientsRepository } from '../repositories/patients.repository.interface'
 import { CreatePatientUseCase } from '../use-cases/create-patient.use-case'
@@ -52,6 +53,9 @@ const mockDataSource = {
     manager: { getRepository: jest.fn() },
   }),
 } as unknown as DataSource
+
+const CLINIC_ID = 'fixed-clinic-uuid'
+const adminCurrentUser: ICurrentUser = { id: faker.string.uuid(), role: UserRole.ADMIN, clinicId: CLINIC_ID }
 
 const makeDto = () => ({
   fullName: faker.person.fullName(),
@@ -115,7 +119,7 @@ describe('CreatePatientUseCase', () => {
     mockPatientsRepository.create.mockResolvedValue(patient as any)
     mockCacheService.delByPattern.mockResolvedValue(undefined)
 
-    const result = await useCase.execute(dto)
+    const result = await useCase.execute(dto, adminCurrentUser)
 
     expect(result.id).toBe(patient.id)
     expect(result.user.fullName).toBe(user.fullName)
@@ -137,7 +141,7 @@ describe('CreatePatientUseCase', () => {
     mockPatientsRepository.create.mockResolvedValue(patient as any)
     mockCacheService.delByPattern.mockResolvedValue(undefined)
 
-    await useCase.execute(dto)
+    await useCase.execute(dto, adminCurrentUser)
 
     expect(mockUsersRepository.create).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -147,6 +151,7 @@ describe('CreatePatientUseCase', () => {
         isActive: false,
       }),
       expect.anything(),
+      expect.anything(),
     )
   })
 
@@ -154,7 +159,7 @@ describe('CreatePatientUseCase', () => {
     const dto = makeDto()
     mockPatientsRepository.findByDocumentNumber.mockResolvedValue(makePatient() as any)
 
-    await expect(useCase.execute(dto)).rejects.toThrow(ConflictException)
+    await expect(useCase.execute(dto, adminCurrentUser)).rejects.toThrow(ConflictException)
     expect(mockUsersRepository.create).not.toHaveBeenCalled()
     expect(mockPatientsRepository.create).not.toHaveBeenCalled()
   })
@@ -164,7 +169,7 @@ describe('CreatePatientUseCase', () => {
     mockPatientsRepository.findByDocumentNumber.mockResolvedValue(null)
     mockUsersRepository.findByEmail.mockResolvedValue(makeUser() as any)
 
-    await expect(useCase.execute(dto)).rejects.toThrow(ConflictException)
+    await expect(useCase.execute(dto, adminCurrentUser)).rejects.toThrow(ConflictException)
     expect(mockPatientsRepository.create).not.toHaveBeenCalled()
   })
 
@@ -177,10 +182,10 @@ describe('CreatePatientUseCase', () => {
     mockPatientsRepository.create.mockResolvedValue(makePatient(user) as any)
     mockCacheService.delByPattern.mockResolvedValue(undefined)
 
-    await useCase.execute(dto)
+    await useCase.execute(dto, adminCurrentUser)
 
-    expect(mockCacheService.delByPattern).toHaveBeenCalledWith('patients:list*')
-    expect(mockCacheService.delByPattern).toHaveBeenCalledWith('users:list*')
+    expect(mockCacheService.delByPattern).toHaveBeenCalledWith(`patients:list:${CLINIC_ID}*`)
+    expect(mockCacheService.delByPattern).toHaveBeenCalledWith(`users:list:${CLINIC_ID}*`)
   })
 
   it('throws ConflictException when DB email unique constraint fires (race condition)', async () => {
@@ -188,7 +193,7 @@ describe('CreatePatientUseCase', () => {
     mockUsersRepository.findByEmail.mockResolvedValue(null)
     mockUsersRepository.create.mockRejectedValue(makeUniqueViolation(DB_UNIQUE_CONSTRAINTS.USERS_EMAIL))
 
-    await expect(useCase.execute(makeDto())).rejects.toThrow(ConflictException)
+    await expect(useCase.execute(makeDto(), adminCurrentUser)).rejects.toThrow(ConflictException)
   })
 
   it('throws ConflictException when DB document_number unique constraint fires (race condition)', async () => {
@@ -197,7 +202,7 @@ describe('CreatePatientUseCase', () => {
     mockUsersRepository.create.mockResolvedValue(makeUser() as any)
     mockPatientsRepository.create.mockRejectedValue(makeUniqueViolation(DB_UNIQUE_CONSTRAINTS.PATIENTS_DOCUMENT))
 
-    await expect(useCase.execute(makeDto())).rejects.toThrow(ConflictException)
+    await expect(useCase.execute(makeDto(), adminCurrentUser)).rejects.toThrow(ConflictException)
   })
 
   it('rethrows non-unique-constraint errors from transaction', async () => {
@@ -205,7 +210,7 @@ describe('CreatePatientUseCase', () => {
     mockUsersRepository.findByEmail.mockResolvedValue(null)
     mockUsersRepository.create.mockRejectedValue(new Error('Database failure'))
 
-    await expect(useCase.execute(makeDto())).rejects.toThrow('Database failure')
+    await expect(useCase.execute(makeDto(), adminCurrentUser)).rejects.toThrow('Database failure')
   })
 
   it('continues and returns response when cache invalidation fails', async () => {
@@ -217,7 +222,7 @@ describe('CreatePatientUseCase', () => {
     mockPatientsRepository.create.mockResolvedValue(makePatient(user) as any)
     mockCacheService.delByPattern.mockRejectedValue(new Error('Redis error'))
 
-    const result = await useCase.execute(dto)
+    const result = await useCase.execute(dto, adminCurrentUser)
 
     expect(result.id).toBeDefined()
   })

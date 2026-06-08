@@ -13,8 +13,8 @@ export class MeUseCase extends BaseUseCase {
     super(dataSource)
   }
 
-  async execute(userId: string): Promise<MeResponseDto> {
-    const user = await this.usersRepository.findById(userId)
+  async execute(userId: string, clinicId: string): Promise<MeResponseDto> {
+    const user = await this.usersRepository.findById(userId, clinicId)
 
     if (!user) {
       throw new UnauthorizedException()
@@ -25,6 +25,7 @@ export class MeUseCase extends BaseUseCase {
       fullName: user.fullName,
       email: user.email,
       role: user.role,
+      clinicId: user.clinicId,
     }
   }
 }

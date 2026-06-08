@@ -10,6 +10,7 @@ import {
   VersionColumn,
 } from 'typeorm'
 import { DayOfWeek } from '@app/shared'
+import { Clinic } from '../../clinics/entities/clinic.entity'
 import { Doctor } from '../../doctors/entities/doctor.entity'
 
 @Entity('schedules')
@@ -23,6 +24,13 @@ export class Schedule {
 
   @Column({ name: 'doctor_id' })
   doctorId: string
+
+  @ManyToOne(() => Clinic, { eager: false })
+  @JoinColumn({ name: 'clinic_id' })
+  clinic: Clinic
+
+  @Column({ name: 'clinic_id' })
+  clinicId: string
 
   @Column({ name: 'day_of_week', type: 'varchar' })
   dayOfWeek: DayOfWeek

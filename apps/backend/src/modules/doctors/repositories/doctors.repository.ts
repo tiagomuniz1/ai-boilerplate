@@ -13,17 +13,18 @@ export class DoctorsRepository implements IDoctorsRepository {
     private readonly repository: Repository<Doctor>,
   ) {}
 
-  async findAll(page: number, limit: number, search?: string): Promise<[Doctor[], number]> {
+  async findAll(page: number, limit: number, clinicId: string, search?: string): Promise<[Doctor[], number]> {
     const qb = this.repository
       .createQueryBuilder('doctor')
       .innerJoinAndSelect('doctor.user', 'user')
       .leftJoinAndSelect('doctor.specialties', 'specialty')
+      .where('user.clinicId = :clinicId', { clinicId })
       .orderBy('doctor.createdAt', 'DESC')
       .take(limit)
       .skip((page - 1) * limit)
 
     if (search) {
-      qb.where('user.fullName ILIKE :search OR specialty.name ILIKE :search', {
+      qb.andWhere('user.fullName ILIKE :search OR specialty.name ILIKE :search', {
         search: `%${search}%`,
       })
     }
@@ -31,26 +32,33 @@ export class DoctorsRepository implements IDoctorsRepository {
     return qb.getManyAndCount()
   }
 
-  async findById(id: string): Promise<Doctor | null> {
+  async findById(id: string, clinicId: string): Promise<Doctor | null> {
     return this.repository
       .createQueryBuilder('doctor')
       .innerJoinAndSelect('doctor.user', 'user')
       .leftJoinAndSelect('doctor.specialties', 'specialty')
       .where('doctor.id = :id', { id })
+      .andWhere('user.clinicId = :clinicId', { clinicId })
       .getOne()
   }
 
-  async findByUserId(userId: string): Promise<Doctor | null> {
+  async findByUserId(userId: string, clinicId: string): Promise<Doctor | null> {
     return this.repository
       .createQueryBuilder('doctor')
       .innerJoinAndSelect('doctor.user', 'user')
       .leftJoinAndSelect('doctor.specialties', 'specialty')
       .where('doctor.userId = :userId', { userId })
+      .andWhere('user.clinicId = :clinicId', { clinicId })
       .getOne()
   }
 
-  async findByCrmNumber(crmNumber: string): Promise<Doctor | null> {
-    return this.repository.findOneBy({ crmNumber })
+  async findByCrmNumber(crmNumber: string, clinicId: string): Promise<Doctor | null> {
+    return this.repository
+      .createQueryBuilder('doctor')
+      .innerJoin('doctor.user', 'user')
+      .where('doctor.crmNumber = :crmNumber', { crmNumber })
+      .andWhere('user.clinicId = :clinicId', { clinicId })
+      .getOne()
   }
 
   async create(data: CreateDoctorDto, specialties: Specialty[], queryRunner?: QueryRunner): Promise<Doctor> {

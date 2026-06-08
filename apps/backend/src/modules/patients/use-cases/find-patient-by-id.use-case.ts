@@ -3,6 +3,7 @@ import { DataSource } from 'typeorm'
 import { PatientResponseDto } from '@app/shared'
 import { BaseUseCase } from '../../../common/base.use-case'
 import { CacheService } from '../../../cache/cache.service'
+import { ICurrentUser } from '../../auth/types/current-user.type'
 import { IPatientsRepository } from '../repositories/patients.repository.interface'
 import { Patient } from '../entities/patient.entity'
 
@@ -18,8 +19,9 @@ export class FindPatientByIdUseCase extends BaseUseCase {
     super(dataSource)
   }
 
-  async execute(id: string): Promise<PatientResponseDto> {
-    const cacheKey = `patient:${id}`
+  async execute(id: string, currentUser: ICurrentUser): Promise<PatientResponseDto> {
+    const { clinicId } = currentUser
+    const cacheKey = `patient:${clinicId}:${id}`
 
     try {
       const cached = await this.cacheService.get<PatientResponseDto>(cacheKey)
@@ -28,7 +30,7 @@ export class FindPatientByIdUseCase extends BaseUseCase {
       this.logger.warn('Cache read failed', { context: FindPatientByIdUseCase.name })
     }
 
-    const patient = await this.patientsRepository.findById(id)
+    const patient = await this.patientsRepository.findById(id, clinicId)
     if (!patient) throw new NotFoundException('Patient not found')
 
     const response = this.toResponse(patient)

@@ -12,9 +12,10 @@ export class UsersRepository implements IUsersRepository {
     private readonly repository: Repository<User>,
   ) {}
 
-  async findAll(page: number, limit: number, search?: string): Promise<[User[], number]> {
+  async findAll(page: number, limit: number, clinicId: string, search?: string): Promise<[User[], number]> {
     const query = this.repository
       .createQueryBuilder('user')
+      .where('user.clinic_id = :clinicId', { clinicId })
       .skip((page - 1) * limit)
       .take(limit)
       .orderBy('user.created_at', 'DESC')
@@ -26,17 +27,17 @@ export class UsersRepository implements IUsersRepository {
     return query.getManyAndCount()
   }
 
-  async findById(id: string): Promise<User | null> {
-    return this.repository.findOneBy({ id })
+  async findById(id: string, clinicId: string): Promise<User | null> {
+    return this.repository.findOneBy({ id, clinicId })
   }
 
   async findByEmail(email: string): Promise<User | null> {
     return this.repository.findOneBy({ email })
   }
 
-  async create(data: CreateUserData, queryRunner?: QueryRunner): Promise<User> {
+  async create(data: CreateUserData, clinicId: string, queryRunner?: QueryRunner): Promise<User> {
     const repo = queryRunner ? queryRunner.manager.getRepository(User) : this.repository
-    return repo.save(repo.create(data))
+    return repo.save(repo.create({ ...data, clinicId }))
   }
 
   async update(id: string, data: UpdateUserDto, queryRunner?: QueryRunner): Promise<User> {

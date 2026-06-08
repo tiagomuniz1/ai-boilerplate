@@ -7,8 +7,11 @@ import * as request from 'supertest'
 import { Repository } from 'typeorm'
 import { PatientGender, UserRole } from '@app/shared'
 import { AppModule } from '../../../app.module'
+import { Clinic } from '../../clinics/entities/clinic.entity'
 import { User } from '../../users/entities/user.entity'
 import { Patient } from '../entities/patient.entity'
+
+const SEED_CLINIC_ID = '10000000-0000-0000-0000-000000000000'
 
 process.env.NODE_ENV = 'test'
 process.env.DB_SCHEMA = 'test'
@@ -19,6 +22,7 @@ process.env.JWT_REFRESH_EXPIRATION = '7d'
 describe('PatientsController (integration)', () => {
   let app: INestApplication
   let userRepository: Repository<User>
+  let clinicRepository: Repository<Clinic>
   let patientRepository: Repository<Patient>
   let accessToken: string
   let doctorToken: string
@@ -34,6 +38,7 @@ describe('PatientsController (integration)', () => {
         password: hashedPassword,
         role,
         isActive: true,
+        clinicId: SEED_CLINIC_ID,
       }),
     )
     const response = await request(app.getHttpServer())
@@ -58,10 +63,15 @@ describe('PatientsController (integration)', () => {
     await app.listen(0)
 
     userRepository = module.get(getRepositoryToken(User))
+    clinicRepository = module.get(getRepositoryToken(Clinic))
     patientRepository = module.get(getRepositoryToken(Patient))
   })
 
   beforeEach(async () => {
+    await clinicRepository.save(
+      clinicRepository.create({ id: SEED_CLINIC_ID, name: 'Seed Clinic', slug: 'seed-clinic', isActive: true }),
+    )
+
     accessToken = await loginAs(UserRole.ADMIN)
     doctorToken = await loginAs(UserRole.DOCTOR)
     userToken = await loginAs(UserRole.USER)
@@ -74,6 +84,7 @@ describe('PatientsController (integration)', () => {
     await patientRepository.query('DELETE FROM test.patients')
     await patientRepository.query('DELETE FROM test.specialties')
     await userRepository.query('DELETE FROM test.users')
+    await clinicRepository.query('DELETE FROM test.clinics')
   })
 
   afterAll(async () => {

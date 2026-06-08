@@ -40,9 +40,9 @@ const mockCacheService = {
 const ownerId = faker.string.uuid()
 const otherDoctorId = faker.string.uuid()
 
-const ownerUser: ICurrentUser = { id: ownerId, role: UserRole.DOCTOR }
-const otherDoctorUser: ICurrentUser = { id: otherDoctorId, role: UserRole.DOCTOR }
-const adminUser: ICurrentUser = { id: faker.string.uuid(), role: UserRole.ADMIN }
+const ownerUser: ICurrentUser = { id: ownerId, role: UserRole.DOCTOR, clinicId: faker.string.uuid() }
+const otherDoctorUser: ICurrentUser = { id: otherDoctorId, role: UserRole.DOCTOR, clinicId: faker.string.uuid() }
+const adminUser: ICurrentUser = { id: faker.string.uuid(), role: UserRole.ADMIN, clinicId: faker.string.uuid() }
 
 const makeSchedule = (overrides = {}) => ({
   id: faker.string.uuid(),

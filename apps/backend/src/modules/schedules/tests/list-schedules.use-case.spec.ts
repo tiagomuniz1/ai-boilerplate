@@ -38,9 +38,10 @@ const mockCacheService = {
   setIfNotExists: jest.fn(),
 } as unknown as jest.Mocked<CacheService>
 
+const CLINIC_ID = 'fixed-clinic-uuid'
 const doctorId = faker.string.uuid()
-const doctorUser: ICurrentUser = { id: doctorId, role: UserRole.DOCTOR }
-const adminUser: ICurrentUser = { id: faker.string.uuid(), role: UserRole.ADMIN }
+const doctorUser: ICurrentUser = { id: doctorId, role: UserRole.DOCTOR, clinicId: CLINIC_ID }
+const adminUser: ICurrentUser = { id: faker.string.uuid(), role: UserRole.ADMIN, clinicId: CLINIC_ID }
 
 const makeSchedule = (overrides = {}) => ({
   id: faker.string.uuid(),
@@ -104,6 +105,7 @@ describe('ListSchedulesUseCase', () => {
 
     expect(mockSchedulesRepository.findAll).toHaveBeenCalledWith(
       expect.objectContaining({ doctorId }),
+      CLINIC_ID,
     )
   })
 
@@ -134,6 +136,7 @@ describe('ListSchedulesUseCase', () => {
 
     expect(mockSchedulesRepository.findAll).toHaveBeenCalledWith(
       expect.objectContaining({ activeOn: specificDate }),
+      CLINIC_ID,
     )
   })
 
@@ -153,7 +156,7 @@ describe('ListSchedulesUseCase', () => {
     await useCase.execute({ page: 1, limit: 20, dayOfWeek: DayOfWeek.MONDAY }, doctorUser)
 
     expect(mockCacheService.get).toHaveBeenCalledWith(
-      `schedules:list:${doctorId}:MONDAY:all:1:20`,
+      `schedules:list:${CLINIC_ID}:${doctorId}:MONDAY:all:1:20`,
     )
   })
 
@@ -163,7 +166,7 @@ describe('ListSchedulesUseCase', () => {
     await useCase.execute({ page: 1, limit: 20 }, doctorUser)
 
     expect(mockCacheService.get).toHaveBeenCalledWith(
-      `schedules:list:${doctorId}:all:all:1:20`,
+      `schedules:list:${CLINIC_ID}:${doctorId}:all:all:1:20`,
     )
   })
 
@@ -173,7 +176,7 @@ describe('ListSchedulesUseCase', () => {
     await useCase.execute({ page: 1, limit: 20 }, adminUser)
 
     expect(mockCacheService.get).toHaveBeenCalledWith(
-      `schedules:list:all:all:all:1:20`,
+      `schedules:list:${CLINIC_ID}:all:all:all:1:20`,
     )
   })
 
@@ -183,7 +186,7 @@ describe('ListSchedulesUseCase', () => {
     await useCase.execute({ page: 1, limit: 20, activeOn: '2024-06-15' }, doctorUser)
 
     expect(mockCacheService.get).toHaveBeenCalledWith(
-      `schedules:list:${doctorId}:all:2024-06-15:1:20`,
+      `schedules:list:${CLINIC_ID}:${doctorId}:all:2024-06-15:1:20`,
     )
   })
 
@@ -207,7 +210,7 @@ describe('ListSchedulesUseCase', () => {
     await useCase.execute({} as ListSchedulesQueryDto, doctorUser)
 
     expect(mockCacheService.get).toHaveBeenCalledWith(
-      `schedules:list:${doctorId}:all:all:1:20`,
+      `schedules:list:${CLINIC_ID}:${doctorId}:all:all:1:20`,
     )
   })
 

@@ -38,7 +38,8 @@ const makeDoctor = () => ({
   deletedAt: null,
 })
 
-const adminUser: ICurrentUser = { id: faker.string.uuid(), role: UserRole.ADMIN }
+const CLINIC_ID = 'fixed-clinic-uuid'
+const adminUser: ICurrentUser = { id: faker.string.uuid(), role: UserRole.ADMIN, clinicId: CLINIC_ID }
 
 describe('FindDoctorByIdUseCase', () => {
   let useCase: FindDoctorByIdUseCase
@@ -92,7 +93,7 @@ describe('FindDoctorByIdUseCase', () => {
     await useCase.execute(doctor.id, adminUser)
 
     expect(mockCacheService.set).toHaveBeenCalledWith(
-      `doctor:${doctor.id}`,
+      `doctor:${CLINIC_ID}:${doctor.id}`,
       expect.any(Object),
       300,
     )
@@ -134,7 +135,7 @@ describe('FindDoctorByIdUseCase', () => {
 
   it('allows DOCTOR to view their own profile', async () => {
     const doctor = makeDoctor()
-    const doctorUser: ICurrentUser = { id: doctor.user.id, role: UserRole.DOCTOR }
+    const doctorUser: ICurrentUser = { id: doctor.user.id, role: UserRole.DOCTOR, clinicId: CLINIC_ID }
     mockDoctorsRepository.findByUserId.mockResolvedValue(doctor as any)
     mockCacheService.get.mockResolvedValue(null)
     mockDoctorsRepository.findById.mockResolvedValue(doctor as any)
@@ -146,7 +147,7 @@ describe('FindDoctorByIdUseCase', () => {
   })
 
   it('throws ForbiddenException when DOCTOR tries to view another doctor profile', async () => {
-    const doctorUser: ICurrentUser = { id: faker.string.uuid(), role: UserRole.DOCTOR }
+    const doctorUser: ICurrentUser = { id: faker.string.uuid(), role: UserRole.DOCTOR, clinicId: CLINIC_ID }
     const doctor = makeDoctor()
     const ownDoctor = makeDoctor()
     mockDoctorsRepository.findByUserId.mockResolvedValue(ownDoctor as any)
@@ -157,7 +158,7 @@ describe('FindDoctorByIdUseCase', () => {
 
   it('returns empty specialties array when doctor has no specialties', async () => {
     const doctor = { ...makeDoctor(), specialties: null }
-    const adminUser: ICurrentUser = { id: faker.string.uuid(), role: UserRole.ADMIN }
+    const adminUser: ICurrentUser = { id: faker.string.uuid(), role: UserRole.ADMIN, clinicId: CLINIC_ID }
     mockCacheService.get.mockResolvedValue(null)
     mockDoctorsRepository.findById.mockResolvedValue(doctor as any)
     mockCacheService.set.mockResolvedValue(undefined)

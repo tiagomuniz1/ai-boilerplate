@@ -2,7 +2,7 @@ import { Body, Controller, Delete, Get, HttpCode, Param, Patch, Post, Query } fr
 import { CreateUserDto, PaginatedUsersResponseDto, UpdateUserDto, UserResponseDto, UserRole } from '@app/shared'
 import { CurrentUser } from '../../auth/decorators/current-user.decorator'
 import { Roles } from '../../auth/decorators/roles.decorator'
-import { AuthenticatedUser } from '../../auth/strategies/jwt.strategy'
+import { ICurrentUser } from '../../auth/types/current-user.type'
 import { ListUsersQueryDto } from '../dto/list-users-query.dto'
 import { ActivateUserUseCase } from '../use-cases/activate-user.use-case'
 import { CreateUserUseCase } from '../use-cases/create-user.use-case'
@@ -25,29 +25,38 @@ export class UsersController {
   @Post()
   @Roles(UserRole.ADMIN)
   @HttpCode(201)
-  create(@Body() dto: CreateUserDto): Promise<UserResponseDto> {
-    return this.createUserUseCase.execute(dto)
+  create(
+    @Body() dto: CreateUserDto,
+    @CurrentUser() currentUser: ICurrentUser,
+  ): Promise<UserResponseDto> {
+    return this.createUserUseCase.execute(dto, currentUser)
   }
 
   @Get()
   @Roles(UserRole.ADMIN)
-  findAll(@Query() query: ListUsersQueryDto): Promise<PaginatedUsersResponseDto> {
-    return this.findAllUsersUseCase.execute(query)
+  findAll(
+    @Query() query: ListUsersQueryDto,
+    @CurrentUser() currentUser: ICurrentUser,
+  ): Promise<PaginatedUsersResponseDto> {
+    return this.findAllUsersUseCase.execute(query, currentUser)
   }
 
   @Get(':id')
   @Roles(UserRole.ADMIN, UserRole.DOCTOR, UserRole.USER)
   findById(
     @Param('id') id: string,
-    @CurrentUser() currentUser: AuthenticatedUser,
+    @CurrentUser() currentUser: ICurrentUser,
   ): Promise<UserResponseDto> {
     return this.findUserByIdUseCase.execute(id, currentUser)
   }
 
   @Patch(':id/activate')
   @Roles(UserRole.ADMIN)
-  activate(@Param('id') id: string): Promise<UserResponseDto> {
-    return this.activateUserUseCase.execute(id)
+  activate(
+    @Param('id') id: string,
+    @CurrentUser() currentUser: ICurrentUser,
+  ): Promise<UserResponseDto> {
+    return this.activateUserUseCase.execute(id, currentUser)
   }
 
   @Patch(':id')
@@ -55,7 +64,7 @@ export class UsersController {
   update(
     @Param('id') id: string,
     @Body() dto: UpdateUserDto,
-    @CurrentUser() currentUser: AuthenticatedUser,
+    @CurrentUser() currentUser: ICurrentUser,
   ): Promise<UserResponseDto> {
     return this.updateUserUseCase.execute(id, dto, currentUser)
   }
@@ -65,8 +74,8 @@ export class UsersController {
   @HttpCode(204)
   delete(
     @Param('id') id: string,
-    @CurrentUser() currentUser: AuthenticatedUser,
+    @CurrentUser() currentUser: ICurrentUser,
   ): Promise<void> {
-    return this.deleteUserUseCase.execute(id, currentUser.id)
+    return this.deleteUserUseCase.execute(id, currentUser)
   }
 }

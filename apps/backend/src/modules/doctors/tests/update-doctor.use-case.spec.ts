@@ -92,7 +92,8 @@ const makeDoctor = (overrides = {}) => ({
   ...overrides,
 })
 
-const adminUser: ICurrentUser = { id: faker.string.uuid(), role: UserRole.ADMIN }
+const CLINIC_ID = 'fixed-clinic-uuid'
+const adminUser: ICurrentUser = { id: faker.string.uuid(), role: UserRole.ADMIN, clinicId: CLINIC_ID }
 
 describe('UpdateDoctorUseCase', () => {
   let useCase: UpdateDoctorUseCase
@@ -246,8 +247,8 @@ describe('UpdateDoctorUseCase', () => {
 
     await useCase.execute(doctor.id, { bio: 'test' }, adminUser)
 
-    expect(mockCacheService.del).toHaveBeenCalledWith(`doctor:${doctor.id}`)
-    expect(mockCacheService.delByPattern).toHaveBeenCalledWith('doctors:list*')
+    expect(mockCacheService.del).toHaveBeenCalledWith(`doctor:${CLINIC_ID}:${doctor.id}`)
+    expect(mockCacheService.delByPattern).toHaveBeenCalledWith(`doctors:list:${CLINIC_ID}*`)
   })
 
   it('continues when cache invalidation fails', async () => {
@@ -265,7 +266,7 @@ describe('UpdateDoctorUseCase', () => {
 
   it('allows DOCTOR to update their own profile', async () => {
     const doctor = makeDoctor()
-    const doctorUser: ICurrentUser = { id: doctor.user.id, role: UserRole.DOCTOR }
+    const doctorUser: ICurrentUser = { id: doctor.user.id, role: UserRole.DOCTOR, clinicId: CLINIC_ID }
     const updated = makeDoctor({ id: doctor.id })
 
     mockDoctorsRepository.findByUserId.mockResolvedValue(doctor as any)
@@ -280,7 +281,7 @@ describe('UpdateDoctorUseCase', () => {
   })
 
   it('throws ForbiddenException when DOCTOR tries to update another doctor profile', async () => {
-    const doctorUser: ICurrentUser = { id: faker.string.uuid(), role: UserRole.DOCTOR }
+    const doctorUser: ICurrentUser = { id: faker.string.uuid(), role: UserRole.DOCTOR, clinicId: CLINIC_ID }
     const ownDoctor = makeDoctor()
     const otherDoctorId = faker.string.uuid()
 
@@ -334,7 +335,7 @@ describe('UpdateDoctorUseCase', () => {
 
   it('throws ForbiddenException when DOCTOR tries to change isActive', async () => {
     const doctor = makeDoctor()
-    const doctorUser: ICurrentUser = { id: doctor.user.id, role: UserRole.DOCTOR }
+    const doctorUser: ICurrentUser = { id: doctor.user.id, role: UserRole.DOCTOR, clinicId: CLINIC_ID }
 
     mockDoctorsRepository.findByUserId.mockResolvedValue(doctor as any)
 
@@ -371,7 +372,7 @@ describe('UpdateDoctorUseCase', () => {
 
     await useCase.execute(doctor.id, { isActive: false }, adminUser)
 
-    expect(mockCacheService.del).toHaveBeenCalledWith(`user:${doctor.userId}`)
-    expect(mockCacheService.delByPattern).toHaveBeenCalledWith('users:list*')
+    expect(mockCacheService.del).toHaveBeenCalledWith(`user:${CLINIC_ID}:${doctor.userId}`)
+    expect(mockCacheService.delByPattern).toHaveBeenCalledWith(`users:list:${CLINIC_ID}*`)
   })
 })

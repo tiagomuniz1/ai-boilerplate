@@ -11,6 +11,7 @@ import {
   UpdateDateColumn,
   VersionColumn,
 } from 'typeorm'
+import { Clinic } from '../../clinics/entities/clinic.entity'
 import { User } from '../../users/entities/user.entity'
 import { Specialty } from '../../specialties/entities/specialty.entity'
 
@@ -25,6 +26,13 @@ export class Doctor {
 
   @Column({ name: 'user_id' })
   userId: string
+
+  @ManyToOne(() => Clinic, { eager: false })
+  @JoinColumn({ name: 'clinic_id' })
+  clinic: Clinic
+
+  @Column({ name: 'clinic_id' })
+  clinicId: string
 
   @Column({ name: 'crm_number' })
   crmNumber: string

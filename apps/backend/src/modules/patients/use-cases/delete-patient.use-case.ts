@@ -2,6 +2,7 @@ import { ForbiddenException, Injectable, Logger, NotFoundException } from '@nest
 import { DataSource, QueryRunner } from 'typeorm'
 import { BaseUseCase } from '../../../common/base.use-case'
 import { CacheService } from '../../../cache/cache.service'
+import { ICurrentUser } from '../../auth/types/current-user.type'
 import { IUsersRepository } from '../../users/repositories/users.repository.interface'
 import { IPatientsRepository } from '../repositories/patients.repository.interface'
 
@@ -18,11 +19,13 @@ export class DeletePatientUseCase extends BaseUseCase {
     super(dataSource)
   }
 
-  async execute(id: string, currentUserId: string): Promise<void> {
-    const patient = await this.patientsRepository.findById(id)
+  async execute(id: string, currentUser: ICurrentUser): Promise<void> {
+    const { clinicId } = currentUser
+
+    const patient = await this.patientsRepository.findById(id, clinicId)
     if (!patient) throw new NotFoundException('Patient not found')
 
-    if (patient.userId === currentUserId) {
+    if (patient.userId === currentUser.id) {
       throw new ForbiddenException('Cannot delete your own patient record')
     }
 
@@ -34,24 +37,24 @@ export class DeletePatientUseCase extends BaseUseCase {
     })
 
     try {
-      await this.cacheService.del(`patient:${id}`)
-      await this.cacheService.delByPattern('patients:list*')
-      await this.cacheService.del(`user:${userId}`)
-      await this.cacheService.delByPattern('users:list*')
+      await this.cacheService.del(`patient:${clinicId}:${id}`)
+      await this.cacheService.delByPattern(`patients:list:${clinicId}*`)
+      await this.cacheService.del(`user:${clinicId}:${userId}`)
+      await this.cacheService.delByPattern(`users:list:${clinicId}*`)
     } catch {
       this.logger.warn('Cache invalidation failed', { context: DeletePatientUseCase.name })
     }
   }
 
-  async deleteByUserId(userId: string, queryRunner?: QueryRunner): Promise<void> {
+  async deleteByUserId(userId: string, clinicId: string, queryRunner?: QueryRunner): Promise<void> {
     const patient = await this.patientsRepository.findByUserId(userId)
     if (!patient) return
 
     await this.patientsRepository.delete(patient.id, queryRunner)
 
     try {
-      await this.cacheService.del(`patient:${patient.id}`)
-      await this.cacheService.delByPattern('patients:list*')
+      await this.cacheService.del(`patient:${clinicId}:${patient.id}`)
+      await this.cacheService.delByPattern(`patients:list:${clinicId}*`)
     } catch {
       this.logger.warn('Cache invalidation failed', { context: DeletePatientUseCase.name })
     }

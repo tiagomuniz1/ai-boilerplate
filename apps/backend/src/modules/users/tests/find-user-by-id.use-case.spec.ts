@@ -48,6 +48,8 @@ function makeMockDataSource(
   } as unknown as DataSource
 }
 
+const CLINIC_ID = 'fixed-clinic-uuid'
+
 function makeUser(id = faker.string.uuid()): User {
   return {
     id,
@@ -56,14 +58,15 @@ function makeUser(id = faker.string.uuid()): User {
     password: 'hash',
     role: UserRole.USER,
     isActive: true,
+    clinicId: CLINIC_ID,
     version: 1,
     createdAt: new Date(),
     updatedAt: new Date(),
     deletedAt: null,
-  }
+  } as User
 }
 
-const adminUser: ICurrentUser = { id: faker.string.uuid(), role: UserRole.ADMIN }
+const adminUser: ICurrentUser = { id: faker.string.uuid(), role: UserRole.ADMIN, clinicId: CLINIC_ID }
 
 describe('FindUserByIdUseCase', () => {
   let useCase: FindUserByIdUseCase
@@ -92,9 +95,9 @@ describe('FindUserByIdUseCase', () => {
 
     const result = await useCase.execute(user.id, adminUser)
 
-    expect(mockUsersRepository.findById).toHaveBeenCalledWith(user.id)
+    expect(mockUsersRepository.findById).toHaveBeenCalledWith(user.id, CLINIC_ID)
     expect(result.id).toBe(user.id)
-    expect(mockCacheService.set).toHaveBeenCalledWith(`user:${user.id}`, result, 300)
+    expect(mockCacheService.set).toHaveBeenCalledWith(`user:${CLINIC_ID}:${user.id}`, result, 300)
   })
 
   it('throws NotFoundException when user does not exist', async () => {
@@ -162,7 +165,7 @@ describe('FindUserByIdUseCase', () => {
 
   it('allows DOCTOR to view their own profile', async () => {
     const user = makeUser()
-    const doctorUser: ICurrentUser = { id: user.id, role: UserRole.DOCTOR }
+    const doctorUser: ICurrentUser = { id: user.id, role: UserRole.DOCTOR, clinicId: CLINIC_ID }
     mockCacheService.get.mockResolvedValue(null)
     mockUsersRepository.findById.mockResolvedValue(user)
     mockCacheService.set.mockResolvedValue(undefined)
@@ -173,7 +176,7 @@ describe('FindUserByIdUseCase', () => {
   })
 
   it('throws ForbiddenException when DOCTOR tries to view another user profile', async () => {
-    const doctorUser: ICurrentUser = { id: faker.string.uuid(), role: UserRole.DOCTOR }
+    const doctorUser: ICurrentUser = { id: faker.string.uuid(), role: UserRole.DOCTOR, clinicId: CLINIC_ID }
     const otherId = faker.string.uuid()
 
     await expect(useCase.execute(otherId, doctorUser)).rejects.toThrow(ForbiddenException)
@@ -181,7 +184,7 @@ describe('FindUserByIdUseCase', () => {
   })
 
   it('throws ForbiddenException when USER tries to view another user profile', async () => {
-    const currentUser: ICurrentUser = { id: faker.string.uuid(), role: UserRole.USER }
+    const currentUser: ICurrentUser = { id: faker.string.uuid(), role: UserRole.USER, clinicId: CLINIC_ID }
     const otherId = faker.string.uuid()
 
     await expect(useCase.execute(otherId, currentUser)).rejects.toThrow(ForbiddenException)

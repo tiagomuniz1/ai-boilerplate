@@ -3,6 +3,8 @@ import { DayOfWeek } from '@app/shared'
 import { Schedule } from '../entities/schedule.entity'
 import { SchedulesRepository } from './schedules.repository'
 
+const CLINIC_ID = 'fixed-clinic-uuid'
+
 const makeSchedule = (overrides = {}): Schedule =>
   ({
     id: faker.string.uuid(),
@@ -21,6 +23,7 @@ const makeSchedule = (overrides = {}): Schedule =>
   } as unknown as Schedule)
 
 const makeQueryBuilder = () => ({
+  innerJoin: jest.fn().mockReturnThis(),
   where: jest.fn().mockReturnThis(),
   andWhere: jest.fn().mockReturnThis(),
   orderBy: jest.fn().mockReturnThis(),
@@ -54,10 +57,12 @@ describe('SchedulesRepository', () => {
       qb.getManyAndCount.mockResolvedValue([[schedule], 1])
       mockRepository.createQueryBuilder.mockReturnValue(qb)
 
-      const result = await repository.findAll({ page: 1, limit: 20 })
+      const result = await repository.findAll({ page: 1, limit: 20 }, CLINIC_ID)
 
       expect(result[0]).toHaveLength(1)
       expect(result[1]).toBe(1)
+      const andWhereCalls = qb.andWhere.mock.calls.map((c: any[]) => c[0])
+      expect(andWhereCalls.some((c: string) => c.includes('clinic_id'))).toBe(true)
     })
 
     it('applies doctorId filter when provided', async () => {
@@ -66,7 +71,7 @@ describe('SchedulesRepository', () => {
       qb.getManyAndCount.mockResolvedValue([[], 0])
       mockRepository.createQueryBuilder.mockReturnValue(qb)
 
-      await repository.findAll({ page: 1, limit: 20, doctorId })
+      await repository.findAll({ page: 1, limit: 20, doctorId }, CLINIC_ID)
 
       const calls = qb.andWhere.mock.calls.map((c: any[]) => c[0])
       expect(calls.some((c: string) => c.includes('doctor_id'))).toBe(true)
@@ -77,7 +82,7 @@ describe('SchedulesRepository', () => {
       qbWithDate.getManyAndCount.mockResolvedValue([[], 0])
       mockRepository.createQueryBuilder.mockReturnValueOnce(qbWithDate)
 
-      await repository.findAll({ page: 1, limit: 20, activeOn: '2024-06-15' })
+      await repository.findAll({ page: 1, limit: 20, activeOn: '2024-06-15' }, CLINIC_ID)
 
       const callsWithDate = qbWithDate.andWhere.mock.calls.map((c: any[]) => c[0])
       expect(callsWithDate.some((c: string) => c.includes('valid_from'))).toBe(true)
@@ -87,7 +92,7 @@ describe('SchedulesRepository', () => {
       qbNoDate.getManyAndCount.mockResolvedValue([[], 0])
       mockRepository.createQueryBuilder.mockReturnValueOnce(qbNoDate)
 
-      await repository.findAll({ page: 1, limit: 20 })
+      await repository.findAll({ page: 1, limit: 20 }, CLINIC_ID)
 
       const callsNoDate = qbNoDate.andWhere.mock.calls.map((c: any[]) => c[0])
       expect(callsNoDate.every((c: string) => !c.includes('valid_from'))).toBe(true)
@@ -99,7 +104,7 @@ describe('SchedulesRepository', () => {
       qb.getManyAndCount.mockResolvedValue([[], 0])
       mockRepository.createQueryBuilder.mockReturnValue(qb)
 
-      await repository.findAll({ page: 1, limit: 20, dayOfWeek: DayOfWeek.FRIDAY })
+      await repository.findAll({ page: 1, limit: 20, dayOfWeek: DayOfWeek.FRIDAY }, CLINIC_ID)
 
       const calls = qb.andWhere.mock.calls.map((c: any[]) => c[0])
       expect(calls.some((c: string) => c.includes('day_of_week'))).toBe(true)
@@ -110,7 +115,7 @@ describe('SchedulesRepository', () => {
       qb.getManyAndCount.mockResolvedValue([[], 0])
       mockRepository.createQueryBuilder.mockReturnValue(qb)
 
-      await repository.findAll({} as any)
+      await repository.findAll({} as any, CLINIC_ID)
 
       expect(qb.skip).toHaveBeenCalledWith(0)
       expect(qb.take).toHaveBeenCalledWith(20)
@@ -118,20 +123,25 @@ describe('SchedulesRepository', () => {
   })
 
   describe('findById', () => {
-    it('returns schedule when found', async () => {
+    it('returns schedule when found using queryBuilder with clinicId filter', async () => {
       const schedule = makeSchedule()
-      mockRepository.findOneBy.mockResolvedValue(schedule)
+      const qb = makeQueryBuilder()
+      qb.getOne.mockResolvedValue(schedule)
+      mockRepository.createQueryBuilder.mockReturnValue(qb)
 
-      const result = await repository.findById(schedule.id)
+      const result = await repository.findById(schedule.id, CLINIC_ID)
 
       expect(result).toBe(schedule)
-      expect(mockRepository.findOneBy).toHaveBeenCalledWith({ id: schedule.id })
+      expect(qb.where).toHaveBeenCalledWith('schedule.id = :id', { id: schedule.id })
+      expect(qb.andWhere).toHaveBeenCalledWith('u.clinic_id = :clinicId', { clinicId: CLINIC_ID })
     })
 
     it('returns null when not found', async () => {
-      mockRepository.findOneBy.mockResolvedValue(null)
+      const qb = makeQueryBuilder()
+      qb.getOne.mockResolvedValue(null)
+      mockRepository.createQueryBuilder.mockReturnValue(qb)
 
-      const result = await repository.findById(faker.string.uuid())
+      const result = await repository.findById(faker.string.uuid(), CLINIC_ID)
 
       expect(result).toBeNull()
     })
@@ -151,6 +161,7 @@ describe('SchedulesRepository', () => {
         '12:00',
         null,
         null,
+        CLINIC_ID,
       )
 
       expect(result).toBe(schedule)
@@ -168,6 +179,7 @@ describe('SchedulesRepository', () => {
         '12:00',
         '2025-01-01',
         '2025-12-31',
+        CLINIC_ID,
       )
 
       const calls = qb.andWhere.mock.calls.map((c: any[]) => c[0])
@@ -188,6 +200,7 @@ describe('SchedulesRepository', () => {
         '12:00',
         null,
         null,
+        CLINIC_ID,
         excludeId,
       )
 
@@ -311,7 +324,7 @@ describe('SchedulesRepository', () => {
       const doctorId = 'doctor-uuid-1'
       mockRepository.softDelete.mockResolvedValue({ affected: 3 })
 
-      await repository.deleteAllByDoctorId(doctorId)
+      await repository.deleteAllByDoctorId(doctorId, CLINIC_ID)
 
       expect(mockRepository.softDelete).toHaveBeenCalledWith({ doctorId })
     })
@@ -323,7 +336,7 @@ describe('SchedulesRepository', () => {
         manager: { getRepository: jest.fn().mockReturnValue(mockQrRepo) },
       }
 
-      await repository.deleteAllByDoctorId(doctorId, mockQueryRunner as any)
+      await repository.deleteAllByDoctorId(doctorId, CLINIC_ID, mockQueryRunner as any)
 
       expect(mockQueryRunner.manager.getRepository).toHaveBeenCalledWith(Schedule)
       expect(mockQrRepo.softDelete).toHaveBeenCalledWith({ doctorId })

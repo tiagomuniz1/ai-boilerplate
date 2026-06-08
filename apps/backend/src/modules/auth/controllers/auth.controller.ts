@@ -10,7 +10,7 @@ import { LoginUseCase } from '../use-cases/login.use-case'
 import { LogoutUseCase } from '../use-cases/logout.use-case'
 import { MeUseCase } from '../use-cases/me.use-case'
 import { RefreshTokenUseCase } from '../use-cases/refresh-token.use-case'
-import { AuthenticatedUser } from '../strategies/jwt.strategy'
+import { ICurrentUser } from '../types/current-user.type'
 
 @Controller('auth')
 export class AuthController {
@@ -89,7 +89,7 @@ export class AuthController {
 
   @Get('me')
   @HttpCode(200)
-  me(@CurrentUser() authUser: AuthenticatedUser): Promise<MeResponseDto> {
-    return this.meUseCase.execute(authUser.id)
+  me(@CurrentUser() authUser: ICurrentUser): Promise<MeResponseDto> {
+    return this.meUseCase.execute(authUser.id, authUser.clinicId)
   }
 }

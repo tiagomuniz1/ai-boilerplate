@@ -3,8 +3,11 @@ import { UsersRepository } from './users.repository'
 import { User } from '../entities/user.entity'
 import { UserRole } from '@app/shared'
 
+const CLINIC_ID = 'fixed-clinic-uuid'
+
 function makeQueryBuilder() {
   return {
+    where: jest.fn().mockReturnThis(),
     skip: jest.fn().mockReturnThis(),
     take: jest.fn().mockReturnThis(),
     orderBy: jest.fn().mockReturnThis(),
@@ -39,16 +42,16 @@ describe('UsersRepository', () => {
       const user = { id: 'uuid-1', email: 'a@b.com' } as User
       repo.findOneBy.mockResolvedValue(user)
 
-      const result = await repository.findById('uuid-1')
+      const result = await repository.findById('uuid-1', CLINIC_ID)
 
-      expect(repo.findOneBy).toHaveBeenCalledWith({ id: 'uuid-1' })
+      expect(repo.findOneBy).toHaveBeenCalledWith({ id: 'uuid-1', clinicId: CLINIC_ID })
       expect(result).toBe(user)
     })
 
     it('returns null when not found', async () => {
       repo.findOneBy.mockResolvedValue(null)
 
-      expect(await repository.findById('missing')).toBeNull()
+      expect(await repository.findById('missing', CLINIC_ID)).toBeNull()
     })
   })
 
@@ -78,13 +81,14 @@ describe('UsersRepository', () => {
       ;(repo.createQueryBuilder as jest.Mock).mockReturnValue(mockQb)
     })
 
-    it('returns paginated results without search', async () => {
+    it('returns paginated results filtered by clinicId without search', async () => {
       const users = [{ id: 'u1' } as User]
       mockQb.getManyAndCount.mockResolvedValue([users, 1])
 
-      const result = await repository.findAll(2, 10)
+      const result = await repository.findAll(2, 10, CLINIC_ID)
 
       expect(repo.createQueryBuilder).toHaveBeenCalledWith('user')
+      expect(mockQb.where).toHaveBeenCalledWith('user.clinic_id = :clinicId', { clinicId: CLINIC_ID })
       expect(mockQb.skip).toHaveBeenCalledWith(10)
       expect(mockQb.take).toHaveBeenCalledWith(10)
       expect(mockQb.orderBy).toHaveBeenCalledWith('user.created_at', 'DESC')
@@ -95,22 +99,22 @@ describe('UsersRepository', () => {
     it('applies ILIKE filter when search is provided', async () => {
       mockQb.getManyAndCount.mockResolvedValue([[], 0])
 
-      await repository.findAll(1, 20, 'alice')
+      await repository.findAll(1, 20, CLINIC_ID, 'alice')
 
       expect(mockQb.andWhere).toHaveBeenCalledWith('user.full_name ILIKE :search', { search: '%alice%' })
     })
   })
 
   describe('create', () => {
-    it('creates and saves user using default repository', async () => {
+    it('creates and saves user with clinicId merged into data', async () => {
       const data = { fullName: 'Alice', email: 'a@b.com', password: 'hash', role: UserRole.USER }
-      const entity = { ...data } as User
+      const entity = { ...data, clinicId: CLINIC_ID } as User
       repo.create.mockReturnValue(entity)
       repo.save.mockResolvedValue(entity)
 
-      const result = await repository.create(data as any)
+      const result = await repository.create(data as any, CLINIC_ID)
 
-      expect(repo.create).toHaveBeenCalledWith(data)
+      expect(repo.create).toHaveBeenCalledWith({ ...data, clinicId: CLINIC_ID })
       expect(repo.save).toHaveBeenCalledWith(entity)
       expect(result).toBe(entity)
     })
@@ -122,7 +126,7 @@ describe('UsersRepository', () => {
       qrRepo.save.mockResolvedValue(entity)
       const queryRunner = { manager: { getRepository: jest.fn().mockReturnValue(qrRepo) } } as any
 
-      await repository.create({ fullName: 'Bob', email: 'b@c.com', password: 'hash', role: UserRole.USER } as any, queryRunner)
+      await repository.create({ fullName: 'Bob', email: 'b@c.com', password: 'hash', role: UserRole.USER } as any, CLINIC_ID, queryRunner)
 
       expect(qrRepo.save).toHaveBeenCalled()
       expect(repo.save).not.toHaveBeenCalled()

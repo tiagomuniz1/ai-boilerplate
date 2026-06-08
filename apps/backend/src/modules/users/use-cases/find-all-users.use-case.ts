@@ -3,6 +3,7 @@ import { DataSource } from 'typeorm'
 import { PaginatedUsersResponseDto, UserResponseDto } from '@app/shared'
 import { BaseUseCase } from '../../../common/base.use-case'
 import { CacheService } from '../../../cache/cache.service'
+import { ICurrentUser } from '../../auth/types/current-user.type'
 import { ListUsersQueryDto } from '../dto/list-users-query.dto'
 import { IUsersRepository } from '../repositories/users.repository.interface'
 import { User } from '../entities/user.entity'
@@ -19,9 +20,10 @@ export class FindAllUsersUseCase extends BaseUseCase {
     super(dataSource)
   }
 
-  async execute(query: ListUsersQueryDto): Promise<PaginatedUsersResponseDto> {
+  async execute(query: ListUsersQueryDto, currentUser: ICurrentUser): Promise<PaginatedUsersResponseDto> {
     const { page, limit, search } = query
-    const cacheKey = `users:list:${page}:${limit}:${search ?? 'all'}`
+    const { clinicId } = currentUser
+    const cacheKey = `users:list:${clinicId}:${page}:${limit}:${search ?? 'all'}`
 
     try {
       const cached = await this.cacheService.get<PaginatedUsersResponseDto>(cacheKey)
@@ -30,7 +32,7 @@ export class FindAllUsersUseCase extends BaseUseCase {
       this.logger.warn('Cache read failed', { context: FindAllUsersUseCase.name })
     }
 
-    const [users, total] = await this.usersRepository.findAll(page, limit, search)
+    const [users, total] = await this.usersRepository.findAll(page, limit, clinicId, search)
 
     const userIds = users.map((u) => u.id)
     const [doctorUserIds, patientUserIds] = await Promise.all([

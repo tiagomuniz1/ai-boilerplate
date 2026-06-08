@@ -1,6 +1,6 @@
 import { PatientGender, UserRole } from '@app/shared'
 import { PatientsController } from './patients.controller'
-import { AuthenticatedUser } from '../../auth/strategies/jwt.strategy'
+import { ICurrentUser } from '../../auth/types/current-user.type'
 import { CreatePatientUseCase } from '../use-cases/create-patient.use-case'
 import { ListPatientsUseCase } from '../use-cases/list-patients.use-case'
 import { FindPatientByIdUseCase } from '../use-cases/find-patient-by-id.use-case'
@@ -14,7 +14,7 @@ const mockFindById = { execute: jest.fn() } as unknown as jest.Mocked<FindPatien
 const mockUpdate = { execute: jest.fn() } as unknown as jest.Mocked<UpdatePatientUseCase>
 const mockDelete = { execute: jest.fn() } as unknown as jest.Mocked<DeletePatientUseCase>
 
-const currentUser: AuthenticatedUser = { id: 'user-uuid-admin', role: UserRole.ADMIN, email: 'admin@example.com' }
+const currentUser: ICurrentUser = { id: 'user-uuid-admin', role: UserRole.ADMIN, clinicId: 'clinic-uuid' }
 
 const makeResponse = (overrides = {}) => ({
   id: 'uuid-1',
@@ -53,9 +53,9 @@ describe('PatientsController', () => {
     const response = makeResponse()
     mockCreate.execute.mockResolvedValue(response)
 
-    const result = await controller.create(dto as any)
+    const result = await controller.create(dto as any, currentUser)
 
-    expect(mockCreate.execute).toHaveBeenCalledWith(dto)
+    expect(mockCreate.execute).toHaveBeenCalledWith(dto, currentUser)
     expect(result).toBe(response)
   })
 
@@ -64,9 +64,9 @@ describe('PatientsController', () => {
     const response = { data: [makeResponse()], total: 1, page: 1, limit: 20 }
     mockList.execute.mockResolvedValue(response)
 
-    const result = await controller.findAll(query)
+    const result = await controller.findAll(query, currentUser)
 
-    expect(mockList.execute).toHaveBeenCalledWith(query)
+    expect(mockList.execute).toHaveBeenCalledWith(query, currentUser)
     expect(result).toBe(response)
   })
 
@@ -75,18 +75,18 @@ describe('PatientsController', () => {
     const response = { data: [], total: 0, page: 1, limit: 20 }
     mockList.execute.mockResolvedValue(response)
 
-    await controller.findAll(query)
+    await controller.findAll(query, currentUser)
 
-    expect(mockList.execute).toHaveBeenCalledWith(query)
+    expect(mockList.execute).toHaveBeenCalledWith(query, currentUser)
   })
 
   it('findById delegates to FindPatientByIdUseCase', async () => {
     const response = makeResponse()
     mockFindById.execute.mockResolvedValue(response)
 
-    const result = await controller.findById('uuid-1')
+    const result = await controller.findById('uuid-1', currentUser)
 
-    expect(mockFindById.execute).toHaveBeenCalledWith('uuid-1')
+    expect(mockFindById.execute).toHaveBeenCalledWith('uuid-1', currentUser)
     expect(result).toBe(response)
   })
 
@@ -95,9 +95,9 @@ describe('PatientsController', () => {
     const response = makeResponse({ user: { id: 'user-uuid-1', fullName: 'Alice Updated', email: 'alice@example.com', isActive: false } })
     mockUpdate.execute.mockResolvedValue(response)
 
-    const result = await controller.update('uuid-1', dto as any)
+    const result = await controller.update('uuid-1', dto as any, currentUser)
 
-    expect(mockUpdate.execute).toHaveBeenCalledWith('uuid-1', dto)
+    expect(mockUpdate.execute).toHaveBeenCalledWith('uuid-1', dto, currentUser)
     expect(result).toBe(response)
   })
 
@@ -106,6 +106,6 @@ describe('PatientsController', () => {
 
     await controller.delete('uuid-1', currentUser)
 
-    expect(mockDelete.execute).toHaveBeenCalledWith('uuid-1', currentUser.id)
+    expect(mockDelete.execute).toHaveBeenCalledWith('uuid-1', currentUser)
   })
 })

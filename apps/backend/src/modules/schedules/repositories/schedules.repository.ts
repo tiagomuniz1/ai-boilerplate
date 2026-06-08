@@ -13,13 +13,16 @@ export class SchedulesRepository implements ISchedulesRepository {
     private readonly repository: Repository<Schedule>,
   ) {}
 
-  async findAll(filters: ListSchedulesQueryDto): Promise<[Schedule[], number]> {
+  async findAll(filters: ListSchedulesQueryDto, clinicId: string): Promise<[Schedule[], number]> {
     const { doctorId, dayOfWeek, activeOn, page = 1, limit = 20 } = filters
 
     const qb = this.repository
       .createQueryBuilder('schedule')
+      .innerJoin('doctors', 'd', 'd.id = schedule.doctor_id AND d.deleted_at IS NULL')
+      .innerJoin('users', 'u', 'u.id = d.user_id AND u.deleted_at IS NULL')
       .where('schedule.deleted_at IS NULL')
-      .orderBy('schedule.created_at', 'DESC')
+      .andWhere('u.clinic_id = :clinicId', { clinicId })
+      .orderBy('schedule.createdAt', 'DESC')
       .skip((page - 1) * limit)
       .take(limit)
 
@@ -45,8 +48,14 @@ export class SchedulesRepository implements ISchedulesRepository {
     return qb.getManyAndCount()
   }
 
-  async findById(id: string): Promise<Schedule | null> {
-    return this.repository.findOneBy({ id })
+  async findById(id: string, clinicId: string): Promise<Schedule | null> {
+    return this.repository
+      .createQueryBuilder('schedule')
+      .innerJoin('doctors', 'd', 'd.id = schedule.doctor_id AND d.deleted_at IS NULL')
+      .innerJoin('users', 'u', 'u.id = d.user_id AND u.deleted_at IS NULL')
+      .where('schedule.id = :id', { id })
+      .andWhere('u.clinic_id = :clinicId', { clinicId })
+      .getOne()
   }
 
   async findOverlapping(
@@ -56,11 +65,15 @@ export class SchedulesRepository implements ISchedulesRepository {
     endTime: string,
     validFrom: string | null,
     validUntil: string | null,
+    clinicId: string,
     excludeId?: string,
   ): Promise<Schedule | null> {
     const qb = this.repository
       .createQueryBuilder('schedule')
+      .innerJoin('doctors', 'd', 'd.id = schedule.doctor_id AND d.deleted_at IS NULL')
+      .innerJoin('users', 'u', 'u.id = d.user_id AND u.deleted_at IS NULL')
       .where('schedule.deleted_at IS NULL')
+      .andWhere('u.clinic_id = :clinicId', { clinicId })
       .andWhere('schedule.doctor_id = :doctorId', { doctorId })
       .andWhere('schedule.day_of_week = :dayOfWeek', { dayOfWeek })
       .andWhere('schedule.start_time < :endTime', { endTime })
@@ -131,7 +144,7 @@ export class SchedulesRepository implements ISchedulesRepository {
     await repo.softDelete(id)
   }
 
-  async deleteAllByDoctorId(doctorId: string, queryRunner?: QueryRunner): Promise<void> {
+  async deleteAllByDoctorId(doctorId: string, _clinicId: string, queryRunner?: QueryRunner): Promise<void> {
     const repo = queryRunner
       ? queryRunner.manager.getRepository(Schedule)
       : this.repository

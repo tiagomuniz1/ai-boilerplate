@@ -1,17 +1,32 @@
-import { ILike, Repository } from 'typeorm'
+import { Repository } from 'typeorm'
 import { PatientGender, UserRole } from '@app/shared'
 import { PatientsRepository } from './patients.repository'
 import { Patient } from '../entities/patient.entity'
 
+const CLINIC_ID = 'fixed-clinic-uuid'
+
+function makeQueryBuilderMock(overrides: { result?: any; getOne?: any } = {}) {
+  return {
+    innerJoinAndSelect: jest.fn().mockReturnThis(),
+    innerJoin: jest.fn().mockReturnThis(),
+    where: jest.fn().mockReturnThis(),
+    andWhere: jest.fn().mockReturnThis(),
+    orderBy: jest.fn().mockReturnThis(),
+    skip: jest.fn().mockReturnThis(),
+    take: jest.fn().mockReturnThis(),
+    getManyAndCount: jest.fn().mockResolvedValue(overrides.result ?? [[], 0]),
+    getOne: jest.fn().mockResolvedValue(overrides.getOne ?? null),
+  }
+}
+
 function makeRepo(): jest.Mocked<Repository<Patient>> {
   return {
     findOneBy: jest.fn(),
-    findOne: jest.fn(),
     findOneOrFail: jest.fn(),
-    findAndCount: jest.fn(),
     create: jest.fn(),
     save: jest.fn(),
     softDelete: jest.fn(),
+    createQueryBuilder: jest.fn(),
   } as unknown as jest.Mocked<Repository<Patient>>
 }
 
@@ -58,65 +73,66 @@ describe('PatientsRepository', () => {
   })
 
   describe('findAll', () => {
-    it('returns paginated results without search', async () => {
+    it('uses QueryBuilder with clinicId where clause and no andWhere when no search', async () => {
       const patients = [makePatient()]
-      repo.findAndCount.mockResolvedValue([patients, 1])
+      const qb = makeQueryBuilderMock({ result: [patients, 1] })
+      repo.createQueryBuilder.mockReturnValue(qb as any)
 
-      const result = await repository.findAll(2, 10)
+      const result = await repository.findAll(2, 10, CLINIC_ID)
 
-      expect(repo.findAndCount).toHaveBeenCalledWith(
-        expect.objectContaining({
-          relations: ['user'],
-          where: {},
-          skip: 10,
-          take: 10,
-          order: { createdAt: 'DESC' },
-        }),
-      )
+      expect(repo.createQueryBuilder).toHaveBeenCalledWith('patient')
+      expect(qb.innerJoinAndSelect).toHaveBeenCalledWith('patient.user', 'user')
+      expect(qb.where).toHaveBeenCalledWith('user.clinicId = :clinicId', { clinicId: CLINIC_ID })
+      expect(qb.skip).toHaveBeenCalledWith(10)
+      expect(qb.take).toHaveBeenCalledWith(10)
+      expect(qb.andWhere).not.toHaveBeenCalled()
       expect(result).toEqual([patients, 1])
     })
 
-    it('filters by fullName ILIKE and documentNumber exact match when search is provided', async () => {
-      repo.findAndCount.mockResolvedValue([[], 0])
+    it('adds andWhere with search when search is provided', async () => {
+      const qb = makeQueryBuilderMock({ result: [[], 0] })
+      repo.createQueryBuilder.mockReturnValue(qb as any)
 
-      await repository.findAll(1, 20, 'alice')
+      await repository.findAll(1, 20, CLINIC_ID, 'alice')
 
-      expect(repo.findAndCount).toHaveBeenCalledWith(
-        expect.objectContaining({
-          where: [
-            { user: { fullName: ILike('%alice%') } },
-            { documentNumber: 'alice' },
-          ],
-        }),
+      expect(qb.where).toHaveBeenCalledWith('user.clinicId = :clinicId', { clinicId: CLINIC_ID })
+      expect(qb.andWhere).toHaveBeenCalledWith(
+        '(user.full_name ILIKE :search OR patient.document_number = :exactSearch)',
+        { search: '%alice%', exactSearch: 'alice' },
       )
     })
 
-    it('uses empty where when search is undefined', async () => {
-      repo.findAndCount.mockResolvedValue([[], 0])
+    it('calculates correct skip for pagination', async () => {
+      const qb = makeQueryBuilderMock({ result: [[], 0] })
+      repo.createQueryBuilder.mockReturnValue(qb as any)
 
-      await repository.findAll(1, 20, undefined)
+      await repository.findAll(3, 10, CLINIC_ID)
 
-      expect(repo.findAndCount).toHaveBeenCalledWith(
-        expect.objectContaining({ where: {} }),
-      )
+      expect(qb.skip).toHaveBeenCalledWith(20)
+      expect(qb.take).toHaveBeenCalledWith(10)
     })
   })
 
   describe('findById', () => {
-    it('returns patient with user relation when found', async () => {
+    it('uses QueryBuilder with id and clinicId filters when found', async () => {
       const patient = makePatient()
-      repo.findOne.mockResolvedValue(patient)
+      const qb = makeQueryBuilderMock({ getOne: patient })
+      repo.createQueryBuilder.mockReturnValue(qb as any)
 
-      const result = await repository.findById('uuid-1')
+      const result = await repository.findById('uuid-1', CLINIC_ID)
 
-      expect(repo.findOne).toHaveBeenCalledWith({ where: { id: 'uuid-1' }, relations: ['user'] })
+      expect(repo.createQueryBuilder).toHaveBeenCalledWith('patient')
+      expect(qb.innerJoinAndSelect).toHaveBeenCalledWith('patient.user', 'user')
+      expect(qb.where).toHaveBeenCalledWith('patient.id = :id', { id: 'uuid-1' })
+      expect(qb.andWhere).toHaveBeenCalledWith('user.clinicId = :clinicId', { clinicId: CLINIC_ID })
       expect(result).toBe(patient)
     })
 
     it('returns null when not found', async () => {
-      repo.findOne.mockResolvedValue(null)
+      const qb = makeQueryBuilderMock({ getOne: null })
+      repo.createQueryBuilder.mockReturnValue(qb as any)
 
-      expect(await repository.findById('missing')).toBeNull()
+      expect(await repository.findById('missing', CLINIC_ID)).toBeNull()
     })
   })
 
@@ -139,20 +155,24 @@ describe('PatientsRepository', () => {
   })
 
   describe('findByDocumentNumber', () => {
-    it('returns patient when found', async () => {
+    it('uses QueryBuilder with documentNumber and clinicId filters', async () => {
       const patient = makePatient()
-      repo.findOneBy.mockResolvedValue(patient)
+      const qb = makeQueryBuilderMock({ getOne: patient })
+      repo.createQueryBuilder.mockReturnValue(qb as any)
 
-      const result = await repository.findByDocumentNumber('12345678901')
+      const result = await repository.findByDocumentNumber('12345678901', CLINIC_ID)
 
-      expect(repo.findOneBy).toHaveBeenCalledWith({ documentNumber: '12345678901' })
+      expect(repo.createQueryBuilder).toHaveBeenCalledWith('patient')
+      expect(qb.where).toHaveBeenCalledWith('patient.document_number = :documentNumber', { documentNumber: '12345678901' })
+      expect(qb.andWhere).toHaveBeenCalledWith('user.clinicId = :clinicId', { clinicId: CLINIC_ID })
       expect(result).toBe(patient)
     })
 
     it('returns null when not found', async () => {
-      repo.findOneBy.mockResolvedValue(null)
+      const qb = makeQueryBuilderMock({ getOne: null })
+      repo.createQueryBuilder.mockReturnValue(qb as any)
 
-      expect(await repository.findByDocumentNumber('00000000000')).toBeNull()
+      expect(await repository.findByDocumentNumber('00000000000', CLINIC_ID)).toBeNull()
     })
   })
 

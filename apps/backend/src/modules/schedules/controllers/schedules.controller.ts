@@ -12,7 +12,7 @@ import {
 import { CreateScheduleDto, PaginatedSchedulesResponseDto, ScheduleResponseDto, UpdateScheduleDto, UserRole } from '@app/shared'
 import { CurrentUser } from '../../auth/decorators/current-user.decorator'
 import { Roles } from '../../auth/decorators/roles.decorator'
-import { AuthenticatedUser } from '../../auth/strategies/jwt.strategy'
+import { ICurrentUser } from '../../auth/types/current-user.type'
 import { ListSchedulesQueryDto } from '../dto/list-schedules-query.dto'
 import { CreateScheduleUseCase } from '../use-cases/create-schedule.use-case'
 import { UpdateScheduleUseCase } from '../use-cases/update-schedule.use-case'
@@ -35,7 +35,7 @@ export class SchedulesController {
   @HttpCode(201)
   create(
     @Body() dto: CreateScheduleDto,
-    @CurrentUser() currentUser: AuthenticatedUser,
+    @CurrentUser() currentUser: ICurrentUser,
   ): Promise<ScheduleResponseDto> {
     return this.createScheduleUseCase.execute(dto, currentUser)
   }
@@ -44,7 +44,7 @@ export class SchedulesController {
   @Roles(UserRole.ADMIN, UserRole.DOCTOR)
   findAll(
     @Query() query: ListSchedulesQueryDto,
-    @CurrentUser() currentUser: AuthenticatedUser,
+    @CurrentUser() currentUser: ICurrentUser,
   ): Promise<PaginatedSchedulesResponseDto> {
     return this.listSchedulesUseCase.execute(query, currentUser)
   }
@@ -53,7 +53,7 @@ export class SchedulesController {
   @Roles(UserRole.ADMIN, UserRole.DOCTOR)
   findById(
     @Param('id') id: string,
-    @CurrentUser() currentUser: AuthenticatedUser,
+    @CurrentUser() currentUser: ICurrentUser,
   ): Promise<ScheduleResponseDto> {
     return this.findScheduleByIdUseCase.execute(id, currentUser)
   }
@@ -63,7 +63,7 @@ export class SchedulesController {
   update(
     @Param('id') id: string,
     @Body() dto: UpdateScheduleDto,
-    @CurrentUser() currentUser: AuthenticatedUser,
+    @CurrentUser() currentUser: ICurrentUser,
   ): Promise<ScheduleResponseDto> {
     return this.updateScheduleUseCase.execute(id, dto, currentUser)
   }
@@ -73,7 +73,7 @@ export class SchedulesController {
   @HttpCode(204)
   delete(
     @Param('id') id: string,
-    @CurrentUser() currentUser: AuthenticatedUser,
+    @CurrentUser() currentUser: ICurrentUser,
   ): Promise<void> {
     return this.deleteScheduleUseCase.execute(id, currentUser)
   }

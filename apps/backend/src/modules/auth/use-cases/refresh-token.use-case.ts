@@ -12,6 +12,7 @@ import { AUTH_ENV, IAuthEnv, parseTtlToSeconds } from './auth-env.token'
 interface RefreshJwtPayload {
   sub: string
   type: string
+  clinicId: string
 }
 
 @Injectable()
@@ -54,7 +55,7 @@ export class RefreshTokenUseCase extends BaseUseCase {
       throw new UnauthorizedException('Refresh token expired')
     }
 
-    const user = await this.usersRepository.findById(payload.sub)
+    const user = await this.usersRepository.findById(payload.sub, payload.clinicId)
     if (!user) {
       throw new UnauthorizedException('Invalid refresh token')
     }
@@ -64,11 +65,11 @@ export class RefreshTokenUseCase extends BaseUseCase {
 
     const [accessToken, newRefreshToken] = await Promise.all([
       this.jwtService.signAsync(
-        { sub: user.id, email: user.email },
+        { sub: user.id, email: user.email, role: user.role, clinicId: payload.clinicId },
         { expiresIn: this.authEnv.jwtExpiration },
       ),
       this.jwtService.signAsync(
-        { sub: user.id, type: 'refresh', jti: randomUUID() },
+        { sub: user.id, type: 'refresh', jti: randomUUID(), clinicId: payload.clinicId },
         { expiresIn: this.authEnv.jwtRefreshExpiration },
       ),
     ])

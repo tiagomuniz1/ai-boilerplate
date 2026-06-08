@@ -3,6 +3,7 @@ import { DataSource } from 'typeorm'
 import { UserResponseDto } from '@app/shared'
 import { BaseUseCase } from '../../../common/base.use-case'
 import { CacheService } from '../../../cache/cache.service'
+import { ICurrentUser } from '../../auth/types/current-user.type'
 import { INotificationAdapter } from '../adapters/notification.adapter.interface'
 import { IUsersRepository } from '../repositories/users.repository.interface'
 import { User } from '../entities/user.entity'
@@ -20,8 +21,9 @@ export class ActivateUserUseCase extends BaseUseCase {
     super(dataSource)
   }
 
-  async execute(id: string): Promise<UserResponseDto> {
-    const user = await this.usersRepository.findById(id)
+  async execute(id: string, currentUser: ICurrentUser): Promise<UserResponseDto> {
+    const { clinicId } = currentUser
+    const user = await this.usersRepository.findById(id, clinicId)
     if (!user) throw new NotFoundException('User not found')
     if (user.isActive) throw new UnprocessableEntityException('User is already active')
 
@@ -34,8 +36,8 @@ export class ActivateUserUseCase extends BaseUseCase {
     }
 
     try {
-      await this.cacheService.del(`user:${id}`)
-      await this.cacheService.delByPattern('users:list*')
+      await this.cacheService.del(`user:${clinicId}:${id}`)
+      await this.cacheService.delByPattern(`users:list:${clinicId}*`)
     } catch {
       this.logger.warn('Cache invalidation failed', { context: ActivateUserUseCase.name, userId: id })
     }

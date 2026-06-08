@@ -42,13 +42,14 @@ const mockCacheService = {
   setIfNotExists: jest.fn(),
 } as unknown as jest.Mocked<CacheService>
 
+const CLINIC_ID = 'fixed-clinic-uuid'
 const ownerId = faker.string.uuid()
 const otherDoctorId = faker.string.uuid()
 const adminId = faker.string.uuid()
 
-const ownerUser: ICurrentUser = { id: ownerId, role: UserRole.DOCTOR }
-const otherDoctorUser: ICurrentUser = { id: otherDoctorId, role: UserRole.DOCTOR }
-const adminUser: ICurrentUser = { id: adminId, role: UserRole.ADMIN }
+const ownerUser: ICurrentUser = { id: ownerId, role: UserRole.DOCTOR, clinicId: CLINIC_ID }
+const otherDoctorUser: ICurrentUser = { id: otherDoctorId, role: UserRole.DOCTOR, clinicId: CLINIC_ID }
+const adminUser: ICurrentUser = { id: adminId, role: UserRole.ADMIN, clinicId: CLINIC_ID }
 
 const makeSchedule = (overrides = {}) => ({
   id: faker.string.uuid(),
@@ -104,14 +105,14 @@ describe('UpdateScheduleUseCase', () => {
 
   it('throws ForbiddenException when role is USER', async () => {
     mockSchedulesRepository.findById.mockResolvedValue(makeSchedule() as any)
-    const userUser: ICurrentUser = { id: faker.string.uuid(), role: UserRole.USER }
+    const userUser: ICurrentUser = { id: faker.string.uuid(), role: UserRole.USER, clinicId: faker.string.uuid() }
     await expect(useCase.execute(faker.string.uuid(), {}, userUser)).rejects.toThrow(ForbiddenException)
     expect(mockSchedulesRepository.update).not.toHaveBeenCalled()
   })
 
   it('throws ForbiddenException when role is PATIENT', async () => {
     mockSchedulesRepository.findById.mockResolvedValue(makeSchedule() as any)
-    const patientUser: ICurrentUser = { id: faker.string.uuid(), role: UserRole.PATIENT }
+    const patientUser: ICurrentUser = { id: faker.string.uuid(), role: UserRole.PATIENT, clinicId: faker.string.uuid() }
     await expect(useCase.execute(faker.string.uuid(), {}, patientUser)).rejects.toThrow(ForbiddenException)
     expect(mockSchedulesRepository.update).not.toHaveBeenCalled()
   })
@@ -200,6 +201,7 @@ describe('UpdateScheduleUseCase', () => {
       schedule.endTime,
       schedule.validFrom,
       schedule.validUntil,
+      CLINIC_ID,
       schedule.id,
     )
   })
@@ -269,6 +271,7 @@ describe('UpdateScheduleUseCase', () => {
       schedule.endTime,
       schedule.validFrom,
       schedule.validUntil,
+      CLINIC_ID,
       schedule.id,
     )
   })
@@ -291,6 +294,7 @@ describe('UpdateScheduleUseCase', () => {
       '13:00',
       schedule.validFrom,
       schedule.validUntil,
+      CLINIC_ID,
       schedule.id,
     )
   })
@@ -342,8 +346,8 @@ describe('UpdateScheduleUseCase', () => {
 
     await useCase.execute(schedule.id, { slotDurationInMinutes: 60 }, ownerUser)
 
-    expect(mockCacheService.delByPrefix).toHaveBeenCalledWith(`schedules:list:${schedule.doctorId}:`)
-    expect(mockCacheService.delByPrefix).toHaveBeenCalledWith('schedules:list:all:')
+    expect(mockCacheService.del).toHaveBeenCalledWith(`schedule:${CLINIC_ID}:${schedule.id}`)
+    expect(mockCacheService.delByPrefix).toHaveBeenCalledWith(`schedules:list:${CLINIC_ID}:`)
   })
 
   it('continues when cache invalidation fails', async () => {

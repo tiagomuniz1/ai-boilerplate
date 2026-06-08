@@ -3,6 +3,7 @@ import { DataSource, QueryRunner } from 'typeorm'
 import { UserRole } from '@app/shared'
 import { BaseUseCase } from '../../../common/base.use-case'
 import { CacheService } from '../../../cache/cache.service'
+import { ICurrentUser } from '../../auth/types/current-user.type'
 import { IUsersRepository } from '../../users/repositories/users.repository.interface'
 import { DeleteScheduleUseCase } from '../../schedules/use-cases/delete-schedule.use-case'
 import { IDoctorsRepository } from '../repositories/doctors.repository.interface'
@@ -21,11 +22,13 @@ export class DeleteDoctorUseCase extends BaseUseCase {
     super(dataSource)
   }
 
-  async execute(id: string, currentUserId: string): Promise<void> {
-    const doctor = await this.doctorsRepository.findById(id)
+  async execute(id: string, currentUser: ICurrentUser): Promise<void> {
+    const { clinicId } = currentUser
+
+    const doctor = await this.doctorsRepository.findById(id, clinicId)
     if (!doctor) throw new NotFoundException('Doctor not found')
 
-    if (doctor.userId === currentUserId) {
+    if (doctor.userId === currentUser.id) {
       throw new ForbiddenException('Cannot delete your own doctor profile')
     }
 
@@ -33,7 +36,7 @@ export class DeleteDoctorUseCase extends BaseUseCase {
     const shouldDeleteUser = doctor.user.role === UserRole.DOCTOR
 
     await this.runInTransaction(async (queryRunner) => {
-      await this.deleteScheduleUseCase.deleteByDoctorId(id, queryRunner)
+      await this.deleteScheduleUseCase.deleteByDoctorId(id, clinicId, queryRunner)
       await this.doctorsRepository.delete(id, queryRunner)
       if (shouldDeleteUser) {
         await this.usersRepository.delete(userId, queryRunner)
@@ -41,27 +44,27 @@ export class DeleteDoctorUseCase extends BaseUseCase {
     })
 
     try {
-      await this.cacheService.del(`doctor:${id}`)
-      await this.cacheService.delByPattern('doctors:list*')
+      await this.cacheService.del(`doctor:${clinicId}:${id}`)
+      await this.cacheService.delByPattern(`doctors:list:${clinicId}*`)
       if (shouldDeleteUser) {
-        await this.cacheService.del(`user:${userId}`)
-        await this.cacheService.delByPattern('users:list*')
+        await this.cacheService.del(`user:${clinicId}:${userId}`)
+        await this.cacheService.delByPattern(`users:list:${clinicId}*`)
       }
     } catch {
       this.logger.warn('Cache invalidation failed', { context: DeleteDoctorUseCase.name })
     }
   }
 
-  async deleteByUserId(userId: string, queryRunner?: QueryRunner): Promise<void> {
-    const doctor = await this.doctorsRepository.findByUserId(userId)
+  async deleteByUserId(userId: string, clinicId: string, queryRunner?: QueryRunner): Promise<void> {
+    const doctor = await this.doctorsRepository.findByUserId(userId, clinicId)
     if (!doctor) return
 
-    await this.deleteScheduleUseCase.deleteByDoctorId(doctor.id, queryRunner)
+    await this.deleteScheduleUseCase.deleteByDoctorId(doctor.id, clinicId, queryRunner)
     await this.doctorsRepository.delete(doctor.id, queryRunner)
 
     try {
-      await this.cacheService.del(`doctor:${doctor.id}`)
-      await this.cacheService.delByPattern('doctors:list*')
+      await this.cacheService.del(`doctor:${clinicId}:${doctor.id}`)
+      await this.cacheService.delByPattern(`doctors:list:${clinicId}*`)
     } catch {
       this.logger.warn('Cache invalidation failed', { context: DeleteDoctorUseCase.name })
     }

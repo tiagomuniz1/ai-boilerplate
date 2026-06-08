@@ -24,7 +24,8 @@ export class FindUserByIdUseCase extends BaseUseCase {
       throw new ForbiddenException('You can only view your own profile')
     }
 
-    const cacheKey = `user:${id}`
+    const { clinicId } = currentUser
+    const cacheKey = `user:${clinicId}:${id}`
 
     try {
       const cached = await this.cacheService.get<UserResponseDto>(cacheKey)
@@ -33,7 +34,7 @@ export class FindUserByIdUseCase extends BaseUseCase {
       this.logger.warn('Cache read failed', { context: FindUserByIdUseCase.name, userId: id })
     }
 
-    const user = await this.usersRepository.findById(id)
+    const user = await this.usersRepository.findById(id, clinicId)
     if (!user) throw new NotFoundException('User not found')
 
     const [isDoctor, isPatient] = await Promise.all([

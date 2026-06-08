@@ -42,7 +42,8 @@ const makeDoctor = () => ({
 const makeQuery = (overrides: Partial<ListDoctorsQueryDto> = {}): ListDoctorsQueryDto =>
   Object.assign(new ListDoctorsQueryDto(), { page: 1, limit: 20, ...overrides })
 
-const adminUser: ICurrentUser = { id: faker.string.uuid(), role: UserRole.ADMIN }
+const CLINIC_ID = 'fixed-clinic-uuid'
+const adminUser: ICurrentUser = { id: faker.string.uuid(), role: UserRole.ADMIN, clinicId: CLINIC_ID }
 
 describe('FindAllDoctorsUseCase', () => {
   let useCase: FindAllDoctorsUseCase
@@ -89,7 +90,7 @@ describe('FindAllDoctorsUseCase', () => {
 
     await useCase.execute(makeQuery({ search: 'Cardio' }), adminUser)
 
-    expect(mockDoctorsRepository.findAll).toHaveBeenCalledWith(1, 20, 'Cardio')
+    expect(mockDoctorsRepository.findAll).toHaveBeenCalledWith(1, 20, CLINIC_ID, 'Cardio')
   })
 
   it('uses all-key when search is absent', async () => {
@@ -99,7 +100,7 @@ describe('FindAllDoctorsUseCase', () => {
 
     await useCase.execute(makeQuery(), adminUser)
 
-    expect(mockCacheService.get).toHaveBeenCalledWith('doctors:list:1:20:all')
+    expect(mockCacheService.get).toHaveBeenCalledWith(`doctors:list:${CLINIC_ID}:1:20:all`)
   })
 
   it('continues on cache read failure', async () => {
@@ -137,7 +138,7 @@ describe('FindAllDoctorsUseCase', () => {
 
   it('returns only own profile when DOCTOR role', async () => {
     const doctor = makeDoctor()
-    const doctorUser: ICurrentUser = { id: doctor.user.id, role: UserRole.DOCTOR }
+    const doctorUser: ICurrentUser = { id: doctor.user.id, role: UserRole.DOCTOR, clinicId: CLINIC_ID }
     mockDoctorsRepository.findByUserId.mockResolvedValue(doctor as any)
 
     const result = await useCase.execute(makeQuery(), doctorUser)
@@ -150,7 +151,7 @@ describe('FindAllDoctorsUseCase', () => {
   })
 
   it('throws NotFoundException when DOCTOR has no doctor profile', async () => {
-    const doctorUser: ICurrentUser = { id: faker.string.uuid(), role: UserRole.DOCTOR }
+    const doctorUser: ICurrentUser = { id: faker.string.uuid(), role: UserRole.DOCTOR, clinicId: CLINIC_ID }
     mockDoctorsRepository.findByUserId.mockResolvedValue(null)
 
     await expect(useCase.execute(makeQuery(), doctorUser)).rejects.toThrow(NotFoundException)

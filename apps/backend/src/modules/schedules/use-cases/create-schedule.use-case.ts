@@ -38,14 +38,16 @@ export class CreateScheduleUseCase extends BaseUseCase {
       throw new ForbiddenException('Only doctors and admins can create schedules')
     }
 
+    const { clinicId } = currentUser
+
     let doctor
     if (currentUser.role === UserRole.DOCTOR) {
-      doctor = await this.doctorsRepository.findByUserId(currentUser.id)
+      doctor = await this.doctorsRepository.findByUserId(currentUser.id, clinicId)
     } else {
       if (!dto.doctorId) {
         throw new UnprocessableEntityException('doctorId is required for admin')
       }
-      doctor = await this.doctorsRepository.findById(dto.doctorId)
+      doctor = await this.doctorsRepository.findById(dto.doctorId, clinicId)
     }
     if (!doctor) throw new NotFoundException('Doctor not found')
 
@@ -73,6 +75,7 @@ export class CreateScheduleUseCase extends BaseUseCase {
       endTime,
       validFrom ?? null,
       validUntil ?? null,
+      clinicId,
     )
     if (overlapping) throw new ConflictException('Schedule overlaps with an existing one')
 
@@ -81,8 +84,7 @@ export class CreateScheduleUseCase extends BaseUseCase {
     const doctorName = await this.fetchDoctorName(doctorId)
 
     try {
-      await this.cacheService.delByPrefix(`schedules:list:${doctorId}:`)
-      await this.cacheService.delByPrefix('schedules:list:all:')
+      await this.cacheService.delByPrefix(`schedules:list:${clinicId}:`)
     } catch {
       this.logger.warn('Cache invalidation failed', { context: CreateScheduleUseCase.name })
     }

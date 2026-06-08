@@ -4,6 +4,7 @@ import { faker } from '@faker-js/faker'
 import { PatientGender, UserRole } from '@app/shared'
 import { DB_UNIQUE_CONSTRAINTS } from '../../../common/utils/db-constraint.utils'
 import { CacheService } from '../../../cache/cache.service'
+import { ICurrentUser } from '../../auth/types/current-user.type'
 import { IUsersRepository } from '../../users/repositories/users.repository.interface'
 import { IPatientsRepository } from '../repositories/patients.repository.interface'
 import { UpdatePatientUseCase } from '../use-cases/update-patient.use-case'
@@ -85,6 +86,9 @@ const makePatient = (overrides = {}) => {
   }
 }
 
+const CLINIC_ID = 'fixed-clinic-uuid'
+const adminCurrentUser: ICurrentUser = { id: faker.string.uuid(), role: UserRole.ADMIN, clinicId: CLINIC_ID }
+
 describe('UpdatePatientUseCase', () => {
   let useCase: UpdatePatientUseCase
 
@@ -109,7 +113,7 @@ describe('UpdatePatientUseCase', () => {
     mockCacheService.del.mockResolvedValue(undefined)
     mockCacheService.delByPattern.mockResolvedValue(undefined)
 
-    const result = await useCase.execute(patient.id, { phoneNumber: '(11) 88888-8888' })
+    const result = await useCase.execute(patient.id, { phoneNumber: '(11) 88888-8888' }, adminCurrentUser)
 
     expect(mockPatientsRepository.update).toHaveBeenCalledWith(patient.id, { phoneNumber: '(11) 88888-8888' })
     expect(mockUsersRepository.update).not.toHaveBeenCalled()
@@ -129,7 +133,7 @@ describe('UpdatePatientUseCase', () => {
     mockCacheService.del.mockResolvedValue(undefined)
     mockCacheService.delByPattern.mockResolvedValue(undefined)
 
-    const result = await useCase.execute(patient.id, { fullName: 'Novo Nome' })
+    const result = await useCase.execute(patient.id, { fullName: 'Novo Nome' }, adminCurrentUser)
 
     expect(mockUsersRepository.update).toHaveBeenCalledWith(
       patient.userId,
@@ -142,7 +146,7 @@ describe('UpdatePatientUseCase', () => {
   it('throws NotFoundException when patient does not exist', async () => {
     mockPatientsRepository.findById.mockResolvedValue(null)
 
-    await expect(useCase.execute(faker.string.uuid(), { phoneNumber: '(11) 99999-9999' })).rejects.toThrow(
+    await expect(useCase.execute(faker.string.uuid(), { phoneNumber: '(11) 99999-9999' }, adminCurrentUser)).rejects.toThrow(
       NotFoundException,
     )
     expect(mockPatientsRepository.update).not.toHaveBeenCalled()
@@ -153,7 +157,7 @@ describe('UpdatePatientUseCase', () => {
     mockPatientsRepository.findById.mockResolvedValue(patient as any)
     mockUsersRepository.findByEmail.mockResolvedValue(makeUser() as any)
 
-    await expect(useCase.execute(patient.id, { email: 'taken@example.com' })).rejects.toThrow(ConflictException)
+    await expect(useCase.execute(patient.id, { email: 'taken@example.com' }, adminCurrentUser)).rejects.toThrow(ConflictException)
     expect(mockUsersRepository.update).not.toHaveBeenCalled()
   })
 
@@ -166,7 +170,7 @@ describe('UpdatePatientUseCase', () => {
       .mockResolvedValueOnce(updatedPatient as any)
     mockUsersRepository.update.mockResolvedValue(updatedPatient.user as any)
 
-    await useCase.execute(patient.id, { email: patient.user.email, fullName: 'Outro Nome' })
+    await useCase.execute(patient.id, { email: patient.user.email, fullName: 'Outro Nome' }, adminCurrentUser)
 
     expect(mockUsersRepository.findByEmail).not.toHaveBeenCalled()
   })
@@ -190,7 +194,7 @@ describe('UpdatePatientUseCase', () => {
     const result = await useCase.execute(patient.id, {
       fullName: 'New Name',
       phoneNumber: '(11) 77777-7777',
-    })
+    }, adminCurrentUser)
 
     expect(mockUsersRepository.update).toHaveBeenCalledWith(
       patient.userId,
@@ -214,7 +218,7 @@ describe('UpdatePatientUseCase', () => {
     )
 
     await expect(
-      useCase.execute(patient.id, { fullName: 'New Name', phoneNumber: '(11) 99999-9999' }),
+      useCase.execute(patient.id, { fullName: 'New Name', phoneNumber: '(11) 99999-9999' }, adminCurrentUser),
     ).rejects.toThrow(ConflictException)
   })
 
@@ -225,7 +229,7 @@ describe('UpdatePatientUseCase', () => {
     mockPatientsRepository.update.mockRejectedValue(new Error('DB failure inside transaction'))
 
     await expect(
-      useCase.execute(patient.id, { fullName: 'New Name', phoneNumber: '(11) 99999-9999' }),
+      useCase.execute(patient.id, { fullName: 'New Name', phoneNumber: '(11) 99999-9999' }, adminCurrentUser),
     ).rejects.toThrow('DB failure inside transaction')
   })
 
@@ -234,7 +238,7 @@ describe('UpdatePatientUseCase', () => {
     mockPatientsRepository.findById.mockResolvedValue(patient as any)
     mockPatientsRepository.update.mockRejectedValue(new OptimisticLockVersionMismatchError('Patient', 1, 2))
 
-    await expect(useCase.execute(patient.id, { phoneNumber: '(11) 99999-9999' })).rejects.toThrow(ConflictException)
+    await expect(useCase.execute(patient.id, { phoneNumber: '(11) 99999-9999' }, adminCurrentUser)).rejects.toThrow(ConflictException)
   })
 
   it('propagates non-optimistic-lock errors', async () => {
@@ -242,7 +246,7 @@ describe('UpdatePatientUseCase', () => {
     mockPatientsRepository.findById.mockResolvedValue(patient as any)
     mockPatientsRepository.update.mockRejectedValue(new Error('Database error'))
 
-    await expect(useCase.execute(patient.id, { phoneNumber: '(11) 99999-9999' })).rejects.toThrow('Database error')
+    await expect(useCase.execute(patient.id, { phoneNumber: '(11) 99999-9999' }, adminCurrentUser)).rejects.toThrow('Database error')
   })
 
   it('invalidates patient and list cache when updating patient-only fields', async () => {
@@ -252,12 +256,12 @@ describe('UpdatePatientUseCase', () => {
     mockCacheService.del.mockResolvedValue(undefined)
     mockCacheService.delByPattern.mockResolvedValue(undefined)
 
-    await useCase.execute(patient.id, { phoneNumber: '(11) 99999-9999' })
+    await useCase.execute(patient.id, { phoneNumber: '(11) 99999-9999' }, adminCurrentUser)
 
-    expect(mockCacheService.del).toHaveBeenCalledWith(`patient:${patient.id}`)
-    expect(mockCacheService.delByPattern).toHaveBeenCalledWith('patients:list*')
-    expect(mockCacheService.del).not.toHaveBeenCalledWith(`user:${patient.userId}`)
-    expect(mockCacheService.delByPattern).not.toHaveBeenCalledWith('users:list*')
+    expect(mockCacheService.del).toHaveBeenCalledWith(`patient:${CLINIC_ID}:${patient.id}`)
+    expect(mockCacheService.delByPattern).toHaveBeenCalledWith(`patients:list:${CLINIC_ID}*`)
+    expect(mockCacheService.del).not.toHaveBeenCalledWith(`user:${CLINIC_ID}:${patient.userId}`)
+    expect(mockCacheService.delByPattern).not.toHaveBeenCalledWith(`users:list:${CLINIC_ID}*`)
   })
 
   it('also invalidates user caches when fullName is updated', async () => {
@@ -267,12 +271,12 @@ describe('UpdatePatientUseCase', () => {
     mockCacheService.del.mockResolvedValue(undefined)
     mockCacheService.delByPattern.mockResolvedValue(undefined)
 
-    await useCase.execute(patient.id, { fullName: 'Nome Atualizado' })
+    await useCase.execute(patient.id, { fullName: 'Nome Atualizado' }, adminCurrentUser)
 
-    expect(mockCacheService.del).toHaveBeenCalledWith(`patient:${patient.id}`)
-    expect(mockCacheService.delByPattern).toHaveBeenCalledWith('patients:list*')
-    expect(mockCacheService.del).toHaveBeenCalledWith(`user:${patient.userId}`)
-    expect(mockCacheService.delByPattern).toHaveBeenCalledWith('users:list*')
+    expect(mockCacheService.del).toHaveBeenCalledWith(`patient:${CLINIC_ID}:${patient.id}`)
+    expect(mockCacheService.delByPattern).toHaveBeenCalledWith(`patients:list:${CLINIC_ID}*`)
+    expect(mockCacheService.del).toHaveBeenCalledWith(`user:${CLINIC_ID}:${patient.userId}`)
+    expect(mockCacheService.delByPattern).toHaveBeenCalledWith(`users:list:${CLINIC_ID}*`)
   })
 
   it('also invalidates user caches when email is updated', async () => {
@@ -283,10 +287,10 @@ describe('UpdatePatientUseCase', () => {
     mockCacheService.del.mockResolvedValue(undefined)
     mockCacheService.delByPattern.mockResolvedValue(undefined)
 
-    await useCase.execute(patient.id, { email: 'new@email.com' })
+    await useCase.execute(patient.id, { email: 'new@email.com' }, adminCurrentUser)
 
-    expect(mockCacheService.del).toHaveBeenCalledWith(`user:${patient.userId}`)
-    expect(mockCacheService.delByPattern).toHaveBeenCalledWith('users:list*')
+    expect(mockCacheService.del).toHaveBeenCalledWith(`user:${CLINIC_ID}:${patient.userId}`)
+    expect(mockCacheService.delByPattern).toHaveBeenCalledWith(`users:list:${CLINIC_ID}*`)
   })
 
   it('throws ConflictException when OptimisticLock fires on user-only update', async () => {
@@ -294,7 +298,7 @@ describe('UpdatePatientUseCase', () => {
     mockPatientsRepository.findById.mockResolvedValue(patient as any)
     mockUsersRepository.update.mockRejectedValue(new OptimisticLockVersionMismatchError('User', 1, 2))
 
-    await expect(useCase.execute(patient.id, { fullName: 'New Name' })).rejects.toThrow(ConflictException)
+    await expect(useCase.execute(patient.id, { fullName: 'New Name' }, adminCurrentUser)).rejects.toThrow(ConflictException)
   })
 
   it('throws ConflictException when OptimisticLock fires on user update inside transaction', async () => {
@@ -303,7 +307,7 @@ describe('UpdatePatientUseCase', () => {
     mockUsersRepository.update.mockRejectedValue(new OptimisticLockVersionMismatchError('User', 1, 2))
 
     await expect(
-      useCase.execute(patient.id, { fullName: 'New Name', phoneNumber: '(11) 99999-9999' }),
+      useCase.execute(patient.id, { fullName: 'New Name', phoneNumber: '(11) 99999-9999' }, adminCurrentUser),
     ).rejects.toThrow(ConflictException)
   })
 
@@ -313,7 +317,7 @@ describe('UpdatePatientUseCase', () => {
     mockUsersRepository.findByEmail.mockResolvedValue(null)
     mockUsersRepository.update.mockRejectedValue(makeUniqueViolation(DB_UNIQUE_CONSTRAINTS.USERS_EMAIL))
 
-    await expect(useCase.execute(patient.id, { email: 'race@example.com' })).rejects.toThrow(ConflictException)
+    await expect(useCase.execute(patient.id, { email: 'race@example.com' }, adminCurrentUser)).rejects.toThrow(ConflictException)
   })
 
   it('throws ConflictException when DB email unique constraint fires inside transaction (race condition)', async () => {
@@ -323,7 +327,7 @@ describe('UpdatePatientUseCase', () => {
     mockUsersRepository.update.mockRejectedValue(makeUniqueViolation(DB_UNIQUE_CONSTRAINTS.USERS_EMAIL))
 
     await expect(
-      useCase.execute(patient.id, { email: 'race@example.com', phoneNumber: '(11) 99999-9999' }),
+      useCase.execute(patient.id, { email: 'race@example.com', phoneNumber: '(11) 99999-9999' }, adminCurrentUser),
     ).rejects.toThrow(ConflictException)
   })
 
@@ -333,7 +337,7 @@ describe('UpdatePatientUseCase', () => {
     mockPatientsRepository.update.mockResolvedValue(patient as any)
     mockCacheService.del.mockRejectedValue(new Error('Redis error'))
 
-    const result = await useCase.execute(patient.id, { phoneNumber: '(11) 99999-9999' })
+    const result = await useCase.execute(patient.id, { phoneNumber: '(11) 99999-9999' }, adminCurrentUser)
 
     expect(result.id).toBe(patient.id)
   })

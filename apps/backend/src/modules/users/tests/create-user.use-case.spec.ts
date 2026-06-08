@@ -7,6 +7,7 @@ import { DB_UNIQUE_CONSTRAINTS } from '../../../common/utils/db-constraint.utils
 import { CreateUserUseCase } from '../use-cases/create-user.use-case'
 import { IUsersRepository } from '../repositories/users.repository.interface'
 import { CacheService } from '../../../cache/cache.service'
+import { ICurrentUser } from '../../auth/types/current-user.type'
 import { User } from '../entities/user.entity'
 
 function makeUniqueViolation(constraint: string): QueryFailedError {
@@ -33,6 +34,9 @@ const mockCacheService = {
   delByPattern: jest.fn(),
 } as unknown as jest.Mocked<CacheService>
 
+const CLINIC_ID = 'fixed-clinic-uuid'
+const adminCurrentUser: ICurrentUser = { id: faker.string.uuid(), role: UserRole.ADMIN, clinicId: CLINIC_ID }
+
 describe('CreateUserUseCase', () => {
   let useCase: CreateUserUseCase
 
@@ -49,24 +53,25 @@ describe('CreateUserUseCase', () => {
       role: UserRole.USER,
     }
     const now = new Date()
-    const createdUser: User = {
+    const createdUser = {
       id: faker.string.uuid(),
       fullName: dto.fullName,
       email: dto.email,
       password: 'hashed',
       role: UserRole.USER,
       isActive: true,
+      clinicId: CLINIC_ID,
       version: 1,
       createdAt: now,
       updatedAt: now,
       deletedAt: null,
-    }
+    } as unknown as User
 
     mockUsersRepository.findByEmail.mockResolvedValue(null)
     mockUsersRepository.create.mockResolvedValue(createdUser)
     mockCacheService.delByPattern.mockResolvedValue(undefined)
 
-    const result = await useCase.execute(dto)
+    const result = await useCase.execute(dto, adminCurrentUser)
 
     expect(result.id).toBe(createdUser.id)
     expect(result.email).toBe(dto.email)
@@ -83,13 +88,13 @@ describe('CreateUserUseCase', () => {
       password: 'PlainText123',
       role: UserRole.USER,
     }
-    const createdUser: User = { ...dto, id: 'u1', password: 'hash', isActive: true, version: 1, createdAt: new Date(), updatedAt: new Date(), deletedAt: null }
+    const createdUser = { ...dto, id: 'u1', password: 'hash', isActive: true, clinicId: CLINIC_ID, version: 1, createdAt: new Date(), updatedAt: new Date(), deletedAt: null } as unknown as User
 
     mockUsersRepository.findByEmail.mockResolvedValue(null)
     mockUsersRepository.create.mockResolvedValue(createdUser)
     mockCacheService.delByPattern.mockResolvedValue(undefined)
 
-    await useCase.execute(dto)
+    await useCase.execute(dto, adminCurrentUser)
 
     const calledWith = mockUsersRepository.create.mock.calls[0][0]
     expect(calledWith.password).not.toBe('PlainText123')
@@ -100,7 +105,7 @@ describe('CreateUserUseCase', () => {
     mockUsersRepository.findByEmail.mockResolvedValue({ id: 'existing' } as User)
 
     await expect(
-      useCase.execute({ fullName: 'Bob', email: 'taken@example.com', password: 'Password123', role: UserRole.USER }),
+      useCase.execute({ fullName: 'Bob', email: 'taken@example.com', password: 'Password123', role: UserRole.USER }, adminCurrentUser),
     ).rejects.toThrow(ConflictException)
 
     expect(mockUsersRepository.create).not.toHaveBeenCalled()
@@ -108,28 +113,28 @@ describe('CreateUserUseCase', () => {
 
   it('defaults role to USER when not provided (DTO default)', async () => {
     const dto = { fullName: 'Carol', email: 'carol@example.com', password: 'Password123', role: UserRole.USER }
-    const createdUser: User = { ...dto, id: 'u2', password: 'hash', isActive: true, version: 1, createdAt: new Date(), updatedAt: new Date(), deletedAt: null }
+    const createdUser = { ...dto, id: 'u2', password: 'hash', isActive: true, clinicId: CLINIC_ID, version: 1, createdAt: new Date(), updatedAt: new Date(), deletedAt: null } as unknown as User
 
     mockUsersRepository.findByEmail.mockResolvedValue(null)
     mockUsersRepository.create.mockResolvedValue(createdUser)
     mockCacheService.delByPattern.mockResolvedValue(undefined)
 
-    const result = await useCase.execute(dto)
+    const result = await useCase.execute(dto, adminCurrentUser)
 
     expect(result.role).toBe(UserRole.USER)
   })
 
-  it('invalidates list cache after creation', async () => {
+  it('invalidates list cache after creation using clinicId-scoped key', async () => {
     const dto = { fullName: 'Dave', email: 'd@e.com', password: 'Password123', role: UserRole.USER }
-    const user: User = { ...dto, id: 'u3', password: 'hash', isActive: true, version: 1, createdAt: new Date(), updatedAt: new Date(), deletedAt: null }
+    const user = { ...dto, id: 'u3', password: 'hash', isActive: true, clinicId: CLINIC_ID, version: 1, createdAt: new Date(), updatedAt: new Date(), deletedAt: null } as unknown as User
 
     mockUsersRepository.findByEmail.mockResolvedValue(null)
     mockUsersRepository.create.mockResolvedValue(user)
     mockCacheService.delByPattern.mockResolvedValue(undefined)
 
-    await useCase.execute(dto)
+    await useCase.execute(dto, adminCurrentUser)
 
-    expect(mockCacheService.delByPattern).toHaveBeenCalledWith('users:list*')
+    expect(mockCacheService.delByPattern).toHaveBeenCalledWith(`users:list:${CLINIC_ID}*`)
   })
 
   it('throws ConflictException when DB email unique constraint fires (race condition)', async () => {
@@ -137,7 +142,7 @@ describe('CreateUserUseCase', () => {
     mockUsersRepository.create.mockRejectedValue(makeUniqueViolation(DB_UNIQUE_CONSTRAINTS.USERS_EMAIL))
 
     await expect(
-      useCase.execute({ fullName: 'Alice', email: 'race@example.com', password: 'Password123', role: UserRole.USER }),
+      useCase.execute({ fullName: 'Alice', email: 'race@example.com', password: 'Password123', role: UserRole.USER }, adminCurrentUser),
     ).rejects.toThrow(ConflictException)
   })
 
@@ -146,18 +151,18 @@ describe('CreateUserUseCase', () => {
     mockUsersRepository.create.mockRejectedValue(new Error('Database connection lost'))
 
     await expect(
-      useCase.execute({ fullName: 'Alice', email: 'a@b.com', password: 'Password123', role: UserRole.USER }),
+      useCase.execute({ fullName: 'Alice', email: 'a@b.com', password: 'Password123', role: UserRole.USER }, adminCurrentUser),
     ).rejects.toThrow('Database connection lost')
   })
 
   it('does not throw when cache invalidation fails', async () => {
     const dto = { fullName: 'Eve', email: 'e@f.com', password: 'Password123', role: UserRole.USER }
-    const user: User = { ...dto, id: 'u4', password: 'hash', isActive: true, version: 1, createdAt: new Date(), updatedAt: new Date(), deletedAt: null }
+    const user = { ...dto, id: 'u4', password: 'hash', isActive: true, clinicId: CLINIC_ID, version: 1, createdAt: new Date(), updatedAt: new Date(), deletedAt: null } as unknown as User
 
     mockUsersRepository.findByEmail.mockResolvedValue(null)
     mockUsersRepository.create.mockResolvedValue(user)
     mockCacheService.delByPattern.mockRejectedValue(new Error('Redis down'))
 
-    await expect(useCase.execute(dto)).resolves.toBeDefined()
+    await expect(useCase.execute(dto, adminCurrentUser)).resolves.toBeDefined()
   })
 })

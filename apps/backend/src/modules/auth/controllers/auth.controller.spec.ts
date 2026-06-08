@@ -214,13 +214,13 @@ describe('AuthController', () => {
   })
 
   it('delegates me to MeUseCase using id from authUser', async () => {
-    const authUser = { id: 'user-uuid', email: 'user@example.com', role: 'user' as any }
-    const meResult = { id: 'user-uuid', fullName: 'Alice Costa', email: 'user@example.com', role: UserRole.USER }
+    const authUser = { id: 'user-uuid', role: 'user' as any, clinicId: 'clinic-uuid' }
+    const meResult = { id: 'user-uuid', fullName: 'Alice Costa', email: 'user@example.com', role: UserRole.USER, clinicId: 'clinic-uuid' }
     mockMeUseCase.execute.mockResolvedValue(meResult)
 
     const result = await controller.me(authUser)
 
-    expect(mockMeUseCase.execute).toHaveBeenCalledWith('user-uuid')
+    expect(mockMeUseCase.execute).toHaveBeenCalledWith('user-uuid', 'clinic-uuid')
     expect(result).toBe(meResult)
   })
 })

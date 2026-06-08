@@ -7,9 +7,12 @@ import * as request from 'supertest'
 import { Repository } from 'typeorm'
 import { UserRole } from '@app/shared'
 import { AppModule } from '../../../app.module'
+import { Clinic } from '../../clinics/entities/clinic.entity'
 import { User } from '../../users/entities/user.entity'
 import { Doctor } from '../entities/doctor.entity'
 import { Specialty } from '../../specialties/entities/specialty.entity'
+
+const SEED_CLINIC_ID = '10000000-0000-0000-0000-000000000000'
 
 process.env.NODE_ENV = 'test'
 process.env.DB_SCHEMA = 'test'
@@ -20,6 +23,7 @@ process.env.JWT_REFRESH_EXPIRATION = '7d'
 describe('DoctorsController (integration)', () => {
   let app: INestApplication
   let userRepository: Repository<User>
+  let clinicRepository: Repository<Clinic>
   let doctorRepository: Repository<Doctor>
   let specialtyRepository: Repository<Specialty>
   let accessToken: string
@@ -53,11 +57,16 @@ describe('DoctorsController (integration)', () => {
     await app.listen(0)
 
     userRepository = module.get(getRepositoryToken(User))
+    clinicRepository = module.get(getRepositoryToken(Clinic))
     doctorRepository = module.get(getRepositoryToken(Doctor))
     specialtyRepository = module.get(getRepositoryToken(Specialty))
   })
 
   beforeEach(async () => {
+    await clinicRepository.save(
+      clinicRepository.create({ id: SEED_CLINIC_ID, name: 'Seed Clinic', slug: 'seed-clinic', isActive: true }),
+    )
+
     const password = 'Password123!'
     const hashedPassword = await bcrypt.hash(password, 1)
 
@@ -67,6 +76,7 @@ describe('DoctorsController (integration)', () => {
         email: 'auth@doctors.test',
         password: hashedPassword,
         role: UserRole.ADMIN,
+        clinicId: SEED_CLINIC_ID,
       }),
     )
     authUserId = authUser.id
@@ -84,11 +94,12 @@ describe('DoctorsController (integration)', () => {
         password: hashedPassword,
         role: UserRole.DOCTOR,
         isActive: true,
+        clinicId: SEED_CLINIC_ID,
       }),
     )
     doctorToken = await loginUser('doctor@doctors.test', password)
 
-    const doctorEntity = doctorRepository.create({ userId: doctorUser.id, crmNumber: '99999/SP' })
+    const doctorEntity = doctorRepository.create({ userId: doctorUser.id, crmNumber: '99999/SP', clinicId: SEED_CLINIC_ID })
     doctorEntity.specialties = [defaultSpecialty]
     const doctorProfile = await doctorRepository.save(doctorEntity)
     doctorProfileId = doctorProfile.id
@@ -100,6 +111,7 @@ describe('DoctorsController (integration)', () => {
         password: hashedPassword,
         role: UserRole.USER,
         isActive: true,
+        clinicId: SEED_CLINIC_ID,
       }),
     )
     userToken = await loginUser('user@doctors.test', password)
@@ -111,6 +123,7 @@ describe('DoctorsController (integration)', () => {
         password: hashedPassword,
         role: UserRole.DOCTOR,
         isActive: true,
+        clinicId: SEED_CLINIC_ID,
       }),
     )
     doctorWithoutProfileToken = await loginUser('noprofile.doctor@doctors.test', password)
@@ -123,6 +136,7 @@ describe('DoctorsController (integration)', () => {
     await doctorRepository.query('DELETE FROM test.patients')
     await specialtyRepository.query('DELETE FROM test.specialties')
     await userRepository.query('DELETE FROM test.users')
+    await clinicRepository.query('DELETE FROM test.clinics')
   })
 
   afterAll(async () => {
@@ -135,6 +149,7 @@ describe('DoctorsController (integration)', () => {
         fullName: faker.person.fullName(),
         email: faker.internet.email(),
         password: 'hashed',
+        clinicId: SEED_CLINIC_ID,
       }),
     )
   }
@@ -351,6 +366,7 @@ describe('DoctorsController (integration)', () => {
           fullName: 'Soft Deleted Doctor',
           email: faker.internet.email(),
           password: 'hashed',
+          clinicId: SEED_CLINIC_ID,
         }),
       )
       await createDoctor(activeUser.id, { crmNumber: '11111/SP' }).expect(201)
@@ -739,6 +755,7 @@ describe('DoctorsController (integration)', () => {
           password: hashedPassword,
           role: UserRole.DOCTOR,
           isActive: true,
+          clinicId: SEED_CLINIC_ID,
         }),
       )
       const { body: created } = await createDoctor(doctorRoleUser.id, { crmNumber: '44444/SP' }).expect(201)
@@ -784,6 +801,7 @@ describe('DoctorsController (integration)', () => {
           password: hashedPassword,
           role: UserRole.DOCTOR,
           isActive: true,
+          clinicId: SEED_CLINIC_ID,
         }),
       )
       const { body: created } = await createDoctor(doctorRoleUser.id, { crmNumber: '55555/SP' }).expect(201)

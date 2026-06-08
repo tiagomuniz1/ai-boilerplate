@@ -2,6 +2,7 @@ import { DataSource } from 'typeorm'
 import { faker } from '@faker-js/faker'
 import { PatientGender, UserRole } from '@app/shared'
 import { CacheService } from '../../../cache/cache.service'
+import { ICurrentUser } from '../../auth/types/current-user.type'
 import { IPatientsRepository } from '../repositories/patients.repository.interface'
 import { ListPatientsQueryDto } from '../dto/list-patients-query.dto'
 import { ListPatientsUseCase } from '../use-cases/list-patients.use-case'
@@ -56,6 +57,9 @@ const makePatient = (overrides = {}) => {
   }
 }
 
+const CLINIC_ID = 'fixed-clinic-uuid'
+const adminCurrentUser: ICurrentUser = { id: faker.string.uuid(), role: UserRole.ADMIN, clinicId: CLINIC_ID }
+
 const makeQuery = (overrides: Partial<ListPatientsQueryDto> = {}): ListPatientsQueryDto => ({
   page: 1,
   limit: 20,
@@ -78,7 +82,7 @@ describe('ListPatientsUseCase', () => {
     const cached = { data: [], total: 0, page: 1, limit: 20 }
     mockCacheService.get.mockResolvedValue(cached)
 
-    const result = await useCase.execute(makeQuery())
+    const result = await useCase.execute(makeQuery(), adminCurrentUser)
 
     expect(result).toBe(cached)
     expect(mockPatientsRepository.findAll).not.toHaveBeenCalled()
@@ -90,11 +94,11 @@ describe('ListPatientsUseCase', () => {
     mockPatientsRepository.findAll.mockResolvedValue([patients as any, 1])
     mockCacheService.set.mockResolvedValue(undefined)
 
-    const result = await useCase.execute(makeQuery())
+    const result = await useCase.execute(makeQuery(), adminCurrentUser)
 
-    expect(mockPatientsRepository.findAll).toHaveBeenCalledWith(1, 20, undefined)
+    expect(mockPatientsRepository.findAll).toHaveBeenCalledWith(1, 20, CLINIC_ID, undefined)
     expect(mockCacheService.set).toHaveBeenCalledWith(
-      'patients:list:1:20:all',
+      `patients:list:${CLINIC_ID}:1:20:all`,
       expect.objectContaining({ total: 1, page: 1, limit: 20 }),
       60,
     )
@@ -107,11 +111,11 @@ describe('ListPatientsUseCase', () => {
     mockPatientsRepository.findAll.mockResolvedValue([[], 0])
     mockCacheService.set.mockResolvedValue(undefined)
 
-    await useCase.execute(makeQuery({ search: 'João' }))
+    await useCase.execute(makeQuery({ search: 'João' }), adminCurrentUser)
 
-    expect(mockPatientsRepository.findAll).toHaveBeenCalledWith(1, 20, 'João')
+    expect(mockPatientsRepository.findAll).toHaveBeenCalledWith(1, 20, CLINIC_ID, 'João')
     expect(mockCacheService.set).toHaveBeenCalledWith(
-      'patients:list:1:20:João',
+      `patients:list:${CLINIC_ID}:1:20:João`,
       expect.anything(),
       60,
     )
@@ -122,7 +126,7 @@ describe('ListPatientsUseCase', () => {
     mockPatientsRepository.findAll.mockResolvedValue([[], 0])
     mockCacheService.set.mockResolvedValue(undefined)
 
-    const result = await useCase.execute(makeQuery())
+    const result = await useCase.execute(makeQuery(), adminCurrentUser)
 
     expect(result.total).toBe(0)
   })
@@ -132,7 +136,7 @@ describe('ListPatientsUseCase', () => {
     mockPatientsRepository.findAll.mockResolvedValue([[], 0])
     mockCacheService.set.mockRejectedValue(new Error('Redis error'))
 
-    const result = await useCase.execute(makeQuery())
+    const result = await useCase.execute(makeQuery(), adminCurrentUser)
 
     expect(result.total).toBe(0)
   })
@@ -142,9 +146,9 @@ describe('ListPatientsUseCase', () => {
     mockPatientsRepository.findAll.mockResolvedValue([[], 0])
     mockCacheService.set.mockResolvedValue(undefined)
 
-    const result = await useCase.execute(makeQuery({ page: 2, limit: 10 }))
+    const result = await useCase.execute(makeQuery({ page: 2, limit: 10 }), adminCurrentUser)
 
-    expect(mockPatientsRepository.findAll).toHaveBeenCalledWith(2, 10, undefined)
+    expect(mockPatientsRepository.findAll).toHaveBeenCalledWith(2, 10, CLINIC_ID, undefined)
     expect(result.page).toBe(2)
     expect(result.limit).toBe(10)
   })

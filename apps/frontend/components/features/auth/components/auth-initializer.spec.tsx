@@ -15,6 +15,7 @@ const mockUser: IAuthUserModel = {
   fullName: 'Alice Costa',
   email: 'alice@example.com',
   role: UserRole.DOCTOR,
+  clinicId: 'clinic-uuid-1',
 }
 
 function mockAuthStore(user: IAuthUserModel | null) {
@@ -49,6 +50,7 @@ describe('AuthInitializer', () => {
       fullName: 'Alice Costa',
       email: 'alice@example.com',
       role: UserRole.ADMIN,
+      clinicId: 'clinic-uuid-1',
     })
 
     render(<AuthInitializer />)
@@ -65,6 +67,7 @@ describe('AuthInitializer', () => {
       fullName: 'Bob Silva',
       email: 'bob@example.com',
       role: UserRole.ADMIN,
+      clinicId: 'clinic-uuid-2',
     })
 
     render(<AuthInitializer />)
@@ -81,6 +84,7 @@ describe('AuthInitializer', () => {
       fullName: 'Bob Silva',
       email: 'bob@example.com',
       role: UserRole.ADMIN,
+      clinicId: 'clinic-uuid-2',
     })
 
     render(<AuthInitializer />)
@@ -91,6 +95,7 @@ describe('AuthInitializer', () => {
         fullName: 'Bob Silva',
         email: 'bob@example.com',
         role: UserRole.ADMIN,
+        clinicId: 'clinic-uuid-2',
       })
     })
   })

@@ -10,6 +10,7 @@ import {
   VersionColumn,
 } from 'typeorm'
 import { PatientGender } from '@app/shared'
+import { Clinic } from '../../clinics/entities/clinic.entity'
 import { User } from '../../users/entities/user.entity'
 
 @Entity('patients')
@@ -23,6 +24,13 @@ export class Patient {
 
   @Column({ name: 'user_id' })
   userId: string
+
+  @ManyToOne(() => Clinic, { eager: false })
+  @JoinColumn({ name: 'clinic_id' })
+  clinic: Clinic
+
+  @Column({ name: 'clinic_id' })
+  clinicId: string
 
   @Column({ name: 'document_number' })
   documentNumber: string

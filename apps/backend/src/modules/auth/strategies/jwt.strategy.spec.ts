@@ -1,5 +1,7 @@
+import { UnauthorizedException } from '@nestjs/common'
 import { ExtractJwt } from 'passport-jwt'
 import type { Request } from 'express'
+import { UserRole } from '@app/shared'
 import { JwtStrategy, JwtPayload } from './jwt.strategy'
 
 const requiredEnv = {
@@ -18,18 +20,19 @@ describe('JwtStrategy', () => {
 
     beforeEach(() => { strategy = new JwtStrategy() })
 
-    it('maps sub to id, keeps email, and includes role from payload', () => {
+    it('returns ICurrentUser with id, role, and clinicId from payload', () => {
       const payload: JwtPayload = {
         sub: 'user-uuid',
         email: 'user@example.com',
-        role: 'doctor' as any,
+        role: UserRole.DOCTOR,
+        clinicId: 'clinic-uuid',
         iat: 0,
         exp: 9999999999,
       }
       expect(strategy.validate(payload)).toEqual({
         id: 'user-uuid',
-        email: 'user@example.com',
-        role: 'doctor',
+        role: UserRole.DOCTOR,
+        clinicId: 'clinic-uuid',
       })
     })
 
@@ -37,14 +40,38 @@ describe('JwtStrategy', () => {
       const payload: JwtPayload = {
         sub: 'user-uuid',
         email: 'user@example.com',
+        clinicId: 'clinic-uuid',
         iat: 0,
         exp: 9999999999,
       }
       expect(strategy.validate(payload)).toEqual({
         id: 'user-uuid',
-        email: 'user@example.com',
-        role: 'user',
+        role: UserRole.USER,
+        clinicId: 'clinic-uuid',
       })
+    })
+
+    it('throws UnauthorizedException when clinicId is absent from payload', () => {
+      const payload = {
+        sub: 'user-uuid',
+        email: 'user@example.com',
+        iat: 0,
+        exp: 9999999999,
+      } as unknown as JwtPayload
+
+      expect(() => strategy.validate(payload)).toThrow(UnauthorizedException)
+    })
+
+    it('does not include email in the returned object', () => {
+      const payload: JwtPayload = {
+        sub: 'user-uuid',
+        email: 'user@example.com',
+        clinicId: 'clinic-uuid',
+        iat: 0,
+        exp: 9999999999,
+      }
+      const result = strategy.validate(payload)
+      expect(result).not.toHaveProperty('email')
     })
   })
 

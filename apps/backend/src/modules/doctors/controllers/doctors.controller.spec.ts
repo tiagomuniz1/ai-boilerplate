@@ -6,7 +6,7 @@ import { FindDoctorByIdUseCase } from '../use-cases/find-doctor-by-id.use-case'
 import { UpdateDoctorUseCase } from '../use-cases/update-doctor.use-case'
 import { DeleteDoctorUseCase } from '../use-cases/delete-doctor.use-case'
 import { ListDoctorsQueryDto } from '../dto/list-doctors-query.dto'
-import { AuthenticatedUser } from '../../auth/strategies/jwt.strategy'
+import { ICurrentUser } from '../../auth/types/current-user.type'
 
 const mockCreate = { execute: jest.fn() } as unknown as jest.Mocked<CreateDoctorUseCase>
 const mockFindAll = { execute: jest.fn() } as unknown as jest.Mocked<FindAllDoctorsUseCase>
@@ -25,7 +25,7 @@ const makeResponse = (overrides = {}) => ({
   ...overrides,
 })
 
-const currentUser: AuthenticatedUser = { id: 'user-uuid-admin', role: UserRole.ADMIN, email: 'admin@clinic.com' }
+const currentUser: ICurrentUser = { id: 'user-uuid-admin', role: UserRole.ADMIN, clinicId: 'clinic-uuid' }
 
 describe('DoctorsController', () => {
   let controller: DoctorsController
@@ -46,9 +46,9 @@ describe('DoctorsController', () => {
     const response = makeResponse()
     mockCreate.execute.mockResolvedValue(response)
 
-    const result = await controller.create(dto as any)
+    const result = await controller.create(dto as any, currentUser)
 
-    expect(mockCreate.execute).toHaveBeenCalledWith(dto)
+    expect(mockCreate.execute).toHaveBeenCalledWith(dto, currentUser)
     expect(result).toBe(response)
   })
 
@@ -106,6 +106,6 @@ describe('DoctorsController', () => {
 
     await controller.delete('uuid-1', currentUser)
 
-    expect(mockDelete.execute).toHaveBeenCalledWith('uuid-1', currentUser.id)
+    expect(mockDelete.execute).toHaveBeenCalledWith('uuid-1', currentUser)
   })
 })

@@ -3,6 +3,7 @@ import { DataSource } from 'typeorm'
 import { faker } from '@faker-js/faker'
 import { UserRole } from '@app/shared'
 import { CacheService } from '../../../cache/cache.service'
+import { ICurrentUser } from '../../auth/types/current-user.type'
 import { INotificationAdapter } from '../adapters/notification.adapter.interface'
 import { IUsersRepository } from '../repositories/users.repository.interface'
 import { ActivateUserUseCase } from '../use-cases/activate-user.use-case'
@@ -28,6 +29,9 @@ const mockCacheService = {
   delByPattern: jest.fn(),
 } as unknown as jest.Mocked<CacheService>
 
+const CLINIC_ID = 'fixed-clinic-uuid'
+const adminCurrentUser: ICurrentUser = { id: faker.string.uuid(), role: UserRole.ADMIN, clinicId: CLINIC_ID }
+
 const makeUser = (overrides = {}) => ({
   id: faker.string.uuid(),
   fullName: faker.person.fullName(),
@@ -35,6 +39,7 @@ const makeUser = (overrides = {}) => ({
   password: 'hashed',
   role: UserRole.USER,
   isActive: false,
+  clinicId: CLINIC_ID,
   version: 1,
   createdAt: new Date(),
   updatedAt: new Date(),
@@ -64,7 +69,7 @@ describe('ActivateUserUseCase', () => {
     mockCacheService.del.mockResolvedValue(undefined)
     mockCacheService.delByPattern.mockResolvedValue(undefined)
 
-    const result = await useCase.execute(user.id)
+    const result = await useCase.execute(user.id, adminCurrentUser)
 
     expect(result.isActive).toBe(true)
     expect(result.id).toBe(user.id)
@@ -81,7 +86,7 @@ describe('ActivateUserUseCase', () => {
     mockCacheService.del.mockResolvedValue(undefined)
     mockCacheService.delByPattern.mockResolvedValue(undefined)
 
-    await useCase.execute(user.id)
+    await useCase.execute(user.id, adminCurrentUser)
 
     expect(mockUsersRepository.update).toHaveBeenCalledWith(user.id, { isActive: true })
   })
@@ -89,7 +94,7 @@ describe('ActivateUserUseCase', () => {
   it('throws NotFoundException when user does not exist', async () => {
     mockUsersRepository.findById.mockResolvedValue(null)
 
-    await expect(useCase.execute(faker.string.uuid())).rejects.toThrow(NotFoundException)
+    await expect(useCase.execute(faker.string.uuid(), adminCurrentUser)).rejects.toThrow(NotFoundException)
     expect(mockUsersRepository.update).not.toHaveBeenCalled()
   })
 
@@ -97,7 +102,7 @@ describe('ActivateUserUseCase', () => {
     const user = makeUser({ isActive: true })
     mockUsersRepository.findById.mockResolvedValue(user as any)
 
-    await expect(useCase.execute(user.id)).rejects.toThrow(UnprocessableEntityException)
+    await expect(useCase.execute(user.id, adminCurrentUser)).rejects.toThrow(UnprocessableEntityException)
     expect(mockUsersRepository.update).not.toHaveBeenCalled()
   })
 
@@ -109,7 +114,7 @@ describe('ActivateUserUseCase', () => {
     mockCacheService.del.mockResolvedValue(undefined)
     mockCacheService.delByPattern.mockResolvedValue(undefined)
 
-    await useCase.execute(user.id)
+    await useCase.execute(user.id, adminCurrentUser)
 
     expect(mockNotificationAdapter.sendAccountActivationEmail).toHaveBeenCalledWith(
       user.email,
@@ -125,12 +130,12 @@ describe('ActivateUserUseCase', () => {
     mockCacheService.del.mockResolvedValue(undefined)
     mockCacheService.delByPattern.mockResolvedValue(undefined)
 
-    const result = await useCase.execute(user.id)
+    const result = await useCase.execute(user.id, adminCurrentUser)
 
     expect(result.id).toBe(user.id)
   })
 
-  it('invalidates individual and list caches after activation', async () => {
+  it('invalidates individual and list caches with clinicId-scoped keys after activation', async () => {
     const user = makeUser()
     mockUsersRepository.findById.mockResolvedValue(user as any)
     mockUsersRepository.update.mockResolvedValue({ ...user, isActive: true } as any)
@@ -138,10 +143,10 @@ describe('ActivateUserUseCase', () => {
     mockCacheService.del.mockResolvedValue(undefined)
     mockCacheService.delByPattern.mockResolvedValue(undefined)
 
-    await useCase.execute(user.id)
+    await useCase.execute(user.id, adminCurrentUser)
 
-    expect(mockCacheService.del).toHaveBeenCalledWith(`user:${user.id}`)
-    expect(mockCacheService.delByPattern).toHaveBeenCalledWith('users:list*')
+    expect(mockCacheService.del).toHaveBeenCalledWith(`user:${CLINIC_ID}:${user.id}`)
+    expect(mockCacheService.delByPattern).toHaveBeenCalledWith(`users:list:${CLINIC_ID}*`)
   })
 
   it('continues and returns response when cache invalidation fails', async () => {
@@ -151,7 +156,7 @@ describe('ActivateUserUseCase', () => {
     mockNotificationAdapter.sendAccountActivationEmail.mockResolvedValue(undefined)
     mockCacheService.del.mockRejectedValue(new Error('Redis error'))
 
-    const result = await useCase.execute(user.id)
+    const result = await useCase.execute(user.id, adminCurrentUser)
 
     expect(result.id).toBe(user.id)
   })

@@ -24,13 +24,14 @@ function makeUser(overrides: Partial<User> = {}): User {
     email: faker.internet.email(),
     password: 'hashed_password',
     role: UserRole.USER,
+    clinicId: faker.string.uuid(),
     version: 1,
     createdAt: new Date(),
     updatedAt: new Date(),
     isActive: true,
     deletedAt: null,
     ...overrides,
-  }
+  } as User
 }
 
 describe('MeUseCase', () => {
@@ -45,20 +46,22 @@ describe('MeUseCase', () => {
     const user = makeUser()
     mockUsersRepository.findById.mockResolvedValue(user)
 
-    const result = await useCase.execute(user.id)
+    const result = await useCase.execute(user.id, user.clinicId)
 
     expect(result).toEqual({
       id: user.id,
       fullName: user.fullName,
       email: user.email,
       role: user.role,
+      clinicId: user.clinicId,
     })
-    expect(mockUsersRepository.findById).toHaveBeenCalledWith(user.id)
+    expect(mockUsersRepository.findById).toHaveBeenCalledWith(user.id, user.clinicId)
   })
 
   it('throws UnauthorizedException when user does not exist', async () => {
+    const clinicId = faker.string.uuid()
     mockUsersRepository.findById.mockResolvedValue(null)
 
-    await expect(useCase.execute(faker.string.uuid())).rejects.toThrow(UnauthorizedException)
+    await expect(useCase.execute(faker.string.uuid(), clinicId)).rejects.toThrow(UnauthorizedException)
   })
 })

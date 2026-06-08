@@ -8,7 +8,7 @@ import {
 } from '@app/shared'
 import { CurrentUser } from '../../auth/decorators/current-user.decorator'
 import { Roles } from '../../auth/decorators/roles.decorator'
-import { AuthenticatedUser } from '../../auth/strategies/jwt.strategy'
+import { ICurrentUser } from '../../auth/types/current-user.type'
 import { ListDoctorsQueryDto } from '../dto/list-doctors-query.dto'
 import { CreateDoctorUseCase } from '../use-cases/create-doctor.use-case'
 import { DeleteDoctorUseCase } from '../use-cases/delete-doctor.use-case'
@@ -29,15 +29,18 @@ export class DoctorsController {
   @Post()
   @Roles(UserRole.ADMIN)
   @HttpCode(201)
-  create(@Body() dto: CreateDoctorDto): Promise<DoctorResponseDto> {
-    return this.createDoctorUseCase.execute(dto)
+  create(
+    @Body() dto: CreateDoctorDto,
+    @CurrentUser() currentUser: ICurrentUser,
+  ): Promise<DoctorResponseDto> {
+    return this.createDoctorUseCase.execute(dto, currentUser)
   }
 
   @Get()
   @Roles(UserRole.ADMIN, UserRole.DOCTOR, UserRole.USER)
   findAll(
     @Query() query: ListDoctorsQueryDto,
-    @CurrentUser() currentUser: AuthenticatedUser,
+    @CurrentUser() currentUser: ICurrentUser,
   ): Promise<PaginatedDoctorsResponseDto> {
     return this.findAllDoctorsUseCase.execute(query, currentUser)
   }
@@ -46,7 +49,7 @@ export class DoctorsController {
   @Roles(UserRole.ADMIN, UserRole.DOCTOR, UserRole.USER)
   findById(
     @Param('id') id: string,
-    @CurrentUser() currentUser: AuthenticatedUser,
+    @CurrentUser() currentUser: ICurrentUser,
   ): Promise<DoctorResponseDto> {
     return this.findDoctorByIdUseCase.execute(id, currentUser)
   }
@@ -56,7 +59,7 @@ export class DoctorsController {
   update(
     @Param('id') id: string,
     @Body() dto: UpdateDoctorDto,
-    @CurrentUser() currentUser: AuthenticatedUser,
+    @CurrentUser() currentUser: ICurrentUser,
   ): Promise<DoctorResponseDto> {
     return this.updateDoctorUseCase.execute(id, dto, currentUser)
   }
@@ -66,8 +69,8 @@ export class DoctorsController {
   @HttpCode(204)
   delete(
     @Param('id') id: string,
-    @CurrentUser() currentUser: AuthenticatedUser,
+    @CurrentUser() currentUser: ICurrentUser,
   ): Promise<void> {
-    return this.deleteDoctorUseCase.execute(id, currentUser.id)
+    return this.deleteDoctorUseCase.execute(id, currentUser)
   }
 }

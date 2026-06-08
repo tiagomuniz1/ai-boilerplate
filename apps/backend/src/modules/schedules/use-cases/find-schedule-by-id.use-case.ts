@@ -22,11 +22,12 @@ export class FindScheduleByIdUseCase extends BaseUseCase {
   }
 
   async execute(id: string, currentUser: ICurrentUser): Promise<ScheduleResponseDto> {
-    const cacheKey = `schedule:${id}`
+    const { clinicId } = currentUser
+    const cacheKey = `schedule:${clinicId}:${id}`
 
     let doctorProfileId: string | null = null
     if (currentUser.role === UserRole.DOCTOR) {
-      const doctor = await this.doctorsRepository.findByUserId(currentUser.id)
+      const doctor = await this.doctorsRepository.findByUserId(currentUser.id, clinicId)
       if (!doctor) throw new NotFoundException('Doctor not found')
       doctorProfileId = doctor.id
     }
@@ -44,7 +45,7 @@ export class FindScheduleByIdUseCase extends BaseUseCase {
       this.logger.warn('Cache read failed', { context: FindScheduleByIdUseCase.name })
     }
 
-    const schedule = await this.schedulesRepository.findById(id)
+    const schedule = await this.schedulesRepository.findById(id, clinicId)
     if (!schedule) throw new NotFoundException('Schedule not found')
 
     if (doctorProfileId !== null && schedule.doctorId !== doctorProfileId) {

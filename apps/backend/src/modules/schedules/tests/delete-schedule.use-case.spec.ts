@@ -42,12 +42,13 @@ const mockCacheService = {
   setIfNotExists: jest.fn(),
 } as unknown as jest.Mocked<CacheService>
 
+const CLINIC_ID = 'fixed-clinic-uuid'
 const ownerId = faker.string.uuid()
 const otherDoctorId = faker.string.uuid()
 
-const ownerUser: ICurrentUser = { id: ownerId, role: UserRole.DOCTOR }
-const otherDoctorUser: ICurrentUser = { id: otherDoctorId, role: UserRole.DOCTOR }
-const adminUser: ICurrentUser = { id: faker.string.uuid(), role: UserRole.ADMIN }
+const ownerUser: ICurrentUser = { id: ownerId, role: UserRole.DOCTOR, clinicId: CLINIC_ID }
+const otherDoctorUser: ICurrentUser = { id: otherDoctorId, role: UserRole.DOCTOR, clinicId: CLINIC_ID }
+const adminUser: ICurrentUser = { id: faker.string.uuid(), role: UserRole.ADMIN, clinicId: CLINIC_ID }
 
 const makeSchedule = (overrides = {}) => ({
   id: faker.string.uuid(),
@@ -91,14 +92,14 @@ describe('DeleteScheduleUseCase', () => {
 
   it('throws ForbiddenException when role is USER', async () => {
     mockSchedulesRepository.findById.mockResolvedValue(makeSchedule() as any)
-    const userUser: ICurrentUser = { id: faker.string.uuid(), role: UserRole.USER }
+    const userUser: ICurrentUser = { id: faker.string.uuid(), role: UserRole.USER, clinicId: faker.string.uuid() }
     await expect(useCase.execute(faker.string.uuid(), userUser)).rejects.toThrow(ForbiddenException)
     expect(mockSchedulesRepository.delete).not.toHaveBeenCalled()
   })
 
   it('throws ForbiddenException when role is PATIENT', async () => {
     mockSchedulesRepository.findById.mockResolvedValue(makeSchedule() as any)
-    const patientUser: ICurrentUser = { id: faker.string.uuid(), role: UserRole.PATIENT }
+    const patientUser: ICurrentUser = { id: faker.string.uuid(), role: UserRole.PATIENT, clinicId: faker.string.uuid() }
     await expect(useCase.execute(faker.string.uuid(), patientUser)).rejects.toThrow(ForbiddenException)
     expect(mockSchedulesRepository.delete).not.toHaveBeenCalled()
   })
@@ -141,8 +142,8 @@ describe('DeleteScheduleUseCase', () => {
     await useCase.execute(schedule.id, ownerUser)
 
     expect(mockSchedulesRepository.delete).toHaveBeenCalledWith(schedule.id)
-    expect(mockCacheService.delByPrefix).toHaveBeenCalledWith(`schedules:list:${schedule.doctorId}:`)
-    expect(mockCacheService.delByPrefix).toHaveBeenCalledWith('schedules:list:all:')
+    expect(mockCacheService.del).toHaveBeenCalledWith(`schedule:${CLINIC_ID}:${schedule.id}`)
+    expect(mockCacheService.delByPrefix).toHaveBeenCalledWith(`schedules:list:${CLINIC_ID}:`)
   })
 
   it('continues when cache invalidation fails', async () => {
@@ -160,11 +161,10 @@ describe('DeleteScheduleUseCase', () => {
       mockSchedulesRepository.deleteAllByDoctorId = jest.fn().mockResolvedValue(undefined)
       mockCacheService.delByPrefix.mockResolvedValue(undefined)
 
-      await useCase.deleteByDoctorId(doctorId)
+      await useCase.deleteByDoctorId(doctorId, CLINIC_ID)
 
-      expect(mockSchedulesRepository.deleteAllByDoctorId).toHaveBeenCalledWith(doctorId, undefined)
-      expect(mockCacheService.delByPrefix).toHaveBeenCalledWith(`schedules:list:${doctorId}:`)
-      expect(mockCacheService.delByPrefix).toHaveBeenCalledWith('schedules:list:all:')
+      expect(mockSchedulesRepository.deleteAllByDoctorId).toHaveBeenCalledWith(doctorId, CLINIC_ID, undefined)
+      expect(mockCacheService.delByPrefix).toHaveBeenCalledWith(`schedules:list:${CLINIC_ID}:`)
     })
 
     it('passes queryRunner to repository when provided', async () => {
@@ -172,9 +172,9 @@ describe('DeleteScheduleUseCase', () => {
       const queryRunner = {} as any
       mockSchedulesRepository.deleteAllByDoctorId = jest.fn().mockResolvedValue(undefined)
 
-      await useCase.deleteByDoctorId(doctorId, queryRunner)
+      await useCase.deleteByDoctorId(doctorId, CLINIC_ID, queryRunner)
 
-      expect(mockSchedulesRepository.deleteAllByDoctorId).toHaveBeenCalledWith(doctorId, queryRunner)
+      expect(mockSchedulesRepository.deleteAllByDoctorId).toHaveBeenCalledWith(doctorId, CLINIC_ID, queryRunner)
     })
 
     it('continues without throwing when cache invalidation fails', async () => {
@@ -182,7 +182,7 @@ describe('DeleteScheduleUseCase', () => {
       mockSchedulesRepository.deleteAllByDoctorId = jest.fn().mockResolvedValue(undefined)
       mockCacheService.delByPrefix.mockRejectedValue(new Error('Redis error'))
 
-      await expect(useCase.deleteByDoctorId(doctorId)).resolves.toBeUndefined()
+      await expect(useCase.deleteByDoctorId(doctorId, CLINIC_ID)).resolves.toBeUndefined()
     })
   })
 })

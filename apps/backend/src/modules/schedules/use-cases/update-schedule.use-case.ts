@@ -40,14 +40,16 @@ export class UpdateScheduleUseCase extends BaseUseCase {
     dto: UpdateScheduleDto,
     currentUser: ICurrentUser,
   ): Promise<ScheduleResponseDto> {
-    const schedule = await this.schedulesRepository.findById(id)
+    const { clinicId } = currentUser
+
+    const schedule = await this.schedulesRepository.findById(id, clinicId)
     if (!schedule) throw new NotFoundException('Schedule not found')
 
     if (currentUser.role !== UserRole.ADMIN) {
       if (currentUser.role !== UserRole.DOCTOR) {
         throw new ForbiddenException('Only doctors and admins can manage schedules')
       }
-      const doctor = await this.doctorsRepository.findByUserId(currentUser.id)
+      const doctor = await this.doctorsRepository.findByUserId(currentUser.id, clinicId)
       if (!doctor) throw new NotFoundException('Doctor not found')
       if (schedule.doctorId !== doctor.id) {
         throw new ForbiddenException('You are not allowed to manage this schedule')
@@ -99,6 +101,7 @@ export class UpdateScheduleUseCase extends BaseUseCase {
         merged.endTime,
         merged.validFrom,
         merged.validUntil,
+        clinicId,
         id,
       )
       if (overlapping) throw new ConflictException('Schedule overlaps with an existing one')
@@ -115,8 +118,8 @@ export class UpdateScheduleUseCase extends BaseUseCase {
     }
 
     try {
-      await this.cacheService.delByPrefix(`schedules:list:${schedule.doctorId}:`)
-      await this.cacheService.delByPrefix('schedules:list:all:')
+      await this.cacheService.del(`schedule:${clinicId}:${id}`)
+      await this.cacheService.delByPrefix(`schedules:list:${clinicId}:`)
     } catch {
       this.logger.warn('Cache invalidation failed', { context: UpdateScheduleUseCase.name })
     }

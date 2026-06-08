@@ -8,10 +8,13 @@ import { Repository } from 'typeorm'
 import { UserRole } from '@app/shared'
 import { AppModule } from '../../../app.module'
 import { CacheService } from '../../../cache/cache.service'
+import { Clinic } from '../../clinics/entities/clinic.entity'
 import { Doctor } from '../../doctors/entities/doctor.entity'
 import { Patient } from '../../patients/entities/patient.entity'
 import { Specialty } from '../../specialties/entities/specialty.entity'
 import { User } from '../entities/user.entity'
+
+const SEED_CLINIC_ID = '10000000-0000-0000-0000-000000000000'
 
 process.env.NODE_ENV = 'test'
 process.env.DB_SCHEMA = 'test'
@@ -22,6 +25,7 @@ process.env.JWT_REFRESH_EXPIRATION = '7d'
 describe('UsersController (integration)', () => {
   let app: INestApplication
   let userRepository: Repository<User>
+  let clinicRepository: Repository<Clinic>
   let doctorRepository: Repository<Doctor>
   let patientRepository: Repository<Patient>
   let specialtyRepository: Repository<Specialty>
@@ -43,6 +47,7 @@ describe('UsersController (integration)', () => {
         password: hashedPassword,
         role,
         isActive: true,
+        clinicId: SEED_CLINIC_ID,
       }),
     )
     const response = await request(app.getHttpServer())
@@ -68,6 +73,7 @@ describe('UsersController (integration)', () => {
     await app.listen(0)
 
     userRepository = module.get(getRepositoryToken(User))
+    clinicRepository = module.get(getRepositoryToken(Clinic))
     doctorRepository = module.get(getRepositoryToken(Doctor))
     patientRepository = module.get(getRepositoryToken(Patient))
     specialtyRepository = module.get(getRepositoryToken(Specialty))
@@ -75,6 +81,10 @@ describe('UsersController (integration)', () => {
   })
 
   beforeEach(async () => {
+    await clinicRepository.save(
+      clinicRepository.create({ id: SEED_CLINIC_ID, name: 'Seed Clinic', slug: 'seed-clinic', isActive: true }),
+    )
+
     const admin = await loginAs(UserRole.ADMIN)
     accessToken = admin.token
     authUserId = admin.id
@@ -93,6 +103,7 @@ describe('UsersController (integration)', () => {
     await patientRepository.query('DELETE FROM test.patients')
     await specialtyRepository.query('DELETE FROM test.specialties')
     await userRepository.query('DELETE FROM test.users')
+    await clinicRepository.query('DELETE FROM test.clinics')
     await cacheService.delByPattern('users:list*').catch(() => {})
   })
 
@@ -244,7 +255,7 @@ describe('UsersController (integration)', () => {
         specialtyRepository.create({ name: `Spec ${faker.string.alphanumeric(6)}` }),
       )
       const doctor = await doctorRepository.save(
-        doctorRepository.create({ userId: doctorUserId, crmNumber: `${faker.string.numeric(5)}/SP`, specialties: [specialty] }),
+        doctorRepository.create({ userId: doctorUserId, crmNumber: `${faker.string.numeric(5)}/SP`, clinicId: SEED_CLINIC_ID, specialties: [specialty] }),
       )
 
       const { body } = await request(app.getHttpServer())

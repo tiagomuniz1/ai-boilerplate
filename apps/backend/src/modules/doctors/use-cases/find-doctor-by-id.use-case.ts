@@ -20,14 +20,16 @@ export class FindDoctorByIdUseCase extends BaseUseCase {
   }
 
   async execute(id: string, currentUser: ICurrentUser): Promise<DoctorResponseDto> {
+    const { clinicId } = currentUser
+
     if (currentUser.role === UserRole.DOCTOR) {
-      const ownDoctor = await this.doctorsRepository.findByUserId(currentUser.id)
+      const ownDoctor = await this.doctorsRepository.findByUserId(currentUser.id, clinicId)
       if (!ownDoctor || ownDoctor.id !== id) {
         throw new ForbiddenException('You can only view your own doctor profile')
       }
     }
 
-    const cacheKey = `doctor:${id}`
+    const cacheKey = `doctor:${clinicId}:${id}`
 
     try {
       const cached = await this.cacheService.get<DoctorResponseDto>(cacheKey)
@@ -36,7 +38,7 @@ export class FindDoctorByIdUseCase extends BaseUseCase {
       this.logger.warn('Cache read failed', { context: FindDoctorByIdUseCase.name })
     }
 
-    const doctor = await this.doctorsRepository.findById(id)
+    const doctor = await this.doctorsRepository.findById(id, clinicId)
     if (!doctor) throw new NotFoundException('Doctor not found')
 
     const response = this.toResponse(doctor)

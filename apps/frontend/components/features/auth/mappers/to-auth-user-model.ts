@@ -6,5 +6,6 @@ export function toAuthUserModel(dto: IAuthUserDto): IAuthUserModel {
     fullName: dto.fullName,
     email: dto.email,
     role: dto.role,
+    clinicId: dto.clinicId,
   }
 }
