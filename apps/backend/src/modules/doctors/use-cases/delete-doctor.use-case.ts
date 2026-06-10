@@ -23,7 +23,7 @@ export class DeleteDoctorUseCase extends BaseUseCase {
   }
 
   async execute(id: string, currentUser: ICurrentUser): Promise<void> {
-    const { clinicId } = currentUser
+    const clinicId = currentUser.clinicId!
 
     const doctor = await this.doctorsRepository.findById(id, clinicId)
     if (!doctor) throw new NotFoundException('Doctor not found')

@@ -25,7 +25,7 @@ export class CreateDoctorUseCase extends BaseUseCase {
   }
 
   async execute(dto: CreateDoctorDto, currentUser: ICurrentUser): Promise<DoctorResponseDto> {
-    const { clinicId } = currentUser
+    const clinicId = currentUser.clinicId!
 
     const user = await this.usersRepository.findById(dto.userId, clinicId)
     if (!user) throw new NotFoundException('User not found')

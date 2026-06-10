@@ -22,7 +22,7 @@ export class ActivateUserUseCase extends BaseUseCase {
   }
 
   async execute(id: string, currentUser: ICurrentUser): Promise<UserResponseDto> {
-    const { clinicId } = currentUser
+    const clinicId = currentUser.clinicId!
     const user = await this.usersRepository.findById(id, clinicId)
     if (!user) throw new NotFoundException('User not found')
     if (user.isActive) throw new UnprocessableEntityException('User is already active')

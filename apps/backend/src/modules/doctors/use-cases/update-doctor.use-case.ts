@@ -26,7 +26,7 @@ export class UpdateDoctorUseCase extends BaseUseCase {
   }
 
   async execute(id: string, dto: UpdateDoctorDto, currentUser: ICurrentUser): Promise<DoctorResponseDto> {
-    const { clinicId } = currentUser
+    const clinicId = currentUser.clinicId!
 
     if (currentUser.role === UserRole.DOCTOR) {
       const ownDoctor = await this.doctorsRepository.findByUserId(currentUser.id, clinicId)

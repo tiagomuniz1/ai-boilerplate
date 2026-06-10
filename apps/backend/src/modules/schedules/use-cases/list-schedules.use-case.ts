@@ -26,7 +26,7 @@ export class ListSchedulesUseCase extends BaseUseCase {
     query: ListSchedulesQueryDto,
     currentUser: ICurrentUser,
   ): Promise<PaginatedSchedulesResponseDto> {
-    const { clinicId } = currentUser
+    const clinicId = currentUser.clinicId!
     const effectiveQuery = { ...query }
 
     if (currentUser.role === UserRole.DOCTOR) {

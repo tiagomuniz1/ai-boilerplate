@@ -51,7 +51,7 @@ export class LoginUseCase extends BaseUseCase {
       throw new UnauthorizedException('Invalid credentials')
     }
 
-    if (!user.clinicId) {
+    if (!user.clinicId && user.role !== UserRole.PLATFORM_ADMIN) {
       throw new UnauthorizedException('User is not associated with a clinic')
     }
 

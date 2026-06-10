@@ -24,7 +24,7 @@ export class FindUserByIdUseCase extends BaseUseCase {
       throw new ForbiddenException('You can only view your own profile')
     }
 
-    const { clinicId } = currentUser
+    const clinicId = currentUser.clinicId!
     const cacheKey = `user:${clinicId}:${id}`
 
     try {

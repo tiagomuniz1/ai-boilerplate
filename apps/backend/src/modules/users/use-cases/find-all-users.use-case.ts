@@ -22,7 +22,7 @@ export class FindAllUsersUseCase extends BaseUseCase {
 
   async execute(query: ListUsersQueryDto, currentUser: ICurrentUser): Promise<PaginatedUsersResponseDto> {
     const { page, limit, search } = query
-    const { clinicId } = currentUser
+    const clinicId = currentUser.clinicId!
     const cacheKey = `users:list:${clinicId}:${page}:${limit}:${search ?? 'all'}`
 
     try {

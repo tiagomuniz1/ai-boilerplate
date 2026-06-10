@@ -27,7 +27,8 @@ export class UsersRepository implements IUsersRepository {
     return query.getManyAndCount()
   }
 
-  async findById(id: string, clinicId: string): Promise<User | null> {
+  async findById(id: string, clinicId: string | null): Promise<User | null> {
+    if (!clinicId) return this.repository.findOneBy({ id })
     return this.repository.findOneBy({ id, clinicId })
   }
 
@@ -35,7 +36,7 @@ export class UsersRepository implements IUsersRepository {
     return this.repository.findOneBy({ email })
   }
 
-  async create(data: CreateUserData, clinicId: string, queryRunner?: QueryRunner): Promise<User> {
+  async create(data: CreateUserData, clinicId: string | null, queryRunner?: QueryRunner): Promise<User> {
     const repo = queryRunner ? queryRunner.manager.getRepository(User) : this.repository
     return repo.save(repo.create({ ...data, clinicId }))
   }

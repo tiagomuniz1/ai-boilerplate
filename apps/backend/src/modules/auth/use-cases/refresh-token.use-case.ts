@@ -12,7 +12,7 @@ import { AUTH_ENV, IAuthEnv, parseTtlToSeconds } from './auth-env.token'
 interface RefreshJwtPayload {
   sub: string
   type: string
-  clinicId: string
+  clinicId: string | null
 }
 
 @Injectable()

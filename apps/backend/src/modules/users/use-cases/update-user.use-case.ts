@@ -24,7 +24,7 @@ export class UpdateUserUseCase extends BaseUseCase {
       throw new ForbiddenException('You can only update your own profile')
     }
 
-    const { clinicId } = currentUser
+    const clinicId = currentUser.clinicId!
     const user = await this.usersRepository.findById(id, clinicId)
     if (!user) throw new NotFoundException('User not found')
 

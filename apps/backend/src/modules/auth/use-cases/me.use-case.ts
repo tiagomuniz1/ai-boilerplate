@@ -13,7 +13,7 @@ export class MeUseCase extends BaseUseCase {
     super(dataSource)
   }
 
-  async execute(userId: string, clinicId: string): Promise<MeResponseDto> {
+  async execute(userId: string, clinicId: string | null): Promise<MeResponseDto> {
     const user = await this.usersRepository.findById(userId, clinicId)
 
     if (!user) {

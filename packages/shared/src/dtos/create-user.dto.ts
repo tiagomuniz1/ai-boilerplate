@@ -1,4 +1,4 @@
-import { IsEmail, IsEnum, IsOptional, IsString, MaxLength, MinLength } from 'class-validator'
+import { IsEmail, IsEnum, IsOptional, IsString, IsUUID, MaxLength, MinLength } from 'class-validator'
 import { UserRole } from '../enums/user-role.enum'
 
 export class CreateUserDto {
@@ -18,4 +18,8 @@ export class CreateUserDto {
   @IsOptional()
   @IsEnum(UserRole)
   role: UserRole = UserRole.USER
+
+  @IsOptional()
+  @IsUUID()
+  clinicId?: string
 }

@@ -5,6 +5,7 @@ export interface ICreateUserInput {
   email: string
   password: string
   role: UserRole
+  clinicId?: string
 }
 
 export interface IUpdateUserInput {

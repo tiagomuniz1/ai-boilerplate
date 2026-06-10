@@ -1,8 +1,14 @@
+interface CreateClinicInput {
+  name: string
+  slug: string
+}
+
 interface CreateUserInput {
   fullName: string
   email: string
   password: string
   role: string
+  clinicId?: string
 }
 
 interface CreateSpecialtyInput {
@@ -33,7 +39,7 @@ declare global {
   namespace Cypress {
     interface Chainable {
       login(email: string, password: string): Chainable<void>
-      createUserViaApi(input: CreateUserInput): Chainable<{ id: string }>
+      createUserViaApi(input: CreateUserInput, accessToken?: string): Chainable<{ id: string }>
       deleteUserViaApi(id: string, accessToken?: string): Chainable<void>
       seedUser(): Chainable<{ id: string; email: string; fullName: string }>
       createDoctorViaApi(input: CreateDoctorInput, accessToken: string): Chainable<{ id: string }>
@@ -44,6 +50,9 @@ declare global {
       seedPatient(): Chainable<{ patientId: string; userId: string; fullName: string }>
       deletePatientViaApi(id: string): Chainable<void>
       seedDoctor(): Chainable<SeededDoctor>
+      createClinicViaApi(input: CreateClinicInput, accessToken: string): Chainable<{ id: string; name: string; slug: string }>
+      deleteClinicViaApi(id: string, accessToken: string): Chainable<void>
+      seedClinic(): Chainable<{ id: string; name: string; slug: string; platformAdminToken: string }>
     }
   }
 }
@@ -74,11 +83,12 @@ Cypress.Commands.add('login', (email: string, password: string) => {
   })
 })
 
-Cypress.Commands.add('createUserViaApi', (input: CreateUserInput) => {
+Cypress.Commands.add('createUserViaApi', (input: CreateUserInput, accessToken?: string) => {
   cy.request({
     method: 'POST',
     url: `${Cypress.env('API_URL')}/users`,
     body: input,
+    headers: accessToken ? { Authorization: `Bearer ${accessToken}` } : {},
   }).then((response) => ({ id: response.body.id as string }))
 })
 
@@ -240,6 +250,60 @@ Cypress.Commands.add('seedDoctor', () => {
           })
         })
       })
+    })
+  })
+})
+
+Cypress.Commands.add('createClinicViaApi', (input: CreateClinicInput, accessToken: string) => {
+  cy.request({
+    method: 'POST',
+    url: `${Cypress.env('API_URL')}/clinics`,
+    body: input,
+    headers: { Authorization: `Bearer ${accessToken}` },
+  }).then((response) => ({
+    id: response.body.id as string,
+    name: response.body.name as string,
+    slug: response.body.slug as string,
+  }))
+})
+
+Cypress.Commands.add('deleteClinicViaApi', (id: string, accessToken: string) => {
+  cy.request({
+    method: 'DELETE',
+    url: `${Cypress.env('API_URL')}/clinics/${id}`,
+    failOnStatusCode: false,
+    headers: { Authorization: `Bearer ${accessToken}` },
+  })
+})
+
+Cypress.Commands.add('seedClinic', () => {
+  const ts = Date.now()
+
+  return cy.fixture('clinics').then((fixture) => {
+    return cy.request({
+      method: 'POST',
+      url: `${Cypress.env('API_URL')}/auth/login`,
+      body: { email: fixture.platformAdmin.email, password: fixture.platformAdmin.password },
+    }).then((loginResponse) => {
+      const setCookieHeader = loginResponse.headers['set-cookie'] as string | string[] | undefined
+      let platformAdminToken = ''
+      if (setCookieHeader) {
+        const cookies = Array.isArray(setCookieHeader) ? setCookieHeader : [setCookieHeader]
+        const tokenCookie = cookies.find((c: string) => c.startsWith('access_token='))
+        if (tokenCookie) platformAdminToken = tokenCookie.split(';')[0].replace('access_token=', '')
+      }
+
+      return cy.request({
+        method: 'POST',
+        url: `${Cypress.env('API_URL')}/clinics`,
+        body: { name: `Clínica Seed ${ts}`, slug: `clinica-seed-${ts}` },
+        headers: { Authorization: `Bearer ${platformAdminToken}` },
+      }).then((clinicResponse) => ({
+        id: clinicResponse.body.id as string,
+        name: clinicResponse.body.name as string,
+        slug: clinicResponse.body.slug as string,
+        platformAdminToken,
+      }))
     })
   })
 })

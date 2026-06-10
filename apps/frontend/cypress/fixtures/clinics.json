@@ -1,0 +1,13 @@
+{
+  "platformAdmin": {
+    "email": "platform@umi.dev",
+    "password": "Platform123!"
+  },
+  "newClinic": {
+    "name": "Clínica Teste E2E",
+    "slug": "clinica-teste-e2e"
+  },
+  "updatedClinic": {
+    "name": "Clínica Atualizada E2E"
+  }
+}

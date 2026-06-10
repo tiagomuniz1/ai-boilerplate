@@ -64,4 +64,14 @@ describe('MeUseCase', () => {
 
     await expect(useCase.execute(faker.string.uuid(), clinicId)).rejects.toThrow(UnauthorizedException)
   })
+
+  it('returns user data with null clinicId for PLATFORM_ADMIN', async () => {
+    const user = makeUser({ clinicId: null as any, role: UserRole.PLATFORM_ADMIN })
+    mockUsersRepository.findById.mockResolvedValue(user)
+
+    const result = await useCase.execute(user.id, null)
+
+    expect(result.clinicId).toBeNull()
+    expect(mockUsersRepository.findById).toHaveBeenCalledWith(user.id, null)
+  })
 })

@@ -22,6 +22,7 @@ describe('ClinicsController (integration)', () => {
   let app: INestApplication
   let userRepository: Repository<User>
   let clinicRepository: Repository<Clinic>
+  let platformAdminToken: string
   let adminToken: string
   let doctorToken: string
   let userToken: string
@@ -36,6 +37,29 @@ describe('ClinicsController (integration)', () => {
         password: hashedPassword,
         role,
         clinicId: SEED_CLINIC_ID,
+      }),
+    )
+
+    const response = await request(app.getHttpServer())
+      .post('/auth/login')
+      .send({ email: user.email, password })
+
+    const setCookieHeader = response.headers['set-cookie'] as unknown as string[] | string
+    const cookies = Array.isArray(setCookieHeader) ? setCookieHeader : [setCookieHeader]
+    const match = cookies.find((c: string) => c.startsWith('access_token='))
+    return match ? match.slice('access_token='.length).split(';')[0] : ''
+  }
+
+  async function loginAsPlatformAdmin(): Promise<string> {
+    const password = 'Password123!'
+    const hashedPassword = await bcrypt.hash(password, 1)
+    const user = await userRepository.save(
+      userRepository.create({
+        fullName: 'Platform Admin',
+        email: `platform.${faker.string.alphanumeric(6)}@clinics.test`,
+        password: hashedPassword,
+        role: UserRole.PLATFORM_ADMIN,
+        clinicId: null,
       }),
     )
 
@@ -69,6 +93,7 @@ describe('ClinicsController (integration)', () => {
       clinicRepository.create({ id: SEED_CLINIC_ID, name: 'Seed Clinic', slug: 'seed-clinic', isActive: true }),
     )
 
+    platformAdminToken = await loginAsPlatformAdmin()
     adminToken = await loginAs(UserRole.ADMIN)
     doctorToken = await loginAs(UserRole.DOCTOR)
     userToken = await loginAs(UserRole.USER)
@@ -88,8 +113,11 @@ describe('ClinicsController (integration)', () => {
     await app.close()
   })
 
-  function registerClinic(payload: object) {
-    return request(app.getHttpServer()).post('/clinics/register').send(payload)
+  function registerClinic(token: string, payload: object) {
+    return request(app.getHttpServer())
+      .post('/clinics/register')
+      .set('Authorization', `Bearer ${token}`)
+      .send(payload)
   }
 
   function createClinic(token: string, payload: object) {
@@ -114,7 +142,7 @@ describe('ClinicsController (integration)', () => {
     it('returns 201 with clinic and admin data on success', async () => {
       const payload = validPayload()
 
-      const { body } = await registerClinic(payload).expect(201)
+      const { body } = await registerClinic(platformAdminToken, payload).expect(201)
 
       expect(body.clinic.id).toBeDefined()
       expect(body.clinic.name).toBe(payload.clinicName)
@@ -125,7 +153,7 @@ describe('ClinicsController (integration)', () => {
     })
 
     it('response never contains password', async () => {
-      const { body } = await registerClinic(validPayload()).expect(201)
+      const { body } = await registerClinic(platformAdminToken, validPayload()).expect(201)
 
       expect(body.admin.password).toBeUndefined()
     })
@@ -133,14 +161,14 @@ describe('ClinicsController (integration)', () => {
     it('generates slug from clinicName when not provided', async () => {
       const payload = validPayload({ clinicName: 'Minha Clinica Nova', slug: undefined })
 
-      const { body } = await registerClinic(payload).expect(201)
+      const { body } = await registerClinic(platformAdminToken, payload).expect(201)
 
       expect(body.clinic.slug).toBe('minha-clinica-nova')
     })
 
     it('admin is created with role ADMIN and isActive true', async () => {
       const payload = validPayload()
-      await registerClinic(payload).expect(201)
+      await registerClinic(platformAdminToken, payload).expect(201)
 
       const createdUser = await userRepository.findOneBy({ email: payload.adminEmail })
       expect(createdUser?.role).toBe(UserRole.ADMIN)
@@ -149,7 +177,7 @@ describe('ClinicsController (integration)', () => {
 
     it('admin can login immediately after registration', async () => {
       const payload = validPayload()
-      await registerClinic(payload).expect(201)
+      await registerClinic(platformAdminToken, payload).expect(201)
 
       const loginResponse = await request(app.getHttpServer())
         .post('/auth/login')
@@ -161,7 +189,7 @@ describe('ClinicsController (integration)', () => {
 
     it('admin clinicId matches created clinic', async () => {
       const payload = validPayload()
-      const { body } = await registerClinic(payload).expect(201)
+      const { body } = await registerClinic(platformAdminToken, payload).expect(201)
 
       const createdUser = await userRepository.findOneBy({ email: payload.adminEmail })
       expect(createdUser?.clinicId).toBe(body.clinic.id)
@@ -169,57 +197,55 @@ describe('ClinicsController (integration)', () => {
 
     it('returns 409 when slug is already in use', async () => {
       const slug = `clinica-${faker.string.alphanumeric(8).toLowerCase()}`
-      await registerClinic(validPayload({ slug })).expect(201)
+      await registerClinic(platformAdminToken, validPayload({ slug })).expect(201)
 
-      await registerClinic(
-        validPayload({ clinicName: 'Outra Clinica', slug }),
-      ).expect(409)
+      await registerClinic(platformAdminToken, validPayload({ clinicName: 'Outra Clinica', slug })).expect(409)
     })
 
     it('returns 409 when email is already registered', async () => {
       const adminEmail = faker.internet.email()
-      await registerClinic(validPayload({ adminEmail })).expect(201)
+      await registerClinic(platformAdminToken, validPayload({ adminEmail })).expect(201)
 
-      await registerClinic(
-        validPayload({ clinicName: 'Outra Clinica', adminEmail }),
-      ).expect(409)
+      await registerClinic(platformAdminToken, validPayload({ clinicName: 'Outra Clinica', adminEmail })).expect(409)
     })
 
     it('returns 400 when adminPassword is too short', async () => {
-      await registerClinic(validPayload({ adminPassword: 'short' })).expect(400)
+      await registerClinic(platformAdminToken, validPayload({ adminPassword: 'short' })).expect(400)
     })
 
     it('returns 400 when slug has invalid format', async () => {
-      await registerClinic(validPayload({ slug: 'My Clinic!' })).expect(400)
+      await registerClinic(platformAdminToken, validPayload({ slug: 'My Clinic!' })).expect(400)
     })
 
     it('returns 400 when clinicName is too short', async () => {
-      await registerClinic(validPayload({ clinicName: 'AB' })).expect(400)
+      await registerClinic(platformAdminToken, validPayload({ clinicName: 'AB' })).expect(400)
     })
 
     it('returns 400 when adminEmail is invalid', async () => {
-      await registerClinic(validPayload({ adminEmail: 'not-an-email' })).expect(400)
+      await registerClinic(platformAdminToken, validPayload({ adminEmail: 'not-an-email' })).expect(400)
     })
 
     it('returns 400 when unknown field is sent', async () => {
-      await registerClinic({ ...validPayload(), unknownField: 'value' }).expect(400)
+      await registerClinic(platformAdminToken, { ...validPayload(), unknownField: 'value' }).expect(400)
     })
 
-    it('is accessible without authentication token', async () => {
-      await registerClinic(validPayload()).expect(201)
+    it('returns 401 when no token is provided', async () => {
+      await request(app.getHttpServer()).post('/clinics/register').send(validPayload()).expect(401)
+    })
+
+    it('returns 403 when ADMIN tries to register a clinic', async () => {
+      await registerClinic(adminToken, validPayload()).expect(403)
     })
 
     it('rolls back clinic when user creation fails (atomic transaction)', async () => {
       const adminEmail = faker.internet.email()
       const slug = `clinica-${faker.string.alphanumeric(8).toLowerCase()}`
 
-      await registerClinic(validPayload({ adminEmail })).expect(201)
+      await registerClinic(platformAdminToken, validPayload({ adminEmail })).expect(201)
 
       const clinicCountBefore = await clinicRepository.count()
 
-      await registerClinic(
-        validPayload({ slug: `${slug}-2`, adminEmail }),
-      ).expect(409)
+      await registerClinic(platformAdminToken, validPayload({ slug: `${slug}-2`, adminEmail })).expect(409)
 
       const clinicCountAfter = await clinicRepository.count()
       expect(clinicCountAfter).toBe(clinicCountBefore)
@@ -228,7 +254,7 @@ describe('ClinicsController (integration)', () => {
 
   describe('POST /clinics', () => {
     it('returns 201 with ClinicResponseDto on success', async () => {
-      const { body } = await createClinic(adminToken, { name: 'Clínica do Coração', slug: 'clinica-do-coracao' }).expect(201)
+      const { body } = await createClinic(platformAdminToken, { name: 'Clínica do Coração', slug: 'clinica-do-coracao' }).expect(201)
 
       expect(body.id).toBeDefined()
       expect(body.name).toBe('Clínica do Coração')
@@ -239,13 +265,13 @@ describe('ClinicsController (integration)', () => {
     })
 
     it('generates slug from name when not provided', async () => {
-      const { body } = await createClinic(adminToken, { name: 'Minha Clinica' }).expect(201)
+      const { body } = await createClinic(platformAdminToken, { name: 'Minha Clinica' }).expect(201)
 
       expect(body.slug).toBe('minha-clinica')
     })
 
     it('persists manually provided slug as sent', async () => {
-      const { body } = await createClinic(adminToken, {
+      const { body } = await createClinic(platformAdminToken, {
         name: 'Clínica do Coração',
         slug: 'clinica-do-coracao',
       }).expect(201)
@@ -254,39 +280,43 @@ describe('ClinicsController (integration)', () => {
     })
 
     it('response never contains version or deletedAt', async () => {
-      const { body } = await createClinic(adminToken, { name: 'Test Clinic', slug: 'test-clinic' }).expect(201)
+      const { body } = await createClinic(platformAdminToken, { name: 'Test Clinic', slug: 'test-clinic' }).expect(201)
 
       expect(body.version).toBeUndefined()
       expect(body.deletedAt).toBeUndefined()
     })
 
     it('returns 409 when slug is already in use', async () => {
-      await createClinic(adminToken, { name: 'Clinica A', slug: 'my-clinic' }).expect(201)
-      await createClinic(adminToken, { name: 'Clinica B', slug: 'my-clinic' }).expect(409)
+      await createClinic(platformAdminToken, { name: 'Clinica A', slug: 'my-clinic' }).expect(201)
+      await createClinic(platformAdminToken, { name: 'Clinica B', slug: 'my-clinic' }).expect(409)
     })
 
     it('returns 400 when slug has uppercase letters', async () => {
-      await createClinic(adminToken, { name: 'Test', slug: 'My-Clinic' }).expect(400)
+      await createClinic(platformAdminToken, { name: 'Test', slug: 'My-Clinic' }).expect(400)
     })
 
     it('returns 400 when slug has spaces', async () => {
-      await createClinic(adminToken, { name: 'Test', slug: 'my clinic' }).expect(400)
+      await createClinic(platformAdminToken, { name: 'Test', slug: 'my clinic' }).expect(400)
     })
 
     it('returns 400 when slug has special characters', async () => {
-      await createClinic(adminToken, { name: 'Test', slug: 'my_clinic!' }).expect(400)
+      await createClinic(platformAdminToken, { name: 'Test', slug: 'my_clinic!' }).expect(400)
     })
 
     it('returns 400 when name is too short', async () => {
-      await createClinic(adminToken, { name: 'AB', slug: 'ab' }).expect(400)
+      await createClinic(platformAdminToken, { name: 'AB', slug: 'ab' }).expect(400)
     })
 
     it('returns 400 when unknown field is sent', async () => {
-      await createClinic(adminToken, { name: 'Clinica Test', slug: 'clinica-test', unknownField: 'value' }).expect(400)
+      await createClinic(platformAdminToken, { name: 'Clinica Test', slug: 'clinica-test', unknownField: 'value' }).expect(400)
     })
 
     it('returns 401 when no token provided', async () => {
       await request(app.getHttpServer()).post('/clinics').send({ name: 'Test', slug: 'test' }).expect(401)
+    })
+
+    it('returns 403 when ADMIN tries to create', async () => {
+      await createClinic(adminToken, { name: 'Test', slug: 'test' }).expect(403)
     })
 
     it('returns 403 when DOCTOR tries to create', async () => {
@@ -300,12 +330,12 @@ describe('ClinicsController (integration)', () => {
 
   describe('GET /clinics', () => {
     it('returns 200 with paginated response', async () => {
-      await createClinic(adminToken, { name: 'Clinica A', slug: 'clinica-a' })
-      await createClinic(adminToken, { name: 'Clinica B', slug: 'clinica-b' })
+      await createClinic(platformAdminToken, { name: 'Clinica A', slug: 'clinica-a' })
+      await createClinic(platformAdminToken, { name: 'Clinica B', slug: 'clinica-b' })
 
       const { body } = await request(app.getHttpServer())
         .get('/clinics')
-        .set('Authorization', `Bearer ${adminToken}`)
+        .set('Authorization', `Bearer ${platformAdminToken}`)
         .expect(200)
 
       expect(body.data).toBeDefined()
@@ -315,12 +345,12 @@ describe('ClinicsController (integration)', () => {
     })
 
     it('filters by name via search param', async () => {
-      await createClinic(adminToken, { name: 'Clinica do Coracao', slug: 'clinica-do-coracao' })
-      await createClinic(adminToken, { name: 'Hospital Geral', slug: 'hospital-geral' })
+      await createClinic(platformAdminToken, { name: 'Clinica do Coracao', slug: 'clinica-do-coracao' })
+      await createClinic(platformAdminToken, { name: 'Hospital Geral', slug: 'hospital-geral' })
 
       const { body } = await request(app.getHttpServer())
         .get('/clinics?search=Coracao')
-        .set('Authorization', `Bearer ${adminToken}`)
+        .set('Authorization', `Bearer ${platformAdminToken}`)
         .expect(200)
 
       expect(body.data.some((c: any) => c.name === 'Clinica do Coracao')).toBe(true)
@@ -328,12 +358,12 @@ describe('ClinicsController (integration)', () => {
     })
 
     it('filters by slug via search param', async () => {
-      await createClinic(adminToken, { name: 'Clinica do Coracao', slug: 'clinica-do-coracao' })
-      await createClinic(adminToken, { name: 'Hospital Geral', slug: 'hospital-geral' })
+      await createClinic(platformAdminToken, { name: 'Clinica do Coracao', slug: 'clinica-do-coracao' })
+      await createClinic(platformAdminToken, { name: 'Hospital Geral', slug: 'hospital-geral' })
 
       const { body } = await request(app.getHttpServer())
         .get('/clinics?search=hospital')
-        .set('Authorization', `Bearer ${adminToken}`)
+        .set('Authorization', `Bearer ${platformAdminToken}`)
         .expect(200)
 
       expect(body.data.some((c: any) => c.slug === 'hospital-geral')).toBe(true)
@@ -341,11 +371,11 @@ describe('ClinicsController (integration)', () => {
     })
 
     it('response data never contains version or deletedAt', async () => {
-      await createClinic(adminToken, { name: 'Clinica Test', slug: 'clinica-test' })
+      await createClinic(platformAdminToken, { name: 'Clinica Test', slug: 'clinica-test' })
 
       const { body } = await request(app.getHttpServer())
         .get('/clinics')
-        .set('Authorization', `Bearer ${adminToken}`)
+        .set('Authorization', `Bearer ${platformAdminToken}`)
         .expect(200)
 
       body.data.forEach((c: any) => {
@@ -357,12 +387,19 @@ describe('ClinicsController (integration)', () => {
     it('returns 400 when limit exceeds 100', async () => {
       await request(app.getHttpServer())
         .get('/clinics?limit=101')
-        .set('Authorization', `Bearer ${adminToken}`)
+        .set('Authorization', `Bearer ${platformAdminToken}`)
         .expect(400)
     })
 
     it('returns 401 when no token provided', async () => {
       await request(app.getHttpServer()).get('/clinics').expect(401)
+    })
+
+    it('returns 403 when ADMIN tries to list', async () => {
+      await request(app.getHttpServer())
+        .get('/clinics')
+        .set('Authorization', `Bearer ${adminToken}`)
+        .expect(403)
     })
 
     it('returns 403 when DOCTOR tries to list', async () => {
@@ -382,11 +419,11 @@ describe('ClinicsController (integration)', () => {
 
   describe('GET /clinics/:id', () => {
     it('returns 200 with ClinicResponseDto', async () => {
-      const { body: created } = await createClinic(adminToken, { name: 'Clinica Test', slug: 'clinica-test' }).expect(201)
+      const { body: created } = await createClinic(platformAdminToken, { name: 'Clinica Test', slug: 'clinica-test' }).expect(201)
 
       const { body } = await request(app.getHttpServer())
         .get(`/clinics/${created.id}`)
-        .set('Authorization', `Bearer ${adminToken}`)
+        .set('Authorization', `Bearer ${platformAdminToken}`)
         .expect(200)
 
       expect(body.id).toBe(created.id)
@@ -399,7 +436,7 @@ describe('ClinicsController (integration)', () => {
     it('returns 404 when clinic does not exist', async () => {
       await request(app.getHttpServer())
         .get(`/clinics/${faker.string.uuid()}`)
-        .set('Authorization', `Bearer ${adminToken}`)
+        .set('Authorization', `Bearer ${platformAdminToken}`)
         .expect(404)
     })
 
@@ -407,8 +444,17 @@ describe('ClinicsController (integration)', () => {
       await request(app.getHttpServer()).get(`/clinics/${faker.string.uuid()}`).expect(401)
     })
 
+    it('returns 403 when ADMIN tries to get by id', async () => {
+      const { body: created } = await createClinic(platformAdminToken, { name: 'Clinica Test', slug: 'clinica-test' }).expect(201)
+
+      await request(app.getHttpServer())
+        .get(`/clinics/${created.id}`)
+        .set('Authorization', `Bearer ${adminToken}`)
+        .expect(403)
+    })
+
     it('returns 403 when DOCTOR tries to get by id', async () => {
-      const { body: created } = await createClinic(adminToken, { name: 'Clinica Test', slug: 'clinica-test' }).expect(201)
+      const { body: created } = await createClinic(platformAdminToken, { name: 'Clinica Test', slug: 'clinica-test' }).expect(201)
 
       await request(app.getHttpServer())
         .get(`/clinics/${created.id}`)
@@ -417,7 +463,7 @@ describe('ClinicsController (integration)', () => {
     })
 
     it('returns 403 when USER tries to get by id', async () => {
-      const { body: created } = await createClinic(adminToken, { name: 'Clinica Test', slug: 'clinica-test' }).expect(201)
+      const { body: created } = await createClinic(platformAdminToken, { name: 'Clinica Test', slug: 'clinica-test' }).expect(201)
 
       await request(app.getHttpServer())
         .get(`/clinics/${created.id}`)
@@ -428,11 +474,11 @@ describe('ClinicsController (integration)', () => {
 
   describe('PATCH /clinics/:id', () => {
     it('returns 200 with updated ClinicResponseDto', async () => {
-      const { body: created } = await createClinic(adminToken, { name: 'Clinica Antiga', slug: 'clinica-antiga' }).expect(201)
+      const { body: created } = await createClinic(platformAdminToken, { name: 'Clinica Antiga', slug: 'clinica-antiga' }).expect(201)
 
       const { body } = await request(app.getHttpServer())
         .patch(`/clinics/${created.id}`)
-        .set('Authorization', `Bearer ${adminToken}`)
+        .set('Authorization', `Bearer ${platformAdminToken}`)
         .send({ name: 'Clinica Nova' })
         .expect(200)
 
@@ -441,11 +487,11 @@ describe('ClinicsController (integration)', () => {
     })
 
     it('deactivates clinic via isActive false', async () => {
-      const { body: created } = await createClinic(adminToken, { name: 'Clinica Test', slug: 'clinica-test' }).expect(201)
+      const { body: created } = await createClinic(platformAdminToken, { name: 'Clinica Test', slug: 'clinica-test' }).expect(201)
 
       const { body } = await request(app.getHttpServer())
         .patch(`/clinics/${created.id}`)
-        .set('Authorization', `Bearer ${adminToken}`)
+        .set('Authorization', `Bearer ${platformAdminToken}`)
         .send({ isActive: false })
         .expect(200)
 
@@ -453,11 +499,11 @@ describe('ClinicsController (integration)', () => {
     })
 
     it('does not conflict when updating with the same slug', async () => {
-      const { body: created } = await createClinic(adminToken, { name: 'Clinica Test', slug: 'clinica-test' }).expect(201)
+      const { body: created } = await createClinic(platformAdminToken, { name: 'Clinica Test', slug: 'clinica-test' }).expect(201)
 
       const { body } = await request(app.getHttpServer())
         .patch(`/clinics/${created.id}`)
-        .set('Authorization', `Bearer ${adminToken}`)
+        .set('Authorization', `Bearer ${platformAdminToken}`)
         .send({ slug: 'clinica-test' })
         .expect(200)
 
@@ -465,12 +511,12 @@ describe('ClinicsController (integration)', () => {
     })
 
     it('returns 409 when updating slug to one already used by another clinic', async () => {
-      const { body: c1 } = await createClinic(adminToken, { name: 'Clinica A', slug: 'clinica-a' }).expect(201)
-      await createClinic(adminToken, { name: 'Clinica B', slug: 'clinica-b' }).expect(201)
+      const { body: c1 } = await createClinic(platformAdminToken, { name: 'Clinica A', slug: 'clinica-a' }).expect(201)
+      await createClinic(platformAdminToken, { name: 'Clinica B', slug: 'clinica-b' }).expect(201)
 
       await request(app.getHttpServer())
         .patch(`/clinics/${c1.id}`)
-        .set('Authorization', `Bearer ${adminToken}`)
+        .set('Authorization', `Bearer ${platformAdminToken}`)
         .send({ slug: 'clinica-b' })
         .expect(409)
     })
@@ -478,17 +524,17 @@ describe('ClinicsController (integration)', () => {
     it('returns 404 when clinic does not exist', async () => {
       await request(app.getHttpServer())
         .patch(`/clinics/${faker.string.uuid()}`)
-        .set('Authorization', `Bearer ${adminToken}`)
+        .set('Authorization', `Bearer ${platformAdminToken}`)
         .send({ name: 'Nova Clinica' })
         .expect(404)
     })
 
     it('response never contains version or deletedAt', async () => {
-      const { body: created } = await createClinic(adminToken, { name: 'Clinica Test', slug: 'clinica-test' }).expect(201)
+      const { body: created } = await createClinic(platformAdminToken, { name: 'Clinica Test', slug: 'clinica-test' }).expect(201)
 
       const { body } = await request(app.getHttpServer())
         .patch(`/clinics/${created.id}`)
-        .set('Authorization', `Bearer ${adminToken}`)
+        .set('Authorization', `Bearer ${platformAdminToken}`)
         .send({ name: 'Clinica Nova' })
         .expect(200)
 
@@ -503,8 +549,18 @@ describe('ClinicsController (integration)', () => {
         .expect(401)
     })
 
+    it('returns 403 when ADMIN tries to update', async () => {
+      const { body: created } = await createClinic(platformAdminToken, { name: 'Clinica Test', slug: 'clinica-test' }).expect(201)
+
+      await request(app.getHttpServer())
+        .patch(`/clinics/${created.id}`)
+        .set('Authorization', `Bearer ${adminToken}`)
+        .send({ name: 'Nova Clinica' })
+        .expect(403)
+    })
+
     it('returns 403 when DOCTOR tries to update', async () => {
-      const { body: created } = await createClinic(adminToken, { name: 'Clinica Test', slug: 'clinica-test' }).expect(201)
+      const { body: created } = await createClinic(platformAdminToken, { name: 'Clinica Test', slug: 'clinica-test' }).expect(201)
 
       await request(app.getHttpServer())
         .patch(`/clinics/${created.id}`)
@@ -514,7 +570,7 @@ describe('ClinicsController (integration)', () => {
     })
 
     it('returns 403 when USER tries to update', async () => {
-      const { body: created } = await createClinic(adminToken, { name: 'Clinica Test', slug: 'clinica-test' }).expect(201)
+      const { body: created } = await createClinic(platformAdminToken, { name: 'Clinica Test', slug: 'clinica-test' }).expect(201)
 
       await request(app.getHttpServer())
         .patch(`/clinics/${created.id}`)

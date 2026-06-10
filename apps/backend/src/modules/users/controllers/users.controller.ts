@@ -23,7 +23,7 @@ export class UsersController {
   ) {}
 
   @Post()
-  @Roles(UserRole.ADMIN)
+  @Roles(UserRole.ADMIN, UserRole.PLATFORM_ADMIN)
   @HttpCode(201)
   create(
     @Body() dto: CreateUserDto,

@@ -10,7 +10,7 @@ export interface JwtPayload {
   sub: string
   email: string
   role?: UserRole
-  clinicId: string
+  clinicId: string | null
   iat: number
   exp: number
 }
@@ -29,9 +29,9 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
   }
 
   validate(payload: JwtPayload): ICurrentUser {
-    if (!payload.clinicId) {
+    if (!payload.clinicId && payload.role !== UserRole.PLATFORM_ADMIN) {
       throw new UnauthorizedException('Invalid token')
     }
-    return { id: payload.sub, role: payload.role ?? UserRole.USER, clinicId: payload.clinicId }
+    return { id: payload.sub, role: payload.role ?? UserRole.USER, clinicId: payload.clinicId ?? null }
   }
 }

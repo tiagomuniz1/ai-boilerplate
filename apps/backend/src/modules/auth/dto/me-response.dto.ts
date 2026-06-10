@@ -5,5 +5,5 @@ export class MeResponseDto {
   fullName: string
   email: string
   role: UserRole
-  clinicId: string
+  clinicId: string | null
 }

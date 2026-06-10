@@ -15,3 +15,7 @@ export function isUniqueConstraintViolation(error: unknown, constraint: string):
     (error as any).constraint === constraint
   )
 }
+
+export function isForeignKeyViolation(error: unknown): boolean {
+  return error instanceof QueryFailedError && (error as any).code === '23503'
+}

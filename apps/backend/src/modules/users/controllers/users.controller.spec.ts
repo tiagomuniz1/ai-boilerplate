@@ -17,6 +17,7 @@ const mockDelete = { execute: jest.fn() } as unknown as jest.Mocked<DeleteUserUs
 const mockActivate = { execute: jest.fn() } as unknown as jest.Mocked<ActivateUserUseCase>
 
 const currentUser: ICurrentUser = { id: 'user-uuid-admin', role: UserRole.ADMIN, clinicId: 'clinic-uuid' }
+const platformAdminUser: ICurrentUser = { id: 'platform-uuid', role: UserRole.PLATFORM_ADMIN, clinicId: null }
 
 describe('UsersController', () => {
   let controller: UsersController
@@ -34,6 +35,17 @@ describe('UsersController', () => {
     const result = await controller.create(dto as any, currentUser)
 
     expect(mockCreateUser.execute).toHaveBeenCalledWith(dto, currentUser)
+    expect(result).toBe(response)
+  })
+
+  it('create delegates to CreateUserUseCase with PLATFORM_ADMIN currentUser (clinicId in DTO)', async () => {
+    const dto = { fullName: 'Alice', email: 'a@b.com', password: 'Pass1234', role: UserRole.ADMIN, clinicId: 'clinic-uuid' }
+    const response = { id: 'u1', ...dto, isActive: true, isDoctor: false, isPatient: false, createdAt: new Date(), updatedAt: new Date() }
+    mockCreateUser.execute.mockResolvedValue(response)
+
+    const result = await controller.create(dto as any, platformAdminUser)
+
+    expect(mockCreateUser.execute).toHaveBeenCalledWith(dto, platformAdminUser)
     expect(result).toBe(response)
   })
 

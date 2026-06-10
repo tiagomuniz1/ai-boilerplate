@@ -22,7 +22,7 @@ export class FindScheduleByIdUseCase extends BaseUseCase {
   }
 
   async execute(id: string, currentUser: ICurrentUser): Promise<ScheduleResponseDto> {
-    const { clinicId } = currentUser
+    const clinicId = currentUser.clinicId!
     const cacheKey = `schedule:${clinicId}:${id}`
 
     let doctorProfileId: string | null = null

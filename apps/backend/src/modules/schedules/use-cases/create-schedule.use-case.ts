@@ -38,7 +38,7 @@ export class CreateScheduleUseCase extends BaseUseCase {
       throw new ForbiddenException('Only doctors and admins can create schedules')
     }
 
-    const { clinicId } = currentUser
+    const clinicId = currentUser.clinicId!
 
     let doctor
     if (currentUser.role === UserRole.DOCTOR) {

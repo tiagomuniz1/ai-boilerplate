@@ -25,7 +25,7 @@ export class CreatePatientUseCase extends BaseUseCase {
   }
 
   async execute(dto: CreatePatientDto, currentUser: ICurrentUser): Promise<PatientResponseDto> {
-    const { clinicId } = currentUser
+    const clinicId = currentUser.clinicId!
 
     const existingDocument = await this.patientsRepository.findByDocumentNumber(dto.documentNumber, clinicId)
     if (existingDocument) throw new ConflictException('Patient with this document number already exists')

@@ -24,7 +24,7 @@ export class DeleteUserUseCase extends BaseUseCase {
   async execute(id: string, currentUser: ICurrentUser): Promise<void> {
     if (id === currentUser.id) throw new ForbiddenException('Cannot delete your own account')
 
-    const { clinicId } = currentUser
+    const clinicId = currentUser.clinicId!
     const user = await this.usersRepository.findById(id, clinicId)
     if (!user) throw new NotFoundException('User not found')
 

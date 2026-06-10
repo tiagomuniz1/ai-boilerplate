@@ -121,8 +121,8 @@ describe('LoginUseCase', () => {
     )
   })
 
-  it('throws UnauthorizedException when user has no clinicId', async () => {
-    const user = makeUser({ clinicId: undefined as any })
+  it('throws UnauthorizedException when non-PLATFORM_ADMIN user has no clinicId', async () => {
+    const user = makeUser({ clinicId: null as any, role: UserRole.ADMIN })
     mockUsersRepository.findByEmail.mockResolvedValue(user)
     ;(bcrypt.compare as jest.Mock).mockResolvedValue(true)
 
@@ -131,6 +131,24 @@ describe('LoginUseCase', () => {
     ).rejects.toThrow(new UnauthorizedException('User is not associated with a clinic'))
 
     expect(mockJwtService.signAsync).not.toHaveBeenCalled()
+  })
+
+  it('PLATFORM_ADMIN can login without clinicId', async () => {
+    const user = makeUser({ clinicId: null as any, role: UserRole.PLATFORM_ADMIN })
+    mockUsersRepository.findByEmail.mockResolvedValue(user)
+    ;(bcrypt.compare as jest.Mock).mockResolvedValue(true)
+    mockJwtService.signAsync
+      .mockResolvedValueOnce('access-token')
+      .mockResolvedValueOnce('refresh-token')
+    mockRefreshTokensRepository.create.mockResolvedValue({} as any)
+
+    const result = await useCase.execute({ email: user.email, password: 'platform123' })
+
+    expect(result.user.role).toBe(UserRole.PLATFORM_ADMIN)
+    expect(mockJwtService.signAsync).toHaveBeenCalledWith(
+      expect.objectContaining({ clinicId: null }),
+      expect.anything(),
+    )
   })
 
   it('signs access token with correct payload and expiration', async () => {

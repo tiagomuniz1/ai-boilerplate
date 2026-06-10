@@ -18,7 +18,7 @@ export function ClinicList() {
   const [debouncedSearch, setDebouncedSearch] = useState('')
 
   useEffect(() => {
-    if (user?.role && user.role !== UserRole.ADMIN) {
+    if (user?.role && user.role !== UserRole.PLATFORM_ADMIN) {
       router.replace('/dashboard')
     }
   }, [user?.role, router])
@@ -140,6 +140,13 @@ export function ClinicList() {
                     </td>
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-3">
+                        <Link
+                          href={`/clinics/${clinic.id}/users/new`}
+                          data-testid={`clinic-add-user-link-${clinic.id}`}
+                          className="text-xs text-text-mute hover:text-text transition-colors"
+                        >
+                          + Usuário
+                        </Link>
                         <Link
                           href={`/clinics/${clinic.id}/edit`}
                           data-testid={`clinic-edit-link-${clinic.id}`}

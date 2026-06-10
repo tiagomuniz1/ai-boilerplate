@@ -20,7 +20,7 @@ export class FindPatientByIdUseCase extends BaseUseCase {
   }
 
   async execute(id: string, currentUser: ICurrentUser): Promise<PatientResponseDto> {
-    const { clinicId } = currentUser
+    const clinicId = currentUser.clinicId!
     const cacheKey = `patient:${clinicId}:${id}`
 
     try {

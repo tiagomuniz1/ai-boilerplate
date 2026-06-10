@@ -33,6 +33,11 @@ export function ClinicDetails({ clinic }: ClinicDetailsProps) {
           </p>
         </div>
         <div className="flex items-center gap-2">
+          <Link href={`/clinics/${clinic.id}/users/new`}>
+            <Button variant="secondary" size="sm" data-testid="clinic-details-new-user-button">
+              + Usuário
+            </Button>
+          </Link>
           <Link href={`/clinics/${clinic.id}/edit`}>
             <Button variant="ghost" size="sm" data-testid="clinic-details-edit-button">
               Editar

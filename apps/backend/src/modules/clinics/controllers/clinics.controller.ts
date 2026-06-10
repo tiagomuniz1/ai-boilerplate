@@ -9,7 +9,6 @@ import {
   UpdateClinicDto,
   UserRole,
 } from '@app/shared'
-import { Public } from '../../auth/decorators/public.decorator'
 import { Roles } from '../../auth/decorators/roles.decorator'
 import { ListClinicsQueryDto } from '../dto/list-clinics-query.dto'
 import { CreateClinicUseCase } from '../use-cases/create-clinic.use-case'
@@ -29,34 +28,33 @@ export class ClinicsController {
   ) {}
 
   @Post('register')
-  @Public()
+  @Roles(UserRole.PLATFORM_ADMIN)
   @HttpCode(201)
-  @Throttle({ default: { limit: 5, ttl: 60000 } })
   register(@Body() dto: RegisterClinicDto): Promise<RegisterClinicResponseDto> {
     return this.registerClinicUseCase.execute(dto)
   }
 
   @Post()
-  @Roles(UserRole.ADMIN)
+  @Roles(UserRole.PLATFORM_ADMIN)
   @HttpCode(201)
   create(@Body() dto: CreateClinicDto): Promise<ClinicResponseDto> {
     return this.createClinicUseCase.execute(dto)
   }
 
   @Get()
-  @Roles(UserRole.ADMIN)
+  @Roles(UserRole.PLATFORM_ADMIN)
   findAll(@Query() query: ListClinicsQueryDto): Promise<PaginatedClinicsResponseDto> {
     return this.findAllClinicsUseCase.execute(query)
   }
 
   @Get(':id')
-  @Roles(UserRole.ADMIN)
+  @Roles(UserRole.PLATFORM_ADMIN)
   findById(@Param('id') id: string): Promise<ClinicResponseDto> {
     return this.findClinicByIdUseCase.execute(id)
   }
 
   @Patch(':id')
-  @Roles(UserRole.ADMIN)
+  @Roles(UserRole.PLATFORM_ADMIN)
   update(@Param('id') id: string, @Body() dto: UpdateClinicDto): Promise<ClinicResponseDto> {
     return this.updateClinicUseCase.execute(id, dto)
   }

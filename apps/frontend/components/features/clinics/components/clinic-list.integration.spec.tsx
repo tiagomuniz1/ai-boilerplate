@@ -12,10 +12,10 @@ import { renderWithProviders } from '@/tests/utils/render-with-providers'
 import { ClinicList } from './clinic-list'
 
 const mockReplace = jest.fn()
-const mockAdminUser = { id: 'auth-uuid-1', fullName: 'Admin', email: 'admin@test.com', role: UserRole.ADMIN, clinicId: 'clinic-uuid-1' }
+const mockPlatformAdminUser = { id: 'auth-uuid-1', fullName: 'Platform Admin', email: 'platform@umi.dev', role: UserRole.PLATFORM_ADMIN, clinicId: null }
 
 function mockAuth(role: UserRole) {
-  const user = { ...mockAdminUser, role }
+  const user = { ...mockPlatformAdminUser, role }
   ;(useAuthStore as unknown as jest.Mock).mockImplementation(
     (selector: (s: { user: typeof user }) => unknown) => selector({ user }),
   )
@@ -42,7 +42,7 @@ describe('ClinicList (integration)', () => {
   beforeEach(() => {
     jest.clearAllMocks()
     ;(useRouter as jest.Mock).mockReturnValue({ push: jest.fn(), replace: mockReplace })
-    mockAuth(UserRole.ADMIN)
+    mockAuth(UserRole.PLATFORM_ADMIN)
   })
 
   it('renders skeleton while loading', () => {
@@ -130,7 +130,7 @@ describe('ClinicList (integration)', () => {
     expect(screen.getByTestId('clinic-list-search')).toBeInTheDocument()
   })
 
-  it('renders view and edit links for each clinic', async () => {
+  it('renders view, edit and add-user links for each clinic', async () => {
     ;(clinicsService.getAll as jest.Mock).mockResolvedValue(makePaginated())
 
     renderWithProviders(<ClinicList />)
@@ -141,6 +141,7 @@ describe('ClinicList (integration)', () => {
 
     expect(screen.getByTestId('clinic-view-link-uuid-1')).toBeInTheDocument()
     expect(screen.getByTestId('clinic-edit-link-uuid-1')).toBeInTheDocument()
+    expect(screen.getByTestId('clinic-add-user-link-uuid-1')).toBeInTheDocument()
   })
 
   it('shows busca empty message when search yields no results', async () => {
@@ -157,18 +158,18 @@ describe('ClinicList (integration)', () => {
     })
   })
 
-  it('redirects to /dashboard when user is not ADMIN', () => {
+  it('redirects to /dashboard when user is not PLATFORM_ADMIN', () => {
     ;(clinicsService.getAll as jest.Mock).mockReturnValue(new Promise(() => {}))
-    mockAuth(UserRole.DOCTOR)
+    mockAuth(UserRole.ADMIN)
 
     renderWithProviders(<ClinicList />)
 
     expect(mockReplace).toHaveBeenCalledWith('/dashboard')
   })
 
-  it('does not redirect when user is ADMIN', async () => {
+  it('does not redirect when user is PLATFORM_ADMIN', async () => {
     ;(clinicsService.getAll as jest.Mock).mockResolvedValue(makePaginated([]))
-    mockAuth(UserRole.ADMIN)
+    mockAuth(UserRole.PLATFORM_ADMIN)
 
     renderWithProviders(<ClinicList />)
 

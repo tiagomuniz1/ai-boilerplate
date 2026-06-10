@@ -12,9 +12,9 @@ export interface CreateUserData {
 
 export abstract class IUsersRepository {
   abstract findAll(page: number, limit: number, clinicId: string, search?: string): Promise<[User[], number]>
-  abstract findById(id: string, clinicId: string): Promise<User | null>
+  abstract findById(id: string, clinicId: string | null): Promise<User | null>
   abstract findByEmail(email: string): Promise<User | null>
-  abstract create(data: CreateUserData, clinicId: string, queryRunner?: QueryRunner): Promise<User>
+  abstract create(data: CreateUserData, clinicId: string | null, queryRunner?: QueryRunner): Promise<User>
   abstract update(id: string, data: UpdateUserDto, queryRunner?: QueryRunner): Promise<User>
   abstract delete(id: string, queryRunner?: QueryRunner): Promise<void>
 }

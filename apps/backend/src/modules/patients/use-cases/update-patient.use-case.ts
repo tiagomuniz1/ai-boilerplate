@@ -23,7 +23,7 @@ export class UpdatePatientUseCase extends BaseUseCase {
   }
 
   async execute(id: string, dto: UpdatePatientDto, currentUser: ICurrentUser): Promise<PatientResponseDto> {
-    const { clinicId } = currentUser
+    const clinicId = currentUser.clinicId!
 
     const patient = await this.patientsRepository.findById(id, clinicId)
     if (!patient) throw new NotFoundException('Patient not found')

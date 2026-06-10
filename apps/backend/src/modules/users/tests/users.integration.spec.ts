@@ -36,6 +36,7 @@ describe('UsersController (integration)', () => {
   let doctorUserId: string
   let userToken: string
   let userUserId: string
+  let platformAdminToken: string
 
   async function loginAs(role: UserRole): Promise<{ token: string; id: string }> {
     const password = 'Password123!'
@@ -59,6 +60,29 @@ describe('UsersController (integration)', () => {
     const match = cookies.find((c: string) => c?.startsWith('access_token='))
     const token = match ? match.slice('access_token='.length).split(';')[0] : ''
     return { token, id: user.id }
+  }
+
+  async function loginAsPlatformAdmin(): Promise<string> {
+    const password = 'Platform123!'
+    const hashedPassword = await bcrypt.hash(password, 1)
+    const user = await userRepository.save(
+      userRepository.create({
+        fullName: 'Platform Admin',
+        email: `platform.${faker.string.alphanumeric(6)}@umi.test`,
+        password: hashedPassword,
+        role: UserRole.PLATFORM_ADMIN,
+        isActive: true,
+        clinicId: null as any,
+      }),
+    )
+    const response = await request(app.getHttpServer())
+      .post('/auth/login')
+      .send({ email: user.email, password })
+    const setCookieHeader = response.headers['set-cookie'] as unknown as string[] | string | undefined
+    if (!setCookieHeader) return ''
+    const cookies = Array.isArray(setCookieHeader) ? setCookieHeader : [setCookieHeader]
+    const match = cookies.find((c: string) => c?.startsWith('access_token='))
+    return match ? match.slice('access_token='.length).split(';')[0] : ''
   }
 
   beforeAll(async () => {
@@ -94,6 +118,7 @@ describe('UsersController (integration)', () => {
     const user = await loginAs(UserRole.USER)
     userToken = user.token
     userUserId = user.id
+    platformAdminToken = await loginAsPlatformAdmin()
   })
 
   afterEach(async () => {
@@ -194,6 +219,47 @@ describe('UsersController (integration)', () => {
         .set('Authorization', `Bearer ${userToken}`)
         .send({ fullName: faker.person.fullName(), email: faker.internet.email(), password: 'Password123!' })
         .expect(403)
+    })
+
+    it('returns 201 when PLATFORM_ADMIN creates user with explicit clinicId', async () => {
+      const payload = {
+        fullName: faker.person.fullName(),
+        email: faker.internet.email(),
+        password: 'Password123!',
+        role: UserRole.ADMIN,
+        clinicId: SEED_CLINIC_ID,
+      }
+
+      const { body } = await request(app.getHttpServer())
+        .post('/users')
+        .set('Authorization', `Bearer ${platformAdminToken}`)
+        .send(payload)
+        .expect(201)
+
+      expect(body.id).toBeDefined()
+      expect(body.email).toBe(payload.email)
+      expect(body.role).toBe(UserRole.ADMIN)
+    })
+
+    it('returns 422 when PLATFORM_ADMIN creates user without clinicId', async () => {
+      await request(app.getHttpServer())
+        .post('/users')
+        .set('Authorization', `Bearer ${platformAdminToken}`)
+        .send({ fullName: faker.person.fullName(), email: faker.internet.email(), password: 'Password123!' })
+        .expect(422)
+    })
+
+    it('returns 422 when PLATFORM_ADMIN provides a non-existent clinicId', async () => {
+      await request(app.getHttpServer())
+        .post('/users')
+        .set('Authorization', `Bearer ${platformAdminToken}`)
+        .send({
+          fullName: faker.person.fullName(),
+          email: faker.internet.email(),
+          password: 'Password123!',
+          clinicId: faker.string.uuid(),
+        })
+        .expect(422)
     })
   })
 

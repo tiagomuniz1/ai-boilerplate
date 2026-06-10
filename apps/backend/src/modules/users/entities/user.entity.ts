@@ -36,8 +36,8 @@ export class User {
   @JoinColumn({ name: 'clinic_id' })
   clinic: Clinic
 
-  @Column({ name: 'clinic_id' })
-  clinicId: string
+  @Column({ name: 'clinic_id', nullable: true })
+  clinicId: string | null
 
   @VersionColumn()
   version: number

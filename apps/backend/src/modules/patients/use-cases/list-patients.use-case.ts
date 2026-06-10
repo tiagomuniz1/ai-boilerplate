@@ -22,7 +22,7 @@ export class ListPatientsUseCase extends BaseUseCase {
 
   async execute(query: ListPatientsQueryDto, currentUser: ICurrentUser): Promise<PaginatedPatientsResponseDto> {
     const { page, limit, search } = query
-    const { clinicId } = currentUser
+    const clinicId = currentUser.clinicId!
     const cacheKey = `patients:list:${clinicId}:${page}:${limit}:${search ?? 'all'}`
 
     try {

@@ -72,6 +72,14 @@ describe('ClinicDetails (integration)', () => {
     expect(screen.getByTestId('clinic-details-edit-button')).toBeInTheDocument()
   })
 
+  it('renders new user button linking to clinic users/new page', () => {
+    renderWithProviders(<ClinicDetails clinic={activeClinic} />)
+
+    const button = screen.getByTestId('clinic-details-new-user-button')
+    expect(button).toBeInTheDocument()
+    expect(button.closest('a')).toHaveAttribute('href', '/clinics/uuid-1/users/new')
+  })
+
   it('does not render a delete button', () => {
     renderWithProviders(<ClinicDetails clinic={activeClinic} />)
 

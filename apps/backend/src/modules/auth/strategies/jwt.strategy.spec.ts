@@ -51,15 +51,33 @@ describe('JwtStrategy', () => {
       })
     })
 
-    it('throws UnauthorizedException when clinicId is absent from payload', () => {
+    it('throws UnauthorizedException when clinicId is absent and role is not PLATFORM_ADMIN', () => {
       const payload = {
         sub: 'user-uuid',
         email: 'user@example.com',
+        role: UserRole.ADMIN,
         iat: 0,
         exp: 9999999999,
       } as unknown as JwtPayload
 
       expect(() => strategy.validate(payload)).toThrow(UnauthorizedException)
+    })
+
+    it('allows null clinicId for PLATFORM_ADMIN', () => {
+      const payload: JwtPayload = {
+        sub: 'platform-admin-uuid',
+        email: 'platform@umi.dev',
+        role: UserRole.PLATFORM_ADMIN,
+        clinicId: null,
+        iat: 0,
+        exp: 9999999999,
+      }
+
+      expect(strategy.validate(payload)).toEqual({
+        id: 'platform-admin-uuid',
+        role: UserRole.PLATFORM_ADMIN,
+        clinicId: null,
+      })
     })
 
     it('does not include email in the returned object', () => {

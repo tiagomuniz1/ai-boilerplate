@@ -21,7 +21,7 @@ export class FindAllDoctorsUseCase extends BaseUseCase {
   }
 
   async execute(query: ListDoctorsQueryDto, currentUser: ICurrentUser): Promise<PaginatedDoctorsResponseDto> {
-    const { clinicId } = currentUser
+    const clinicId = currentUser.clinicId!
 
     if (currentUser.role === UserRole.DOCTOR) {
       const doctor = await this.doctorsRepository.findByUserId(currentUser.id, clinicId)

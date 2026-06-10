@@ -29,7 +29,7 @@ export class DeleteScheduleUseCase extends BaseUseCase {
   }
 
   async execute(id: string, currentUser: ICurrentUser): Promise<void> {
-    const { clinicId } = currentUser
+    const clinicId = currentUser.clinicId!
 
     const schedule = await this.schedulesRepository.findById(id, clinicId)
     if (!schedule) throw new NotFoundException('Schedule not found')

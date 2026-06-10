@@ -34,4 +34,17 @@ describe('createUserUseCase', () => {
 
     await expect(createUserUseCase(input)).rejects.toEqual(error)
   })
+
+  it('passes clinicId through mapper when provided', async () => {
+    const inputWithClinic = { ...input, clinicId: 'clinic-uuid-1' }
+    const mappedDtoWithClinic = { ...mappedDto, clinicId: 'clinic-uuid-1' }
+    ;(toCreateUserDto as jest.Mock).mockReturnValue(mappedDtoWithClinic)
+    ;(userService.create as jest.Mock).mockResolvedValue(returnedDto)
+    ;(toUserModel as jest.Mock).mockReturnValue(model)
+
+    await createUserUseCase(inputWithClinic)
+
+    expect(toCreateUserDto).toHaveBeenCalledWith(inputWithClinic)
+    expect(userService.create).toHaveBeenCalledWith(mappedDtoWithClinic)
+  })
 })

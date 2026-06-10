@@ -7,5 +7,6 @@ export function toCreateUserDto(input: ICreateUserInput): CreateUserDto {
     email: input.email,
     password: input.password,
     role: input.role,
+    ...(input.clinicId !== undefined && { clinicId: input.clinicId }),
   }
 }
