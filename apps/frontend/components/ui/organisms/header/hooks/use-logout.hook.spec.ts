@@ -83,6 +83,19 @@ describe('useLogout', () => {
     expect(push).toHaveBeenCalledWith('/login')
   })
 
+  it('removes clinic-theme-vars from localStorage on success', async () => {
+    mockAuthService.logout.mockResolvedValue(undefined)
+    const removeItemSpy = jest.spyOn(Storage.prototype, 'removeItem')
+    const { result } = renderLogoutHook()
+
+    await act(async () => {
+      await result.current.logout()
+    })
+
+    expect(removeItemSpy).toHaveBeenCalledWith('clinic-theme-vars')
+    removeItemSpy.mockRestore()
+  })
+
   it('sets friendly error message on failure', async () => {
     mockAuthService.logout.mockRejectedValue(new Error('Network error'))
     const { result } = renderLogoutHook()

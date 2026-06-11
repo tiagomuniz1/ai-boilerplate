@@ -1,3 +1,5 @@
+import { UnauthorizedException } from '@nestjs/common'
+import { UserRole } from '@app/shared'
 import { ClinicsController } from './clinics.controller'
 import { CreateClinicUseCase } from '../use-cases/create-clinic.use-case'
 import { FindAllClinicsUseCase } from '../use-cases/find-all-clinics.use-case'
@@ -5,6 +7,7 @@ import { FindClinicByIdUseCase } from '../use-cases/find-clinic-by-id.use-case'
 import { RegisterClinicUseCase } from '../use-cases/register-clinic.use-case'
 import { UpdateClinicUseCase } from '../use-cases/update-clinic.use-case'
 import { ListClinicsQueryDto } from '../dto/list-clinics-query.dto'
+import type { ICurrentUser } from '../../auth/types/current-user.type'
 
 const mockRegister = { execute: jest.fn() } as unknown as jest.Mocked<RegisterClinicUseCase>
 const mockCreate = { execute: jest.fn() } as unknown as jest.Mocked<CreateClinicUseCase>
@@ -107,5 +110,23 @@ describe('ClinicsController', () => {
 
     expect(mockUpdate.execute).toHaveBeenCalledWith('clinic-uuid-1', dto)
     expect(result).toBe(response)
+  })
+
+  it('findCurrentClinic delegates to FindClinicByIdUseCase with clinicId from token', async () => {
+    const currentUser: ICurrentUser = { id: 'user-uuid', role: UserRole.ADMIN, clinicId: 'clinic-uuid-1' }
+    const response = makeClinicResponse()
+    mockFindById.execute.mockResolvedValue(response as any)
+
+    const result = await controller.findCurrentClinic(currentUser)
+
+    expect(mockFindById.execute).toHaveBeenCalledWith('clinic-uuid-1')
+    expect(result).toBe(response)
+  })
+
+  it('findCurrentClinic throws UnauthorizedException when clinicId is null', async () => {
+    const currentUser: ICurrentUser = { id: 'user-uuid', role: UserRole.PLATFORM_ADMIN, clinicId: null }
+
+    await expect(controller.findCurrentClinic(currentUser)).rejects.toThrow(UnauthorizedException)
+    expect(mockFindById.execute).not.toHaveBeenCalled()
   })
 })

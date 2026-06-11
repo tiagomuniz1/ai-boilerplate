@@ -19,6 +19,7 @@ export const clinicsService = {
     )
   },
   getById: (id: string) => apiClient.get<ClinicResponseDto>(`/clinics/${id}`),
+  getMe: () => apiClient.get<ClinicResponseDto>('/clinics/me'),
   create: (data: ICreateClinicInput) => apiClient.post<ClinicResponseDto>('/clinics', data),
   update: (id: string, data: IUpdateClinicInput) =>
     apiClient.patch<ClinicResponseDto>(`/clinics/${id}`, data),

@@ -112,7 +112,7 @@ async function seedClinic(dataSource: DataSource, defaultThemeId: string): Promi
 }
 
 async function seedPlatformAdmin(repository: ReturnType<DataSource['getRepository']>): Promise<void> {
-  const existing = await repository.findOneBy({ email: 'platform@umi.dev' })
+  const existing = await repository.findOneBy({ email: 'tiagomuniz2@gmail.com' })
   if (existing) {
     if (existing.role !== UserRole.PLATFORM_ADMIN) {
       await repository.update(existing.id, { role: UserRole.PLATFORM_ADMIN, clinicId: null })
@@ -140,9 +140,13 @@ async function seedPlatformAdmin(repository: ReturnType<DataSource['getRepositor
 async function seedClinicAdmin(repository: ReturnType<DataSource['getRepository']>): Promise<void> {
   const existing = await repository.findOneBy({ email: 'tiagomuniz1@gmail.com' })
   if (existing) {
-    if (existing.role !== UserRole.ADMIN) {
-      await repository.update(existing.id, { role: UserRole.ADMIN })
-      console.log('Dev seed: updated clinic admin role.')
+    const updates: Record<string, unknown> = {}
+    if (existing.role !== UserRole.ADMIN) updates.role = UserRole.ADMIN
+    if (!existing.clinicId) updates.clinicId = SEED_CLINIC_ID
+
+    if (Object.keys(updates).length > 0) {
+      await repository.update(existing.id, updates)
+      console.log('Dev seed: updated clinic admin.')
     } else {
       console.log('Dev seed: clinic admin already exists, skipping.')
     }

@@ -1,4 +1,4 @@
-import { Body, Controller, Get, HttpCode, Param, Patch, Post, Query } from '@nestjs/common'
+import { Body, Controller, Get, HttpCode, Param, Patch, Post, Query, UnauthorizedException } from '@nestjs/common'
 import { Throttle } from '@nestjs/throttler'
 import {
   ClinicResponseDto,
@@ -7,7 +7,9 @@ import {
   RegisterClinicResponseDto,
   UserRole,
 } from '@app/shared'
+import { CurrentUser } from '../../auth/decorators/current-user.decorator'
 import { Roles } from '../../auth/decorators/roles.decorator'
+import { ICurrentUser } from '../../auth/types/current-user.type'
 import { CreateClinicRequestDto } from '../dto/create-clinic-request.dto'
 import { ListClinicsQueryDto } from '../dto/list-clinics-query.dto'
 import { UpdateClinicRequestDto } from '../dto/update-clinic-request.dto'
@@ -45,6 +47,13 @@ export class ClinicsController {
   @Roles(UserRole.PLATFORM_ADMIN)
   findAll(@Query() query: ListClinicsQueryDto): Promise<PaginatedClinicsResponseDto> {
     return this.findAllClinicsUseCase.execute(query)
+  }
+
+  @Get('me')
+  @Roles(UserRole.ADMIN, UserRole.DOCTOR, UserRole.USER)
+  async findCurrentClinic(@CurrentUser() currentUser: ICurrentUser): Promise<ClinicResponseDto> {
+    if (!currentUser.clinicId) throw new UnauthorizedException('No clinic associated with this account')
+    return this.findClinicByIdUseCase.execute(currentUser.clinicId)
   }
 
   @Get(':id')

@@ -36,10 +36,28 @@ describe('AuthInitializer', () => {
     expect(container).toBeEmptyDOMElement()
   })
 
-  it('does not call authService.getMe when user already has a role', () => {
+  it('does not call authService.getMe when user already has a role and clinicId is set', () => {
     mockAuthStore(mockUser)
     render(<AuthInitializer />)
     expect(authService.getMe).not.toHaveBeenCalled()
+  })
+
+  it('does not call authService.getMe when user has role and clinicId is null (PLATFORM_ADMIN)', () => {
+    mockAuthStore({ ...mockUser, clinicId: null })
+    render(<AuthInitializer />)
+    expect(authService.getMe).not.toHaveBeenCalled()
+  })
+
+  it('calls authService.getMe when user has role but clinicId is undefined (stale persisted data)', async () => {
+    const staleUser = { ...mockUser, clinicId: undefined } as unknown as IAuthUserModel
+    mockAuthStore(staleUser)
+    ;(authService.getMe as jest.Mock).mockResolvedValue({ ...mockUser })
+
+    render(<AuthInitializer />)
+
+    await waitFor(() => {
+      expect(authService.getMe).toHaveBeenCalledTimes(1)
+    })
   })
 
   it('calls authService.getMe when user exists but has no role (stale state)', async () => {

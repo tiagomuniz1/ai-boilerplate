@@ -23,6 +23,7 @@ export function useLogout(): IUseLogoutResult {
     onSuccess: () => {
       setUser(null)
       queryClient.clear()
+      try { localStorage.removeItem('clinic-theme-vars') } catch {}
       router.push('/login')
     },
     onError: () => {

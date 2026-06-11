@@ -42,36 +42,6 @@ describe('Header', () => {
     expect(screen.getByRole('banner')).toHaveClass('border-b')
   })
 
-  it('renders the logo', () => {
-    render(<Header />)
-    expect(screen.getByTestId('header-logo')).toBeInTheDocument()
-  })
-
-  it('renders the search bar', () => {
-    render(<Header />)
-    expect(screen.getByTestId('header-search')).toBeInTheDocument()
-  })
-
-  it('renders the notifications button', () => {
-    render(<Header />)
-    expect(screen.getByTestId('header-notifications')).toBeInTheDocument()
-  })
-
-  it('notifications button has aria-label "Notificações"', () => {
-    render(<Header />)
-    expect(screen.getByLabelText('Notificações')).toBeInTheDocument()
-  })
-
-  it('renders the settings button', () => {
-    render(<Header />)
-    expect(screen.getByTestId('header-settings')).toBeInTheDocument()
-  })
-
-  it('settings button has aria-label "Configurações"', () => {
-    render(<Header />)
-    expect(screen.getByLabelText('Configurações')).toBeInTheDocument()
-  })
-
   it('renders the mobile menu button', () => {
     render(<Header />)
     expect(screen.getByTestId('header-mobile-menu')).toBeInTheDocument()
@@ -101,16 +71,9 @@ describe('Header', () => {
     expect(button).toHaveAttribute('aria-expanded', 'false')
   })
 
-  it('calls onLogoClick when logo is clicked', () => {
-    const onLogoClick = jest.fn()
-    render(<Header onLogoClick={onLogoClick} />)
-    fireEvent.click(screen.getByTestId('header-logo'))
-    expect(onLogoClick).toHaveBeenCalledTimes(1)
-  })
-
   it('applies default padding when variant is default', () => {
     render(<Header variant="default" />)
-    expect(screen.getByRole('banner')).toHaveStyle({ padding: '18px 48px' })
+    expect(screen.getByRole('banner')).toHaveStyle({ padding: '18px 24px' })
   })
 
   it('applies compact padding when variant is compact', () => {
@@ -121,11 +84,6 @@ describe('Header', () => {
   it('renders header-actions container', () => {
     render(<Header />)
     expect(screen.getByTestId('header-actions')).toBeInTheDocument()
-  })
-
-  it('renders notification badge', () => {
-    render(<Header />)
-    expect(screen.getByTestId('header-notifications-badge')).toBeInTheDocument()
   })
 
   it('renders the theme toggle button', () => {

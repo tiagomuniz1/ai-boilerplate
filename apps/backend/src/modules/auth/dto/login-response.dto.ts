@@ -5,4 +5,5 @@ export class LoginResponseDto {
   fullName: string
   email: string
   role: UserRole
+  clinicId: string | null
 }

@@ -3,15 +3,18 @@ import userEvent from '@testing-library/user-event'
 import { Sidebar } from './sidebar'
 import { useSidebarNavigation } from '@/hooks/use-sidebar-navigation.hook'
 import { useAuthStore } from '@/stores/auth.store'
+import { useCurrentClinic } from '@/components/features/clinics/hooks/use-current-clinic.hook'
 import type { INavigationItemViewModel } from '@/types/navigation.types'
 
 jest.mock('@/hooks/use-sidebar-navigation.hook')
+jest.mock('@/components/features/clinics/hooks/use-current-clinic.hook')
 jest.mock('next/navigation', () => ({
   useRouter: jest.fn(),
   usePathname: jest.fn(),
 }))
 
 const mockToggle = jest.fn()
+const mockUseCurrentClinic = useCurrentClinic as jest.MockedFunction<typeof useCurrentClinic>
 
 const mockItems: INavigationItemViewModel[] = [
   {
@@ -43,6 +46,7 @@ describe('Sidebar', () => {
       isCollapsed: false,
       toggle: mockToggle,
     })
+    mockUseCurrentClinic.mockReturnValue({ data: undefined } as any)
   })
 
   it('renders as an aside element', () => {
@@ -82,17 +86,32 @@ describe('Sidebar', () => {
     expect(screen.getByTestId('sidebar-logo')).toBeInTheDocument()
   })
 
-  it('shows brand name and subtitle when expanded', () => {
+  it('shows "Umi" as fallback name when no clinic is loaded', () => {
     render(<Sidebar />)
-    expect(screen.getByText('Umi')).toBeInTheDocument()
-    expect(screen.getByText('Backoffice Clínico')).toBeInTheDocument()
+    expect(screen.getByTestId('sidebar-clinic-name')).toHaveTextContent('Umi')
   })
 
-  it('hides brand name when collapsed', () => {
+  it('shows clinic name when clinic data is available', () => {
+    mockUseCurrentClinic.mockReturnValue({ data: { id: 'c1', name: 'Clínica do Coração' } } as any)
+    render(<Sidebar />)
+    expect(screen.getByTestId('sidebar-clinic-name')).toHaveTextContent('Clínica do Coração')
+  })
+
+  it('shows first letter of clinic name in logo icon', () => {
+    mockUseCurrentClinic.mockReturnValue({ data: { id: 'c1', name: 'Clínica do Coração' } } as any)
+    render(<Sidebar />)
+    expect(screen.getByTestId('sidebar-logo')).toHaveTextContent('C')
+  })
+
+  it('shows "U" in logo icon when no clinic is loaded', () => {
+    render(<Sidebar />)
+    expect(screen.getByTestId('sidebar-logo')).toHaveTextContent('U')
+  })
+
+  it('hides clinic name when collapsed', () => {
     mockUseSidebarNavigation.mockReturnValue({ items: mockItems, isCollapsed: true, toggle: mockToggle })
     render(<Sidebar />)
-    expect(screen.queryByText('Umi')).not.toBeInTheDocument()
-    expect(screen.queryByText('Backoffice Clínico')).not.toBeInTheDocument()
+    expect(screen.queryByTestId('sidebar-clinic-name')).not.toBeInTheDocument()
   })
 
   it('renders a nav element', () => {

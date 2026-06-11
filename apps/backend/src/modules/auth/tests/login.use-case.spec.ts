@@ -83,7 +83,7 @@ describe('LoginUseCase', () => {
     const result = await useCase.execute({ email: user.email, password: 'password123' })
 
     expect(result).toEqual({
-      user: { id: user.id, fullName: user.fullName, email: user.email, role: user.role },
+      user: { id: user.id, fullName: user.fullName, email: user.email, role: user.role, clinicId: user.clinicId },
       accessToken: 'access-token',
       refreshToken: 'refresh-token',
       accessTokenMaxAge: 900 * 1000,

@@ -1,6 +1,5 @@
 export interface IHeaderProps {
   variant?: 'default' | 'compact'
-  onLogoClick?: () => void
 }
 
 export interface IHeaderUserModel {

@@ -734,4 +734,49 @@ describe('ClinicsController (integration)', () => {
         .expect(403)
     })
   })
+
+  describe('GET /clinics/me', () => {
+    it('returns 200 with the clinic data for authenticated ADMIN', async () => {
+      const { body } = await request(app.getHttpServer())
+        .get('/clinics/me')
+        .set('Authorization', `Bearer ${adminToken}`)
+        .expect(200)
+
+      expect(body.id).toBe(SEED_CLINIC_ID)
+      expect(body.name).toBe('Seed Clinic')
+      expect(body.slug).toBe('seed-clinic')
+      expect(body.isActive).toBe(true)
+      expect(body.version).toBeUndefined()
+      expect(body.deletedAt).toBeUndefined()
+    })
+
+    it('returns 200 with the clinic data for authenticated DOCTOR', async () => {
+      const { body } = await request(app.getHttpServer())
+        .get('/clinics/me')
+        .set('Authorization', `Bearer ${doctorToken}`)
+        .expect(200)
+
+      expect(body.id).toBe(SEED_CLINIC_ID)
+    })
+
+    it('returns 200 with the clinic data for authenticated USER', async () => {
+      const { body } = await request(app.getHttpServer())
+        .get('/clinics/me')
+        .set('Authorization', `Bearer ${userToken}`)
+        .expect(200)
+
+      expect(body.id).toBe(SEED_CLINIC_ID)
+    })
+
+    it('returns 401 when no token provided', async () => {
+      await request(app.getHttpServer()).get('/clinics/me').expect(401)
+    })
+
+    it('returns 403 when PLATFORM_ADMIN tries to access (no clinicId)', async () => {
+      await request(app.getHttpServer())
+        .get('/clinics/me')
+        .set('Authorization', `Bearer ${platformAdminToken}`)
+        .expect(403)
+    })
+  })
 })

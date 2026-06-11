@@ -73,7 +73,7 @@ export class LoginUseCase extends BaseUseCase {
     await this.refreshTokensRepository.create(user.id, refreshToken, expiresAt)
 
     return {
-      user: { id: user.id, fullName: user.fullName, email: user.email, role: user.role },
+      user: { id: user.id, fullName: user.fullName, email: user.email, role: user.role, clinicId: user.clinicId },
       accessToken,
       refreshToken,
       accessTokenMaxAge: accessExpiresInSeconds * 1000,

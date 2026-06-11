@@ -5,12 +5,12 @@ import { ClinicThemeProvider } from '@/components/features/themes/components/cli
 
 export default function AuthenticatedLayout({ children }: { children: React.ReactNode }) {
   return (
-    <div className="flex flex-col min-h-screen bg-bg">
+    <div className="flex min-h-screen bg-bg">
       <AuthInitializer />
       <ClinicThemeProvider />
-      <Header />
-      <div className="flex flex-1 overflow-hidden">
-        <Sidebar />
+      <Sidebar />
+      <div className="flex flex-col flex-1 overflow-hidden">
+        <Header />
         <main className="flex-1 overflow-auto">
           {children}
         </main>

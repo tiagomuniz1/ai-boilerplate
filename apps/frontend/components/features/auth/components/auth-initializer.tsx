@@ -10,7 +10,10 @@ export function AuthInitializer() {
   const setUser = useAuthStore((state) => state.setUser)
 
   useEffect(() => {
-    if (user?.role) return
+    // Skip only when we have a fully hydrated user (role + clinicId explicitly present).
+    // If clinicId is undefined, the persisted data predates the clinicId field —
+    // call /auth/me to get fresh data with the correct clinicId.
+    if (user?.role && user.clinicId !== undefined) return
     authService
       .getMe()
       .then((dto) => setUser(toAuthUserModel(dto)))

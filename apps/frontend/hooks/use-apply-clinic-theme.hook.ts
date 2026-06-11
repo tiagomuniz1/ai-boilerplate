@@ -4,6 +4,8 @@ import { useEffect } from 'react'
 import { ThemeBorderRadius } from '@app/shared'
 import { useActiveTheme } from '@/components/features/themes/hooks/use-active-theme.hook'
 
+export const CLINIC_THEME_STORAGE_KEY = 'clinic-theme-vars'
+
 // Mix accent color with white at 40% — produces a lighter, less saturated
 // variant suitable for use on dark backgrounds.
 export function computeDarkAccent(hex: string): string {
@@ -61,40 +63,47 @@ const RADIUS_PRESETS: Record<ThemeBorderRadius, { sm: string; default: string; m
   [ThemeBorderRadius.ROUND]: { sm: '8px', default: '12px', md: '16px', lg: '24px', xl: '32px' },
 }
 
+const CSS_VARS = [
+  '--accentLight', '--accentSoftLight', '--accentDark', '--accentSoftDark',
+  '--bgLight', '--bgDark',
+  '--radius-sm', '--radius', '--radius-md', '--radius-lg', '--radius-xl',
+] as const
+
 export function useApplyClinicTheme(): void {
   const { data: theme } = useActiveTheme()
 
   useEffect(() => {
     const root = document.documentElement
+
     if (theme) {
-      root.style.setProperty('--accentLight', theme.accentColor)
-      root.style.setProperty('--accentSoftLight', theme.accentSoftColor)
-      root.style.setProperty('--accentDark', computeDarkAccent(theme.accentColor))
-      root.style.setProperty('--accentSoftDark', computeDarkSoft(theme.accentColor))
-
-      root.style.setProperty('--bgLight', theme.bgColor ?? computeBgLight(theme.accentColor))
-      root.style.setProperty('--bgDark', theme.bgDarkColor ?? computeBgDark(theme.accentColor))
-
       const radii = RADIUS_PRESETS[theme.borderRadius ?? ThemeBorderRadius.DEFAULT]
-      root.style.setProperty('--radius-sm', radii.sm)
-      root.style.setProperty('--radius', radii.default)
-      root.style.setProperty('--radius-md', radii.md)
-      root.style.setProperty('--radius-lg', radii.lg)
-      root.style.setProperty('--radius-xl', radii.xl)
+      const vars: Record<string, string> = {
+        '--accentLight': theme.accentColor,
+        '--accentSoftLight': theme.accentSoftColor,
+        '--accentDark': computeDarkAccent(theme.accentColor),
+        '--accentSoftDark': computeDarkSoft(theme.accentColor),
+        '--bgLight': theme.bgColor ?? computeBgLight(theme.accentColor),
+        '--bgDark': theme.bgDarkColor ?? computeBgDark(theme.accentColor),
+        '--radius-sm': radii.sm,
+        '--radius': radii.default,
+        '--radius-md': radii.md,
+        '--radius-lg': radii.lg,
+        '--radius-xl': radii.xl,
+      }
+
+      for (const [key, value] of Object.entries(vars)) {
+        root.style.setProperty(key, value)
+      }
+
+      try {
+        localStorage.setItem(CLINIC_THEME_STORAGE_KEY, JSON.stringify(vars))
+      } catch {}
     } else {
-      root.style.removeProperty('--accentLight')
-      root.style.removeProperty('--accentSoftLight')
-      root.style.removeProperty('--accentDark')
-      root.style.removeProperty('--accentSoftDark')
+      CSS_VARS.forEach((v) => root.style.removeProperty(v))
 
-      root.style.removeProperty('--bgLight')
-      root.style.removeProperty('--bgDark')
-
-      root.style.removeProperty('--radius-sm')
-      root.style.removeProperty('--radius')
-      root.style.removeProperty('--radius-md')
-      root.style.removeProperty('--radius-lg')
-      root.style.removeProperty('--radius-xl')
+      try {
+        localStorage.removeItem(CLINIC_THEME_STORAGE_KEY)
+      } catch {}
     }
   }, [theme])
 }

@@ -21,7 +21,7 @@ export function SidebarItem({ item, isCollapsed }: SidebarItemProps) {
         'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-bg',
         item.isActive
           ? 'bg-accent-soft text-text'
-          : 'text-text-dim hover:bg-surface-2 hover:text-text',
+          : 'text-text-dim hover:bg-accent-soft hover:text-text',
       )}
       style={{ padding: '9px 10px', fontSize: '13.5px' }}
     >

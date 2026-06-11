@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { cn } from '@/lib/cn'
 import { useSidebarNavigation } from '@/hooks/use-sidebar-navigation.hook'
 import { useAuthStore } from '@/stores/auth.store'
+import { useCurrentClinic } from '@/components/features/clinics/hooks/use-current-clinic.hook'
 import { SidebarItem } from './sidebar-item'
 import { SidebarToggle } from './sidebar-toggle'
 
@@ -16,18 +17,22 @@ function getInitials(fullName: string): string {
 export function Sidebar() {
   const { items, isCollapsed, toggle } = useSidebarNavigation()
   const user = useAuthStore((state) => state.user)
+  const { data: clinic } = useCurrentClinic()
   const [mounted, setMounted] = useState(false)
 
   useEffect(() => {
     setMounted(true)
   }, [])
 
+  const clinicName = clinic?.name ?? 'Umi'
+  const clinicInitial = clinicName.charAt(0).toUpperCase()
+
   return (
     <aside
       data-testid="sidebar"
       data-collapsed={isCollapsed}
       className={cn(
-        'flex flex-col border-r border-line bg-surface transition-all duration-200',
+        'flex flex-col border-r border-line bg-bg transition-all duration-200 shrink-0',
         isCollapsed ? 'w-16' : 'w-64',
       )}
       style={{ padding: '20px 14px 16px' }}
@@ -43,19 +48,17 @@ export function Sidebar() {
           className="w-9 h-9 rounded-[10px] grid place-items-center shrink-0 text-sm font-semibold"
           style={{ background: 'linear-gradient(155deg, var(--accent), var(--warm))', color: '#0B1220' }}
         >
-          U
+          {clinicInitial}
         </div>
 
         {!isCollapsed && (
           <div className="flex-1 min-w-0">
             <div
+              data-testid="sidebar-clinic-name"
               className="truncate"
-              style={{ fontFamily: 'var(--font-fraunces)', fontSize: '19px', letterSpacing: '-0.02em' }}
+              style={{ fontFamily: 'var(--font-fraunces)', fontSize: '17px', letterSpacing: '-0.02em' }}
             >
-              Umi
-            </div>
-            <div className="truncate text-text-mute" style={{ fontSize: '11px', marginTop: '1px' }}>
-              Backoffice Clínico
+              {clinicName}
             </div>
           </div>
         )}

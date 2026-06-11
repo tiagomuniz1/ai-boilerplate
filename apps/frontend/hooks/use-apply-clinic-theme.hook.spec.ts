@@ -120,16 +120,22 @@ describe('computeBgDark', () => {
 describe('useApplyClinicTheme', () => {
   let setPropertySpy: jest.SpyInstance
   let removePropertySpy: jest.SpyInstance
+  let localStorageSetSpy: jest.SpyInstance
+  let localStorageRemoveSpy: jest.SpyInstance
 
   beforeEach(() => {
     jest.clearAllMocks()
     setPropertySpy = jest.spyOn(document.documentElement.style, 'setProperty')
     removePropertySpy = jest.spyOn(document.documentElement.style, 'removeProperty')
+    localStorageSetSpy = jest.spyOn(Storage.prototype, 'setItem')
+    localStorageRemoveSpy = jest.spyOn(Storage.prototype, 'removeItem')
   })
 
   afterEach(() => {
     setPropertySpy.mockRestore()
     removePropertySpy.mockRestore()
+    localStorageSetSpy.mockRestore()
+    localStorageRemoveSpy.mockRestore()
   })
 
   it('sets all four accent CSS variables when theme is loaded', () => {
@@ -251,5 +257,29 @@ describe('useApplyClinicTheme', () => {
     renderHook(() => useApplyClinicTheme())
 
     expect(setPropertySpy).not.toHaveBeenCalled()
+  })
+
+  it('persists all CSS vars to localStorage when theme is applied', () => {
+    mockUseActiveTheme.mockReturnValue({ data: sampleTheme } as ReturnType<typeof useActiveTheme>)
+
+    renderHook(() => useApplyClinicTheme())
+
+    expect(localStorageSetSpy).toHaveBeenCalledWith(
+      'clinic-theme-vars',
+      expect.stringContaining('--accentLight'),
+    )
+    const stored = JSON.parse(localStorageSetSpy.mock.calls[0][1])
+    expect(stored['--accentLight']).toBe(sampleTheme.accentColor)
+    expect(stored['--accentSoftLight']).toBe(sampleTheme.accentSoftColor)
+    expect(stored['--radius-sm']).toBeDefined()
+    expect(stored['--bgLight']).toBeDefined()
+  })
+
+  it('removes clinic-theme-vars from localStorage when theme is null', () => {
+    mockUseActiveTheme.mockReturnValue({ data: undefined } as ReturnType<typeof useActiveTheme>)
+
+    renderHook(() => useApplyClinicTheme())
+
+    expect(localStorageRemoveSpy).toHaveBeenCalledWith('clinic-theme-vars')
   })
 })
