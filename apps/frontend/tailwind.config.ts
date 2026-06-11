@@ -78,11 +78,11 @@ const config: Config = {
 
             /* ===== RADIUS ===== */
             borderRadius: {
-                sm: '4px',
-                DEFAULT: '6px',
-                md: '8px',
-                lg: '12px',
-                xl: '16px',
+                sm: 'var(--radius-sm)',
+                DEFAULT: 'var(--radius)',
+                md: 'var(--radius-md)',
+                lg: 'var(--radius-lg)',
+                xl: 'var(--radius-xl)',
             },
 
             /* ===== SHADOWS ===== */

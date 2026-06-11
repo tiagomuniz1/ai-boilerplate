@@ -1,3 +1,5 @@
+import { ThemeBorderRadius } from '@app/shared'
+
 export interface IThemeModel {
   id: string
   name: string
@@ -5,6 +7,7 @@ export interface IThemeModel {
   isDefault: boolean
   accentColor: string
   accentSoftColor: string
+  borderRadius: ThemeBorderRadius
   createdAt: Date
   updatedAt: Date
 }

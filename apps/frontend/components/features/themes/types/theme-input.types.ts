@@ -1,9 +1,12 @@
+import { ThemeBorderRadius } from '@app/shared'
+
 export interface ICreateThemeInput {
   name: string
   slug?: string
   accentColor: string
   accentSoftColor: string
   isDefault?: boolean
+  borderRadius?: ThemeBorderRadius
 }
 
 export interface IUpdateThemeInput {
@@ -11,4 +14,5 @@ export interface IUpdateThemeInput {
   accentColor?: string
   accentSoftColor?: string
   isDefault?: boolean
+  borderRadius?: ThemeBorderRadius
 }

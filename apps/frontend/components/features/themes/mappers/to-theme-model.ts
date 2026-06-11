@@ -9,6 +9,7 @@ export function toThemeModel(dto: ThemeResponseDto): IThemeModel {
     isDefault: dto.isDefault,
     accentColor: dto.accentColor,
     accentSoftColor: dto.accentSoftColor,
+    borderRadius: dto.borderRadius,
     createdAt: new Date(dto.createdAt),
     updatedAt: new Date(dto.updatedAt),
   }

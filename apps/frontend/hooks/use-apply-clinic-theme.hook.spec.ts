@@ -1,8 +1,15 @@
 jest.mock('@/components/features/themes/hooks/use-active-theme.hook')
 
 import { renderHook } from '@testing-library/react'
+import { ThemeBorderRadius } from '@app/shared'
 import { useActiveTheme } from '@/components/features/themes/hooks/use-active-theme.hook'
-import { useApplyClinicTheme, computeDarkAccent, computeDarkSoft } from './use-apply-clinic-theme.hook'
+import {
+  useApplyClinicTheme,
+  computeDarkAccent,
+  computeDarkSoft,
+  computeBgLight,
+  computeBgDark,
+} from './use-apply-clinic-theme.hook'
 
 const mockUseActiveTheme = useActiveTheme as jest.MockedFunction<typeof useActiveTheme>
 
@@ -12,6 +19,7 @@ const sampleTheme = {
   slug: 'azul-clinico',
   accentColor: '#2563EB',
   accentSoftColor: '#DBEAFE',
+  borderRadius: ThemeBorderRadius.DEFAULT,
   isDefault: true,
   createdAt: new Date('2024-01-01'),
   updatedAt: new Date('2024-01-01'),
@@ -20,7 +28,6 @@ const sampleTheme = {
 describe('computeDarkAccent', () => {
   it('lightens and desaturates blue accent for dark mode', () => {
     const result = computeDarkAccent('#2563EB')
-    // should be noticeably lighter than the source
     const r = parseInt(result.slice(1, 3), 16)
     const b = parseInt(result.slice(5, 7), 16)
     expect(r).toBeGreaterThan(37)
@@ -48,7 +55,6 @@ describe('computeDarkSoft', () => {
     const r = parseInt(result.slice(1, 3), 16)
     const g = parseInt(result.slice(3, 5), 16)
     const b = parseInt(result.slice(5, 7), 16)
-    // all channels should be very dark (< 60)
     expect(r).toBeLessThan(60)
     expect(g).toBeLessThan(60)
     expect(b).toBeLessThan(60)
@@ -58,7 +64,6 @@ describe('computeDarkSoft', () => {
   it('produces a very dark tinted color from rose accent', () => {
     const result = computeDarkSoft('#E11D48')
     const r = parseInt(result.slice(1, 3), 16)
-    // red channel dominant but still very dark
     expect(r).toBeLessThan(60)
     expect(result).toMatch(/^#[0-9a-f]{6}$/)
   })
@@ -66,6 +71,47 @@ describe('computeDarkSoft', () => {
   it('returns a valid 6-digit hex string', () => {
     expect(computeDarkSoft('#000000')).toMatch(/^#[0-9a-f]{6}$/)
     expect(computeDarkSoft('#FFFFFF')).toMatch(/^#[0-9a-f]{6}$/)
+  })
+})
+
+describe('computeBgLight', () => {
+  it('returns a color very close to the base bg (#F7F6F3)', () => {
+    const result = computeBgLight('#2563EB')
+    // rgb(...) format
+    expect(result).toMatch(/^rgb\(\d+,\d+,\d+\)$/)
+    const [r, g, b] = result.match(/\d+/g)!.map(Number)
+    // should stay close to base 247/246/243 — 4% shift at most ~9 units
+    expect(r).toBeGreaterThanOrEqual(238)
+    expect(g).toBeGreaterThanOrEqual(237)
+    expect(b).toBeGreaterThanOrEqual(234)
+  })
+
+  it('produces a warmer tint for a warm accent (rose)', () => {
+    const result = computeBgLight('#E11D48')
+    const [r, , b] = result.match(/\d+/g)!.map(Number)
+    // red channel should be higher than blue due to warm accent
+    expect(r).toBeGreaterThan(b)
+  })
+})
+
+describe('computeBgDark', () => {
+  it('returns a color very close to the base dark bg (#0B1220)', () => {
+    const result = computeBgDark('#2563EB')
+    expect(result).toMatch(/^rgb\(\d+,\d+,\d+\)$/)
+    const [r, g, b] = result.match(/\d+/g)!.map(Number)
+    // should stay close to base 11/18/32 — 4% shift at most ~9 units
+    expect(r).toBeLessThan(21)
+    expect(g).toBeLessThan(28)
+    expect(b).toBeLessThan(42)
+  })
+
+  it('shifts red channel more than blue channel for a warm accent (rose)', () => {
+    const result = computeBgDark('#E11D48')
+    const [r, , b] = result.match(/\d+/g)!.map(Number)
+    // Dark base is #0B1220 (r=11, b=32). Rose accent (r=225, b=72) shifts red more.
+    const rShift = r - 11
+    const bShift = b - 32
+    expect(rShift).toBeGreaterThan(bShift)
   })
 })
 
@@ -93,10 +139,54 @@ describe('useApplyClinicTheme', () => {
     expect(setPropertySpy).toHaveBeenCalledWith('--accentSoftLight', sampleTheme.accentSoftColor)
     expect(setPropertySpy).toHaveBeenCalledWith('--accentDark', expect.stringMatching(/^#[0-9a-f]{6}$/))
     expect(setPropertySpy).toHaveBeenCalledWith('--accentSoftDark', expect.stringMatching(/^#[0-9a-f]{6}$/))
-    expect(setPropertySpy).toHaveBeenCalledTimes(4)
   })
 
-  it('removes all four accent CSS variables when theme is null', () => {
+  it('sets both bg CSS variables when theme is loaded', () => {
+    mockUseActiveTheme.mockReturnValue({ data: sampleTheme } as ReturnType<typeof useActiveTheme>)
+
+    renderHook(() => useApplyClinicTheme())
+
+    expect(setPropertySpy).toHaveBeenCalledWith('--bgLight', expect.stringMatching(/^rgb\(\d+,\d+,\d+\)$/))
+    expect(setPropertySpy).toHaveBeenCalledWith('--bgDark', expect.stringMatching(/^rgb\(\d+,\d+,\d+\)$/))
+  })
+
+  it('sets all five radius CSS variables when theme is loaded', () => {
+    mockUseActiveTheme.mockReturnValue({ data: sampleTheme } as ReturnType<typeof useActiveTheme>)
+
+    renderHook(() => useApplyClinicTheme())
+
+    expect(setPropertySpy).toHaveBeenCalledWith('--radius-sm', '4px')
+    expect(setPropertySpy).toHaveBeenCalledWith('--radius', '6px')
+    expect(setPropertySpy).toHaveBeenCalledWith('--radius-md', '8px')
+    expect(setPropertySpy).toHaveBeenCalledWith('--radius-lg', '12px')
+    expect(setPropertySpy).toHaveBeenCalledWith('--radius-xl', '16px')
+  })
+
+  it('sets sharp radius values when theme.borderRadius is sharp', () => {
+    mockUseActiveTheme.mockReturnValue({
+      data: { ...sampleTheme, borderRadius: ThemeBorderRadius.SHARP },
+    } as ReturnType<typeof useActiveTheme>)
+
+    renderHook(() => useApplyClinicTheme())
+
+    expect(setPropertySpy).toHaveBeenCalledWith('--radius-sm', '2px')
+    expect(setPropertySpy).toHaveBeenCalledWith('--radius', '3px')
+    expect(setPropertySpy).toHaveBeenCalledWith('--radius-lg', '6px')
+  })
+
+  it('sets round radius values when theme.borderRadius is round', () => {
+    mockUseActiveTheme.mockReturnValue({
+      data: { ...sampleTheme, borderRadius: ThemeBorderRadius.ROUND },
+    } as ReturnType<typeof useActiveTheme>)
+
+    renderHook(() => useApplyClinicTheme())
+
+    expect(setPropertySpy).toHaveBeenCalledWith('--radius-sm', '8px')
+    expect(setPropertySpy).toHaveBeenCalledWith('--radius', '12px')
+    expect(setPropertySpy).toHaveBeenCalledWith('--radius-lg', '24px')
+  })
+
+  it('removes all CSS variables when theme is null', () => {
     mockUseActiveTheme.mockReturnValue({ data: undefined } as ReturnType<typeof useActiveTheme>)
 
     renderHook(() => useApplyClinicTheme())
@@ -105,7 +195,14 @@ describe('useApplyClinicTheme', () => {
     expect(removePropertySpy).toHaveBeenCalledWith('--accentSoftLight')
     expect(removePropertySpy).toHaveBeenCalledWith('--accentDark')
     expect(removePropertySpy).toHaveBeenCalledWith('--accentSoftDark')
-    expect(removePropertySpy).toHaveBeenCalledTimes(4)
+    expect(removePropertySpy).toHaveBeenCalledWith('--bgLight')
+    expect(removePropertySpy).toHaveBeenCalledWith('--bgDark')
+    expect(removePropertySpy).toHaveBeenCalledWith('--radius-sm')
+    expect(removePropertySpy).toHaveBeenCalledWith('--radius')
+    expect(removePropertySpy).toHaveBeenCalledWith('--radius-md')
+    expect(removePropertySpy).toHaveBeenCalledWith('--radius-lg')
+    expect(removePropertySpy).toHaveBeenCalledWith('--radius-xl')
+    expect(setPropertySpy).not.toHaveBeenCalled()
   })
 
   it('sets dark accent as a lighter variant of the source accent', () => {

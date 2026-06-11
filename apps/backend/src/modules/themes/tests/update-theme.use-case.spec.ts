@@ -33,6 +33,7 @@ const makeTheme = (overrides = {}) => ({
   isDefault: false,
   accentColor: '#7C3AED',
   accentSoftColor: '#EDE9FE',
+  borderRadius: 'default',
   createdAt: new Date(),
   updatedAt: new Date(),
   deletedAt: null,

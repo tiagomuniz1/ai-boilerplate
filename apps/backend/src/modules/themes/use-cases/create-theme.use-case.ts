@@ -26,13 +26,21 @@ export class CreateThemeUseCase extends BaseUseCase {
 
     let theme: Theme
 
+    const themeData = {
+      name: dto.name,
+      slug,
+      accentColor: dto.accentColor,
+      accentSoftColor: dto.accentSoftColor,
+      borderRadius: dto.borderRadius,
+    }
+
     if (dto.isDefault) {
       theme = await this.runInTransaction(async (queryRunner) => {
         await this.themesRepository.clearDefaultExcept('00000000-0000-0000-0000-000000000000', queryRunner)
-        return this.themesRepository.create({ name: dto.name, slug, accentColor: dto.accentColor, accentSoftColor: dto.accentSoftColor, isDefault: true }, queryRunner)
+        return this.themesRepository.create({ ...themeData, isDefault: true }, queryRunner)
       })
     } else {
-      theme = await this.themesRepository.create({ name: dto.name, slug, accentColor: dto.accentColor, accentSoftColor: dto.accentSoftColor, isDefault: false })
+      theme = await this.themesRepository.create({ ...themeData, isDefault: false })
     }
 
     try {
@@ -62,6 +70,7 @@ export class CreateThemeUseCase extends BaseUseCase {
       isDefault: theme.isDefault,
       accentColor: theme.accentColor,
       accentSoftColor: theme.accentSoftColor,
+      borderRadius: theme.borderRadius,
       createdAt: theme.createdAt,
       updatedAt: theme.updatedAt,
     }

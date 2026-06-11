@@ -6,6 +6,7 @@ import {
   PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from 'typeorm'
+import { ThemeBorderRadius } from '@app/shared'
 
 @Entity('themes')
 export class Theme {
@@ -26,6 +27,9 @@ export class Theme {
 
   @Column({ name: 'accent_soft_color', length: 7 })
   accentSoftColor: string
+
+  @Column({ name: 'border_radius', type: 'varchar', length: 10, default: ThemeBorderRadius.DEFAULT })
+  borderRadius: ThemeBorderRadius
 
   @CreateDateColumn({ name: 'created_at' })
   createdAt: Date

@@ -4,7 +4,11 @@
 
 @layer base {
     :root {
-        --bg: #F7F6F3;
+        /* bg source vars — JS overrides these to apply per-clinic tint */
+        --bgLight: #F7F6F3;
+        --bgDark: #0B1220;
+        --bg: var(--bgLight);
+
         --surface: #FFFFFF;
         --surface2: #FBFAF7;
 
@@ -37,11 +41,18 @@
         --danger: #C14E45;
         --dangerSoft: #F7DED9;
 
+        /* Border radius presets — JS overrides from theme.borderRadius */
+        --radius-sm: 4px;
+        --radius: 6px;
+        --radius-md: 8px;
+        --radius-lg: 12px;
+        --radius-xl: 16px;
+
         color-scheme: light;
     }
 
     .dark {
-        --bg: #0B1220;
+        --bg: var(--bgDark);
 
         --surface: #111A2E;
         --surface2: #162241;

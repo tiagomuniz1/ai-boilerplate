@@ -50,6 +50,7 @@ export class FindThemeByIdUseCase extends BaseUseCase {
       isDefault: theme.isDefault,
       accentColor: theme.accentColor,
       accentSoftColor: theme.accentSoftColor,
+      borderRadius: theme.borderRadius,
       createdAt: theme.createdAt,
       updatedAt: theme.updatedAt,
     }

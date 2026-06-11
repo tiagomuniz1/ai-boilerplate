@@ -4,6 +4,7 @@ import { useEffect } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
+import { ThemeBorderRadius } from '@app/shared'
 import { Input } from '@/components/ui/atoms/input/input'
 import { Button } from '@/components/ui/atoms/button/button'
 import { Alert } from '@/components/ui/molecules/alert/alert'
@@ -11,6 +12,12 @@ import type { ICreateThemeInput, IUpdateThemeInput } from '../types/theme-input.
 import type { IThemeModel } from '../types/theme-model.types'
 
 const HEX_REGEX = /^#[0-9A-Fa-f]{6}$/
+
+const RADIUS_OPTIONS: { value: ThemeBorderRadius; label: string; preview: string }[] = [
+  { value: ThemeBorderRadius.SHARP, label: 'Nítidas', preview: '2px' },
+  { value: ThemeBorderRadius.DEFAULT, label: 'Padrão', preview: '8px' },
+  { value: ThemeBorderRadius.ROUND, label: 'Arredondadas', preview: '18px' },
+]
 
 const schema = z.object({
   name: z.string().min(3, 'Nome deve ter no mínimo 3 caracteres'),
@@ -22,6 +29,7 @@ const schema = z.object({
   accentColor: z.string().regex(HEX_REGEX, 'Cor inválida — use formato hex #RRGGBB'),
   accentSoftColor: z.string().regex(HEX_REGEX, 'Cor inválida — use formato hex #RRGGBB'),
   isDefault: z.boolean().optional(),
+  borderRadius: z.nativeEnum(ThemeBorderRadius).optional(),
 })
 
 type FormValues = z.infer<typeof schema>
@@ -60,11 +68,12 @@ export function ThemeForm(props: ThemeFormProps) {
     setError,
     reset,
     watch,
+    setValue,
     formState: { errors },
   } = useForm<FormValues>({
     resolver: zodResolver(schema),
     defaultValues: mode === 'create'
-      ? { accentColor: '#', accentSoftColor: '#', isDefault: false }
+      ? { accentColor: '#', accentSoftColor: '#', isDefault: false, borderRadius: ThemeBorderRadius.DEFAULT }
       : undefined,
   })
 
@@ -75,12 +84,14 @@ export function ThemeForm(props: ThemeFormProps) {
         accentColor: defaultValues.accentColor,
         accentSoftColor: defaultValues.accentSoftColor,
         isDefault: defaultValues.isDefault,
+        borderRadius: defaultValues.borderRadius ?? ThemeBorderRadius.DEFAULT,
       })
     }
   }, [mode, defaultValues, reset])
 
   const accentColor = watch('accentColor')
   const accentSoftColor = watch('accentSoftColor')
+  const selectedRadius = watch('borderRadius')
   const isValidHex = (v: string) => HEX_REGEX.test(v)
 
   function handleFormSubmit(data: FormValues) {
@@ -92,6 +103,7 @@ export function ThemeForm(props: ThemeFormProps) {
           accentColor: data.accentColor,
           accentSoftColor: data.accentSoftColor,
           isDefault: data.isDefault ?? false,
+          borderRadius: data.borderRadius ?? ThemeBorderRadius.DEFAULT,
           ...(data.slug ? { slug: data.slug } : {}),
         },
         setErr,
@@ -103,6 +115,7 @@ export function ThemeForm(props: ThemeFormProps) {
           accentColor: data.accentColor,
           accentSoftColor: data.accentSoftColor,
           isDefault: data.isDefault ?? false,
+          borderRadius: data.borderRadius ?? ThemeBorderRadius.DEFAULT,
         },
         setErr,
       )
@@ -212,6 +225,32 @@ export function ThemeForm(props: ThemeFormProps) {
             </div>
           </div>
         )}
+
+        <div className="flex flex-col gap-1.5" data-testid="theme-form-radius-selector">
+          <label className="text-sm font-medium text-text">Bordas</label>
+          <div className="grid grid-cols-3 gap-2">
+            {RADIUS_OPTIONS.map(({ value, label, preview }) => (
+              <button
+                key={value}
+                type="button"
+                data-testid={`theme-form-radius-${value}`}
+                onClick={() => setValue('borderRadius', value)}
+                className={`flex flex-col items-center gap-2 rounded-md border p-3 text-sm transition-colors ${
+                  selectedRadius === value
+                    ? 'border-accent bg-accent-soft text-accent'
+                    : 'border-line bg-surface text-text-mute hover:border-accent'
+                }`}
+              >
+                <div
+                  className="h-6 w-full bg-line"
+                  style={{ borderRadius: preview }}
+                  aria-hidden="true"
+                />
+                <span>{label}</span>
+              </button>
+            ))}
+          </div>
+        </div>
 
         <label className="flex cursor-pointer items-center gap-3">
           <input

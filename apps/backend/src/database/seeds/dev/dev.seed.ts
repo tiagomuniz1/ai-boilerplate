@@ -1,6 +1,6 @@
 import * as bcrypt from 'bcrypt'
 import { DataSource } from 'typeorm'
-import { UserRole } from '@app/shared'
+import { ThemeBorderRadius, UserRole } from '@app/shared'
 import { Theme } from '../../../modules/themes/entities/theme.entity'
 import { Clinic } from '../../../modules/clinics/entities/clinic.entity'
 import { User } from '../../../modules/users/entities/user.entity'
@@ -14,6 +14,7 @@ const SEED_THEMES = [
     accentColor: '#2563EB',
     accentSoftColor: '#DBEAFE',
     isDefault: true,
+    borderRadius: ThemeBorderRadius.DEFAULT,
   },
   {
     name: 'Verde Saúde',
@@ -21,6 +22,7 @@ const SEED_THEMES = [
     accentColor: '#16A34A',
     accentSoftColor: '#DCFCE7',
     isDefault: false,
+    borderRadius: ThemeBorderRadius.DEFAULT,
   },
   {
     name: 'Teal Moderno',
@@ -28,6 +30,7 @@ const SEED_THEMES = [
     accentColor: '#0D9488',
     accentSoftColor: '#CCFBF1',
     isDefault: false,
+    borderRadius: ThemeBorderRadius.SHARP,
   },
   {
     name: 'Roxo Bem-Estar',
@@ -35,6 +38,7 @@ const SEED_THEMES = [
     accentColor: '#7C3AED',
     accentSoftColor: '#EDE9FE',
     isDefault: false,
+    borderRadius: ThemeBorderRadius.ROUND,
   },
   {
     name: 'Rosé Cuidado',
@@ -42,6 +46,7 @@ const SEED_THEMES = [
     accentColor: '#E11D48',
     accentSoftColor: '#FFE4E6',
     isDefault: false,
+    borderRadius: ThemeBorderRadius.ROUND,
   },
 ]
 
@@ -108,11 +113,11 @@ async function seedPlatformAdmin(repository: ReturnType<DataSource['getRepositor
     return
   }
 
-  const password = await bcrypt.hash('Platform123!', 10)
+  const password = await bcrypt.hash('123123123', 10)
   await repository.save(
     repository.create({
       fullName: 'Platform Admin',
-      email: 'platform@umi.dev',
+      email: 'tiagomuniz2@gmail.com',
       password,
       role: UserRole.PLATFORM_ADMIN,
       clinicId: null,

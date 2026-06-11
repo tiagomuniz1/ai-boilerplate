@@ -1,4 +1,5 @@
-import { IsBoolean, IsOptional, IsString, Matches, MaxLength, MinLength } from 'class-validator'
+import { IsBoolean, IsEnum, IsOptional, IsString, Matches, MaxLength, MinLength } from 'class-validator'
+import { ThemeBorderRadius } from '../enums/theme-border-radius.enum'
 
 export class CreateThemeDto {
   @IsString()
@@ -24,4 +25,8 @@ export class CreateThemeDto {
   @IsOptional()
   @IsBoolean()
   isDefault?: boolean
+
+  @IsOptional()
+  @IsEnum(ThemeBorderRadius)
+  borderRadius?: ThemeBorderRadius
 }
