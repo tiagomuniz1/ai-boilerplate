@@ -505,6 +505,41 @@ export class PaginationDto {
 
 ---
 
+## Entidades — Tipos de Coluna
+
+TypeORM infere o tipo da coluna a partir do tipo TypeScript da propriedade. A inferência funciona para `string`, `number`, `boolean` e `Date`, mas **falha silenciosamente para union types** — o resultado é `"Object"`, que não é suportado pelo PostgreSQL e derruba o backend na inicialização.
+
+**Regra:** sempre declarar `type` explicitamente em colunas cujo tipo TypeScript seja uma union (`string | null`, `number | null`, etc.).
+
+```ts
+// ✅ correto — type explícito, TypeORM sabe o que mapear
+@Column({ name: 'bg_color', type: 'varchar', length: 7, nullable: true, default: null })
+bgColor: string | null
+
+@Column({ name: 'deleted_at', type: 'timestamptz', nullable: true })
+deletedAt: Date | null
+
+// ❌ errado — TypeORM infere "Object" e lança DataTypeNotSupportedError ao subir
+@Column({ name: 'bg_color', length: 7, nullable: true })
+bgColor: string | null
+```
+
+Tipos TypeORM mais usados no projeto:
+
+| TypeScript | `type` a declarar |
+|---|---|
+| `string` | inferido — ok sem `type` |
+| `string \| null` | `'varchar'` (ou `'text'`, `'uuid'`, etc.) |
+| `number` | inferido — ok sem `type` |
+| `number \| null` | `'int'` / `'float4'` / `'numeric'` conforme o caso |
+| `boolean` | inferido — ok sem `type` |
+| `Date \| null` | `'timestamptz'` |
+| enum `string \| null` | `'varchar'` + `nullable: true` |
+
+> **`@DeleteDateColumn`** e **`@CreateDateColumn`** são exceções — esses decorators já definem o tipo internamente, mesmo que a propriedade seja `Date | null`.
+
+---
+
 ## Soft Delete
 
 * **Soft delete é o padrão** — nunca hard delete em entidades de negócio
