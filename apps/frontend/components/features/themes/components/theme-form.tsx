@@ -176,13 +176,7 @@ export function ThemeForm(props: ThemeFormProps) {
               id="accentColor-picker"
               aria-hidden="true"
               value={isValidHex(accentColor) ? accentColor : '#000000'}
-              onChange={(e) => {
-                const input = document.getElementById('accentColor') as HTMLInputElement | null
-                if (input) {
-                  input.value = e.target.value
-                  input.dispatchEvent(new Event('input', { bubbles: true }))
-                }
-              }}
+              onChange={(e) => setValue('accentColor', e.target.value, { shouldValidate: true })}
               className="h-10 w-10 cursor-pointer rounded border border-line bg-transparent p-0.5"
             />
             <Input
@@ -205,13 +199,7 @@ export function ThemeForm(props: ThemeFormProps) {
               id="accentSoftColor-picker"
               aria-hidden="true"
               value={isValidHex(accentSoftColor) ? accentSoftColor : '#000000'}
-              onChange={(e) => {
-                const input = document.getElementById('accentSoftColor') as HTMLInputElement | null
-                if (input) {
-                  input.value = e.target.value
-                  input.dispatchEvent(new Event('input', { bubbles: true }))
-                }
-              }}
+              onChange={(e) => setValue('accentSoftColor', e.target.value, { shouldValidate: true })}
               className="h-10 w-10 cursor-pointer rounded border border-line bg-transparent p-0.5"
             />
             <Input
@@ -235,13 +223,7 @@ export function ThemeForm(props: ThemeFormProps) {
               id="bgColor-picker"
               aria-hidden="true"
               value={isValidHex(bgColor ?? '') ? bgColor! : '#F7F6F3'}
-              onChange={(e) => {
-                const input = document.getElementById('bgColor') as HTMLInputElement | null
-                if (input) {
-                  input.value = e.target.value
-                  input.dispatchEvent(new Event('input', { bubbles: true }))
-                }
-              }}
+              onChange={(e) => setValue('bgColor', e.target.value, { shouldValidate: true })}
               className="h-10 w-10 cursor-pointer rounded border border-line bg-transparent p-0.5"
             />
             <Input
@@ -265,13 +247,7 @@ export function ThemeForm(props: ThemeFormProps) {
               id="bgDarkColor-picker"
               aria-hidden="true"
               value={isValidHex(bgDarkColor ?? '') ? bgDarkColor! : '#0B1220'}
-              onChange={(e) => {
-                const input = document.getElementById('bgDarkColor') as HTMLInputElement | null
-                if (input) {
-                  input.value = e.target.value
-                  input.dispatchEvent(new Event('input', { bubbles: true }))
-                }
-              }}
+              onChange={(e) => setValue('bgDarkColor', e.target.value, { shouldValidate: true })}
               className="h-10 w-10 cursor-pointer rounded border border-line bg-transparent p-0.5"
             />
             <Input
