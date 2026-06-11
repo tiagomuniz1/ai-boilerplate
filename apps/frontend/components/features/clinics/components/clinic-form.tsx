@@ -7,6 +7,7 @@ import { z } from 'zod'
 import { Input } from '@/components/ui/atoms/input/input'
 import { Button } from '@/components/ui/atoms/button/button'
 import { Alert } from '@/components/ui/molecules/alert/alert'
+import { useThemes } from '@/components/features/themes/hooks/use-themes.hook'
 import type { ICreateClinicInput, IUpdateClinicInput, IClinicModel } from '../types/clinic.types'
 
 const slugRegex = /^[a-z0-9]+(?:-[a-z0-9]+)*$/
@@ -45,6 +46,7 @@ const slugField = z
 const createSchema = z.object({
   name: nameField,
   slug: slugField.optional().or(z.literal('')),
+  themeId: z.string().uuid().nullish(),
   address: addressSchema,
 })
 
@@ -52,6 +54,7 @@ const updateSchema = z.object({
   name: nameField.optional().or(z.literal('')),
   slug: slugField.optional().or(z.literal('')),
   isActive: z.boolean(),
+  themeId: z.string().uuid().nullish(),
   address: addressSchema.optional(),
 })
 
@@ -94,18 +97,21 @@ function ClinicFormCreate({ isPending, globalError, onSubmit }: ClinicFormCreate
     handleSubmit,
     setError,
     watch,
+    setValue,
     formState: { errors },
   } = useForm<CreateFormValues>({
     resolver: zodResolver(createSchema),
     defaultValues: {
       name: '',
       slug: '',
+      themeId: null,
       address: { street: '', number: '', complement: '', neighborhood: '', city: '', state: '', zipCode: '', country: 'BR' },
     },
   })
 
   const nameValue = watch('name')
   const slugValue = watch('slug')
+  const themeId = watch('themeId')
   const slugPreview = slugValue ? slugValue : generateSlug(nameValue || '')
 
   function handleFormSubmit(data: CreateFormValues) {
@@ -113,6 +119,7 @@ function ClinicFormCreate({ isPending, globalError, onSubmit }: ClinicFormCreate
       {
         name: data.name,
         slug: data.slug || undefined,
+        themeId: data.themeId ?? null,
         address: {
           street: data.address.street,
           number: data.address.number,
@@ -162,6 +169,11 @@ function ClinicFormCreate({ isPending, globalError, onSubmit }: ClinicFormCreate
           )}
         </div>
 
+        <ThemeSelector
+          value={themeId}
+          onChange={(id) => setValue('themeId', id)}
+        />
+
         <AddressFields register={register} errors={errors.address} prefix="address" />
 
         <Button
@@ -183,6 +195,8 @@ function ClinicFormEdit({ defaultValues, isPending, globalError, onSubmit }: Cli
     handleSubmit,
     setError,
     reset,
+    watch,
+    setValue,
     formState: { errors },
   } = useForm<UpdateFormValues>({
     resolver: zodResolver(updateSchema),
@@ -190,6 +204,7 @@ function ClinicFormEdit({ defaultValues, isPending, globalError, onSubmit }: Cli
       name: defaultValues.name,
       slug: defaultValues.slug,
       isActive: defaultValues.isActive,
+      themeId: defaultValues.themeId,
       address: defaultValues.address
         ? {
             street: defaultValues.address.street,
@@ -210,6 +225,7 @@ function ClinicFormEdit({ defaultValues, isPending, globalError, onSubmit }: Cli
       name: defaultValues.name,
       slug: defaultValues.slug,
       isActive: defaultValues.isActive,
+      themeId: defaultValues.themeId,
       address: defaultValues.address
         ? {
             street: defaultValues.address.street,
@@ -224,6 +240,8 @@ function ClinicFormEdit({ defaultValues, isPending, globalError, onSubmit }: Cli
         : undefined,
     })
   }, [defaultValues, reset])
+
+  const themeId = watch('themeId')
 
   function handleFormSubmit(data: UpdateFormValues) {
     let address: IUpdateClinicInput['address']
@@ -241,7 +259,7 @@ function ClinicFormEdit({ defaultValues, isPending, globalError, onSubmit }: Cli
       }
     }
     onSubmit(
-      { name: data.name || undefined, slug: data.slug || undefined, isActive: data.isActive, address },
+      { name: data.name || undefined, slug: data.slug || undefined, isActive: data.isActive, themeId: data.themeId ?? null, address },
       setError as (field: keyof IUpdateClinicInput, error: { message: string }) => void,
     )
   }
@@ -283,6 +301,11 @@ function ClinicFormEdit({ defaultValues, isPending, globalError, onSubmit }: Cli
           <span className="text-sm text-text">Clínica ativa</span>
         </label>
 
+        <ThemeSelector
+          value={themeId}
+          onChange={(id) => setValue('themeId', id)}
+        />
+
         <AddressFields register={register} errors={errors.address} prefix="address" />
 
         <Button
@@ -295,6 +318,70 @@ function ClinicFormEdit({ defaultValues, isPending, globalError, onSubmit }: Cli
         </Button>
       </div>
     </form>
+  )
+}
+
+interface ThemeSelectorProps {
+  value?: string | null
+  onChange: (id: string | null) => void
+}
+
+function ThemeSelector({ value, onChange }: ThemeSelectorProps) {
+  const { data: themesData, isPending } = useThemes(1, 50)
+  const themes = themesData?.data ?? []
+
+  if (isPending) {
+    return (
+      <div className="flex flex-col gap-2">
+        <span className="text-sm font-medium text-text">Tema</span>
+        <div className="grid grid-cols-2 gap-2" data-testid="clinic-form-theme-loading">
+          {[1, 2, 3, 4].map((i) => (
+            <div key={i} className="h-14 animate-pulse rounded-md bg-surface" />
+          ))}
+        </div>
+      </div>
+    )
+  }
+
+  return (
+    <div className="flex flex-col gap-2" data-testid="clinic-form-theme-selector">
+      <span className="text-sm font-medium text-text">Tema</span>
+      <div className="grid grid-cols-2 gap-2">
+        <button
+          type="button"
+          data-testid="clinic-form-theme-none"
+          onClick={() => onChange(null)}
+          className={`flex items-center gap-2 rounded-md border p-3 text-sm transition-colors ${
+            !value
+              ? 'border-accent bg-accent-soft text-accent'
+              : 'border-line bg-surface text-text-mute hover:border-accent'
+          }`}
+        >
+          <span className="h-5 w-5 flex-shrink-0 rounded-full border border-line bg-bg" aria-hidden="true" />
+          <span>Padrão da plataforma</span>
+        </button>
+        {themes.map((theme) => (
+          <button
+            key={theme.id}
+            type="button"
+            data-testid={`clinic-form-theme-option-${theme.id}`}
+            onClick={() => onChange(theme.id)}
+            className={`flex items-center gap-2 rounded-md border p-3 text-sm transition-colors ${
+              value === theme.id
+                ? 'border-accent bg-accent-soft text-accent'
+                : 'border-line bg-surface text-text-mute hover:border-accent'
+            }`}
+          >
+            <span
+              className="h-5 w-5 flex-shrink-0 rounded-full border border-line"
+              style={{ background: theme.accentColor }}
+              aria-hidden="true"
+            />
+            <span className="truncate">{theme.name}</span>
+          </button>
+        ))}
+      </div>
+    </div>
   )
 }
 

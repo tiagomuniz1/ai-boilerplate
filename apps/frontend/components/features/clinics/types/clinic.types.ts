@@ -34,6 +34,7 @@ export interface IClinicModel {
 export interface ICreateClinicInput {
   name: string
   slug?: string
+  themeId?: string | null
   address: IAddressInput
 }
 
@@ -41,6 +42,7 @@ export interface IUpdateClinicInput {
   name?: string
   slug?: string
   isActive?: boolean
+  themeId?: string | null
   address?: IAddressInput
 }
 

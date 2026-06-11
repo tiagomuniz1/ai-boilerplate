@@ -1,20 +1,57 @@
 jest.mock('next/navigation', () => ({ useRouter: jest.fn() }))
 jest.mock('../services/clinics.service')
+jest.mock('@/components/features/themes/hooks/use-themes.hook')
 
 import { screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { useRouter } from 'next/navigation'
+import { useThemes } from '@/components/features/themes/hooks/use-themes.hook'
 import { renderWithProviders } from '@/tests/utils/render-with-providers'
 import { ClinicForm } from './clinic-form'
 import type { IClinicModel } from '../types/clinic.types'
+import type { IThemeModel } from '@/components/features/themes/types/theme-model.types'
 
 const mockPush = jest.fn()
+const mockUseThemes = useThemes as jest.MockedFunction<typeof useThemes>
+
+const THEME_ID_1 = '11111111-1111-4111-8111-111111111111'
+const THEME_ID_2 = '22222222-2222-4222-8222-222222222222'
+
+const sampleThemes: IThemeModel[] = [
+  {
+    id: THEME_ID_1,
+    name: 'Azul Clínico',
+    slug: 'azul-clinico',
+    accentColor: '#2563EB',
+    accentSoftColor: '#DBEAFE',
+    isDefault: true,
+    createdAt: new Date('2024-01-01'),
+    updatedAt: new Date('2024-01-01'),
+  },
+  {
+    id: THEME_ID_2,
+    name: 'Verde Saúde',
+    slug: 'verde-saude',
+    accentColor: '#16A34A',
+    accentSoftColor: '#DCFCE7',
+    isDefault: false,
+    createdAt: new Date('2024-01-01'),
+    updatedAt: new Date('2024-01-01'),
+  },
+]
+
+const defaultThemesReturn = {
+  data: { data: sampleThemes, total: 2, page: 1, limit: 50 },
+  isPending: false,
+  isError: false,
+} as ReturnType<typeof useThemes>
 
 const existingClinic: IClinicModel = {
   id: 'uuid-1',
   name: 'Clínica do Coração',
   slug: 'clinica-do-coracao',
   isActive: true,
+  themeId: null,
   address: {
     street: 'Rua das Flores',
     number: '123',
@@ -42,6 +79,7 @@ describe('ClinicForm (integration) — create mode', () => {
   beforeEach(() => {
     jest.clearAllMocks()
     ;(useRouter as jest.Mock).mockReturnValue({ push: mockPush })
+    mockUseThemes.mockReturnValue(defaultThemesReturn)
   })
 
   it('renders name and slug fields', () => {
@@ -200,6 +238,78 @@ describe('ClinicForm (integration) — create mode', () => {
 
     expect(screen.getByTestId('clinic-form-submit')).toBeDisabled()
   })
+
+  it('renders theme selector with available themes', () => {
+    renderWithProviders(<ClinicForm mode="create" isPending={false} onSubmit={jest.fn()} />)
+
+    expect(screen.getByTestId('clinic-form-theme-selector')).toBeInTheDocument()
+    expect(screen.getByTestId('clinic-form-theme-none')).toBeInTheDocument()
+    expect(screen.getByTestId(`clinic-form-theme-option-${THEME_ID_1}`)).toBeInTheDocument()
+    expect(screen.getByTestId(`clinic-form-theme-option-${THEME_ID_2}`)).toBeInTheDocument()
+  })
+
+  it('shows loading skeleton while themes are fetching', () => {
+    mockUseThemes.mockReturnValue({ ...defaultThemesReturn, isPending: true, data: undefined } as ReturnType<typeof useThemes>)
+
+    renderWithProviders(<ClinicForm mode="create" isPending={false} onSubmit={jest.fn()} />)
+
+    expect(screen.getByTestId('clinic-form-theme-loading')).toBeInTheDocument()
+    expect(screen.queryByTestId('clinic-form-theme-selector')).not.toBeInTheDocument()
+  })
+
+  it('selects a theme and includes themeId in submit payload', async () => {
+    const onSubmit = jest.fn()
+
+    renderWithProviders(<ClinicForm mode="create" isPending={false} onSubmit={onSubmit} />)
+
+    await userEvent.type(screen.getByTestId('clinic-form-name'), 'Clínica Nova')
+    await fillAddressFields()
+    await userEvent.click(screen.getByTestId(`clinic-form-theme-option-${THEME_ID_1}`))
+    await userEvent.click(screen.getByTestId('clinic-form-submit'))
+
+    await waitFor(() => {
+      expect(onSubmit).toHaveBeenCalledWith(
+        expect.objectContaining({ themeId: THEME_ID_1 }),
+        expect.any(Function),
+      )
+    })
+  })
+
+  it('submits with themeId null when no theme is selected', async () => {
+    const onSubmit = jest.fn()
+
+    renderWithProviders(<ClinicForm mode="create" isPending={false} onSubmit={onSubmit} />)
+
+    await userEvent.type(screen.getByTestId('clinic-form-name'), 'Clínica Nova')
+    await fillAddressFields()
+    await userEvent.click(screen.getByTestId('clinic-form-submit'))
+
+    await waitFor(() => {
+      expect(onSubmit).toHaveBeenCalledWith(
+        expect.objectContaining({ themeId: null }),
+        expect.any(Function),
+      )
+    })
+  })
+
+  it('clears theme selection when "Padrão da plataforma" is clicked after selecting a theme', async () => {
+    const onSubmit = jest.fn()
+
+    renderWithProviders(<ClinicForm mode="create" isPending={false} onSubmit={onSubmit} />)
+
+    await userEvent.type(screen.getByTestId('clinic-form-name'), 'Clínica Nova')
+    await fillAddressFields()
+    await userEvent.click(screen.getByTestId(`clinic-form-theme-option-${THEME_ID_1}`))
+    await userEvent.click(screen.getByTestId('clinic-form-theme-none'))
+    await userEvent.click(screen.getByTestId('clinic-form-submit'))
+
+    await waitFor(() => {
+      expect(onSubmit).toHaveBeenCalledWith(
+        expect.objectContaining({ themeId: null }),
+        expect.any(Function),
+      )
+    })
+  })
 })
 
 const clinicWithoutAddress: IClinicModel = {
@@ -207,6 +317,7 @@ const clinicWithoutAddress: IClinicModel = {
   name: 'Clínica Sem Endereço',
   slug: 'clinica-sem-endereco',
   isActive: true,
+  themeId: null,
   address: null,
   createdAt: new Date('2024-01-15'),
   updatedAt: new Date('2024-01-16'),
@@ -216,6 +327,7 @@ describe('ClinicForm (integration) — edit mode', () => {
   beforeEach(() => {
     jest.clearAllMocks()
     ;(useRouter as jest.Mock).mockReturnValue({ push: mockPush })
+    mockUseThemes.mockReturnValue(defaultThemesReturn)
   })
 
   it('pre-fills form with existing clinic data', async () => {
@@ -386,6 +498,51 @@ describe('ClinicForm (integration) — edit mode', () => {
     await waitFor(() => {
       expect(onSubmit).toHaveBeenCalledWith(
         expect.objectContaining({ name: undefined, slug: undefined }),
+        expect.any(Function),
+      )
+    })
+  })
+
+  it('renders theme selector in edit mode', () => {
+    renderWithProviders(
+      <ClinicForm mode="edit" defaultValues={existingClinic} isPending={false} onSubmit={jest.fn()} />,
+    )
+
+    expect(screen.getByTestId('clinic-form-theme-selector')).toBeInTheDocument()
+    expect(screen.getByTestId('clinic-form-theme-none')).toBeInTheDocument()
+  })
+
+  it('pre-selects theme option when clinic has a themeId', () => {
+    renderWithProviders(
+      <ClinicForm
+        mode="edit"
+        defaultValues={{ ...existingClinic, themeId: THEME_ID_1 }}
+        isPending={false}
+        onSubmit={jest.fn()}
+      />,
+    )
+
+    expect(screen.getByTestId(`clinic-form-theme-option-${THEME_ID_1}`)).toBeInTheDocument()
+    expect(screen.getByTestId(`clinic-form-theme-option-${THEME_ID_2}`)).toBeInTheDocument()
+  })
+
+  it('includes themeId in submit payload in edit mode', async () => {
+    const onSubmit = jest.fn()
+
+    renderWithProviders(
+      <ClinicForm mode="edit" defaultValues={existingClinic} isPending={false} onSubmit={onSubmit} />,
+    )
+
+    await waitFor(() => {
+      expect(screen.getByTestId('clinic-form-name')).toHaveValue('Clínica do Coração')
+    })
+
+    await userEvent.click(screen.getByTestId(`clinic-form-theme-option-${THEME_ID_2}`))
+    await userEvent.click(screen.getByTestId('clinic-form-submit'))
+
+    await waitFor(() => {
+      expect(onSubmit).toHaveBeenCalledWith(
+        expect.objectContaining({ themeId: THEME_ID_2 }),
         expect.any(Function),
       )
     })
