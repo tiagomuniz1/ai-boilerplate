@@ -9,36 +9,12 @@ const SEED_CLINIC_ID = '10000000-0000-4000-8000-000000000000'
 
 const SEED_THEMES = [
   {
-    name: 'Azul Clínico',
-    slug: 'azul-clinico',
-    accentColor: '#2563EB',
-    accentSoftColor: '#DBEAFE',
-    isDefault: true,
-    borderRadius: ThemeBorderRadius.DEFAULT,
-  },
-  {
-    name: 'Verde Saúde',
-    slug: 'verde-saude',
-    accentColor: '#16A34A',
-    accentSoftColor: '#DCFCE7',
-    isDefault: false,
-    borderRadius: ThemeBorderRadius.DEFAULT,
-  },
-  {
     name: 'Teal Moderno',
     slug: 'teal-moderno',
     accentColor: '#0D9488',
     accentSoftColor: '#CCFBF1',
     isDefault: false,
     borderRadius: ThemeBorderRadius.SHARP,
-  },
-  {
-    name: 'Roxo Bem-Estar',
-    slug: 'roxo-bem-estar',
-    accentColor: '#7C3AED',
-    accentSoftColor: '#EDE9FE',
-    isDefault: false,
-    borderRadius: ThemeBorderRadius.ROUND,
   },
   {
     name: 'Rosé Cuidado',
@@ -53,10 +29,30 @@ const SEED_THEMES = [
     slug: 'salvia-natural',
     accentColor: '#6D7A71',
     accentSoftColor: '#CDD9C5',
-    isDefault: false,
+    isDefault: true,
     borderRadius: ThemeBorderRadius.ROUND,
     bgColor: '#EFEADD',
     bgDarkColor: '#111A13',
+  },
+  {
+    name: 'Pétala',
+    slug: 'petala',
+    accentColor: '#C8717C',
+    accentSoftColor: '#F7E2E5',
+    isDefault: false,
+    borderRadius: ThemeBorderRadius.ROUND,
+    bgColor: '#FDF4F5',
+    bgDarkColor: '#1C1014',
+  },
+  {
+    name: 'Carmim',
+    slug: 'carmim',
+    accentColor: '#C44F6A',
+    accentSoftColor: '#FAE0E6',
+    isDefault: false,
+    borderRadius: ThemeBorderRadius.DEFAULT,
+    bgColor: '#FDF8F9',
+    bgDarkColor: '#1A0D12',
   },
 ]
 
@@ -78,7 +74,7 @@ async function seedThemes(dataSource: DataSource): Promise<Theme> {
     }
   }
 
-  const defaultTheme = await repository.findOneByOrFail({ slug: 'azul-clinico' })
+  const defaultTheme = await repository.findOneByOrFail({ isDefault: true })
   return defaultTheme
 }
 
