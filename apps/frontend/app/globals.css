@@ -15,8 +15,15 @@
         --textDim: #555A6B;
         --textMute: #8B8E9A;
 
-        --accent: #2B5CD4;
-        --accentSoft: #E3ECFB;
+        /* Accent source vars — JS sets these to apply clinic theme */
+        --accentLight: #2B5CD4;
+        --accentSoftLight: #E3ECFB;
+        --accentDark: #7FB0FF;
+        --accentSoftDark: #1A2F55;
+
+        /* Resolved accent — CSS picks the correct variant per mode */
+        --accent: var(--accentLight);
+        --accentSoft: var(--accentSoftLight);
 
         --warm: #C47B8A;
         --warmSoft: #F6E5E8;
@@ -46,9 +53,9 @@
         --textDim: #9AA8C7;
         --textMute: #6B7A9E;
 
-        /* Accent mais equilibrado (menos saturação pesada em fundo escuro) */
-        --accent: #7FB0FF;
-        --accentSoft: #1A2F55;
+        /* Accent — resolves to dark variants, which JS computes per clinic theme */
+        --accent: var(--accentDark);
+        --accentSoft: var(--accentSoftDark);
 
         /* Warm mais suave e menos “marrom escuro” */
         --warm: #F2B8B5;
