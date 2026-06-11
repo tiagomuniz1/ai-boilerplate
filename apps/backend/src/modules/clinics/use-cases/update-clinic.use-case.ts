@@ -40,6 +40,9 @@ export class UpdateClinicUseCase extends BaseUseCase {
     try {
       await this.cacheService.del(`clinic:${id}`)
       await this.cacheService.delByPattern('clinics:list*')
+      if ('themeId' in dto) {
+        await this.cacheService.del(`theme:clinic:${id}`)
+      }
     } catch {
       this.logger.warn('Cache invalidation failed', { context: UpdateClinicUseCase.name })
     }
@@ -53,6 +56,7 @@ export class UpdateClinicUseCase extends BaseUseCase {
       name: clinic.name,
       slug: clinic.slug,
       isActive: clinic.isActive,
+      themeId: clinic.themeId ?? null,
       address: clinic.addressStreet != null
         ? {
             street: clinic.addressStreet,

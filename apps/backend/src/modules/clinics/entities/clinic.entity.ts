@@ -46,6 +46,9 @@ export class Clinic {
   @Column({ name: 'address_country', type: 'varchar', length: 2, nullable: true })
   addressCountry: string | null
 
+  @Column({ name: 'theme_id', type: 'uuid', nullable: true })
+  themeId: string | null
+
   @VersionColumn()
   version: number
 

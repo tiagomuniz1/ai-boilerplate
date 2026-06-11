@@ -7,6 +7,7 @@ export function toClinicModel(dto: ClinicResponseDto): IClinicModel {
     name: dto.name,
     slug: dto.slug,
     isActive: dto.isActive,
+    themeId: dto.themeId ?? null,
     address: dto.address
       ? {
           street: dto.address.street,

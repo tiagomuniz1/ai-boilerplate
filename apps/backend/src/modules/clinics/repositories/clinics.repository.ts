@@ -74,6 +74,10 @@ export class ClinicsRepository implements IClinicsRepository {
       clinic.addressCountry = address.country
     }
 
+    if ('themeId' in data) {
+      clinic.themeId = data.themeId ?? null
+    }
+
     return this.repository.save(clinic)
   }
 }

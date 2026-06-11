@@ -1,0 +1,237 @@
+'use client'
+
+import { useEffect } from 'react'
+import { useForm } from 'react-hook-form'
+import { zodResolver } from '@hookform/resolvers/zod'
+import { z } from 'zod'
+import { Input } from '@/components/ui/atoms/input/input'
+import { Button } from '@/components/ui/atoms/button/button'
+import { Alert } from '@/components/ui/molecules/alert/alert'
+import type { ICreateThemeInput, IUpdateThemeInput } from '../types/theme-input.types'
+import type { IThemeModel } from '../types/theme-model.types'
+
+const HEX_REGEX = /^#[0-9A-Fa-f]{6}$/
+
+const schema = z.object({
+  name: z.string().min(3, 'Nome deve ter no mínimo 3 caracteres'),
+  slug: z
+    .string()
+    .regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/, 'Slug deve ser kebab-case (ex: azul-clinico)')
+    .optional()
+    .or(z.literal('')),
+  accentColor: z.string().regex(HEX_REGEX, 'Cor inválida — use formato hex #RRGGBB'),
+  accentSoftColor: z.string().regex(HEX_REGEX, 'Cor inválida — use formato hex #RRGGBB'),
+  isDefault: z.boolean().optional(),
+})
+
+type FormValues = z.infer<typeof schema>
+
+interface ThemeFormCreateProps {
+  mode: 'create'
+  isPending: boolean
+  globalError?: string | null
+  onSubmit: (
+    data: ICreateThemeInput,
+    setError: (field: string, error: { message: string }) => void,
+  ) => void
+}
+
+interface ThemeFormEditProps {
+  mode: 'edit'
+  defaultValues: IThemeModel
+  isPending: boolean
+  globalError?: string | null
+  onSubmit: (
+    data: IUpdateThemeInput,
+    setError: (field: string, error: { message: string }) => void,
+  ) => void
+}
+
+type ThemeFormProps = ThemeFormCreateProps | ThemeFormEditProps
+
+export function ThemeForm(props: ThemeFormProps) {
+  const mode = props.mode
+  const defaultValues = props.mode === 'edit' ? props.defaultValues : undefined
+  const { isPending, globalError } = props
+
+  const {
+    register,
+    handleSubmit,
+    setError,
+    reset,
+    watch,
+    formState: { errors },
+  } = useForm<FormValues>({
+    resolver: zodResolver(schema),
+    defaultValues: mode === 'create'
+      ? { accentColor: '#', accentSoftColor: '#', isDefault: false }
+      : undefined,
+  })
+
+  useEffect(() => {
+    if (mode === 'edit' && defaultValues) {
+      reset({
+        name: defaultValues.name,
+        accentColor: defaultValues.accentColor,
+        accentSoftColor: defaultValues.accentSoftColor,
+        isDefault: defaultValues.isDefault,
+      })
+    }
+  }, [mode, defaultValues, reset])
+
+  const accentColor = watch('accentColor')
+  const accentSoftColor = watch('accentSoftColor')
+  const isValidHex = (v: string) => HEX_REGEX.test(v)
+
+  function handleFormSubmit(data: FormValues) {
+    const setErr = setError as (field: string, error: { message: string }) => void
+    if (props.mode === 'create') {
+      props.onSubmit(
+        {
+          name: data.name,
+          accentColor: data.accentColor,
+          accentSoftColor: data.accentSoftColor,
+          isDefault: data.isDefault ?? false,
+          ...(data.slug ? { slug: data.slug } : {}),
+        },
+        setErr,
+      )
+    } else {
+      props.onSubmit(
+        {
+          name: data.name,
+          accentColor: data.accentColor,
+          accentSoftColor: data.accentSoftColor,
+          isDefault: data.isDefault ?? false,
+        },
+        setErr,
+      )
+    }
+  }
+
+  return (
+    <form onSubmit={handleSubmit(handleFormSubmit)} data-testid="theme-form" noValidate>
+      <div className="flex flex-col gap-4">
+        {globalError && (
+          <Alert variant="error" data-testid="theme-form-error">
+            {globalError}
+          </Alert>
+        )}
+
+        <Input
+          label="Nome"
+          id="name"
+          data-testid="theme-form-name"
+          error={errors.name?.message}
+          {...register('name')}
+        />
+
+        {mode === 'create' && (
+          <Input
+            label="Slug (opcional — gerado automaticamente se vazio)"
+            id="slug"
+            data-testid="theme-form-slug"
+            placeholder="azul-clinico"
+            error={errors.slug?.message}
+            {...register('slug')}
+          />
+        )}
+
+        <div className="flex flex-col gap-1.5">
+          <label htmlFor="accentColor" className="text-sm font-medium text-text">
+            Cor principal
+          </label>
+          <div className="flex items-center gap-3">
+            <input
+              type="color"
+              id="accentColor-picker"
+              aria-hidden="true"
+              value={isValidHex(accentColor) ? accentColor : '#000000'}
+              onChange={(e) => {
+                const input = document.getElementById('accentColor') as HTMLInputElement | null
+                if (input) {
+                  input.value = e.target.value
+                  input.dispatchEvent(new Event('input', { bubbles: true }))
+                }
+              }}
+              className="h-10 w-10 cursor-pointer rounded border border-line bg-transparent p-0.5"
+            />
+            <Input
+              id="accentColor"
+              data-testid="theme-form-accent-color"
+              placeholder="#2563EB"
+              error={errors.accentColor?.message}
+              {...register('accentColor')}
+            />
+          </div>
+        </div>
+
+        <div className="flex flex-col gap-1.5">
+          <label htmlFor="accentSoftColor" className="text-sm font-medium text-text">
+            Cor suave (fundo de elementos de destaque)
+          </label>
+          <div className="flex items-center gap-3">
+            <input
+              type="color"
+              id="accentSoftColor-picker"
+              aria-hidden="true"
+              value={isValidHex(accentSoftColor) ? accentSoftColor : '#000000'}
+              onChange={(e) => {
+                const input = document.getElementById('accentSoftColor') as HTMLInputElement | null
+                if (input) {
+                  input.value = e.target.value
+                  input.dispatchEvent(new Event('input', { bubbles: true }))
+                }
+              }}
+              className="h-10 w-10 cursor-pointer rounded border border-line bg-transparent p-0.5"
+            />
+            <Input
+              id="accentSoftColor"
+              data-testid="theme-form-accent-soft-color"
+              placeholder="#DBEAFE"
+              error={errors.accentSoftColor?.message}
+              {...register('accentSoftColor')}
+            />
+          </div>
+        </div>
+
+        {isValidHex(accentColor) && isValidHex(accentSoftColor) && (
+          <div
+            data-testid="theme-form-preview"
+            className="rounded-md border border-line p-4"
+            style={{ background: accentSoftColor }}
+          >
+            <span className="text-sm font-medium" style={{ color: accentColor }}>
+              Preview — texto sobre fundo suave
+            </span>
+            <div
+              className="mt-2 inline-flex items-center rounded px-3 py-1 text-sm font-medium text-white"
+              style={{ background: accentColor }}
+            >
+              Botão de exemplo
+            </div>
+          </div>
+        )}
+
+        <label className="flex cursor-pointer items-center gap-3">
+          <input
+            type="checkbox"
+            data-testid="theme-form-is-default"
+            className="h-4 w-4 rounded border-line accent-accent"
+            {...register('isDefault')}
+          />
+          <span className="text-sm text-text">Tema padrão da plataforma</span>
+        </label>
+
+        <Button
+          type="submit"
+          isLoading={isPending}
+          disabled={isPending}
+          data-testid="theme-form-submit"
+        >
+          {isPending ? 'Salvando...' : mode === 'create' ? 'Criar tema' : 'Salvar alterações'}
+        </Button>
+      </div>
+    </form>
+  )
+}

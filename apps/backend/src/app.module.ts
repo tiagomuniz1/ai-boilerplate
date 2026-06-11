@@ -11,6 +11,7 @@ import { DoctorsModule } from './modules/doctors/doctors.module'
 import { SchedulesModule } from './modules/schedules/schedules.module'
 import { SpecialtiesModule } from './modules/specialties/specialties.module'
 import { ClinicsModule } from './modules/clinics/clinics.module'
+import { ThemesModule } from './modules/themes/themes.module'
 import { HttpExceptionFilter } from './common/filters/http-exception.filter'
 import { RequestIdInterceptor } from './common/interceptors/request-id.interceptor'
 import { JwtAuthGuard } from './modules/auth/guards/jwt-auth.guard'
@@ -31,6 +32,7 @@ import { RolesGuard } from './modules/auth/guards/roles.guard'
     SchedulesModule,
     SpecialtiesModule,
     ClinicsModule,
+    ThemesModule,
   ],
   providers: [
     { provide: APP_FILTER, useClass: HttpExceptionFilter },

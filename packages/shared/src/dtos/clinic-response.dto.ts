@@ -14,6 +14,7 @@ export class ClinicResponseDto {
   name!: string
   slug!: string
   isActive!: boolean
+  themeId!: string | null
   address!: AddressResponseDto | null
   createdAt!: Date
   updatedAt!: Date

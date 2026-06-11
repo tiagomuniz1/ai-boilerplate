@@ -25,6 +25,7 @@ export interface IClinicModel {
   name: string
   slug: string
   isActive: boolean
+  themeId: string | null
   address: IAddressModel | null
   createdAt: Date
   updatedAt: Date
