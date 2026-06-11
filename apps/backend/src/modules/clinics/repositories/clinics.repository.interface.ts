@@ -5,6 +5,7 @@ import { Clinic } from '../entities/clinic.entity'
 export interface IClinicCreateData {
   name: string
   slug: string
+  themeId?: string | null
   address?: {
     street: string
     number: string

@@ -157,7 +157,7 @@ describe('ClinicsRepository', () => {
 
       const result = await repository.create(data)
 
-      expect(repo.create).toHaveBeenCalledWith(data)
+      expect(repo.create).toHaveBeenCalledWith({ ...data, themeId: null })
       expect(repo.save).toHaveBeenCalledWith(entity)
       expect(result).toBe(entity)
     })
@@ -224,7 +224,7 @@ describe('ClinicsRepository', () => {
 
       const result = await repository.create(data, queryRunner)
 
-      expect(qrRepo.create).toHaveBeenCalledWith(data)
+      expect(qrRepo.create).toHaveBeenCalledWith({ ...data, themeId: null })
       expect(qrRepo.save).toHaveBeenCalledWith(entity)
       expect(repo.create).not.toHaveBeenCalled()
       expect(repo.save).not.toHaveBeenCalled()

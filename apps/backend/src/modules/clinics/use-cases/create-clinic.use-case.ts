@@ -27,6 +27,7 @@ export class CreateClinicUseCase extends BaseUseCase {
     const clinic = await this.clinicsRepository.create({
       name: dto.name,
       slug,
+      themeId: dto.themeId ?? null,
       address: dto.address,
     })
 

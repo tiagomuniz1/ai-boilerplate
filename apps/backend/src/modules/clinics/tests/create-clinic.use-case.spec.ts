@@ -74,6 +74,7 @@ describe('CreateClinicUseCase', () => {
     expect(mockClinicsRepository.create).toHaveBeenCalledWith({
       name: 'Clínica do Coração',
       slug: 'clnica-do-corao',
+      themeId: null,
       address: dto.address,
     })
     expect(result.id).toBe(created.id)
@@ -92,6 +93,7 @@ describe('CreateClinicUseCase', () => {
     expect(mockClinicsRepository.create).toHaveBeenCalledWith({
       name: 'Clínica do Coração',
       slug: 'clinica-do-coracao',
+      themeId: null,
       address: dto.address,
     })
   })
