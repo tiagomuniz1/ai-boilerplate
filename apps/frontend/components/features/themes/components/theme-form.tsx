@@ -19,6 +19,12 @@ const RADIUS_OPTIONS: { value: ThemeBorderRadius; label: string; preview: string
   { value: ThemeBorderRadius.ROUND, label: 'Arredondadas', preview: '18px' },
 ]
 
+const OPTIONAL_HEX = z
+  .string()
+  .regex(HEX_REGEX, 'Cor inválida — use formato hex #RRGGBB')
+  .optional()
+  .or(z.literal(''))
+
 const schema = z.object({
   name: z.string().min(3, 'Nome deve ter no mínimo 3 caracteres'),
   slug: z
@@ -28,6 +34,8 @@ const schema = z.object({
     .or(z.literal('')),
   accentColor: z.string().regex(HEX_REGEX, 'Cor inválida — use formato hex #RRGGBB'),
   accentSoftColor: z.string().regex(HEX_REGEX, 'Cor inválida — use formato hex #RRGGBB'),
+  bgColor: OPTIONAL_HEX,
+  bgDarkColor: OPTIONAL_HEX,
   isDefault: z.boolean().optional(),
   borderRadius: z.nativeEnum(ThemeBorderRadius).optional(),
 })
@@ -73,7 +81,7 @@ export function ThemeForm(props: ThemeFormProps) {
   } = useForm<FormValues>({
     resolver: zodResolver(schema),
     defaultValues: mode === 'create'
-      ? { accentColor: '#', accentSoftColor: '#', isDefault: false, borderRadius: ThemeBorderRadius.DEFAULT }
+      ? { accentColor: '#', accentSoftColor: '#', bgColor: '', bgDarkColor: '', isDefault: false, borderRadius: ThemeBorderRadius.DEFAULT }
       : undefined,
   })
 
@@ -83,6 +91,8 @@ export function ThemeForm(props: ThemeFormProps) {
         name: defaultValues.name,
         accentColor: defaultValues.accentColor,
         accentSoftColor: defaultValues.accentSoftColor,
+        bgColor: defaultValues.bgColor ?? '',
+        bgDarkColor: defaultValues.bgDarkColor ?? '',
         isDefault: defaultValues.isDefault,
         borderRadius: defaultValues.borderRadius ?? ThemeBorderRadius.DEFAULT,
       })
@@ -91,6 +101,8 @@ export function ThemeForm(props: ThemeFormProps) {
 
   const accentColor = watch('accentColor')
   const accentSoftColor = watch('accentSoftColor')
+  const bgColor = watch('bgColor')
+  const bgDarkColor = watch('bgDarkColor')
   const selectedRadius = watch('borderRadius')
   const isValidHex = (v: string) => HEX_REGEX.test(v)
 
@@ -104,6 +116,8 @@ export function ThemeForm(props: ThemeFormProps) {
           accentSoftColor: data.accentSoftColor,
           isDefault: data.isDefault ?? false,
           borderRadius: data.borderRadius ?? ThemeBorderRadius.DEFAULT,
+          ...(data.bgColor ? { bgColor: data.bgColor } : {}),
+          ...(data.bgDarkColor ? { bgDarkColor: data.bgDarkColor } : {}),
           ...(data.slug ? { slug: data.slug } : {}),
         },
         setErr,
@@ -116,6 +130,8 @@ export function ThemeForm(props: ThemeFormProps) {
           accentSoftColor: data.accentSoftColor,
           isDefault: data.isDefault ?? false,
           borderRadius: data.borderRadius ?? ThemeBorderRadius.DEFAULT,
+          ...(data.bgColor ? { bgColor: data.bgColor } : {}),
+          ...(data.bgDarkColor ? { bgDarkColor: data.bgDarkColor } : {}),
         },
         setErr,
       )
@@ -204,6 +220,66 @@ export function ThemeForm(props: ThemeFormProps) {
               placeholder="#DBEAFE"
               error={errors.accentSoftColor?.message}
               {...register('accentSoftColor')}
+            />
+          </div>
+        </div>
+
+        <div className="flex flex-col gap-1.5">
+          <label htmlFor="bgColor" className="text-sm font-medium text-text">
+            Fundo light{' '}
+            <span className="font-normal text-text-mute">(opcional — calculado automaticamente se vazio)</span>
+          </label>
+          <div className="flex items-center gap-3">
+            <input
+              type="color"
+              id="bgColor-picker"
+              aria-hidden="true"
+              value={isValidHex(bgColor ?? '') ? bgColor! : '#F7F6F3'}
+              onChange={(e) => {
+                const input = document.getElementById('bgColor') as HTMLInputElement | null
+                if (input) {
+                  input.value = e.target.value
+                  input.dispatchEvent(new Event('input', { bubbles: true }))
+                }
+              }}
+              className="h-10 w-10 cursor-pointer rounded border border-line bg-transparent p-0.5"
+            />
+            <Input
+              id="bgColor"
+              data-testid="theme-form-bg-color"
+              placeholder="#F7F6F3"
+              error={errors.bgColor?.message}
+              {...register('bgColor')}
+            />
+          </div>
+        </div>
+
+        <div className="flex flex-col gap-1.5">
+          <label htmlFor="bgDarkColor" className="text-sm font-medium text-text">
+            Fundo dark{' '}
+            <span className="font-normal text-text-mute">(opcional — calculado automaticamente se vazio)</span>
+          </label>
+          <div className="flex items-center gap-3">
+            <input
+              type="color"
+              id="bgDarkColor-picker"
+              aria-hidden="true"
+              value={isValidHex(bgDarkColor ?? '') ? bgDarkColor! : '#0B1220'}
+              onChange={(e) => {
+                const input = document.getElementById('bgDarkColor') as HTMLInputElement | null
+                if (input) {
+                  input.value = e.target.value
+                  input.dispatchEvent(new Event('input', { bubbles: true }))
+                }
+              }}
+              className="h-10 w-10 cursor-pointer rounded border border-line bg-transparent p-0.5"
+            />
+            <Input
+              id="bgDarkColor"
+              data-testid="theme-form-bg-dark-color"
+              placeholder="#0B1220"
+              error={errors.bgDarkColor?.message}
+              {...register('bgDarkColor')}
             />
           </div>
         </div>

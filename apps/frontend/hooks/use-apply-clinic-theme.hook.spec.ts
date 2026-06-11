@@ -20,6 +20,8 @@ const sampleTheme = {
   accentColor: '#2563EB',
   accentSoftColor: '#DBEAFE',
   borderRadius: ThemeBorderRadius.DEFAULT,
+  bgColor: null,
+  bgDarkColor: null,
   isDefault: true,
   createdAt: new Date('2024-01-01'),
   updatedAt: new Date('2024-01-01'),
@@ -141,13 +143,24 @@ describe('useApplyClinicTheme', () => {
     expect(setPropertySpy).toHaveBeenCalledWith('--accentSoftDark', expect.stringMatching(/^#[0-9a-f]{6}$/))
   })
 
-  it('sets both bg CSS variables when theme is loaded', () => {
+  it('sets bg CSS variables using computed tint when bgColor/bgDarkColor are null', () => {
     mockUseActiveTheme.mockReturnValue({ data: sampleTheme } as ReturnType<typeof useActiveTheme>)
 
     renderHook(() => useApplyClinicTheme())
 
     expect(setPropertySpy).toHaveBeenCalledWith('--bgLight', expect.stringMatching(/^rgb\(\d+,\d+,\d+\)$/))
     expect(setPropertySpy).toHaveBeenCalledWith('--bgDark', expect.stringMatching(/^rgb\(\d+,\d+,\d+\)$/))
+  })
+
+  it('uses stored bgColor/bgDarkColor directly when provided', () => {
+    mockUseActiveTheme.mockReturnValue({
+      data: { ...sampleTheme, bgColor: '#FAF0F1', bgDarkColor: '#1A0D10' },
+    } as ReturnType<typeof useActiveTheme>)
+
+    renderHook(() => useApplyClinicTheme())
+
+    expect(setPropertySpy).toHaveBeenCalledWith('--bgLight', '#FAF0F1')
+    expect(setPropertySpy).toHaveBeenCalledWith('--bgDark', '#1A0D10')
   })
 
   it('sets all five radius CSS variables when theme is loaded', () => {

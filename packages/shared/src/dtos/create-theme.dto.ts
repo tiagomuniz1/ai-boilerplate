@@ -29,4 +29,14 @@ export class CreateThemeDto {
   @IsOptional()
   @IsEnum(ThemeBorderRadius)
   borderRadius?: ThemeBorderRadius
+
+  @IsOptional()
+  @IsString()
+  @Matches(/^#[0-9A-Fa-f]{6}$/, { message: 'bgColor must be a 6-digit hex color (e.g., #F4F6FD)' })
+  bgColor?: string
+
+  @IsOptional()
+  @IsString()
+  @Matches(/^#[0-9A-Fa-f]{6}$/, { message: 'bgDarkColor must be a 6-digit hex color (e.g., #0D1526)' })
+  bgDarkColor?: string
 }

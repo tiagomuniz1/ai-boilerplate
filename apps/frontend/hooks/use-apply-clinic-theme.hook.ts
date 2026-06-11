@@ -72,8 +72,8 @@ export function useApplyClinicTheme(): void {
       root.style.setProperty('--accentDark', computeDarkAccent(theme.accentColor))
       root.style.setProperty('--accentSoftDark', computeDarkSoft(theme.accentColor))
 
-      root.style.setProperty('--bgLight', computeBgLight(theme.accentColor))
-      root.style.setProperty('--bgDark', computeBgDark(theme.accentColor))
+      root.style.setProperty('--bgLight', theme.bgColor ?? computeBgLight(theme.accentColor))
+      root.style.setProperty('--bgDark', theme.bgDarkColor ?? computeBgDark(theme.accentColor))
 
       const radii = RADIUS_PRESETS[theme.borderRadius ?? ThemeBorderRadius.DEFAULT]
       root.style.setProperty('--radius-sm', radii.sm)

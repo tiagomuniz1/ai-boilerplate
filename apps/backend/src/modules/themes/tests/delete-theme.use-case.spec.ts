@@ -34,6 +34,8 @@ const makeTheme = (overrides = {}) => ({
   accentColor: '#E11D48',
   accentSoftColor: '#FFE4E6',
   borderRadius: 'default',
+  bgColor: null,
+  bgDarkColor: null,
   createdAt: new Date(),
   updatedAt: new Date(),
   deletedAt: null,

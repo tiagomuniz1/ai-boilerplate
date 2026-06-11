@@ -7,6 +7,8 @@ export interface ICreateThemeInput {
   accentSoftColor: string
   isDefault?: boolean
   borderRadius?: ThemeBorderRadius
+  bgColor?: string
+  bgDarkColor?: string
 }
 
 export interface IUpdateThemeInput {
@@ -15,4 +17,6 @@ export interface IUpdateThemeInput {
   accentSoftColor?: string
   isDefault?: boolean
   borderRadius?: ThemeBorderRadius
+  bgColor?: string
+  bgDarkColor?: string
 }

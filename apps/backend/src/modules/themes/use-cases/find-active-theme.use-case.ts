@@ -55,6 +55,8 @@ export class FindActiveThemeUseCase extends BaseUseCase {
       accentColor: theme.accentColor,
       accentSoftColor: theme.accentSoftColor,
       borderRadius: theme.borderRadius,
+      bgColor: theme.bgColor,
+      bgDarkColor: theme.bgDarkColor,
       createdAt: theme.createdAt,
       updatedAt: theme.updatedAt,
     }

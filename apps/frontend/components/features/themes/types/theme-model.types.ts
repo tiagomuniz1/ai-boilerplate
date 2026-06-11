@@ -8,6 +8,8 @@ export interface IThemeModel {
   accentColor: string
   accentSoftColor: string
   borderRadius: ThemeBorderRadius
+  bgColor: string | null
+  bgDarkColor: string | null
   createdAt: Date
   updatedAt: Date
 }

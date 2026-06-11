@@ -32,6 +32,8 @@ export class CreateThemeUseCase extends BaseUseCase {
       accentColor: dto.accentColor,
       accentSoftColor: dto.accentSoftColor,
       borderRadius: dto.borderRadius,
+      bgColor: dto.bgColor ?? null,
+      bgDarkColor: dto.bgDarkColor ?? null,
     }
 
     if (dto.isDefault) {
@@ -71,6 +73,8 @@ export class CreateThemeUseCase extends BaseUseCase {
       accentColor: theme.accentColor,
       accentSoftColor: theme.accentSoftColor,
       borderRadius: theme.borderRadius,
+      bgColor: theme.bgColor,
+      bgDarkColor: theme.bgDarkColor,
       createdAt: theme.createdAt,
       updatedAt: theme.updatedAt,
     }

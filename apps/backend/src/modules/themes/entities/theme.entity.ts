@@ -31,6 +31,12 @@ export class Theme {
   @Column({ name: 'border_radius', type: 'varchar', length: 10, default: ThemeBorderRadius.DEFAULT })
   borderRadius: ThemeBorderRadius
 
+  @Column({ name: 'bg_color', length: 7, nullable: true, default: null })
+  bgColor: string | null
+
+  @Column({ name: 'bg_dark_color', length: 7, nullable: true, default: null })
+  bgDarkColor: string | null
+
   @CreateDateColumn({ name: 'created_at' })
   createdAt: Date
 
