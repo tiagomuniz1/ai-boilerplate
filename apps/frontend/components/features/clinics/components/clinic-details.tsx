@@ -3,6 +3,7 @@
 import Link from 'next/link'
 import { Button } from '@/components/ui/atoms/button/button'
 import { Typography } from '@/components/ui/atoms/typography/typography'
+import { useTheme } from '@/components/features/themes/hooks/use-theme.hook'
 import type { IClinicModel } from '../types/clinic.types'
 
 interface ClinicDetailsProps {
@@ -21,6 +22,8 @@ function DetailRow({ label, value, testId }: { label: string; value: string; tes
 }
 
 export function ClinicDetails({ clinic }: ClinicDetailsProps) {
+  const { data: theme } = useTheme(clinic.themeId ?? '')
+
   return (
     <div className="flex flex-col gap-6" data-testid="clinic-details">
       <div className="flex items-start justify-between gap-4">
@@ -93,6 +96,29 @@ export function ClinicDetails({ clinic }: ClinicDetailsProps) {
               })}
               testId="clinic-details-updated-at"
             />
+          </div>
+          <div className="bg-surface px-6 py-4">
+            <div className="flex flex-col gap-0.5">
+              <span className="text-xs font-medium uppercase tracking-wider text-text-mute">
+                Tema
+              </span>
+              <span data-testid="clinic-details-theme">
+                {theme ? (
+                  <span className="flex items-center gap-2">
+                    <span
+                      className="inline-block h-4 w-4 rounded-full border border-line"
+                      style={{ background: theme.accentColor }}
+                      aria-hidden="true"
+                    />
+                    <span className="text-sm text-text">{theme.name}</span>
+                  </span>
+                ) : (
+                  <span className="text-sm text-text-mute">
+                    {clinic.themeId ? '—' : 'Padrão da plataforma'}
+                  </span>
+                )}
+              </span>
+            </div>
           </div>
         </div>
       </div>

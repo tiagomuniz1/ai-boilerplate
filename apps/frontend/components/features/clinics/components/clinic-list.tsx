@@ -8,6 +8,7 @@ import { Alert } from '@/components/ui/molecules/alert/alert'
 import { Button } from '@/components/ui/atoms/button/button'
 import { Input } from '@/components/ui/atoms/input/input'
 import { useAuthStore } from '@/stores/auth.store'
+import { useThemes } from '@/components/features/themes/hooks/use-themes.hook'
 import { useClinics } from '../hooks/use-clinics.hook'
 import { ClinicListSkeleton } from './clinic-list-skeleton'
 
@@ -30,9 +31,12 @@ export function ClinicList() {
 
   const params = debouncedSearch ? { search: debouncedSearch } : undefined
   const { data: paginatedClinics, isPending, isError } = useClinics(params)
+  const { data: themesData } = useThemes(1, 50)
 
   const clinics = paginatedClinics?.data ?? []
   const clinicCount = clinics.length
+  const themes = themesData?.data ?? []
+  const themeById = Object.fromEntries(themes.map((t) => [t.id, t]))
 
   return (
     <div className="flex flex-col gap-6" data-testid="clinic-list">
@@ -99,87 +103,107 @@ export function ClinicList() {
                     Status
                   </th>
                   <th className="px-6 py-3 text-xs font-medium uppercase tracking-wider text-text-mute">
+                    Tema
+                  </th>
+                  <th className="px-6 py-3 text-xs font-medium uppercase tracking-wider text-text-mute">
                     Ações
                   </th>
                 </tr>
               </thead>
               <tbody>
-                {clinics.map((clinic) => (
-                  <tr
-                    key={clinic.id}
-                    data-testid={`clinic-table-row-${clinic.id}`}
-                    className="border-b border-line last:border-0 hover:bg-surface-2 transition-colors duration-100"
-                  >
-                    <td className="px-6 py-4">
-                      <p
-                        className="text-sm font-medium text-text"
-                        data-testid={`clinic-name-${clinic.id}`}
-                      >
-                        {clinic.name}
-                      </p>
-                    </td>
-                    <td
-                      className="px-6 py-4 font-mono text-sm text-text-dim"
-                      data-testid={`clinic-slug-${clinic.id}`}
+                {clinics.map((clinic) => {
+                  const theme = clinic.themeId ? themeById[clinic.themeId] : undefined
+                  return (
+                    <tr
+                      key={clinic.id}
+                      data-testid={`clinic-table-row-${clinic.id}`}
+                      className="border-b border-line last:border-0 hover:bg-surface-2 transition-colors duration-100"
                     >
-                      {clinic.slug}
-                    </td>
-                    <td className="px-6 py-4" data-testid={`clinic-status-${clinic.id}`}>
-                      {clinic.isActive ? (
-                        <span className="inline-flex items-center rounded-full bg-success/10 px-2 py-0.5 text-xs font-medium text-success">
-                          Ativa
-                        </span>
-                      ) : (
-                        <span
-                          className="inline-flex items-center rounded-full bg-danger/10 px-2 py-0.5 text-xs font-medium text-danger"
-                          data-testid={`clinic-inactive-badge-${clinic.id}`}
+                      <td className="px-6 py-4">
+                        <p
+                          className="text-sm font-medium text-text"
+                          data-testid={`clinic-name-${clinic.id}`}
                         >
-                          Inativa
-                        </span>
-                      )}
-                    </td>
-                    <td className="px-6 py-4">
-                      <div className="flex items-center gap-3">
-                        <Link
-                          href={`/clinics/${clinic.id}/users/new`}
-                          data-testid={`clinic-add-user-link-${clinic.id}`}
-                          className="text-xs text-text-mute hover:text-text transition-colors"
-                        >
-                          + Usuário
-                        </Link>
-                        <Link
-                          href={`/clinics/${clinic.id}/edit`}
-                          data-testid={`clinic-edit-link-${clinic.id}`}
-                          className="text-xs text-text-mute hover:text-text transition-colors"
-                        >
-                          Editar
-                        </Link>
-                        <Link
-                          href={`/clinics/${clinic.id}`}
-                          data-testid={`clinic-view-link-${clinic.id}`}
-                          className="flex items-center justify-center rounded-md p-1.5 text-text-mute transition-colors hover:bg-line hover:text-text"
-                          aria-label={`Ver detalhes de ${clinic.name}`}
-                        >
-                          <svg
-                            width="16"
-                            height="16"
-                            viewBox="0 0 16 16"
-                            fill="none"
-                            aria-hidden="true"
+                          {clinic.name}
+                        </p>
+                      </td>
+                      <td
+                        className="px-6 py-4 font-mono text-sm text-text-dim"
+                        data-testid={`clinic-slug-${clinic.id}`}
+                      >
+                        {clinic.slug}
+                      </td>
+                      <td className="px-6 py-4" data-testid={`clinic-status-${clinic.id}`}>
+                        {clinic.isActive ? (
+                          <span className="inline-flex items-center rounded-full bg-success/10 px-2 py-0.5 text-xs font-medium text-success">
+                            Ativa
+                          </span>
+                        ) : (
+                          <span
+                            className="inline-flex items-center rounded-full bg-danger/10 px-2 py-0.5 text-xs font-medium text-danger"
+                            data-testid={`clinic-inactive-badge-${clinic.id}`}
                           >
-                            <path
-                              d="M6 12L10 8L6 4"
-                              stroke="currentColor"
-                              strokeWidth="1.5"
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
+                            Inativa
+                          </span>
+                        )}
+                      </td>
+                      <td className="px-6 py-4" data-testid={`clinic-theme-${clinic.id}`}>
+                        {theme ? (
+                          <div className="flex items-center gap-2">
+                            <span
+                              className="h-4 w-4 flex-shrink-0 rounded-full border border-line"
+                              style={{ background: theme.accentColor }}
+                              aria-hidden="true"
                             />
-                          </svg>
-                        </Link>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
+                            <span className="text-sm text-text">{theme.name}</span>
+                          </div>
+                        ) : (
+                          <span className="text-sm text-text-mute">Padrão</span>
+                        )}
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="flex items-center gap-3">
+                          <Link
+                            href={`/clinics/${clinic.id}/users/new`}
+                            data-testid={`clinic-add-user-link-${clinic.id}`}
+                            className="text-xs text-text-mute hover:text-text transition-colors"
+                          >
+                            + Usuário
+                          </Link>
+                          <Link
+                            href={`/clinics/${clinic.id}/edit`}
+                            data-testid={`clinic-edit-link-${clinic.id}`}
+                            className="text-xs text-text-mute hover:text-text transition-colors"
+                          >
+                            Editar
+                          </Link>
+                          <Link
+                            href={`/clinics/${clinic.id}`}
+                            data-testid={`clinic-view-link-${clinic.id}`}
+                            className="flex items-center justify-center rounded-md p-1.5 text-text-mute transition-colors hover:bg-line hover:text-text"
+                            aria-label={`Ver detalhes de ${clinic.name}`}
+                          >
+                            <svg
+                              width="16"
+                              height="16"
+                              viewBox="0 0 16 16"
+                              fill="none"
+                              aria-hidden="true"
+                            >
+                              <path
+                                d="M6 12L10 8L6 4"
+                                stroke="currentColor"
+                                strokeWidth="1.5"
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                              />
+                            </svg>
+                          </Link>
+                        </div>
+                      </td>
+                    </tr>
+                  )
+                })}
               </tbody>
             </table>
           </div>

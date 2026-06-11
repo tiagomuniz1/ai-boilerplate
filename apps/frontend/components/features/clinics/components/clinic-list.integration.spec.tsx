@@ -1,6 +1,7 @@
 jest.mock('next/navigation', () => ({ useRouter: jest.fn() }))
 jest.mock('../services/clinics.service')
 jest.mock('@/stores/auth.store')
+jest.mock('@/components/features/themes/hooks/use-themes.hook')
 
 import { screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
@@ -8,11 +9,37 @@ import { useRouter } from 'next/navigation'
 import { UserRole } from '@app/shared'
 import { clinicsService } from '../services/clinics.service'
 import { useAuthStore } from '@/stores/auth.store'
+import { useThemes } from '@/components/features/themes/hooks/use-themes.hook'
 import { renderWithProviders } from '@/tests/utils/render-with-providers'
 import { ClinicList } from './clinic-list'
 
 const mockReplace = jest.fn()
 const mockPlatformAdminUser = { id: 'auth-uuid-1', fullName: 'Platform Admin', email: 'platform@umi.dev', role: UserRole.PLATFORM_ADMIN, clinicId: null }
+const mockUseThemes = useThemes as jest.MockedFunction<typeof useThemes>
+
+const THEME_ID = '11111111-1111-4111-8111-111111111111'
+
+const defaultThemesReturn = {
+  data: {
+    data: [
+      {
+        id: THEME_ID,
+        name: 'Azul Clínico',
+        slug: 'azul-clinico',
+        accentColor: '#2563EB',
+        accentSoftColor: '#DBEAFE',
+        isDefault: true,
+        createdAt: new Date('2024-01-01'),
+        updatedAt: new Date('2024-01-01'),
+      },
+    ],
+    total: 1,
+    page: 1,
+    limit: 50,
+  },
+  isPending: false,
+  isError: false,
+} as ReturnType<typeof useThemes>
 
 function mockAuth(role: UserRole) {
   const user = { ...mockPlatformAdminUser, role }
@@ -26,6 +53,7 @@ const makeDto = (overrides = {}) => ({
   name: 'Clínica do Coração',
   slug: 'clinica-do-coracao',
   isActive: true,
+  themeId: null,
   createdAt: '2024-01-15T10:00:00.000Z',
   updatedAt: '2024-01-16T10:00:00.000Z',
   ...overrides,
@@ -43,6 +71,7 @@ describe('ClinicList (integration)', () => {
     jest.clearAllMocks()
     ;(useRouter as jest.Mock).mockReturnValue({ push: jest.fn(), replace: mockReplace })
     mockAuth(UserRole.PLATFORM_ADMIN)
+    mockUseThemes.mockReturnValue(defaultThemesReturn)
   })
 
   it('renders skeleton while loading', () => {
@@ -200,5 +229,45 @@ describe('ClinicList (integration)', () => {
     await waitFor(() => {
       expect(screen.getByText('2 clínicas cadastradas')).toBeInTheDocument()
     })
+  })
+
+  it('shows "Padrão" label when clinic has no theme', async () => {
+    ;(clinicsService.getAll as jest.Mock).mockResolvedValue(makePaginated([makeDto({ themeId: null })]))
+
+    renderWithProviders(<ClinicList />)
+
+    await waitFor(() => {
+      expect(screen.getByTestId('clinic-list-table')).toBeInTheDocument()
+    })
+
+    expect(screen.getByTestId('clinic-theme-uuid-1')).toHaveTextContent('Padrão')
+  })
+
+  it('shows theme name and color swatch when clinic has a theme', async () => {
+    ;(clinicsService.getAll as jest.Mock).mockResolvedValue(
+      makePaginated([makeDto({ themeId: THEME_ID })]),
+    )
+
+    renderWithProviders(<ClinicList />)
+
+    await waitFor(() => {
+      expect(screen.getByTestId('clinic-list-table')).toBeInTheDocument()
+    })
+
+    expect(screen.getByTestId('clinic-theme-uuid-1')).toHaveTextContent('Azul Clínico')
+  })
+
+  it('shows "Padrão" when themeId is set but not found in themes', async () => {
+    ;(clinicsService.getAll as jest.Mock).mockResolvedValue(
+      makePaginated([makeDto({ themeId: '99999999-9999-4999-8999-999999999999' })]),
+    )
+
+    renderWithProviders(<ClinicList />)
+
+    await waitFor(() => {
+      expect(screen.getByTestId('clinic-list-table')).toBeInTheDocument()
+    })
+
+    expect(screen.getByTestId('clinic-theme-uuid-1')).toHaveTextContent('Padrão')
   })
 })

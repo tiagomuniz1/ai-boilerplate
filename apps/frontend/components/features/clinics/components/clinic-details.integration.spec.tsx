@@ -1,18 +1,35 @@
 jest.mock('next/navigation', () => ({ useRouter: jest.fn() }))
+jest.mock('@/components/features/themes/hooks/use-theme.hook')
 
 import { screen } from '@testing-library/react'
 import { useRouter } from 'next/navigation'
+import { useTheme } from '@/components/features/themes/hooks/use-theme.hook'
 import { renderWithProviders } from '@/tests/utils/render-with-providers'
 import { ClinicDetails } from './clinic-details'
 import type { IClinicModel } from '../types/clinic.types'
 
 const mockPush = jest.fn()
+const mockUseTheme = useTheme as jest.MockedFunction<typeof useTheme>
+
+const THEME_ID = '11111111-1111-4111-8111-111111111111'
+
+const sampleTheme = {
+  id: THEME_ID,
+  name: 'Azul Clínico',
+  slug: 'azul-clinico',
+  accentColor: '#2563EB',
+  accentSoftColor: '#DBEAFE',
+  isDefault: true,
+  createdAt: new Date('2024-01-01'),
+  updatedAt: new Date('2024-01-01'),
+}
 
 const activeClinic: IClinicModel = {
   id: 'uuid-1',
   name: 'Clínica do Coração',
   slug: 'clinica-do-coracao',
   isActive: true,
+  themeId: null,
   address: {
     street: 'Rua das Flores',
     number: '123',
@@ -40,6 +57,7 @@ describe('ClinicDetails (integration)', () => {
   beforeEach(() => {
     jest.clearAllMocks()
     ;(useRouter as jest.Mock).mockReturnValue({ push: mockPush })
+    mockUseTheme.mockReturnValue({ data: undefined, isPending: false, isError: false } as ReturnType<typeof useTheme>)
   })
 
   it('renders clinic name and slug', () => {
@@ -147,5 +165,27 @@ describe('ClinicDetails (integration)', () => {
 
     expect(screen.getByTestId('clinic-details-no-address')).toBeInTheDocument()
     expect(screen.queryByTestId('clinic-details-address')).not.toBeInTheDocument()
+  })
+
+  it('shows "Padrão da plataforma" when clinic has no theme', () => {
+    renderWithProviders(<ClinicDetails clinic={activeClinic} />)
+
+    expect(screen.getByTestId('clinic-details-theme')).toHaveTextContent('Padrão da plataforma')
+  })
+
+  it('shows theme name and swatch when clinic has a theme', () => {
+    mockUseTheme.mockReturnValue({ data: sampleTheme, isPending: false, isError: false } as ReturnType<typeof useTheme>)
+
+    renderWithProviders(<ClinicDetails clinic={{ ...activeClinic, themeId: THEME_ID }} />)
+
+    expect(screen.getByTestId('clinic-details-theme')).toHaveTextContent('Azul Clínico')
+  })
+
+  it('shows dash while theme is loading', () => {
+    mockUseTheme.mockReturnValue({ data: undefined, isPending: true, isError: false } as ReturnType<typeof useTheme>)
+
+    renderWithProviders(<ClinicDetails clinic={{ ...activeClinic, themeId: THEME_ID }} />)
+
+    expect(screen.getByTestId('clinic-details-theme')).toHaveTextContent('—')
   })
 })
