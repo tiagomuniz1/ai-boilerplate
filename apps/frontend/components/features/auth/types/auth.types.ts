@@ -10,7 +10,7 @@ export interface IAuthUserDto {
   fullName: string
   email: string
   role: UserRole
-  clinicId: string
+  clinicId: string | null
 }
 
 export interface IAuthUserModel {
@@ -18,5 +18,5 @@ export interface IAuthUserModel {
   fullName: string
   email: string
   role: UserRole
-  clinicId: string
+  clinicId: string | null
 }

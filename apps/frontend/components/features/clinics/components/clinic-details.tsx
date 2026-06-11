@@ -96,6 +96,60 @@ export function ClinicDetails({ clinic }: ClinicDetailsProps) {
           </div>
         </div>
       </div>
+
+      {clinic.address ? (
+        <div className="overflow-hidden rounded-xl border border-line bg-surface shadow-sm" data-testid="clinic-details-address">
+          <div className="border-b border-line px-6 py-3">
+            <span className="text-xs font-medium uppercase tracking-wider text-text-mute">Endereço</span>
+          </div>
+          <div className="grid grid-cols-1 gap-px bg-line sm:grid-cols-2">
+            <div className="bg-surface px-6 py-4">
+              <DetailRow
+                label="Logradouro"
+                value={`${clinic.address.street}, ${clinic.address.number}`}
+                testId="clinic-details-address-street"
+              />
+            </div>
+            {clinic.address.complement && (
+              <div className="bg-surface px-6 py-4">
+                <DetailRow
+                  label="Complemento"
+                  value={clinic.address.complement}
+                  testId="clinic-details-address-complement"
+                />
+              </div>
+            )}
+            <div className="bg-surface px-6 py-4">
+              <DetailRow
+                label="Bairro"
+                value={clinic.address.neighborhood}
+                testId="clinic-details-address-neighborhood"
+              />
+            </div>
+            <div className="bg-surface px-6 py-4">
+              <DetailRow
+                label="Cidade / UF"
+                value={`${clinic.address.city} — ${clinic.address.state}`}
+                testId="clinic-details-address-city"
+              />
+            </div>
+            <div className="bg-surface px-6 py-4">
+              <DetailRow
+                label="CEP"
+                value={clinic.address.zipCode}
+                testId="clinic-details-address-zipcode"
+              />
+            </div>
+          </div>
+        </div>
+      ) : (
+        <div
+          className="rounded-xl border border-line bg-surface px-6 py-4 text-sm text-text-mute"
+          data-testid="clinic-details-no-address"
+        >
+          Endereço não cadastrado.
+        </div>
+      )}
     </div>
   )
 }

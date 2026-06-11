@@ -1,4 +1,5 @@
-import { IsBoolean, IsOptional, IsString, Matches, MaxLength, MinLength } from 'class-validator'
+import { IsBoolean, IsOptional, IsString, Matches, MaxLength, MinLength, ValidateNested } from 'class-validator'
+import { AddressDto } from './address.dto'
 
 export class UpdateClinicDto {
   @IsOptional()
@@ -17,4 +18,8 @@ export class UpdateClinicDto {
   @IsOptional()
   @IsBoolean()
   isActive?: boolean
+
+  @IsOptional()
+  @ValidateNested()
+  address?: AddressDto
 }

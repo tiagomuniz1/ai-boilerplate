@@ -2,16 +2,23 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
+import { UserRole } from '@app/shared'
 import { Button } from '@/components/ui/atoms/button/button'
 import { Typography } from '@/components/ui/atoms/typography/typography'
 import { UserForm } from '@/components/features/users/components/user-form'
 import { useCreateUser } from '@/components/features/users/hooks/use-create-user.hook'
+import { useAuthStore } from '@/stores/auth.store'
 import type { ICreateUserInput } from '@/components/features/users/types/user-input.types'
 import type { IApiError } from '@/types/api.types'
+
+const CLINIC_ROLES = [UserRole.USER, UserRole.ADMIN]
+const PLATFORM_ROLES = [UserRole.USER, UserRole.ADMIN, UserRole.PLATFORM_ADMIN]
 
 export default function NewUserPage() {
   const { mutate, isPending } = useCreateUser()
   const [globalError, setGlobalError] = useState<string | null>(null)
+  const currentUser = useAuthStore((state) => state.user)
+  const availableRoles = currentUser?.role === UserRole.PLATFORM_ADMIN ? PLATFORM_ROLES : CLINIC_ROLES
 
   function handleSubmit(
     data: ICreateUserInput,
@@ -45,6 +52,7 @@ export default function NewUserPage() {
         mode="create"
         isPending={isPending}
         globalError={globalError}
+        availableRoles={availableRoles}
         onSubmit={handleSubmit}
       />
     </main>

@@ -32,4 +32,16 @@ describe('toAuthUserModel', () => {
     const result = toAuthUserModel(dto)
     expect(result.clinicId).toBe('clinic-uuid-2')
   })
+
+  it('maps clinicId as null for PLATFORM_ADMIN', () => {
+    const dto = {
+      id: 'uuid-3',
+      fullName: 'Platform Admin',
+      email: 'platform@example.com',
+      role: UserRole.PLATFORM_ADMIN,
+      clinicId: null,
+    }
+    const result = toAuthUserModel(dto)
+    expect(result.clinicId).toBeNull()
+  })
 })

@@ -162,6 +162,57 @@ describe('ClinicsRepository', () => {
       expect(result).toBe(entity)
     })
 
+    it('spreads address fields into entity when address is provided with complement', async () => {
+      const data = {
+        name: 'Clínica Test',
+        slug: 'clinica-test',
+        address: {
+          street: 'Rua das Flores',
+          number: '123',
+          complement: 'Apto 1',
+          neighborhood: 'Centro',
+          city: 'São Paulo',
+          state: 'SP',
+          zipCode: '01310-100',
+          country: 'BR',
+        },
+      }
+      const entity = makeClinic()
+      repo.create.mockReturnValue(entity)
+      repo.save.mockResolvedValue(entity)
+
+      await repository.create(data)
+
+      const createdWith = repo.create.mock.calls[0][0] as any
+      expect(createdWith.addressStreet).toBe('Rua das Flores')
+      expect(createdWith.addressNumber).toBe('123')
+      expect(createdWith.addressComplement).toBe('Apto 1')
+    })
+
+    it('defaults addressComplement to null when complement is not provided', async () => {
+      const data = {
+        name: 'Clínica Test',
+        slug: 'clinica-test',
+        address: {
+          street: 'Rua das Flores',
+          number: '123',
+          neighborhood: 'Centro',
+          city: 'São Paulo',
+          state: 'SP',
+          zipCode: '01310-100',
+          country: 'BR',
+        },
+      }
+      const entity = makeClinic()
+      repo.create.mockReturnValue(entity)
+      repo.save.mockResolvedValue(entity)
+
+      await repository.create(data)
+
+      const createdWith = repo.create.mock.calls[0][0] as any
+      expect(createdWith.addressComplement).toBeNull()
+    })
+
     it('uses queryRunner manager repo when provided', async () => {
       const data = { name: 'Clínica Test', slug: 'clinica-test' }
       const entity = makeClinic()
@@ -205,6 +256,56 @@ describe('ClinicsRepository', () => {
       const savedArg = repo.save.mock.calls[0][0]
       expect(savedArg.name).toBe('New Name')
       expect(savedArg.isActive).toBe(false)
+    })
+
+    it('maps address fields onto entity when address is provided', async () => {
+      const clinic = makeClinic()
+      repo.findOneByOrFail.mockResolvedValue(clinic)
+      repo.save.mockResolvedValue(clinic)
+
+      await repository.update('clinic-uuid-1', {
+        address: {
+          street: 'Av. Paulista',
+          number: '1000',
+          complement: 'Apto 42',
+          neighborhood: 'Bela Vista',
+          city: 'São Paulo',
+          state: 'SP',
+          zipCode: '01310-100',
+          country: 'BR',
+        },
+      })
+
+      const savedArg = repo.save.mock.calls[0][0]
+      expect(savedArg.addressStreet).toBe('Av. Paulista')
+      expect(savedArg.addressNumber).toBe('1000')
+      expect(savedArg.addressComplement).toBe('Apto 42')
+      expect(savedArg.addressNeighborhood).toBe('Bela Vista')
+      expect(savedArg.addressCity).toBe('São Paulo')
+      expect(savedArg.addressState).toBe('SP')
+      expect(savedArg.addressZipCode).toBe('01310-100')
+      expect(savedArg.addressCountry).toBe('BR')
+    })
+
+    it('uses null for complement when not provided in address', async () => {
+      const clinic = makeClinic()
+      repo.findOneByOrFail.mockResolvedValue(clinic)
+      repo.save.mockResolvedValue(clinic)
+
+      await repository.update('clinic-uuid-1', {
+        address: {
+          street: 'Av. Paulista',
+          number: '1000',
+          neighborhood: 'Bela Vista',
+          city: 'São Paulo',
+          state: 'SP',
+          zipCode: '01310-100',
+          country: 'BR',
+        },
+      })
+
+      const savedArg = repo.save.mock.calls[0][0]
+      expect(savedArg.addressComplement).toBeNull()
     })
 
     it('throws when clinic is not found', async () => {

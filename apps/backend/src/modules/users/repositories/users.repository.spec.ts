@@ -48,6 +48,16 @@ describe('UsersRepository', () => {
       expect(result).toBe(user)
     })
 
+    it('finds by id only (no clinicId filter) when clinicId is null', async () => {
+      const user = { id: 'uuid-1' } as User
+      repo.findOneBy.mockResolvedValue(user)
+
+      const result = await repository.findById('uuid-1', null)
+
+      expect(repo.findOneBy).toHaveBeenCalledWith({ id: 'uuid-1' })
+      expect(result).toBe(user)
+    })
+
     it('returns null when not found', async () => {
       repo.findOneBy.mockResolvedValue(null)
 

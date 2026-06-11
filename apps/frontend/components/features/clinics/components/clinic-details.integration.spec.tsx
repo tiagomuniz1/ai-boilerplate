@@ -13,14 +13,28 @@ const activeClinic: IClinicModel = {
   name: 'Clínica do Coração',
   slug: 'clinica-do-coracao',
   isActive: true,
+  address: {
+    street: 'Rua das Flores',
+    number: '123',
+    complement: null,
+    neighborhood: 'Centro',
+    city: 'São Paulo',
+    state: 'SP',
+    zipCode: '01310-100',
+    country: 'BR',
+  },
   createdAt: new Date('2024-01-15'),
   updatedAt: new Date('2024-01-16'),
 }
 
-const inactiveClinic: IClinicModel = {
+const inactiveClinic: IClinicModel = { ...activeClinic, isActive: false }
+
+const clinicWithComplement: IClinicModel = {
   ...activeClinic,
-  isActive: false,
+  address: { ...activeClinic.address!, complement: 'Sala 42' },
 }
+
+const clinicWithoutAddress: IClinicModel = { ...activeClinic, address: null }
 
 describe('ClinicDetails (integration)', () => {
   beforeEach(() => {
@@ -84,5 +98,54 @@ describe('ClinicDetails (integration)', () => {
     renderWithProviders(<ClinicDetails clinic={activeClinic} />)
 
     expect(screen.queryByTestId('clinic-details-delete-button')).not.toBeInTheDocument()
+  })
+
+  it('renders address section when clinic has address', () => {
+    renderWithProviders(<ClinicDetails clinic={activeClinic} />)
+
+    expect(screen.getByTestId('clinic-details-address')).toBeInTheDocument()
+  })
+
+  it('renders street and number together', () => {
+    renderWithProviders(<ClinicDetails clinic={activeClinic} />)
+
+    expect(screen.getByTestId('clinic-details-address-street')).toHaveTextContent('Rua das Flores, 123')
+  })
+
+  it('renders neighborhood', () => {
+    renderWithProviders(<ClinicDetails clinic={activeClinic} />)
+
+    expect(screen.getByTestId('clinic-details-address-neighborhood')).toHaveTextContent('Centro')
+  })
+
+  it('renders city and state together', () => {
+    renderWithProviders(<ClinicDetails clinic={activeClinic} />)
+
+    expect(screen.getByTestId('clinic-details-address-city')).toHaveTextContent('São Paulo — SP')
+  })
+
+  it('renders zip code', () => {
+    renderWithProviders(<ClinicDetails clinic={activeClinic} />)
+
+    expect(screen.getByTestId('clinic-details-address-zipcode')).toHaveTextContent('01310-100')
+  })
+
+  it('does not render complement row when complement is null', () => {
+    renderWithProviders(<ClinicDetails clinic={activeClinic} />)
+
+    expect(screen.queryByTestId('clinic-details-address-complement')).not.toBeInTheDocument()
+  })
+
+  it('renders complement when it is present', () => {
+    renderWithProviders(<ClinicDetails clinic={clinicWithComplement} />)
+
+    expect(screen.getByTestId('clinic-details-address-complement')).toHaveTextContent('Sala 42')
+  })
+
+  it('renders no-address message when address is null', () => {
+    renderWithProviders(<ClinicDetails clinic={clinicWithoutAddress} />)
+
+    expect(screen.getByTestId('clinic-details-no-address')).toBeInTheDocument()
+    expect(screen.queryByTestId('clinic-details-address')).not.toBeInTheDocument()
   })
 })

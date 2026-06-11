@@ -34,6 +34,7 @@ interface UserFormCreateProps {
   mode: 'create'
   isPending: boolean
   globalError?: string | null
+  availableRoles?: UserRole[]
   onSubmit: (data: ICreateUserInput, setError: (field: keyof ICreateUserInput, error: { message: string }) => void) => void
 }
 
@@ -54,7 +55,9 @@ export function UserForm(props: UserFormProps) {
   return <UserFormEdit {...props} />
 }
 
-function UserFormCreate({ isPending, globalError, onSubmit }: UserFormCreateProps) {
+const DEFAULT_ROLES = [UserRole.USER, UserRole.ADMIN]
+
+function UserFormCreate({ isPending, globalError, availableRoles = DEFAULT_ROLES, onSubmit }: UserFormCreateProps) {
   const {
     register,
     handleSubmit,
@@ -101,7 +104,7 @@ function UserFormCreate({ isPending, globalError, onSubmit }: UserFormCreateProp
           error={errors.password?.message}
           {...register('password')}
         />
-        <RoleSelect registerProps={register('role')} error={errors.role?.message} />
+        <RoleSelect registerProps={register('role')} error={errors.role?.message} availableRoles={availableRoles} />
         <Button
           type="submit"
           isLoading={isPending}
@@ -191,12 +194,22 @@ function UserFormEdit({ defaultValues, isPending, globalError, onSubmit }: UserF
   )
 }
 
+const ROLE_LABELS: Record<UserRole, string> = {
+  [UserRole.USER]: 'Usuário',
+  [UserRole.ADMIN]: 'Administrador',
+  [UserRole.PLATFORM_ADMIN]: 'Platform Admin',
+  [UserRole.DOCTOR]: 'Médico',
+  [UserRole.PATIENT]: 'Paciente',
+}
+
 function RoleSelect({
   registerProps,
   error,
+  availableRoles = DEFAULT_ROLES,
 }: {
   registerProps: React.SelectHTMLAttributes<HTMLSelectElement> & { name: string }
   error?: string
+  availableRoles?: UserRole[]
 }) {
   const selectId = 'role'
   return (
@@ -222,8 +235,11 @@ function RoleSelect({
         data-testid="user-form-role"
         {...registerProps}
       >
-        <option value={UserRole.USER}>Usuário</option>
-        <option value={UserRole.ADMIN}>Administrador</option>
+        {availableRoles.map((role) => (
+          <option key={role} value={role}>
+            {ROLE_LABELS[role]}
+          </option>
+        ))}
       </select>
       {error && (
         <span id={`${selectId}-error`} role="alert" className="text-xs text-danger">

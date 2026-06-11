@@ -22,6 +22,30 @@ export class Clinic {
   @Column({ name: 'is_active', default: true })
   isActive: boolean
 
+  @Column({ name: 'address_street', type: 'varchar', length: 255, nullable: true })
+  addressStreet: string | null
+
+  @Column({ name: 'address_number', type: 'varchar', length: 20, nullable: true })
+  addressNumber: string | null
+
+  @Column({ name: 'address_complement', type: 'varchar', length: 100, nullable: true })
+  addressComplement: string | null
+
+  @Column({ name: 'address_neighborhood', type: 'varchar', length: 100, nullable: true })
+  addressNeighborhood: string | null
+
+  @Column({ name: 'address_city', type: 'varchar', length: 100, nullable: true })
+  addressCity: string | null
+
+  @Column({ name: 'address_state', type: 'varchar', length: 2, nullable: true })
+  addressState: string | null
+
+  @Column({ name: 'address_zip_code', type: 'varchar', length: 9, nullable: true })
+  addressZipCode: string | null
+
+  @Column({ name: 'address_country', type: 'varchar', length: 2, nullable: true })
+  addressCountry: string | null
+
   @VersionColumn()
   version: number
 

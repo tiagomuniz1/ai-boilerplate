@@ -12,6 +12,7 @@ const roleLabel: Record<UserRole, string> = {
   [UserRole.DOCTOR]: 'Médico',
   [UserRole.USER]: 'Usuário',
   [UserRole.PATIENT]: 'Paciente',
+  [UserRole.PLATFORM_ADMIN]: 'Platform Admin',
 }
 
 interface UserDetailsProps {

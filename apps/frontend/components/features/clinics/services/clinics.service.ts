@@ -2,12 +2,10 @@ import { apiClient } from '@/lib/api-client'
 import type {
   ClinicResponseDto,
   PaginatedClinicsResponseDto,
-  CreateClinicDto,
-  UpdateClinicDto,
   RegisterClinicDto,
   RegisterClinicResponseDto,
 } from '@app/shared'
-import type { IClinicListParams } from '../types/clinic.types'
+import type { IClinicListParams, ICreateClinicInput, IUpdateClinicInput } from '../types/clinic.types'
 
 export const clinicsService = {
   getAll: (params?: IClinicListParams) => {
@@ -21,8 +19,8 @@ export const clinicsService = {
     )
   },
   getById: (id: string) => apiClient.get<ClinicResponseDto>(`/clinics/${id}`),
-  create: (data: CreateClinicDto) => apiClient.post<ClinicResponseDto>('/clinics', data),
-  update: (id: string, data: UpdateClinicDto) =>
+  create: (data: ICreateClinicInput) => apiClient.post<ClinicResponseDto>('/clinics', data),
+  update: (id: string, data: IUpdateClinicInput) =>
     apiClient.patch<ClinicResponseDto>(`/clinics/${id}`, data),
   register: (data: RegisterClinicDto) =>
     apiClient.post<RegisterClinicResponseDto>('/clinics/register', data),

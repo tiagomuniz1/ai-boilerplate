@@ -150,6 +150,33 @@ describe('UserForm (integration) — create mode', () => {
       expect(screen.getByText('E-mail já em uso')).toBeInTheDocument()
     })
   })
+
+  it('renders only USER and ADMIN role options by default', () => {
+    renderWithProviders(
+      <UserForm mode="create" isPending={false} onSubmit={jest.fn()} />,
+    )
+
+    const roleSelect = screen.getByTestId('user-form-role')
+    const options = Array.from((roleSelect as HTMLSelectElement).options).map((o) => o.value)
+    expect(options).toEqual([UserRole.USER, UserRole.ADMIN])
+    expect(options).not.toContain(UserRole.PLATFORM_ADMIN)
+  })
+
+  it('renders PLATFORM_ADMIN option when availableRoles includes it', () => {
+    renderWithProviders(
+      <UserForm
+        mode="create"
+        isPending={false}
+        onSubmit={jest.fn()}
+        availableRoles={[UserRole.USER, UserRole.ADMIN, UserRole.PLATFORM_ADMIN]}
+      />,
+    )
+
+    const roleSelect = screen.getByTestId('user-form-role')
+    const options = Array.from((roleSelect as HTMLSelectElement).options).map((o) => o.value)
+    expect(options).toContain(UserRole.PLATFORM_ADMIN)
+    expect(options).toEqual([UserRole.USER, UserRole.ADMIN, UserRole.PLATFORM_ADMIN])
+  })
 })
 
 describe('UserForm (integration) — edit mode', () => {

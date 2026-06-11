@@ -21,12 +21,32 @@ const mockCacheService = {
   delByPattern: jest.fn(),
 } as unknown as jest.Mocked<CacheService>
 
+const makeAddress = (overrides = {}) => ({
+  street: 'Rua das Flores',
+  number: '123',
+  complement: null as string | null,
+  neighborhood: 'Centro',
+  city: 'São Paulo',
+  state: 'SP',
+  zipCode: '01310-100',
+  country: 'BR',
+  ...overrides,
+})
+
 const makeClinic = (overrides = {}) => ({
   id: faker.string.uuid(),
   name: 'Clínica do Coração',
   slug: 'clinica-do-coracao',
   isActive: true,
   version: 1,
+  addressStreet: 'Rua das Flores',
+  addressNumber: '123',
+  addressComplement: null as string | null,
+  addressNeighborhood: 'Centro',
+  addressCity: 'São Paulo',
+  addressState: 'SP',
+  addressZipCode: '01310-100',
+  addressCountry: 'BR',
   createdAt: new Date(),
   updatedAt: new Date(),
   deletedAt: null,
@@ -43,7 +63,7 @@ describe('UpdateClinicUseCase', () => {
     mockCacheService.delByPattern.mockResolvedValue(undefined)
   })
 
-  it('updates clinic and returns response', async () => {
+  it('updates clinic name and returns response with existing address', async () => {
     const clinic = makeClinic()
     const updated = makeClinic({ id: clinic.id, name: 'Nova Clínica' })
 
@@ -54,6 +74,37 @@ describe('UpdateClinicUseCase', () => {
 
     expect(result.id).toBe(clinic.id)
     expect(result.name).toBe('Nova Clínica')
+    expect(result.address).not.toBeNull()
+  })
+
+  it('updates address when address is provided', async () => {
+    const clinic = makeClinic()
+    const newAddress = makeAddress({ street: 'Av. Paulista', number: '1000', city: 'São Paulo' })
+    const updated = makeClinic({
+      id: clinic.id,
+      addressStreet: 'Av. Paulista',
+      addressNumber: '1000',
+    })
+
+    mockClinicsRepository.findById.mockResolvedValue(clinic as any)
+    mockClinicsRepository.update.mockResolvedValue(updated as any)
+
+    const result = await useCase.execute(clinic.id, { address: newAddress })
+
+    expect(mockClinicsRepository.update).toHaveBeenCalledWith(clinic.id, { address: newAddress })
+    expect(result.address?.street).toBe('Av. Paulista')
+  })
+
+  it('does not change address when address is not in dto', async () => {
+    const clinic = makeClinic()
+    const updated = makeClinic({ id: clinic.id, name: 'Nova Clínica' })
+
+    mockClinicsRepository.findById.mockResolvedValue(clinic as any)
+    mockClinicsRepository.update.mockResolvedValue(updated as any)
+
+    await useCase.execute(clinic.id, { name: 'Nova Clínica' })
+
+    expect(mockClinicsRepository.update).toHaveBeenCalledWith(clinic.id, { name: 'Nova Clínica' })
   })
 
   it('deactivates clinic via isActive false', async () => {
@@ -158,6 +209,18 @@ describe('UpdateClinicUseCase', () => {
 
     expect(mockCacheService.del).toHaveBeenCalledWith(`clinic:${clinic.id}`)
     expect(mockCacheService.delByPattern).toHaveBeenCalledWith('clinics:list*')
+  })
+
+  it('returns address as null when updated clinic has no address', async () => {
+    const clinic = makeClinic()
+    const updated = makeClinic({ id: clinic.id, addressStreet: null, addressNumber: null, addressNeighborhood: null, addressCity: null, addressState: null, addressZipCode: null, addressCountry: null })
+
+    mockClinicsRepository.findById.mockResolvedValue(clinic as any)
+    mockClinicsRepository.update.mockResolvedValue(updated as any)
+
+    const result = await useCase.execute(clinic.id, { name: 'Nova Clínica' })
+
+    expect(result.address).toBeNull()
   })
 
   it('continues when cache invalidation fails', async () => {

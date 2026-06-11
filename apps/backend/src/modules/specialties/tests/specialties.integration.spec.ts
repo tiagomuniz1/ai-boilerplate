@@ -11,7 +11,7 @@ import { Clinic } from '../../clinics/entities/clinic.entity'
 import { User } from '../../users/entities/user.entity'
 import { Specialty } from '../entities/specialty.entity'
 
-const SEED_CLINIC_ID = '10000000-0000-0000-0000-000000000000'
+const SEED_CLINIC_ID = '10000000-0000-4000-8000-000000000000'
 
 process.env.NODE_ENV = 'test'
 process.env.DB_SCHEMA = 'test'

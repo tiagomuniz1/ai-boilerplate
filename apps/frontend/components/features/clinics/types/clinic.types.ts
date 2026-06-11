@@ -1,8 +1,31 @@
+export interface IAddressModel {
+  street: string
+  number: string
+  complement: string | null
+  neighborhood: string
+  city: string
+  state: string
+  zipCode: string
+  country: string
+}
+
+export interface IAddressInput {
+  street: string
+  number: string
+  complement?: string | null
+  neighborhood: string
+  city: string
+  state: string
+  zipCode: string
+  country?: string
+}
+
 export interface IClinicModel {
   id: string
   name: string
   slug: string
   isActive: boolean
+  address: IAddressModel | null
   createdAt: Date
   updatedAt: Date
 }
@@ -10,12 +33,14 @@ export interface IClinicModel {
 export interface ICreateClinicInput {
   name: string
   slug?: string
+  address: IAddressInput
 }
 
 export interface IUpdateClinicInput {
   name?: string
   slug?: string
   isActive?: boolean
+  address?: IAddressInput
 }
 
 export interface IClinicListParams {

@@ -24,7 +24,11 @@ export class CreateClinicUseCase extends BaseUseCase {
     const existing = await this.clinicsRepository.findBySlug(slug)
     if (existing) throw new ConflictException('Slug already in use')
 
-    const clinic = await this.clinicsRepository.create({ name: dto.name, slug })
+    const clinic = await this.clinicsRepository.create({
+      name: dto.name,
+      slug,
+      address: dto.address,
+    })
 
     try {
       await this.cacheService.delByPattern('clinics:list*')
@@ -45,6 +49,18 @@ export class CreateClinicUseCase extends BaseUseCase {
       name: clinic.name,
       slug: clinic.slug,
       isActive: clinic.isActive,
+      address: clinic.addressStreet != null
+        ? {
+            street: clinic.addressStreet,
+            number: clinic.addressNumber!,
+            complement: clinic.addressComplement,
+            neighborhood: clinic.addressNeighborhood!,
+            city: clinic.addressCity!,
+            state: clinic.addressState!,
+            zipCode: clinic.addressZipCode!,
+            country: clinic.addressCountry!,
+          }
+        : null,
       createdAt: clinic.createdAt,
       updatedAt: clinic.updatedAt,
     }

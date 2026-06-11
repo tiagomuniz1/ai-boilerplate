@@ -1,4 +1,5 @@
-import { IsOptional, IsString, Matches, MaxLength, MinLength } from 'class-validator'
+import { IsOptional, IsString, Matches, MaxLength, MinLength, ValidateNested } from 'class-validator'
+import { AddressDto } from './address.dto'
 
 export class CreateClinicDto {
   @IsString()
@@ -12,4 +13,7 @@ export class CreateClinicDto {
   @MaxLength(80)
   @Matches(/^[a-z0-9]+(?:-[a-z0-9]+)*$/, { message: 'slug must be kebab-case (e.g., clinica-do-coracao)' })
   slug?: string
+
+  @ValidateNested()
+  address!: AddressDto
 }

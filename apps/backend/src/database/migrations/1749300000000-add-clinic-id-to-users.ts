@@ -1,6 +1,6 @@
 import { MigrationInterface, QueryRunner } from 'typeorm'
 
-const SEED_CLINIC_ID = '10000000-0000-0000-0000-000000000000'
+const SEED_CLINIC_ID = '10000000-0000-4000-8000-000000000000'
 
 export class AddClinicIdToUsers1749300000000 implements MigrationInterface {
   async up(queryRunner: QueryRunner): Promise<void> {

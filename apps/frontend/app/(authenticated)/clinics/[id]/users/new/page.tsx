@@ -3,12 +3,15 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import { useParams } from 'next/navigation'
+import { UserRole } from '@app/shared'
 import { Button } from '@/components/ui/atoms/button/button'
 import { Typography } from '@/components/ui/atoms/typography/typography'
 import { UserForm } from '@/components/features/users/components/user-form'
 import { useCreateClinicAdminUser } from '@/components/features/users/hooks/use-create-clinic-admin-user.hook'
 import type { ICreateUserInput } from '@/components/features/users/types/user-input.types'
 import type { IApiError } from '@/types/api.types'
+
+const CLINIC_ROLES = [UserRole.USER, UserRole.ADMIN]
 
 export default function NewClinicUserPage() {
   const { id: clinicId } = useParams<{ id: string }>()
@@ -47,6 +50,7 @@ export default function NewClinicUserPage() {
         mode="create"
         isPending={isPending}
         globalError={globalError}
+        availableRoles={CLINIC_ROLES}
         onSubmit={handleSubmit}
       />
     </main>

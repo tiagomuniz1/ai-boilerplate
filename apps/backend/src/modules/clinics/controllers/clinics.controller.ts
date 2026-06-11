@@ -2,15 +2,15 @@ import { Body, Controller, Get, HttpCode, Param, Patch, Post, Query } from '@nes
 import { Throttle } from '@nestjs/throttler'
 import {
   ClinicResponseDto,
-  CreateClinicDto,
   PaginatedClinicsResponseDto,
   RegisterClinicDto,
   RegisterClinicResponseDto,
-  UpdateClinicDto,
   UserRole,
 } from '@app/shared'
 import { Roles } from '../../auth/decorators/roles.decorator'
+import { CreateClinicRequestDto } from '../dto/create-clinic-request.dto'
 import { ListClinicsQueryDto } from '../dto/list-clinics-query.dto'
+import { UpdateClinicRequestDto } from '../dto/update-clinic-request.dto'
 import { CreateClinicUseCase } from '../use-cases/create-clinic.use-case'
 import { FindAllClinicsUseCase } from '../use-cases/find-all-clinics.use-case'
 import { FindClinicByIdUseCase } from '../use-cases/find-clinic-by-id.use-case'
@@ -37,7 +37,7 @@ export class ClinicsController {
   @Post()
   @Roles(UserRole.PLATFORM_ADMIN)
   @HttpCode(201)
-  create(@Body() dto: CreateClinicDto): Promise<ClinicResponseDto> {
+  create(@Body() dto: CreateClinicRequestDto): Promise<ClinicResponseDto> {
     return this.createClinicUseCase.execute(dto)
   }
 
@@ -55,7 +55,7 @@ export class ClinicsController {
 
   @Patch(':id')
   @Roles(UserRole.PLATFORM_ADMIN)
-  update(@Param('id') id: string, @Body() dto: UpdateClinicDto): Promise<ClinicResponseDto> {
+  update(@Param('id') id: string, @Body() dto: UpdateClinicRequestDto): Promise<ClinicResponseDto> {
     return this.updateClinicUseCase.execute(id, dto)
   }
 }

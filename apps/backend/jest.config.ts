@@ -20,6 +20,7 @@ const config: Config = {
     '!**/*.spec.ts',
   ],
   coverageDirectory: '../coverage',
+  setupFiles: ['reflect-metadata'],
   testEnvironment: 'node',
   moduleNameMapper: {
     '^@app/shared$': '<rootDir>/../../../packages/shared/src',

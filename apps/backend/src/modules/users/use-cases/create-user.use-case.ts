@@ -26,12 +26,15 @@ export class CreateUserUseCase extends BaseUseCase {
   }
 
   async execute(dto: CreateUserDto, currentUser: ICurrentUser): Promise<UserResponseDto> {
-    let clinicId: string
+    let clinicId: string | null
     if (currentUser.role === UserRole.PLATFORM_ADMIN) {
-      if (!dto.clinicId) {
-        throw new UnprocessableEntityException('clinicId is required when creating a user as platform admin')
+      if (dto.role === UserRole.PLATFORM_ADMIN) {
+        clinicId = null
+      } else if (!dto.clinicId) {
+        throw new UnprocessableEntityException('clinicId is required when creating a clinic user as platform admin')
+      } else {
+        clinicId = dto.clinicId
       }
-      clinicId = dto.clinicId
     } else {
       clinicId = currentUser.clinicId!
     }

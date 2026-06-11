@@ -3,7 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm'
 import { ILike, QueryRunner, Repository } from 'typeorm'
 import { UpdateClinicDto } from '@app/shared'
 import { Clinic } from '../entities/clinic.entity'
-import { IClinicsRepository } from './clinics.repository.interface'
+import { IClinicsRepository, IClinicCreateData } from './clinics.repository.interface'
 
 @Injectable()
 export class ClinicsRepository implements IClinicsRepository {
@@ -38,14 +38,42 @@ export class ClinicsRepository implements IClinicsRepository {
     return this.repository.findOneBy({ slug: ILike(slug) })
   }
 
-  async create(data: { name: string; slug: string }, queryRunner?: QueryRunner): Promise<Clinic> {
+  async create(data: IClinicCreateData, queryRunner?: QueryRunner): Promise<Clinic> {
     const repo = queryRunner ? queryRunner.manager.getRepository(Clinic) : this.repository
-    return repo.save(repo.create(data))
+    const entity = repo.create({
+      name: data.name,
+      slug: data.slug,
+      ...(data.address && {
+        addressStreet: data.address.street,
+        addressNumber: data.address.number,
+        addressComplement: data.address.complement ?? null,
+        addressNeighborhood: data.address.neighborhood,
+        addressCity: data.address.city,
+        addressState: data.address.state,
+        addressZipCode: data.address.zipCode,
+        addressCountry: data.address.country,
+      }),
+    })
+    return repo.save(entity)
   }
 
   async update(id: string, data: UpdateClinicDto): Promise<Clinic> {
     const clinic = await this.repository.findOneByOrFail({ id })
-    Object.assign(clinic, data)
+
+    const { address, ...rest } = data
+    Object.assign(clinic, rest)
+
+    if (address) {
+      clinic.addressStreet = address.street
+      clinic.addressNumber = address.number
+      clinic.addressComplement = address.complement ?? null
+      clinic.addressNeighborhood = address.neighborhood
+      clinic.addressCity = address.city
+      clinic.addressState = address.state
+      clinic.addressZipCode = address.zipCode
+      clinic.addressCountry = address.country
+    }
+
     return this.repository.save(clinic)
   }
 }

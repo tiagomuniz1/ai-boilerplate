@@ -27,6 +27,14 @@ const makeClinic = (overrides = {}) => ({
   slug: 'clinica-do-coracao',
   isActive: true,
   version: 1,
+  addressStreet: 'Rua das Flores',
+  addressNumber: '123',
+  addressComplement: null as string | null,
+  addressNeighborhood: 'Centro',
+  addressCity: 'São Paulo',
+  addressState: 'SP',
+  addressZipCode: '01310-100',
+  addressCountry: 'BR',
   createdAt: new Date(),
   updatedAt: new Date(),
   deletedAt: null,
@@ -57,7 +65,7 @@ describe('FindClinicByIdUseCase', () => {
 
   it('returns cached result on cache hit without calling repository', async () => {
     const clinic = makeClinic()
-    const cached = { id: clinic.id, name: clinic.name, slug: clinic.slug, isActive: true, createdAt: clinic.createdAt, updatedAt: clinic.updatedAt }
+    const cached = { id: clinic.id, name: clinic.name, slug: clinic.slug, isActive: true, address: null, createdAt: clinic.createdAt, updatedAt: clinic.updatedAt }
     mockCacheService.get.mockResolvedValue(cached)
 
     const result = await useCase.execute(clinic.id)
@@ -99,6 +107,15 @@ describe('FindClinicByIdUseCase', () => {
     const result = await useCase.execute(clinic.id)
 
     expect(result.id).toBe(clinic.id)
+  })
+
+  it('returns address as null when clinic has no address', async () => {
+    const clinic = makeClinic({ addressStreet: null, addressNumber: null, addressNeighborhood: null, addressCity: null, addressState: null, addressZipCode: null, addressCountry: null })
+    mockClinicsRepository.findById.mockResolvedValue(clinic as any)
+
+    const result = await useCase.execute(clinic.id)
+
+    expect(result.address).toBeNull()
   })
 
   it('continues when cache write fails', async () => {

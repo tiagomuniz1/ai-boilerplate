@@ -53,6 +53,18 @@ export class FindAllClinicsUseCase extends BaseUseCase {
       name: clinic.name,
       slug: clinic.slug,
       isActive: clinic.isActive,
+      address: clinic.addressStreet != null
+        ? {
+            street: clinic.addressStreet,
+            number: clinic.addressNumber!,
+            complement: clinic.addressComplement,
+            neighborhood: clinic.addressNeighborhood!,
+            city: clinic.addressCity!,
+            state: clinic.addressState!,
+            zipCode: clinic.addressZipCode!,
+            country: clinic.addressCountry!,
+          }
+        : null,
       createdAt: clinic.createdAt,
       updatedAt: clinic.updatedAt,
     }

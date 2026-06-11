@@ -26,6 +26,14 @@ const makeClinic = (overrides = {}) => ({
   slug: 'clinica-do-coracao',
   isActive: true,
   version: 1,
+  addressStreet: 'Rua das Flores',
+  addressNumber: '123',
+  addressComplement: null as string | null,
+  addressNeighborhood: 'Centro',
+  addressCity: 'São Paulo',
+  addressState: 'SP',
+  addressZipCode: '01310-100',
+  addressCountry: 'BR',
   createdAt: new Date(),
   updatedAt: new Date(),
   deletedAt: null,
@@ -135,5 +143,14 @@ describe('FindAllClinicsUseCase', () => {
 
     expect(mockCacheService.get).toHaveBeenCalledWith('clinics:list:1:20:all')
     expect(mockClinicsRepository.findAll).toHaveBeenCalledWith(1, 20, undefined)
+  })
+
+  it('returns address as null in list items when clinic has no address', async () => {
+    const clinic = makeClinic({ addressStreet: null, addressNumber: null, addressNeighborhood: null, addressCity: null, addressState: null, addressZipCode: null, addressCountry: null })
+    mockClinicsRepository.findAll.mockResolvedValue([[clinic] as any, 1])
+
+    const result = await useCase.execute({ page: 1, limit: 20 })
+
+    expect(result.data[0].address).toBeNull()
   })
 })

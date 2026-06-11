@@ -15,8 +15,27 @@ const existingClinic: IClinicModel = {
   name: 'Clínica do Coração',
   slug: 'clinica-do-coracao',
   isActive: true,
+  address: {
+    street: 'Rua das Flores',
+    number: '123',
+    complement: null,
+    neighborhood: 'Centro',
+    city: 'São Paulo',
+    state: 'SP',
+    zipCode: '01310-100',
+    country: 'BR',
+  },
   createdAt: new Date('2024-01-15'),
   updatedAt: new Date('2024-01-16'),
+}
+
+async function fillAddressFields() {
+  await userEvent.type(screen.getByTestId('clinic-form-address-street'), 'Rua das Flores')
+  await userEvent.type(screen.getByTestId('clinic-form-address-number'), '123')
+  await userEvent.type(screen.getByTestId('clinic-form-address-neighborhood'), 'Centro')
+  await userEvent.type(screen.getByTestId('clinic-form-address-city'), 'São Paulo')
+  await userEvent.type(screen.getByTestId('clinic-form-address-state'), 'SP')
+  await userEvent.type(screen.getByTestId('clinic-form-address-zipcode'), '01310-100')
 }
 
 describe('ClinicForm (integration) — create mode', () => {
@@ -30,6 +49,18 @@ describe('ClinicForm (integration) — create mode', () => {
 
     expect(screen.getByTestId('clinic-form-name')).toBeInTheDocument()
     expect(screen.getByTestId('clinic-form-slug')).toBeInTheDocument()
+  })
+
+  it('renders address fields', () => {
+    renderWithProviders(<ClinicForm mode="create" isPending={false} onSubmit={jest.fn()} />)
+
+    expect(screen.getByTestId('clinic-form-address-street')).toBeInTheDocument()
+    expect(screen.getByTestId('clinic-form-address-number')).toBeInTheDocument()
+    expect(screen.getByTestId('clinic-form-address-neighborhood')).toBeInTheDocument()
+    expect(screen.getByTestId('clinic-form-address-city')).toBeInTheDocument()
+    expect(screen.getByTestId('clinic-form-address-state')).toBeInTheDocument()
+    expect(screen.getByTestId('clinic-form-address-zipcode')).toBeInTheDocument()
+    expect(screen.getByTestId('clinic-form-address-complement')).toBeInTheDocument()
   })
 
   it('does not render isActive checkbox in create mode', () => {
@@ -65,17 +96,21 @@ describe('ClinicForm (integration) — create mode', () => {
     })
   })
 
-  it('calls onSubmit with form values on valid submit', async () => {
+  it('calls onSubmit with form values including address on valid submit', async () => {
     const onSubmit = jest.fn()
 
     renderWithProviders(<ClinicForm mode="create" isPending={false} onSubmit={onSubmit} />)
 
     await userEvent.type(screen.getByTestId('clinic-form-name'), 'Clínica Nova')
+    await fillAddressFields()
     await userEvent.click(screen.getByTestId('clinic-form-submit'))
 
     await waitFor(() => {
       expect(onSubmit).toHaveBeenCalledWith(
-        expect.objectContaining({ name: 'Clínica Nova' }),
+        expect.objectContaining({
+          name: 'Clínica Nova',
+          address: expect.objectContaining({ street: 'Rua das Flores', zipCode: '01310-100' }),
+        }),
         expect.any(Function),
       )
     })
@@ -88,6 +123,7 @@ describe('ClinicForm (integration) — create mode', () => {
 
     await userEvent.type(screen.getByTestId('clinic-form-name'), 'Clínica Nova')
     await userEvent.type(screen.getByTestId('clinic-form-slug'), 'clinica-nova')
+    await fillAddressFields()
     await userEvent.click(screen.getByTestId('clinic-form-submit'))
 
     await waitFor(() => {
@@ -120,6 +156,32 @@ describe('ClinicForm (integration) — create mode', () => {
     })
   })
 
+  it('shows validation error for invalid zipCode format', async () => {
+    renderWithProviders(<ClinicForm mode="create" isPending={false} onSubmit={jest.fn()} />)
+
+    await userEvent.type(screen.getByTestId('clinic-form-name'), 'Clínica Nova')
+    await userEvent.type(screen.getByTestId('clinic-form-address-zipcode'), '12345')
+    await userEvent.click(screen.getByTestId('clinic-form-submit'))
+
+    await waitFor(() => {
+      expect(screen.getByText(/CEP inválido/)).toBeInTheDocument()
+    })
+  })
+
+  it('shows validation error when complement exceeds max length', async () => {
+    renderWithProviders(<ClinicForm mode="create" isPending={false} onSubmit={jest.fn()} />)
+
+    await userEvent.type(
+      screen.getByTestId('clinic-form-address-complement'),
+      'A'.repeat(101),
+    )
+    await userEvent.click(screen.getByTestId('clinic-form-submit'))
+
+    await waitFor(() => {
+      expect(screen.getByText('Nome deve ter ao menos 3 caracteres')).toBeInTheDocument()
+    })
+  })
+
   it('shows global error when provided', () => {
     renderWithProviders(
       <ClinicForm
@@ -140,6 +202,16 @@ describe('ClinicForm (integration) — create mode', () => {
   })
 })
 
+const clinicWithoutAddress: IClinicModel = {
+  id: 'uuid-2',
+  name: 'Clínica Sem Endereço',
+  slug: 'clinica-sem-endereco',
+  isActive: true,
+  address: null,
+  createdAt: new Date('2024-01-15'),
+  updatedAt: new Date('2024-01-16'),
+}
+
 describe('ClinicForm (integration) — edit mode', () => {
   beforeEach(() => {
     jest.clearAllMocks()
@@ -154,6 +226,18 @@ describe('ClinicForm (integration) — edit mode', () => {
     await waitFor(() => {
       expect(screen.getByTestId('clinic-form-name')).toHaveValue('Clínica do Coração')
       expect(screen.getByTestId('clinic-form-slug')).toHaveValue('clinica-do-coracao')
+    })
+  })
+
+  it('pre-fills address fields with existing clinic address', async () => {
+    renderWithProviders(
+      <ClinicForm mode="edit" defaultValues={existingClinic} isPending={false} onSubmit={jest.fn()} />,
+    )
+
+    await waitFor(() => {
+      expect(screen.getByTestId('clinic-form-address-street')).toHaveValue('Rua das Flores')
+      expect(screen.getByTestId('clinic-form-address-number')).toHaveValue('123')
+      expect(screen.getByTestId('clinic-form-address-zipcode')).toHaveValue('01310-100')
     })
   })
 
@@ -271,6 +355,16 @@ describe('ClinicForm (integration) — edit mode', () => {
 
     await waitFor(() => {
       expect(screen.getByText(/Slug inválido/)).toBeInTheDocument()
+    })
+  })
+
+  it('initializes form without address values when clinic has no address', async () => {
+    renderWithProviders(
+      <ClinicForm mode="edit" defaultValues={clinicWithoutAddress} isPending={false} onSubmit={jest.fn()} />,
+    )
+
+    await waitFor(() => {
+      expect(screen.getByTestId('clinic-form-address-street')).toHaveValue('')
     })
   })
 

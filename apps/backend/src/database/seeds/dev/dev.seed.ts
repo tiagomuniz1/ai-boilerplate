@@ -3,7 +3,7 @@ import { DataSource } from 'typeorm'
 import { UserRole } from '@app/shared'
 import { User } from '../../../modules/users/entities/user.entity'
 
-const SEED_CLINIC_ID = '10000000-0000-0000-0000-000000000000'
+const SEED_CLINIC_ID = '10000000-0000-4000-8000-000000000000'
 
 export async function devSeed(dataSource: DataSource): Promise<void> {
   const repository = dataSource.getRepository(User)

@@ -15,7 +15,7 @@ import { RefreshToken } from '../entities/refresh-token.entity'
 import { JwtAuthGuard } from '../guards/jwt-auth.guard'
 import { createHash } from 'crypto'
 
-const SEED_CLINIC_ID = '10000000-0000-0000-0000-000000000000'
+const SEED_CLINIC_ID = '10000000-0000-4000-8000-000000000000'
 
 process.env.NODE_ENV = 'test'
 process.env.DB_SCHEMA = 'test'

@@ -209,7 +209,7 @@ describe('CreateUserUseCase', () => {
       expect(result.id).toBe(createdUser.id)
     })
 
-    it('throws UnprocessableEntityException when clinicId is absent', async () => {
+    it('throws UnprocessableEntityException when clinicId is absent for non-platform-admin role', async () => {
       await expect(
         useCase.execute(
           { fullName: 'Alice', email: 'a@b.com', password: 'Password123', role: UserRole.ADMIN },
@@ -218,6 +218,37 @@ describe('CreateUserUseCase', () => {
       ).rejects.toThrow(UnprocessableEntityException)
 
       expect(mockUsersRepository.create).not.toHaveBeenCalled()
+    })
+
+    it('creates PLATFORM_ADMIN user with null clinicId without requiring clinicId in DTO', async () => {
+      const dto = {
+        fullName: faker.person.fullName(),
+        email: faker.internet.email(),
+        password: faker.internet.password({ length: 10 }),
+        role: UserRole.PLATFORM_ADMIN,
+      }
+      const createdUser = {
+        id: faker.string.uuid(),
+        fullName: dto.fullName,
+        email: dto.email,
+        password: 'hashed',
+        role: UserRole.PLATFORM_ADMIN,
+        isActive: true,
+        clinicId: null,
+        version: 1,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        deletedAt: null,
+      } as unknown as User
+
+      mockUsersRepository.findByEmail.mockResolvedValue(null)
+      mockUsersRepository.create.mockResolvedValue(createdUser)
+      mockCacheService.delByPattern.mockResolvedValue(undefined)
+
+      const result = await useCase.execute(dto, platformAdminUser)
+
+      expect(mockUsersRepository.create).toHaveBeenCalledWith(expect.any(Object), null)
+      expect(result.role).toBe(UserRole.PLATFORM_ADMIN)
     })
   })
 
