@@ -48,6 +48,16 @@ const SEED_THEMES = [
     isDefault: false,
     borderRadius: ThemeBorderRadius.ROUND,
   },
+  {
+    name: 'Salvia Natural',
+    slug: 'salvia-natural',
+    accentColor: '#6D7A71',
+    accentSoftColor: '#CDD9C5',
+    isDefault: false,
+    borderRadius: ThemeBorderRadius.ROUND,
+    bgColor: '#EFEADD',
+    bgDarkColor: '#111A13',
+  },
 ]
 
 export async function devSeed(dataSource: DataSource): Promise<void> {
