@@ -1,5 +1,6 @@
 jest.mock('../use-cases/update-patient.use-case')
 jest.mock('next/navigation', () => ({ useRouter: jest.fn() }))
+jest.mock('@/lib/slug-context', () => ({ useSlug: () => 'test-clinic' }))
 
 import React from 'react'
 import { renderHook, act, waitFor } from '@testing-library/react'
@@ -47,7 +48,7 @@ describe('useUpdatePatient', () => {
 
     act(() => result.current.mutate(payload))
 
-    await waitFor(() => expect(mockPush).toHaveBeenCalledWith('/patients/uuid-1'))
+    await waitFor(() => expect(mockPush).toHaveBeenCalledWith('/test-clinic/patients/uuid-1'))
 
     expect(invalidate).toHaveBeenCalledWith({ queryKey: ['patients'] })
     expect(invalidate).toHaveBeenCalledWith({ queryKey: ['patients', 'uuid-1'] })
@@ -62,7 +63,7 @@ describe('useUpdatePatient', () => {
     act(() => result.current.mutate(payload))
 
     await waitFor(() => {
-      expect(mockPush).toHaveBeenCalledWith('/patients/uuid-1')
+      expect(mockPush).toHaveBeenCalledWith('/test-clinic/patients/uuid-1')
     })
   })
 

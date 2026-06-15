@@ -23,7 +23,7 @@ export const metadata: Metadata = {
     description: 'Backoffice clínico Umi',
 }
 
-const themeInitScript = `(function(){try{var s=localStorage.getItem('theme-preference');if(s){var t=JSON.parse(s).state?.theme;if(t==='dark')document.documentElement.classList.add('dark');}else if(window.matchMedia('(prefers-color-scheme: dark)').matches){document.documentElement.classList.add('dark');}}catch(e){}})();(function(){try{var t=localStorage.getItem('clinic-theme-vars');if(!t)return;var v=JSON.parse(t);var r=document.documentElement;for(var k in v){r.style.setProperty(k,v[k]);}}catch(e){}})();`
+const themeInitScript = `(function(){try{var s=localStorage.getItem('theme-preference');if(s){var t=JSON.parse(s).state?.theme;if(t==='dark')document.documentElement.classList.add('dark');}else if(window.matchMedia('(prefers-color-scheme: dark)').matches){document.documentElement.classList.add('dark');}}catch(e){}})();(function(){try{if(window.location.pathname.startsWith('/backoffice'))return;var t=localStorage.getItem('clinic-theme-vars');if(!t)return;var v=JSON.parse(t);var r=document.documentElement;for(var k in v){r.style.setProperty(k,v[k]);}}catch(e){}})();`
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
     return (

@@ -1,12 +1,11 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { cn } from '@/lib/cn'
+import { usePathname } from 'next/navigation'
 import { useSidebarNavigation } from '@/hooks/use-sidebar-navigation.hook'
 import { useAuthStore } from '@/stores/auth.store'
 import { useCurrentClinic } from '@/components/features/clinics/hooks/use-current-clinic.hook'
 import { SidebarItem } from './sidebar-item'
-import { SidebarToggle } from './sidebar-toggle'
 
 function getInitials(fullName: string): string {
   const parts = fullName.trim().split(/\s+/)
@@ -15,60 +14,65 @@ function getInitials(fullName: string): string {
 }
 
 export function Sidebar() {
-  const { items, isCollapsed, toggle } = useSidebarNavigation()
+  const { items } = useSidebarNavigation()
   const user = useAuthStore((state) => state.user)
   const { data: clinic } = useCurrentClinic()
+  const pathname = usePathname()
   const [mounted, setMounted] = useState(false)
 
   useEffect(() => {
     setMounted(true)
   }, [])
 
-  const clinicName = clinic?.name ?? 'Umi'
+  const isBackoffice = pathname?.startsWith('/backoffice') ?? false
+  const clinicName = isBackoffice ? 'Backoffice' : (clinic?.name ?? 'Umi')
   const clinicInitial = clinicName.charAt(0).toUpperCase()
 
   return (
     <aside
       data-testid="sidebar"
-      data-collapsed={isCollapsed}
-      className={cn(
-        'flex flex-col border-r border-line bg-bg transition-all duration-200 shrink-0',
-        isCollapsed ? 'w-16' : 'w-64',
-      )}
+      className="flex flex-col w-64 border-r border-line bg-bg shrink-0"
       style={{ padding: '20px 14px 16px' }}
     >
-      <div
-        className={cn(
-          'flex items-center gap-[10px] pb-5 px-2',
-          isCollapsed && 'flex-col gap-2 px-0',
-        )}
-      >
-        <div
-          data-testid="sidebar-logo"
-          className="w-9 h-9 rounded-[10px] grid place-items-center shrink-0 text-sm font-semibold"
-          style={{ background: 'linear-gradient(155deg, var(--accent), var(--warm))', color: '#0B1220' }}
-        >
-          {clinicInitial}
-        </div>
-
-        {!isCollapsed && (
-          <div className="flex-1 min-w-0">
-            <div
-              data-testid="sidebar-clinic-name"
-              className="truncate"
-              style={{ fontFamily: 'var(--font-fraunces)', fontSize: '17px', letterSpacing: '-0.02em' }}
-            >
-              {clinicName}
-            </div>
+      <div className="flex items-center gap-[10px] pb-5 px-2">
+        {clinic?.logoUrl ? (
+          <div data-testid="sidebar-logo" className="flex-1 min-w-0">
+            <img
+              src={clinic.logoUrl}
+              alt={clinicName}
+              className="w-full h-auto object-contain object-left"
+            />
           </div>
-        )}
+        ) : (
+          <>
+            <div
+              data-testid="sidebar-logo"
+              className="w-9 h-9 rounded-[10px] shrink-0 overflow-hidden"
+            >
+              <div
+                className="w-full h-full grid place-items-center text-sm font-semibold"
+                style={{ background: 'linear-gradient(155deg, var(--accent), var(--warm))', color: '#0B1220' }}
+              >
+                {clinicInitial}
+              </div>
+            </div>
 
-        <SidebarToggle isCollapsed={isCollapsed} onToggle={toggle} />
+            <div className="flex-1 min-w-0">
+              <div
+                data-testid="sidebar-clinic-name"
+                className="truncate"
+                style={{ fontFamily: 'var(--font-fraunces)', fontSize: '17px', letterSpacing: '-0.02em' }}
+              >
+                {clinicName}
+              </div>
+            </div>
+          </>
+        )}
       </div>
 
       <nav className="flex flex-col gap-1 flex-1" data-testid="sidebar-nav">
         {items.map((item) => (
-          <SidebarItem key={item.id} item={item} isCollapsed={isCollapsed} />
+          <SidebarItem key={item.id} item={item} />
         ))}
       </nav>
 
@@ -83,14 +87,12 @@ export function Sidebar() {
               {getInitials(user.fullName)}
             </div>
 
-            {!isCollapsed && (
-              <div className="flex-1 min-w-0" data-testid="sidebar-user-info">
-                <div className="text-sm truncate text-text">{user.fullName}</div>
-                <div className="truncate text-text-mute" style={{ fontSize: '11px' }}>
-                  {user.email}
-                </div>
+            <div className="flex-1 min-w-0" data-testid="sidebar-user-info">
+              <div className="text-sm truncate text-text">{user.fullName}</div>
+              <div className="truncate text-text-mute" style={{ fontSize: '11px' }}>
+                {user.email}
               </div>
-            )}
+            </div>
           </div>
         </div>
       )}

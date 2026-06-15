@@ -20,7 +20,11 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
   constructor() {
     super({
       jwtFromRequest: ExtractJwt.fromExtractors([
-        (request: Request) => request?.cookies?.access_token ?? null,
+        (request: Request) => {
+          const slug = request?.headers?.['x-clinic-slug'] as string | undefined
+          const cookieName = slug && slug !== 'backoffice' ? `access_token_${slug}` : 'access_token'
+          return request?.cookies?.[cookieName] ?? null
+        },
         ExtractJwt.fromAuthHeaderAsBearerToken(),
       ]),
       ignoreExpiration: false,

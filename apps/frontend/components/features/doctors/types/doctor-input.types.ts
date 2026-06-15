@@ -1,5 +1,7 @@
 export interface ICreateDoctorInput {
-  userId: string
+  userId?: string
+  fullName?: string
+  email?: string
   crmNumber: string
   specialtyIds: string[]
   bio?: string

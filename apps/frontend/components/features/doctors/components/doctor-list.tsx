@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
+import { useSlug } from '@/lib/slug-context'
 import { Alert } from '@/components/ui/molecules/alert/alert'
 import { Button } from '@/components/ui/atoms/button/button'
 import { Input } from '@/components/ui/atoms/input/input'
@@ -12,6 +13,7 @@ import { DoctorDeleteDialog } from './doctor-delete-dialog'
 import type { IDoctorModel } from '../types/doctor-model.types'
 
 export function DoctorList() {
+  const slug = useSlug()
   const [searchTerm, setSearchTerm] = useState('')
   const [debouncedSearch, setDebouncedSearch] = useState('')
   const [doctorToDelete, setDoctorToDelete] = useState<IDoctorModel | null>(null)
@@ -65,7 +67,7 @@ export function DoctorList() {
             </p>
           )}
         </div>
-        <Link href="/doctors/new">
+        <Link href={`/${slug}/doctors/new`}>
           <Button variant="primary" data-testid="doctor-list-new-button">
             + Novo médico
           </Button>
@@ -187,14 +189,14 @@ export function DoctorList() {
                           Excluir
                         </Button>
                         <Link
-                          href={`/doctors/${doctor.id}/edit`}
+                          href={`/${slug}/doctors/${doctor.id}/edit`}
                           data-testid={`doctor-edit-link-${doctor.id}`}
                           className="text-xs text-text-mute hover:text-text transition-colors"
                         >
                           Editar
                         </Link>
                         <Link
-                          href={`/doctors/${doctor.id}`}
+                          href={`/${slug}/doctors/${doctor.id}`}
                           data-testid={`doctor-view-link-${doctor.id}`}
                           className="flex items-center justify-center rounded-md p-1.5 text-text-mute transition-colors hover:bg-line hover:text-text"
                           aria-label={`Ver detalhes de ${doctor.user.fullName}`}

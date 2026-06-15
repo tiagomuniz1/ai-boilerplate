@@ -8,7 +8,7 @@ export abstract class IDoctorsRepository {
   abstract findById(id: string, clinicId: string): Promise<Doctor | null>
   abstract findByUserId(userId: string, clinicId: string): Promise<Doctor | null>
   abstract findByCrmNumber(crmNumber: string, clinicId: string): Promise<Doctor | null>
-  abstract create(data: CreateDoctorDto, specialties: Specialty[], queryRunner?: QueryRunner): Promise<Doctor>
+  abstract create(data: CreateDoctorDto & { userId: string }, clinicId: string, specialties: Specialty[], queryRunner?: QueryRunner): Promise<Doctor>
   abstract update(id: string, data: UpdateDoctorDto, specialties: Specialty[] | null, queryRunner?: QueryRunner): Promise<Doctor>
   abstract delete(id: string, queryRunner?: QueryRunner): Promise<void>
 }

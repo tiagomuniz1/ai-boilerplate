@@ -11,6 +11,8 @@ const mockClinicsRepository: jest.Mocked<IClinicsRepository> = {
   findBySlug: jest.fn(),
   create: jest.fn(),
   update: jest.fn(),
+  updateLogo: jest.fn(),
+  updateFavicon: jest.fn(),
 }
 
 const mockCacheService = {
@@ -154,6 +156,17 @@ describe('UpdateClinicUseCase', () => {
     expect(mockClinicsRepository.update).not.toHaveBeenCalled()
   })
 
+  it('throws ConflictException when new slug is "backoffice" (reserved)', async () => {
+    const clinic = makeClinic({ slug: 'minha-clinica' })
+    mockClinicsRepository.findById.mockResolvedValue(clinic as any)
+
+    await expect(
+      useCase.execute(clinic.id, { slug: 'backoffice' }),
+    ).rejects.toThrow(new ConflictException('Slug is reserved and cannot be used'))
+    expect(mockClinicsRepository.findBySlug).not.toHaveBeenCalled()
+    expect(mockClinicsRepository.update).not.toHaveBeenCalled()
+  })
+
   it('does not check uniqueness when slug is unchanged', async () => {
     const clinic = makeClinic({ slug: 'clinica-do-coracao' })
     const updated = makeClinic({ id: clinic.id })
@@ -234,5 +247,17 @@ describe('UpdateClinicUseCase', () => {
     const result = await useCase.execute(clinic.id, { name: 'Nova Clínica' })
 
     expect(result.id).toBeDefined()
+  })
+
+  it('invalidates theme cache when themeId is present in dto', async () => {
+    const clinic = makeClinic()
+    const updated = makeClinic({ id: clinic.id, themeId: 'theme-uuid-1' })
+
+    mockClinicsRepository.findById.mockResolvedValue(clinic as any)
+    mockClinicsRepository.update.mockResolvedValue(updated as any)
+
+    await useCase.execute(clinic.id, { themeId: 'theme-uuid-1' } as any)
+
+    expect(mockCacheService.del).toHaveBeenCalledWith(`theme:clinic:${clinic.id}`)
   })
 })

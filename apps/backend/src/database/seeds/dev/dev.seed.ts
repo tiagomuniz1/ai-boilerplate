@@ -54,6 +54,36 @@ const SEED_THEMES = [
     bgColor: '#FDF8F9',
     bgDarkColor: '#1A0D12',
   },
+  {
+    name: 'Âmbar',
+    slug: 'ambar',
+    accentColor: '#A8836A',
+    accentSoftColor: '#F3E8DF',
+    isDefault: false,
+    borderRadius: ThemeBorderRadius.DEFAULT,
+    bgColor: '#FAF5F0',
+    bgDarkColor: '#1C1410',
+  },
+  {
+    name: 'Mel',
+    slug: 'mel',
+    accentColor: '#9A7B4A',
+    accentSoftColor: '#F3E8D5',
+    isDefault: false,
+    borderRadius: ThemeBorderRadius.ROUND,
+    bgColor: '#FDFAF4',
+    bgDarkColor: '#191410',
+  },
+  {
+    name: 'AtlasOS',
+    slug: 'atlas-os',
+    accentColor: '#1A6B38',
+    accentSoftColor: '#B8E8CF',
+    isDefault: false,
+    borderRadius: ThemeBorderRadius.DEFAULT,
+    bgColor: '#C5E8D5',
+    bgDarkColor: '#071410',
+  },
 ]
 
 export async function devSeed(dataSource: DataSource): Promise<void> {

@@ -2,6 +2,7 @@ jest.mock('next/navigation', () => ({ useRouter: jest.fn() }))
 jest.mock('@/stores/auth.store')
 jest.mock('../services/users.service')
 jest.mock('../use-cases/delete-user.use-case')
+jest.mock('@/lib/slug-context', () => ({ useSlug: () => 'test-clinic' }))
 
 import { screen, waitFor, fireEvent, act } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
@@ -215,7 +216,7 @@ describe('UserList (integration)', () => {
 
     const editLink = screen.getByTestId('user-edit-link-uuid-1')
     expect(editLink).toHaveTextContent('Editar')
-    expect(editLink).toHaveAttribute('href', '/users/uuid-1/edit')
+    expect(editLink).toHaveAttribute('href', '/test-clinic/users/uuid-1/edit')
   })
 
   it('renders view chevron linking to user details page', async () => {
@@ -228,7 +229,7 @@ describe('UserList (integration)', () => {
     })
 
     const viewLink = screen.getByTestId('user-view-link-uuid-1')
-    expect(viewLink).toHaveAttribute('href', '/users/uuid-1')
+    expect(viewLink).toHaveAttribute('href', '/test-clinic/users/uuid-1')
   })
 
   it('renders search input', () => {

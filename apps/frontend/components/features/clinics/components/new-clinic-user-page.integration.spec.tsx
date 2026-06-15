@@ -6,7 +6,7 @@ import userEvent from '@testing-library/user-event'
 import { useRouter, useParams } from 'next/navigation'
 import { useCreateClinicAdminUser } from '@/components/features/users/hooks/use-create-clinic-admin-user.hook'
 import { renderWithProviders } from '@/tests/utils/render-with-providers'
-import NewClinicUserPage from '@/app/(authenticated)/clinics/[id]/users/new/page'
+import NewClinicUserPage from '@/app/backoffice/(authenticated)/clinics/[id]/users/new/page'
 
 const mockPush = jest.fn()
 const mockMutate = jest.fn()
@@ -28,12 +28,12 @@ describe('NewClinicUserPage (integration)', () => {
     expect(screen.getByTestId('new-clinic-user-back-button')).toBeInTheDocument()
   })
 
-  it('back button links to /clinics/:id', () => {
+  it('back button links to /backoffice/clinics/:id', () => {
     renderWithProviders(<NewClinicUserPage />)
 
     expect(screen.getByTestId('new-clinic-user-back-button').closest('a')).toHaveAttribute(
       'href',
-      `/clinics/${CLINIC_ID}`,
+      `/backoffice/clinics/${CLINIC_ID}`,
     )
   })
 

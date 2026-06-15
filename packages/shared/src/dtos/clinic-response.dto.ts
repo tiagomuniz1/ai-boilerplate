@@ -15,6 +15,8 @@ export class ClinicResponseDto {
   slug!: string
   isActive!: boolean
   themeId!: string | null
+  logoUrl!: string | null
+  faviconUrl!: string | null
   address!: AddressResponseDto | null
   createdAt!: Date
   updatedAt!: Date

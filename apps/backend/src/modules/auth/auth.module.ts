@@ -3,6 +3,7 @@ import { JwtModule } from '@nestjs/jwt'
 import { PassportModule } from '@nestjs/passport'
 import { TypeOrmModule } from '@nestjs/typeorm'
 import { getEnvConfig } from '../../config/env.config'
+import { ClinicsModule } from '../clinics/clinics.module'
 import { UsersModule } from '../users/users.module'
 import { AuthController } from './controllers/auth.controller'
 import { RefreshToken } from './entities/refresh-token.entity'
@@ -27,6 +28,7 @@ import { AUTH_ENV } from './use-cases/auth-env.token'
     }),
     TypeOrmModule.forFeature([RefreshToken]),
     UsersModule,
+    ClinicsModule,
   ],
   controllers: [AuthController],
   providers: [

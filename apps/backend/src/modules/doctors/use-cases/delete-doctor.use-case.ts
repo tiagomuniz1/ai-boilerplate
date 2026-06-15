@@ -33,26 +33,42 @@ export class DeleteDoctorUseCase extends BaseUseCase {
     }
 
     const userId = doctor.userId
-    const shouldDeleteUser = doctor.user.role === UserRole.DOCTOR
+    const userRole = doctor.user.role
+    const hasPatientProfile = await this.userHasPatientProfile(userId)
+
+    const shouldDeleteUser = userRole === UserRole.DOCTOR && !hasPatientProfile
+    const shouldDemoteToPatient = userRole === UserRole.DOCTOR && hasPatientProfile
 
     await this.runInTransaction(async (queryRunner) => {
       await this.deleteScheduleUseCase.deleteByDoctorId(id, clinicId, queryRunner)
       await this.doctorsRepository.delete(id, queryRunner)
       if (shouldDeleteUser) {
         await this.usersRepository.delete(userId, queryRunner)
+      } else if (shouldDemoteToPatient) {
+        await this.usersRepository.update(userId, { role: UserRole.PATIENT, isActive: false }, queryRunner)
       }
     })
 
     try {
       await this.cacheService.del(`doctor:${clinicId}:${id}`)
       await this.cacheService.delByPattern(`doctors:list:${clinicId}*`)
-      if (shouldDeleteUser) {
-        await this.cacheService.del(`user:${clinicId}:${userId}`)
-        await this.cacheService.delByPattern(`users:list:${clinicId}*`)
-      }
+      await this.cacheService.del(`user:${clinicId}:${userId}`)
+      await this.cacheService.delByPattern(`users:list:${clinicId}*`)
     } catch {
       this.logger.warn('Cache invalidation failed', { context: DeleteDoctorUseCase.name })
     }
+  }
+
+  private async userHasPatientProfile(userId: string): Promise<boolean> {
+    const rows: unknown[] = await this.dataSource
+      .createQueryBuilder()
+      .select('1')
+      .from('patients', 'p')
+      .where('p.user_id = :userId', { userId })
+      .andWhere('p.deleted_at IS NULL')
+      .limit(1)
+      .getRawMany()
+    return rows.length > 0
   }
 
   async deleteByUserId(userId: string, clinicId: string, queryRunner?: QueryRunner): Promise<void> {

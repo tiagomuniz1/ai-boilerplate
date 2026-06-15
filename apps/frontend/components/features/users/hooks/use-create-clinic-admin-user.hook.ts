@@ -15,7 +15,7 @@ export function useCreateClinicAdminUser(clinicId: string) {
     mutationFn: (input) => createUserUseCase({ ...input, clinicId }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['users'] })
-      router.push(`/clinics/${clinicId}`)
+      router.push(`/backoffice/clinics/${clinicId}`)
     },
   })
 }

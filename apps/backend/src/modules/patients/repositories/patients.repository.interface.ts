@@ -4,6 +4,7 @@ import { Patient } from '../entities/patient.entity'
 
 export interface CreatePatientData {
   userId: string
+  clinicId: string
   documentNumber: string
   phoneNumber: string
   birthDate: string

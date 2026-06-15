@@ -2,27 +2,16 @@
 
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
-import { UserRole } from '@app/shared'
 import { Alert } from '@/components/ui/molecules/alert/alert'
 import { Button } from '@/components/ui/atoms/button/button'
 import { Input } from '@/components/ui/atoms/input/input'
-import { useAuthStore } from '@/stores/auth.store'
 import { useThemes } from '@/components/features/themes/hooks/use-themes.hook'
 import { useClinics } from '../hooks/use-clinics.hook'
 import { ClinicListSkeleton } from './clinic-list-skeleton'
 
 export function ClinicList() {
-  const router = useRouter()
-  const user = useAuthStore((state) => state.user)
   const [searchTerm, setSearchTerm] = useState('')
   const [debouncedSearch, setDebouncedSearch] = useState('')
-
-  useEffect(() => {
-    if (user?.role && user.role !== UserRole.PLATFORM_ADMIN) {
-      router.replace('/dashboard')
-    }
-  }, [user?.role, router])
 
   useEffect(() => {
     const timer = setTimeout(() => setDebouncedSearch(searchTerm), 300)
@@ -51,7 +40,7 @@ export function ClinicList() {
             </p>
           )}
         </div>
-        <Link href="/clinics/new">
+        <Link href="/backoffice/clinics/new">
           <Button variant="primary" data-testid="clinic-list-new-button">
             + Nova clínica
           </Button>
@@ -164,21 +153,21 @@ export function ClinicList() {
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-3">
                           <Link
-                            href={`/clinics/${clinic.id}/users/new`}
+                            href={`/backoffice/clinics/${clinic.id}/users/new`}
                             data-testid={`clinic-add-user-link-${clinic.id}`}
                             className="text-xs text-text-mute hover:text-text transition-colors"
                           >
                             + Usuário
                           </Link>
                           <Link
-                            href={`/clinics/${clinic.id}/edit`}
+                            href={`/backoffice/clinics/${clinic.id}/edit`}
                             data-testid={`clinic-edit-link-${clinic.id}`}
                             className="text-xs text-text-mute hover:text-text transition-colors"
                           >
                             Editar
                           </Link>
                           <Link
-                            href={`/clinics/${clinic.id}`}
+                            href={`/backoffice/clinics/${clinic.id}`}
                             data-testid={`clinic-view-link-${clinic.id}`}
                             className="flex items-center justify-center rounded-md p-1.5 text-text-mute transition-colors hover:bg-line hover:text-text"
                             aria-label={`Ver detalhes de ${clinic.name}`}

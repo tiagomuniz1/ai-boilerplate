@@ -16,6 +16,8 @@ const makeDto = (overrides: object = {}) => ({
   name: 'Clínica do Coração',
   slug: 'clinica-do-coracao',
   isActive: true,
+  logoUrl: null as string | null,
+  faviconUrl: null as string | null,
   address: makeAddress(),
   createdAt: '2024-01-15T10:00:00.000Z' as unknown as Date,
   updatedAt: '2024-01-16T10:00:00.000Z' as unknown as Date,
@@ -90,5 +92,31 @@ describe('toClinicModel', () => {
     const model = toClinicModel(makeDto({ address: null }))
 
     expect(model.address).toBeNull()
+  })
+
+  it('maps logoUrl when present', () => {
+    const logoUrl = 'https://bucket.s3.us-east-1.amazonaws.com/clinics/uuid-1/logo.jpg'
+    const model = toClinicModel(makeDto({ logoUrl }))
+
+    expect(model.logoUrl).toBe(logoUrl)
+  })
+
+  it('maps logoUrl as null when absent', () => {
+    const model = toClinicModel(makeDto({ logoUrl: null }))
+
+    expect(model.logoUrl).toBeNull()
+  })
+
+  it('maps faviconUrl when present', () => {
+    const faviconUrl = 'https://bucket.s3.us-east-1.amazonaws.com/clinics/uuid-1/favicon.ico'
+    const model = toClinicModel(makeDto({ faviconUrl }))
+
+    expect(model.faviconUrl).toBe(faviconUrl)
+  })
+
+  it('maps faviconUrl as null when absent', () => {
+    const model = toClinicModel(makeDto({ faviconUrl: null }))
+
+    expect(model.faviconUrl).toBeNull()
   })
 })

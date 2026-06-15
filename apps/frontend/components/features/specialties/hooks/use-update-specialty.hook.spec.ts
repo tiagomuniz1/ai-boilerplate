@@ -1,5 +1,6 @@
 jest.mock('../use-cases/update-specialty.use-case')
 jest.mock('next/navigation', () => ({ useRouter: jest.fn() }))
+jest.mock('@/lib/slug-context', () => ({ useSlug: () => 'test-clinic' }))
 
 import React from 'react'
 import { renderHook, act, waitFor } from '@testing-library/react'
@@ -43,7 +44,7 @@ describe('useUpdateSpecialty', () => {
     act(() => result.current.mutate({ id: 'uuid-1', data: { name: 'Neurologia' } }))
 
     await waitFor(() => {
-      expect(mockPush).toHaveBeenCalledWith('/specialties/uuid-1')
+      expect(mockPush).toHaveBeenCalledWith('/test-clinic/specialties/uuid-1')
     })
   })
 

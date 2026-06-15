@@ -1,6 +1,8 @@
 import { ConflictException, Injectable, Logger, NotFoundException, UnprocessableEntityException } from '@nestjs/common'
+import * as bcrypt from 'bcrypt'
+import { randomUUID } from 'crypto'
 import { DataSource } from 'typeorm'
-import { CreateDoctorDto, DoctorResponseDto } from '@app/shared'
+import { CreateDoctorDto, DoctorResponseDto, UserRole } from '@app/shared'
 import { BaseUseCase } from '../../../common/base.use-case'
 import { CacheService } from '../../../cache/cache.service'
 import { DB_UNIQUE_CONSTRAINTS, isUniqueConstraintViolation } from '../../../common/utils/db-constraint.utils'
@@ -26,12 +28,11 @@ export class CreateDoctorUseCase extends BaseUseCase {
 
   async execute(dto: CreateDoctorDto, currentUser: ICurrentUser): Promise<DoctorResponseDto> {
     const clinicId = currentUser.clinicId!
+    const isNewUser = !dto.userId
 
-    const user = await this.usersRepository.findById(dto.userId, clinicId)
-    if (!user) throw new NotFoundException('User not found')
-
-    const existingProfile = await this.doctorsRepository.findByUserId(dto.userId, clinicId)
-    if (existingProfile) throw new ConflictException('User already has a doctor profile')
+    if (isNewUser && (!dto.fullName || !dto.email)) {
+      throw new UnprocessableEntityException('Either userId or fullName and email are required')
+    }
 
     const existingCrm = await this.doctorsRepository.findByCrmNumber(dto.crmNumber, clinicId)
     if (existingCrm) throw new ConflictException('CRM number already in use')
@@ -43,20 +44,72 @@ export class CreateDoctorUseCase extends BaseUseCase {
     }
 
     let doctor: Doctor
-    try {
-      doctor = await this.doctorsRepository.create(dto, specialties)
-    } catch (error) {
-      if (isUniqueConstraintViolation(error, DB_UNIQUE_CONSTRAINTS.DOCTORS_CRM)) {
-        throw new ConflictException('CRM number already in use')
+
+    let promotedUserId: string | undefined
+
+    if (!isNewUser) {
+      const user = await this.usersRepository.findById(dto.userId!, clinicId)
+      if (!user) throw new NotFoundException('User not found')
+
+      const existingProfile = await this.doctorsRepository.findByUserId(dto.userId!, clinicId)
+      if (existingProfile) throw new ConflictException('User already has a doctor profile')
+
+      const needsRolePromotion = user.role === UserRole.PATIENT
+
+      try {
+        if (needsRolePromotion) {
+          doctor = await this.runInTransaction(async (queryRunner) => {
+            await this.usersRepository.update(user.id, { role: UserRole.DOCTOR, isActive: true }, queryRunner)
+            return this.doctorsRepository.create({ ...dto, userId: dto.userId! }, clinicId, specialties, queryRunner)
+          })
+          promotedUserId = dto.userId!
+        } else {
+          doctor = await this.doctorsRepository.create({ ...dto, userId: dto.userId! }, clinicId, specialties)
+        }
+      } catch (error) {
+        if (isUniqueConstraintViolation(error, DB_UNIQUE_CONSTRAINTS.DOCTORS_CRM)) {
+          throw new ConflictException('CRM number already in use')
+        }
+        if (isUniqueConstraintViolation(error, DB_UNIQUE_CONSTRAINTS.DOCTORS_USER_ID)) {
+          throw new ConflictException('User already has a doctor profile')
+        }
+        throw error
       }
-      if (isUniqueConstraintViolation(error, DB_UNIQUE_CONSTRAINTS.DOCTORS_USER_ID)) {
-        throw new ConflictException('User already has a doctor profile')
+    } else {
+      const existingEmail = await this.usersRepository.findByEmail(dto.email!, clinicId)
+      if (existingEmail) throw new ConflictException('Email already in use')
+
+      const hashedPassword = await bcrypt.hash(randomUUID(), 10)
+
+      try {
+        doctor = await this.runInTransaction(async (queryRunner) => {
+          const user = await this.usersRepository.create(
+            { fullName: dto.fullName!, email: dto.email!, password: hashedPassword, role: UserRole.DOCTOR, isActive: true },
+            clinicId,
+            queryRunner,
+          )
+          return this.doctorsRepository.create({ ...dto, userId: user.id }, clinicId, specialties, queryRunner)
+        })
+      } catch (error) {
+        if (isUniqueConstraintViolation(error, DB_UNIQUE_CONSTRAINTS.USERS_EMAIL_CLINIC)) {
+          throw new ConflictException('Email already in use')
+        }
+        if (isUniqueConstraintViolation(error, DB_UNIQUE_CONSTRAINTS.DOCTORS_CRM)) {
+          throw new ConflictException('CRM number already in use')
+        }
+        if (isUniqueConstraintViolation(error, DB_UNIQUE_CONSTRAINTS.DOCTORS_USER_ID)) {
+          throw new ConflictException('User already has a doctor profile')
+        }
+        throw error
       }
-      throw error
     }
 
     try {
       await this.cacheService.delByPattern(`doctors:list:${clinicId}*`)
+      await this.cacheService.delByPattern(`users:list:${clinicId}*`)
+      if (promotedUserId) {
+        await this.cacheService.del(`user:${clinicId}:${promotedUserId}`)
+      }
     } catch {
       this.logger.warn('Cache invalidation failed', { context: CreateDoctorUseCase.name })
     }

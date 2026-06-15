@@ -26,7 +26,7 @@ describe('AuthController', () => {
 
   describe('login', () => {
     const useCaseResult = {
-      user: { id: 'uuid-1', fullName: 'Alice Costa', email: 'alice@example.com', role: UserRole.USER },
+      user: { id: 'uuid-1', fullName: 'Alice Costa', email: 'alice@example.com', role: UserRole.USER, clinicId: null },
       accessToken: 'access-token-value',
       refreshToken: 'refresh-token-value',
       accessTokenMaxAge: 900 * 1000,
@@ -107,9 +107,29 @@ describe('AuthController', () => {
         mockResponse as any,
       )
 
-      expect(result).toEqual({ id: 'uuid-1', fullName: 'Alice Costa', email: 'alice@example.com', role: UserRole.USER })
+      expect(result).toEqual({ id: 'uuid-1', fullName: 'Alice Costa', email: 'alice@example.com', role: UserRole.USER, clinicId: null })
       expect(result).not.toHaveProperty('accessToken')
       expect(result).not.toHaveProperty('refreshToken')
+    })
+
+    it('sets slug-scoped cookies when dto.slug is a clinic slug', async () => {
+      mockLoginUseCase.execute.mockResolvedValue(useCaseResult)
+      const mockResponse = makeMockResponse()
+
+      await controller.login({ email: 'alice@example.com', password: 'password123', slug: 'minha-clinica' } as any, mockResponse as any)
+
+      expect(mockResponse.cookie).toHaveBeenCalledWith('access_token_minha-clinica', 'access-token-value', expect.any(Object))
+      expect(mockResponse.cookie).toHaveBeenCalledWith('refresh_token_minha-clinica', 'refresh-token-value', expect.any(Object))
+    })
+
+    it('uses generic cookie names when dto.slug is "backoffice"', async () => {
+      mockLoginUseCase.execute.mockResolvedValue(useCaseResult)
+      const mockResponse = makeMockResponse()
+
+      await controller.login({ email: 'alice@example.com', password: 'password123', slug: 'backoffice' } as any, mockResponse as any)
+
+      expect(mockResponse.cookie).toHaveBeenCalledWith('access_token', 'access-token-value', expect.any(Object))
+      expect(mockResponse.cookie).toHaveBeenCalledWith('refresh_token', 'refresh-token-value', expect.any(Object))
     })
   })
 
@@ -126,7 +146,7 @@ describe('AuthController', () => {
       const mockReq = { cookies: { refresh_token: 'rt' } } as any
       const mockRes = makeMockResponse() as any
 
-      await controller.refresh(mockReq, mockRes)
+      await controller.refresh(mockReq, mockRes, undefined)
 
       expect(mockRefreshTokenUseCase.execute).toHaveBeenCalledWith({ refreshToken: 'rt' })
     })
@@ -136,7 +156,7 @@ describe('AuthController', () => {
       const mockReq = { cookies: { refresh_token: 'rt' } } as any
       const mockRes = makeMockResponse() as any
 
-      await controller.refresh(mockReq, mockRes)
+      await controller.refresh(mockReq, mockRes, undefined)
 
       expect(mockRes.cookie).toHaveBeenCalledWith(
         'access_token',
@@ -155,7 +175,7 @@ describe('AuthController', () => {
       const mockReq = { cookies: { refresh_token: 'rt' } } as any
       const mockRes = makeMockResponse() as any
 
-      await controller.refresh(mockReq, mockRes)
+      await controller.refresh(mockReq, mockRes, undefined)
 
       const [, , options] = (mockRes.cookie as jest.Mock).mock.calls[0]
       expect(options.maxAge).toBe(900 * 1000)
@@ -166,7 +186,7 @@ describe('AuthController', () => {
       const mockReq = { cookies: { refresh_token: 'rt' } } as any
       const mockRes = makeMockResponse() as any
 
-      await controller.refresh(mockReq, mockRes)
+      await controller.refresh(mockReq, mockRes, undefined)
 
       const [, , options] = (mockRes.cookie as jest.Mock).mock.calls[1]
       expect(options.maxAge).toBe(604800 * 1000)
@@ -176,8 +196,20 @@ describe('AuthController', () => {
       const mockReq = { cookies: {} } as any
       const mockRes = makeMockResponse() as any
 
-      await expect(controller.refresh(mockReq, mockRes)).rejects.toThrow(UnauthorizedException)
+      await expect(controller.refresh(mockReq, mockRes, undefined)).rejects.toThrow(UnauthorizedException)
       expect(mockRefreshTokenUseCase.execute).not.toHaveBeenCalled()
+    })
+
+    it('reads slug-scoped refresh cookie when x-clinic-slug header is provided', async () => {
+      mockRefreshTokenUseCase.execute.mockResolvedValue(useCaseResult as any)
+      const mockReq = { cookies: { refresh_token_minha_clinica: 'rt-clinic' } } as any
+      const mockRes = makeMockResponse() as any
+
+      await controller.refresh(mockReq, mockRes, 'minha_clinica')
+
+      expect(mockRefreshTokenUseCase.execute).toHaveBeenCalledWith({ refreshToken: 'rt-clinic' })
+      expect(mockRes.cookie).toHaveBeenCalledWith('access_token_minha_clinica', 'new-at', expect.any(Object))
+      expect(mockRes.cookie).toHaveBeenCalledWith('refresh_token_minha_clinica', 'new-rt', expect.any(Object))
     })
   })
 
@@ -187,7 +219,7 @@ describe('AuthController', () => {
       const mockReq = { cookies: { refresh_token: 'rt' } } as any
       const mockRes = { clearCookie: jest.fn() } as any
 
-      await controller.logout(mockReq, mockRes)
+      await controller.logout(mockReq, mockRes, undefined)
 
       expect(mockLogoutUseCase.execute).toHaveBeenCalledWith({ refreshToken: 'rt' })
     })
@@ -197,7 +229,7 @@ describe('AuthController', () => {
       const mockReq = { cookies: { refresh_token: 'rt' } } as any
       const mockRes = { clearCookie: jest.fn() } as any
 
-      await controller.logout(mockReq, mockRes)
+      await controller.logout(mockReq, mockRes, undefined)
 
       expect(mockRes.clearCookie).toHaveBeenCalledWith('access_token', expect.objectContaining({ httpOnly: true, secure: true, sameSite: 'strict' }))
       expect(mockRes.clearCookie).toHaveBeenCalledWith('refresh_token', expect.objectContaining({ httpOnly: true, secure: true, sameSite: 'strict' }))
@@ -207,9 +239,21 @@ describe('AuthController', () => {
       const mockReq = { cookies: {} } as any
       const mockRes = { clearCookie: jest.fn() } as any
 
-      await controller.logout(mockReq, mockRes)
+      await controller.logout(mockReq, mockRes, undefined)
 
       expect(mockLogoutUseCase.execute).not.toHaveBeenCalled()
+    })
+
+    it('reads and clears slug-scoped cookies when slug is provided in body', async () => {
+      mockLogoutUseCase.execute.mockResolvedValue(undefined)
+      const mockReq = { cookies: { refresh_token_minha_clinica: 'rt-clinic' } } as any
+      const mockRes = { clearCookie: jest.fn() } as any
+
+      await controller.logout(mockReq, mockRes, { slug: 'minha_clinica' })
+
+      expect(mockLogoutUseCase.execute).toHaveBeenCalledWith({ refreshToken: 'rt-clinic' })
+      expect(mockRes.clearCookie).toHaveBeenCalledWith('access_token_minha_clinica', expect.any(Object))
+      expect(mockRes.clearCookie).toHaveBeenCalledWith('refresh_token_minha_clinica', expect.any(Object))
     })
   })
 

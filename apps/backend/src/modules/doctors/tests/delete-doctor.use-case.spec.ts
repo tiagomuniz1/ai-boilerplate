@@ -18,8 +18,20 @@ const mockQueryRunner = {
   manager: {},
 } as unknown as QueryRunner
 
+function makePatientCheckQb(hasProfile: boolean) {
+  return {
+    select: jest.fn().mockReturnThis(),
+    from: jest.fn().mockReturnThis(),
+    where: jest.fn().mockReturnThis(),
+    andWhere: jest.fn().mockReturnThis(),
+    limit: jest.fn().mockReturnThis(),
+    getRawMany: jest.fn().mockResolvedValue(hasProfile ? [{ '?column?': '1' }] : []),
+  }
+}
+
 const mockDataSource = {
   createQueryRunner: jest.fn().mockReturnValue(mockQueryRunner),
+  createQueryBuilder: jest.fn(),
 } as unknown as DataSource
 
 const mockDoctorsRepository: jest.Mocked<IDoctorsRepository> = {
@@ -84,8 +96,10 @@ describe('DeleteDoctorUseCase', () => {
     mockDeleteScheduleUseCase.deleteByDoctorId.mockResolvedValue(undefined)
     mockDoctorsRepository.delete.mockResolvedValue(undefined)
     mockUsersRepository.delete.mockResolvedValue(undefined)
+    mockUsersRepository.update.mockResolvedValue(undefined as any)
     mockCacheService.del.mockResolvedValue(undefined)
     mockCacheService.delByPattern.mockResolvedValue(undefined)
+    ;(mockDataSource.createQueryBuilder as jest.Mock).mockReturnValue(makePatientCheckQb(false))
   })
 
   it('cascades to schedules, deletes doctor and linked DOCTOR-role user in a transaction', async () => {
@@ -151,16 +165,44 @@ describe('DeleteDoctorUseCase', () => {
     expect(mockCacheService.delByPattern).toHaveBeenCalledWith(`users:list:${CLINIC_ID}*`)
   })
 
-  it('invalidates only doctor cache when linked user role is not DOCTOR', async () => {
-    const doctor = makeDoctor(UserRole.ADMIN)
+  it('invalidates doctor and user caches when linked user role is not DOCTOR', async () => {
+    const doctor = makeDoctor(UserRole.PATIENT)
     mockDoctorsRepository.findById.mockResolvedValue(doctor as any)
 
     await useCase.execute(doctor.id, adminCurrentUser)
 
     expect(mockCacheService.del).toHaveBeenCalledWith(`doctor:${CLINIC_ID}:${doctor.id}`)
     expect(mockCacheService.delByPattern).toHaveBeenCalledWith(`doctors:list:${CLINIC_ID}*`)
-    expect(mockCacheService.del).not.toHaveBeenCalledWith(`user:${CLINIC_ID}:${doctor.userId}`)
-    expect(mockCacheService.delByPattern).not.toHaveBeenCalledWith(`users:list:${CLINIC_ID}*`)
+    expect(mockCacheService.del).toHaveBeenCalledWith(`user:${CLINIC_ID}:${doctor.userId}`)
+    expect(mockCacheService.delByPattern).toHaveBeenCalledWith(`users:list:${CLINIC_ID}*`)
+  })
+
+  it('demotes user to PATIENT with isActive false when linked user has a patient profile', async () => {
+    const doctor = makeDoctor(UserRole.DOCTOR)
+    mockDoctorsRepository.findById.mockResolvedValue(doctor as any)
+    ;(mockDataSource.createQueryBuilder as jest.Mock).mockReturnValue(makePatientCheckQb(true))
+
+    await useCase.execute(doctor.id, adminCurrentUser)
+
+    expect(mockDoctorsRepository.delete).toHaveBeenCalledWith(doctor.id, mockQueryRunner)
+    expect(mockUsersRepository.update).toHaveBeenCalledWith(
+      doctor.userId,
+      { role: UserRole.PATIENT, isActive: false },
+      mockQueryRunner,
+    )
+    expect(mockUsersRepository.delete).not.toHaveBeenCalled()
+    expect(mockQueryRunner.commitTransaction).toHaveBeenCalled()
+  })
+
+  it('does not demote user when role is not DOCTOR even if patient profile exists', async () => {
+    const doctor = makeDoctor(UserRole.USER)
+    mockDoctorsRepository.findById.mockResolvedValue(doctor as any)
+    ;(mockDataSource.createQueryBuilder as jest.Mock).mockReturnValue(makePatientCheckQb(true))
+
+    await useCase.execute(doctor.id, adminCurrentUser)
+
+    expect(mockUsersRepository.update).not.toHaveBeenCalled()
+    expect(mockUsersRepository.delete).not.toHaveBeenCalled()
   })
 
   it('continues when cache invalidation fails', async () => {

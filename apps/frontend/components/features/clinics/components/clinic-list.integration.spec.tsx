@@ -187,16 +187,7 @@ describe('ClinicList (integration)', () => {
     })
   })
 
-  it('redirects to /dashboard when user is not PLATFORM_ADMIN', () => {
-    ;(clinicsService.getAll as jest.Mock).mockReturnValue(new Promise(() => {}))
-    mockAuth(UserRole.ADMIN)
-
-    renderWithProviders(<ClinicList />)
-
-    expect(mockReplace).toHaveBeenCalledWith('/dashboard')
-  })
-
-  it('does not redirect when user is PLATFORM_ADMIN', async () => {
+  it('renders clinic list for PLATFORM_ADMIN without redirect', async () => {
     ;(clinicsService.getAll as jest.Mock).mockResolvedValue(makePaginated([]))
     mockAuth(UserRole.PLATFORM_ADMIN)
 

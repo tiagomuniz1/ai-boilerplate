@@ -93,7 +93,7 @@ describe('AuthController (integration)', () => {
   async function loginAndExtractTokens(email: string, password = 'password123') {
     const response = await request(app.getHttpServer())
       .post('/auth/login')
-      .send({ email, password })
+      .send({ email, password, slug: 'seed-clinic' })
     const cookies = response.headers['set-cookie'] as unknown as string[]
     return {
       accessToken: extractCookieValue(cookies, 'access_token'),
@@ -107,7 +107,7 @@ describe('AuthController (integration)', () => {
 
       const response = await request(app.getHttpServer())
         .post('/auth/login')
-        .send({ email: user.email, password: 'password123' })
+        .send({ email: user.email, password: 'password123', slug: 'seed-clinic' })
         .expect(200)
 
       expect(response.body).toMatchObject({
@@ -140,7 +140,7 @@ describe('AuthController (integration)', () => {
 
       const response = await request(app.getHttpServer())
         .post('/auth/login')
-        .send({ email: user.email, password: 'password123' })
+        .send({ email: user.email, password: 'password123', slug: 'seed-clinic' })
         .expect(200)
 
       const cookies = response.headers['set-cookie'] as unknown as string[]
@@ -168,7 +168,7 @@ describe('AuthController (integration)', () => {
 
       const { body } = await request(app.getHttpServer())
         .post('/auth/login')
-        .send({ email: user.email, password: 'wrongpassword' })
+        .send({ email: user.email, password: 'wrongpassword', slug: 'seed-clinic' })
         .expect(401)
 
       expect(body.detail).toBe('Invalid credentials')
@@ -179,12 +179,12 @@ describe('AuthController (integration)', () => {
 
       const { body: body1 } = await request(app.getHttpServer())
         .post('/auth/login')
-        .send({ email: faker.internet.email(), password: 'password123' })
+        .send({ email: faker.internet.email(), password: 'password123', slug: 'seed-clinic' })
         .expect(401)
 
       const { body: body2 } = await request(app.getHttpServer())
         .post('/auth/login')
-        .send({ email: user.email, password: 'wrongpassword' })
+        .send({ email: user.email, password: 'wrongpassword', slug: 'seed-clinic' })
         .expect(401)
 
       expect(body1.detail).toBe(body2.detail)
@@ -219,7 +219,7 @@ describe('AuthController (integration)', () => {
 
       const { body } = await request(app.getHttpServer())
         .post('/auth/login')
-        .send({ email: patient.email, password: 'password123' })
+        .send({ email: patient.email, password: 'password123', slug: 'seed-clinic' })
         .expect(401)
 
       expect(body.detail).toBe('Invalid credentials')
@@ -239,7 +239,7 @@ describe('AuthController (integration)', () => {
 
       const { body } = await request(app.getHttpServer())
         .post('/auth/login')
-        .send({ email: 'inactive@test.com', password: 'password123' })
+        .send({ email: 'inactive@test.com', password: 'password123', slug: 'seed-clinic' })
         .expect(401)
 
       expect(body.detail).toBe('Account is not active')

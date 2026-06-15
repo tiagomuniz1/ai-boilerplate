@@ -23,6 +23,8 @@ export class UpdateClinicUseCase extends BaseUseCase {
     if (!clinic) throw new NotFoundException('Clinic not found')
 
     if (dto.slug !== undefined && dto.slug !== clinic.slug) {
+      const RESERVED_SLUGS = ['backoffice']
+      if (RESERVED_SLUGS.includes(dto.slug)) throw new ConflictException('Slug is reserved and cannot be used')
       const existing = await this.clinicsRepository.findBySlug(dto.slug)
       if (existing) throw new ConflictException('Slug already in use')
     }
@@ -57,6 +59,8 @@ export class UpdateClinicUseCase extends BaseUseCase {
       slug: clinic.slug,
       isActive: clinic.isActive,
       themeId: clinic.themeId ?? null,
+      logoUrl: clinic.logoUrl ?? null,
+      faviconUrl: clinic.faviconUrl ?? null,
       address: clinic.addressStreet != null
         ? {
             street: clinic.addressStreet,

@@ -2,6 +2,7 @@
 
 import Link from 'next/link'
 import { UserRole } from '@app/shared'
+import { useSlug } from '@/lib/slug-context'
 import { Button } from '@/components/ui/atoms/button/button'
 import { cn } from '@/lib/cn'
 import type { IUserModel } from '../types/user-model.types'
@@ -42,6 +43,7 @@ export interface UserTableRowProps {
 }
 
 export function UserTableRow({ user, isCurrentUser, onDeleteClick }: UserTableRowProps) {
+  const slug = useSlug()
   const badge = roleBadge[user.role]
 
   return (
@@ -131,14 +133,14 @@ export function UserTableRow({ user, isCurrentUser, onDeleteClick }: UserTableRo
             Excluir
           </Button>
           <Link
-            href={`/users/${user.id}/edit`}
+            href={`/${slug}/users/${user.id}/edit`}
             data-testid={`user-edit-link-${user.id}`}
             className="text-xs text-text-mute hover:text-text transition-colors"
           >
             Editar
           </Link>
           <Link
-            href={`/users/${user.id}`}
+            href={`/${slug}/users/${user.id}`}
             data-testid={`user-view-link-${user.id}`}
             className="flex items-center justify-center rounded-md p-1.5 text-text-mute transition-colors hover:bg-line hover:text-text"
             aria-label={`Ver detalhes de ${user.fullName}`}

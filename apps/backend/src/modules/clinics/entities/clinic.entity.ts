@@ -49,6 +49,12 @@ export class Clinic {
   @Column({ name: 'theme_id', type: 'uuid', nullable: true })
   themeId: string | null
 
+  @Column({ name: 'logo_url', type: 'varchar', length: 500, nullable: true, default: null })
+  logoUrl: string | null
+
+  @Column({ name: 'favicon_url', type: 'varchar', length: 500, nullable: true, default: null })
+  faviconUrl: string | null
+
   @VersionColumn()
   version: number
 

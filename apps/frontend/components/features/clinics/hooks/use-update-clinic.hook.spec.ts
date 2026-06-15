@@ -51,7 +51,7 @@ describe('useUpdateClinic', () => {
     act(() => result.current.mutate({ id: 'uuid-1', data: { isActive: false } }))
 
     await waitFor(() => {
-      expect(mockPush).toHaveBeenCalledWith('/clinics/uuid-1')
+      expect(mockPush).toHaveBeenCalledWith('/backoffice/clinics/uuid-1')
     })
   })
 

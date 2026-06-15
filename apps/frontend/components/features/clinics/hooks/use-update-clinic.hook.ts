@@ -15,7 +15,7 @@ export function useUpdateClinic() {
     onSuccess: (_, { id }) => {
       queryClient.invalidateQueries({ queryKey: ['clinics'] })
       queryClient.invalidateQueries({ queryKey: ['clinics', id] })
-      router.push(`/clinics/${id}`)
+      router.push(`/backoffice/clinics/${id}`)
     },
   })
 }

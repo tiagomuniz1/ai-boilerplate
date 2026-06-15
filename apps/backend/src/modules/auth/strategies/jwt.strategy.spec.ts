@@ -105,18 +105,42 @@ describe('JwtStrategy', () => {
       spy.mockRestore()
     })
 
-    it('returns the access_token cookie when present', () => {
-      const req = { cookies: { access_token: 'my-token' } } as unknown as Request
+    it('returns the access_token cookie when no x-clinic-slug header is present', () => {
+      const req = { cookies: { access_token: 'my-token' }, headers: {} } as unknown as Request
       expect(cookieExtractor(req)).toBe('my-token')
     })
 
-    it('returns null when access_token cookie is absent', () => {
-      const req = { cookies: {} } as unknown as Request
+    it('returns slug-scoped cookie when x-clinic-slug header is present', () => {
+      const req = {
+        cookies: { access_token_minha_clinica: 'clinic-token' },
+        headers: { 'x-clinic-slug': 'minha_clinica' },
+      } as unknown as Request
+      expect(cookieExtractor(req)).toBe('clinic-token')
+    })
+
+    it('falls back to access_token when x-clinic-slug is "backoffice"', () => {
+      const req = {
+        cookies: { access_token: 'bo-token' },
+        headers: { 'x-clinic-slug': 'backoffice' },
+      } as unknown as Request
+      expect(cookieExtractor(req)).toBe('bo-token')
+    })
+
+    it('returns null when the scoped cookie is absent', () => {
+      const req = {
+        cookies: {},
+        headers: { 'x-clinic-slug': 'minha_clinica' },
+      } as unknown as Request
+      expect(cookieExtractor(req)).toBeNull()
+    })
+
+    it('returns null when access_token cookie is absent and no slug header', () => {
+      const req = { cookies: {}, headers: {} } as unknown as Request
       expect(cookieExtractor(req)).toBeNull()
     })
 
     it('returns null when cookies is undefined', () => {
-      const req = {} as unknown as Request
+      const req = { headers: {} } as unknown as Request
       expect(cookieExtractor(req)).toBeNull()
     })
 

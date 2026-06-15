@@ -52,6 +52,8 @@ const existingClinic: IClinicModel = {
   slug: 'clinica-do-coracao',
   isActive: true,
   themeId: null,
+  logoUrl: null,
+  faviconUrl: null,
   address: {
     street: 'Rua das Flores',
     number: '123',

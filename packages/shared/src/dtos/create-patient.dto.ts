@@ -2,11 +2,14 @@ import {
   IsDateString,
   IsEmail,
   IsEnum,
+  IsOptional,
   IsString,
+  IsUUID,
   Matches,
   MaxLength,
   MinLength,
   registerDecorator,
+  ValidateIf,
   ValidationOptions,
   ValidatorConstraint,
   ValidatorConstraintInterface,
@@ -38,17 +41,23 @@ export function IsPastOrPresentDate(validationOptions?: ValidationOptions) {
 }
 
 export class CreatePatientDto {
+  @IsOptional()
+  @IsUUID()
+  userId?: string
+
+  @ValidateIf(o => !o.userId)
   @IsString()
   @MinLength(3)
   @MaxLength(120)
-  fullName!: string
+  fullName?: string
+
+  @ValidateIf(o => !o.userId)
+  @IsEmail()
+  email?: string
 
   @IsString()
   @Matches(/^\d{11}$/, { message: 'documentNumber must be exactly 11 digits' })
   documentNumber!: string
-
-  @IsEmail()
-  email!: string
 
   @IsString()
   @Matches(/^\(\d{2}\) \d{4,5}-\d{4}$/, { message: 'phoneNumber must be in format (XX) XXXXX-XXXX' })

@@ -87,4 +87,24 @@ describe('FindThemeByIdUseCase', () => {
 
     expect(mockCacheService.set).toHaveBeenCalledWith(`theme:${theme.id}`, expect.any(Object), 300)
   })
+
+  it('continues when cache read fails', async () => {
+    const theme = makeTheme()
+    mockCacheService.get.mockRejectedValue(new Error('Redis error'))
+    mockThemesRepository.findById.mockResolvedValue(theme as any)
+
+    const result = await useCase.execute(theme.id)
+
+    expect(result.id).toBe(theme.id)
+  })
+
+  it('continues when cache write fails', async () => {
+    const theme = makeTheme()
+    mockThemesRepository.findById.mockResolvedValue(theme as any)
+    mockCacheService.set.mockRejectedValue(new Error('Redis error'))
+
+    const result = await useCase.execute(theme.id)
+
+    expect(result.id).toBe(theme.id)
+  })
 })

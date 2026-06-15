@@ -30,6 +30,8 @@ const activeClinic: IClinicModel = {
   slug: 'clinica-do-coracao',
   isActive: true,
   themeId: null,
+  logoUrl: null,
+  faviconUrl: null,
   address: {
     street: 'Rua das Flores',
     number: '123',
@@ -109,7 +111,7 @@ describe('ClinicDetails (integration)', () => {
 
     const button = screen.getByTestId('clinic-details-new-user-button')
     expect(button).toBeInTheDocument()
-    expect(button.closest('a')).toHaveAttribute('href', '/clinics/uuid-1/users/new')
+    expect(button.closest('a')).toHaveAttribute('href', '/backoffice/clinics/uuid-1/users/new')
   })
 
   it('does not render a delete button', () => {
@@ -187,5 +189,13 @@ describe('ClinicDetails (integration)', () => {
     renderWithProviders(<ClinicDetails clinic={{ ...activeClinic, themeId: THEME_ID }} />)
 
     expect(screen.getByTestId('clinic-details-theme')).toHaveTextContent('—')
+  })
+
+  it('renders the Identidade Visual section with upload controls', () => {
+    renderWithProviders(<ClinicDetails clinic={activeClinic} />)
+
+    expect(screen.getByTestId('clinic-upload-section')).toBeInTheDocument()
+    expect(screen.getByTestId('logo-upload-button')).toBeInTheDocument()
+    expect(screen.getByTestId('favicon-upload-button')).toBeInTheDocument()
   })
 })

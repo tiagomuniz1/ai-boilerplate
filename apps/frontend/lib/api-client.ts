@@ -10,6 +10,18 @@ const client = axios.create({
   withCredentials: true,
 })
 
+function getClinicSlug(): string | null {
+  if (typeof window === 'undefined') return null
+  const slug = (window.location.pathname ?? '').split('/').filter(Boolean)[0] ?? null
+  return slug && slug !== 'backoffice' ? slug : null
+}
+
+client.interceptors.request.use((config) => {
+  const slug = getClinicSlug()
+  if (slug) config.headers['x-clinic-slug'] = slug
+  return config
+})
+
 function normalizeProblemDetails(error: unknown): IApiError {
   if (axios.isAxiosError(error) && error.response?.data) {
     const data = error.response.data as Partial<IApiError>
@@ -42,16 +54,20 @@ client.interceptors.response.use(
       const config = error.config as RetryableConfig
       config._retry = true
       try {
+        const slug = getClinicSlug()
+        const refreshOptions: { withCredentials: boolean; headers?: Record<string, string> } = { withCredentials: true }
+        if (slug) refreshOptions.headers = { 'x-clinic-slug': slug }
         await axios.post(
           `${process.env.NEXT_PUBLIC_API_URL}/auth/refresh`,
           {},
-          { withCredentials: true },
+          refreshOptions,
         )
         return client(config)
       } catch {
         /* istanbul ignore else */
         if (typeof window !== 'undefined') {
-          window.location.href = '/login'
+          const slug = (window.location.pathname ?? '').split('/').filter(Boolean)[0] ?? 'backoffice'
+          window.location.href = `/${slug}/login`
         }
       }
     }

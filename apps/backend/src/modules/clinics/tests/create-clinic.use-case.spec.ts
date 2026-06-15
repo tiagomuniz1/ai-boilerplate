@@ -11,6 +11,8 @@ const mockClinicsRepository: jest.Mocked<IClinicsRepository> = {
   findBySlug: jest.fn(),
   create: jest.fn(),
   update: jest.fn(),
+  updateLogo: jest.fn(),
+  updateFavicon: jest.fn(),
 }
 
 const mockCacheService = {
@@ -163,6 +165,14 @@ describe('CreateClinicUseCase', () => {
     await expect(
       useCase.execute({ name: 'Outra Clínica', slug: 'clinica-do-coracao', address: makeAddress() }),
     ).rejects.toThrow(ConflictException)
+    expect(mockClinicsRepository.create).not.toHaveBeenCalled()
+  })
+
+  it('throws ConflictException when slug is "backoffice" (reserved)', async () => {
+    await expect(
+      useCase.execute({ name: 'Backoffice', slug: 'backoffice', address: makeAddress() }),
+    ).rejects.toThrow(new ConflictException('Slug is reserved and cannot be used'))
+    expect(mockClinicsRepository.findBySlug).not.toHaveBeenCalled()
     expect(mockClinicsRepository.create).not.toHaveBeenCalled()
   })
 

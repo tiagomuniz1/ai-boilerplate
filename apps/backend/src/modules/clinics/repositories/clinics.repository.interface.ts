@@ -24,4 +24,6 @@ export abstract class IClinicsRepository {
   abstract findBySlug(slug: string): Promise<Clinic | null>
   abstract create(data: IClinicCreateData, queryRunner?: QueryRunner): Promise<Clinic>
   abstract update(id: string, data: UpdateClinicDto): Promise<Clinic>
+  abstract updateLogo(id: string, logoUrl: string, queryRunner?: QueryRunner): Promise<void>
+  abstract updateFavicon(id: string, faviconUrl: string, queryRunner?: QueryRunner): Promise<void>
 }

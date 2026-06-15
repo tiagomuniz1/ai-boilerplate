@@ -1,4 +1,4 @@
-import { Controller, Get, HttpCode, Post, Req, Res, Body, UnauthorizedException } from '@nestjs/common'
+import { Body, Controller, Get, Headers, HttpCode, Post, Req, Res, UnauthorizedException } from '@nestjs/common'
 import { Throttle } from '@nestjs/throttler'
 import { Request, Response } from 'express'
 import { Public } from '../decorators/public.decorator'
@@ -21,6 +21,11 @@ export class AuthController {
     private readonly meUseCase: MeUseCase,
   ) {}
 
+  private cookieNames(slug?: string | null): { access: string; refresh: string } {
+    const suffix = slug && slug !== 'backoffice' ? `_${slug}` : ''
+    return { access: `access_token${suffix}`, refresh: `refresh_token${suffix}` }
+  }
+
   @Post('login')
   @Public()
   @HttpCode(200)
@@ -32,6 +37,7 @@ export class AuthController {
     const { user, accessToken, refreshToken, accessTokenMaxAge, refreshTokenMaxAge } =
       await this.loginUseCase.execute(dto)
 
+    const names = this.cookieNames(dto.slug)
     const cookieOptions = {
       httpOnly: true,
       secure: true,
@@ -39,8 +45,8 @@ export class AuthController {
       path: '/',
     }
 
-    response.cookie('access_token', accessToken, { ...cookieOptions, maxAge: accessTokenMaxAge })
-    response.cookie('refresh_token', refreshToken, { ...cookieOptions, maxAge: refreshTokenMaxAge })
+    response.cookie(names.access, accessToken, { ...cookieOptions, maxAge: accessTokenMaxAge })
+    response.cookie(names.refresh, refreshToken, { ...cookieOptions, maxAge: refreshTokenMaxAge })
 
     return user
   }
@@ -52,8 +58,10 @@ export class AuthController {
   async refresh(
     @Req() req: Request,
     @Res({ passthrough: true }) res: Response,
+    @Headers('x-clinic-slug') slug?: string,
   ): Promise<void> {
-    const refreshToken = req.cookies?.refresh_token as string | undefined
+    const names = this.cookieNames(slug)
+    const refreshToken = req.cookies?.[names.refresh] as string | undefined
     if (!refreshToken) throw new UnauthorizedException('Refresh token not found')
 
     const { accessToken, refreshToken: newRefreshToken, expiresIn, refreshTokenExpiresIn } =
@@ -66,8 +74,8 @@ export class AuthController {
       path: '/',
     }
 
-    res.cookie('access_token', accessToken, { ...cookieOptions, maxAge: expiresIn * 1000 })
-    res.cookie('refresh_token', newRefreshToken, { ...cookieOptions, maxAge: refreshTokenExpiresIn * 1000 })
+    res.cookie(names.access, accessToken, { ...cookieOptions, maxAge: expiresIn * 1000 })
+    res.cookie(names.refresh, newRefreshToken, { ...cookieOptions, maxAge: refreshTokenExpiresIn * 1000 })
   }
 
   @Post('logout')
@@ -75,12 +83,14 @@ export class AuthController {
   async logout(
     @Req() req: Request,
     @Res({ passthrough: true }) res: Response,
+    @Body() body?: { slug?: string },
   ): Promise<void> {
-    const refreshToken = req.cookies?.refresh_token as string | undefined
+    const names = this.cookieNames(body?.slug)
+    const refreshToken = req.cookies?.[names.refresh] as string | undefined
 
     const cookieOptions = { httpOnly: true, secure: true, sameSite: 'strict' as const, path: '/' }
-    res.clearCookie('access_token', cookieOptions)
-    res.clearCookie('refresh_token', cookieOptions)
+    res.clearCookie(names.access, cookieOptions)
+    res.clearCookie(names.refresh, cookieOptions)
 
     if (refreshToken) {
       await this.logoutUseCase.execute({ refreshToken })

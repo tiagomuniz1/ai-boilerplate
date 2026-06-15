@@ -1,10 +1,11 @@
-import { Inject, Injectable, UnauthorizedException } from '@nestjs/common'
+import { Inject, Injectable, NotFoundException, UnauthorizedException } from '@nestjs/common'
 import { JwtService } from '@nestjs/jwt'
 import * as bcrypt from 'bcrypt'
 import { randomUUID } from 'crypto'
 import { DataSource } from 'typeorm'
 import { UserRole } from '@app/shared'
 import { BaseUseCase } from '../../../common/base.use-case'
+import { FindClinicBySlugUseCase } from '../../clinics/use-cases/find-clinic-by-slug.use-case'
 import { IUsersRepository } from '../../users/repositories/users.repository.interface'
 import { LoginDto } from '../dto/login.dto'
 import { LoginResponseDto } from '../dto/login-response.dto'
@@ -27,12 +28,28 @@ export class LoginUseCase extends BaseUseCase {
     private readonly refreshTokensRepository: IRefreshTokensRepository,
     private readonly jwtService: JwtService,
     @Inject(AUTH_ENV) private readonly authEnv: IAuthEnv,
+    private readonly findClinicBySlugUseCase: FindClinicBySlugUseCase,
   ) {
     super(dataSource)
   }
 
   async execute(dto: LoginDto): Promise<LoginResult> {
-    const user = await this.usersRepository.findByEmail(dto.email)
+    const isBackoffice = !dto.slug || dto.slug === 'backoffice'
+
+    let clinicId: string | null = null
+    if (!isBackoffice) {
+      try {
+        const clinic = await this.findClinicBySlugUseCase.execute(dto.slug!)
+        clinicId = clinic.id
+      } catch (error) {
+        if (error instanceof NotFoundException) {
+          throw new UnauthorizedException('Invalid credentials')
+        }
+        throw error
+      }
+    }
+
+    const user = await this.usersRepository.findByEmail(dto.email, clinicId)
 
     if (!user) {
       throw new UnauthorizedException('Invalid credentials')

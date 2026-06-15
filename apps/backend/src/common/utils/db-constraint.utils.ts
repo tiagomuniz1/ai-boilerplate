@@ -1,7 +1,8 @@
 import { QueryFailedError } from 'typeorm'
 
 export const DB_UNIQUE_CONSTRAINTS = {
-  USERS_EMAIL: 'UQ_users_email_active',
+  USERS_EMAIL_PLATFORM_ADMIN: 'UQ_users_email_platform_admin',
+  USERS_EMAIL_CLINIC: 'UQ_users_email_clinic',
   DOCTORS_CRM: 'doctors_crm_number_clinic_active_unique',
   DOCTORS_USER_ID: 'doctors_user_id_clinic_active_unique',
   PATIENTS_DOCUMENT: 'patients_document_number_clinic_active_unique',

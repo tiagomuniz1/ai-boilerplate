@@ -315,7 +315,7 @@ describe('UpdatePatientUseCase', () => {
     const patient = makePatient()
     mockPatientsRepository.findById.mockResolvedValue(patient as any)
     mockUsersRepository.findByEmail.mockResolvedValue(null)
-    mockUsersRepository.update.mockRejectedValue(makeUniqueViolation(DB_UNIQUE_CONSTRAINTS.USERS_EMAIL))
+    mockUsersRepository.update.mockRejectedValue(makeUniqueViolation(DB_UNIQUE_CONSTRAINTS.USERS_EMAIL_CLINIC))
 
     await expect(useCase.execute(patient.id, { email: 'race@example.com' }, adminCurrentUser)).rejects.toThrow(ConflictException)
   })
@@ -324,7 +324,7 @@ describe('UpdatePatientUseCase', () => {
     const patient = makePatient()
     mockPatientsRepository.findById.mockResolvedValue(patient as any)
     mockUsersRepository.findByEmail.mockResolvedValue(null)
-    mockUsersRepository.update.mockRejectedValue(makeUniqueViolation(DB_UNIQUE_CONSTRAINTS.USERS_EMAIL))
+    mockUsersRepository.update.mockRejectedValue(makeUniqueViolation(DB_UNIQUE_CONSTRAINTS.USERS_EMAIL_CLINIC))
 
     await expect(
       useCase.execute(patient.id, { email: 'race@example.com', phoneNumber: '(11) 99999-9999' }, adminCurrentUser),

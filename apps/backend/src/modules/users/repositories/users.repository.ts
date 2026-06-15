@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
-import { QueryRunner, Repository } from 'typeorm'
+import { IsNull, QueryRunner, Repository } from 'typeorm'
 import { UpdateUserDto } from '@app/shared'
 import { User } from '../entities/user.entity'
 import { CreateUserData, IUsersRepository } from './users.repository.interface'
@@ -32,8 +32,11 @@ export class UsersRepository implements IUsersRepository {
     return this.repository.findOneBy({ id, clinicId })
   }
 
-  async findByEmail(email: string): Promise<User | null> {
-    return this.repository.findOneBy({ email })
+  async findByEmail(email: string, clinicId: string | null): Promise<User | null> {
+    if (clinicId === null) {
+      return this.repository.findOne({ where: { email, clinicId: IsNull() } })
+    }
+    return this.repository.findOneBy({ email, clinicId })
   }
 
   async create(data: CreateUserData, clinicId: string | null, queryRunner?: QueryRunner): Promise<User> {

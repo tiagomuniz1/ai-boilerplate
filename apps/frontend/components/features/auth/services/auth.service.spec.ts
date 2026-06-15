@@ -17,12 +17,20 @@ describe('authService', () => {
     expect(result).toEqual(dto)
   })
 
-  it('calls apiClient.post with /auth/logout', async () => {
+  it('calls apiClient.post with /auth/logout and no body when no slug', async () => {
     mockApiClient.post.mockResolvedValue(undefined)
 
     await authService.logout()
 
-    expect(mockApiClient.post).toHaveBeenCalledWith('/auth/logout')
+    expect(mockApiClient.post).toHaveBeenCalledWith('/auth/logout', undefined)
+  })
+
+  it('calls apiClient.post with /auth/logout and slug body when slug is provided', async () => {
+    mockApiClient.post.mockResolvedValue(undefined)
+
+    await authService.logout('minha-clinica')
+
+    expect(mockApiClient.post).toHaveBeenCalledWith('/auth/logout', { slug: 'minha-clinica' })
   })
 
   it('returns void on successful logout', async () => {

@@ -3,29 +3,30 @@
 import { usePathname } from 'next/navigation'
 import { NAVIGATION_ITEMS } from '@/lib/constants'
 import { useAuthStore } from '@/stores/auth.store'
-import { useSidebarStore } from '@/stores/sidebar.store'
+import { useSlug } from '@/lib/slug-context'
 import type { INavigationItemViewModel } from '@/types/navigation.types'
 
 interface UseSidebarNavigationReturn {
   items: INavigationItemViewModel[]
-  isCollapsed: boolean
-  toggle: () => void
 }
 
 export function useSidebarNavigation(): UseSidebarNavigationReturn {
   const pathname = usePathname()
-  const { isCollapsed, toggle } = useSidebarStore()
   const role = useAuthStore((state) => state.user?.role)
+  const slug = useSlug()
 
   const items: INavigationItemViewModel[] = NAVIGATION_ITEMS
     .filter((item) => !item.requiredRoles || (role && item.requiredRoles.includes(role)))
-    .map((item) => ({
-      id: item.id,
-      label: item.label,
-      href: item.href,
-      icon: item.icon,
-      isActive: pathname === item.href || pathname.startsWith(item.href + '/'),
-    }))
+    .map((item) => {
+      const href = `/${slug}${item.href}`
+      return {
+        id: item.id,
+        label: item.label,
+        href,
+        icon: item.icon,
+        isActive: pathname === href || pathname.startsWith(href + '/'),
+      }
+    })
 
-  return { items, isCollapsed, toggle }
+  return { items }
 }

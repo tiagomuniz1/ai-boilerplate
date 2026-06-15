@@ -104,4 +104,18 @@ describe('UpdateThemeUseCase', () => {
 
     expect(result.id).toBeDefined()
   })
+
+  it('sets isDefault=true via transaction and clears previous default', async () => {
+    const theme = makeTheme()
+    const updated = makeTheme({ id: theme.id, isDefault: true })
+    mockThemesRepository.findById.mockResolvedValue(theme as any)
+    mockThemesRepository.clearDefaultExcept.mockResolvedValue(undefined)
+    mockThemesRepository.update.mockResolvedValue(updated as any)
+
+    const result = await useCase.execute(theme.id, { isDefault: true })
+
+    expect(mockThemesRepository.clearDefaultExcept).toHaveBeenCalledWith(theme.id, expect.anything())
+    expect(mockThemesRepository.update).toHaveBeenCalledWith(theme.id, { isDefault: true }, expect.anything())
+    expect(result.isDefault).toBe(true)
+  })
 })

@@ -145,7 +145,7 @@ describe('CreateUserUseCase', () => {
 
   it('throws ConflictException when DB email unique constraint fires (race condition)', async () => {
     mockUsersRepository.findByEmail.mockResolvedValue(null)
-    mockUsersRepository.create.mockRejectedValue(makeUniqueViolation(DB_UNIQUE_CONSTRAINTS.USERS_EMAIL))
+    mockUsersRepository.create.mockRejectedValue(makeUniqueViolation(DB_UNIQUE_CONSTRAINTS.USERS_EMAIL_CLINIC))
 
     await expect(
       useCase.execute({ fullName: 'Alice', email: 'race@example.com', password: 'Password123', role: UserRole.USER }, adminCurrentUser),
@@ -218,6 +218,21 @@ describe('CreateUserUseCase', () => {
       ).rejects.toThrow(UnprocessableEntityException)
 
       expect(mockUsersRepository.create).not.toHaveBeenCalled()
+    })
+
+    it('throws ConflictException when DB platform_admin email unique constraint fires (race condition)', async () => {
+      const dto = {
+        fullName: faker.person.fullName(),
+        email: faker.internet.email(),
+        password: faker.internet.password({ length: 10 }),
+        role: UserRole.PLATFORM_ADMIN,
+      }
+      mockUsersRepository.findByEmail.mockResolvedValue(null)
+      mockUsersRepository.create.mockRejectedValue(
+        makeUniqueViolation(DB_UNIQUE_CONSTRAINTS.USERS_EMAIL_PLATFORM_ADMIN),
+      )
+
+      await expect(useCase.execute(dto, platformAdminUser)).rejects.toThrow(ConflictException)
     })
 
     it('creates PLATFORM_ADMIN user with null clinicId without requiring clinicId in DTO', async () => {

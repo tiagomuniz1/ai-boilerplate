@@ -2,6 +2,7 @@ jest.mock('@/components/features/auth/services/auth.service')
 jest.mock('next/navigation', () => ({
   useRouter: jest.fn(),
 }))
+jest.mock('@/lib/slug-context', () => ({ useSlug: () => 'test-clinic' }))
 
 import React from 'react'
 import { renderHook, act } from '@testing-library/react'
@@ -50,7 +51,7 @@ describe('useLogout', () => {
     expect(result.current.isPending).toBe(false)
   })
 
-  it('calls authService.logout when logout is invoked', async () => {
+  it('calls authService.logout with the current slug when logout is invoked', async () => {
     mockAuthService.logout.mockResolvedValue(undefined)
     const { result } = renderLogoutHook()
 
@@ -58,7 +59,7 @@ describe('useLogout', () => {
       await result.current.logout()
     })
 
-    expect(mockAuthService.logout).toHaveBeenCalledTimes(1)
+    expect(mockAuthService.logout).toHaveBeenCalledWith('test-clinic')
   })
 
   it('calls setUser(null) on success', async () => {
@@ -80,7 +81,7 @@ describe('useLogout', () => {
       await result.current.logout()
     })
 
-    expect(push).toHaveBeenCalledWith('/login')
+    expect(push).toHaveBeenCalledWith('/test-clinic/login')
   })
 
   it('removes clinic-theme-vars from localStorage on success', async () => {

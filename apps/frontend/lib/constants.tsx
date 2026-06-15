@@ -1,8 +1,6 @@
 import { UserRole } from '@app/shared'
 import type { INavigationItem } from '@/types/navigation.types'
 
-export const PUBLIC_ROUTES = ['/login', '/register', '/forgot-password']
-
 export const NAVIGATION_ITEMS: INavigationItem[] = [
   {
     id: 'clinics',

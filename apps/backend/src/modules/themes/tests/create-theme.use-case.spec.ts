@@ -113,4 +113,28 @@ describe('CreateThemeUseCase', () => {
 
     expect(result.id).toBeDefined()
   })
+
+  it('sets isDefault=true via transaction and clears previous default', async () => {
+    const created = makeTheme({ isDefault: true })
+    mockThemesRepository.findBySlug.mockResolvedValue(null)
+    mockThemesRepository.clearDefaultExcept.mockResolvedValue(undefined)
+    mockThemesRepository.create.mockResolvedValue(created as any)
+
+    const result = await useCase.execute({
+      name: 'Teal Moderno',
+      accentColor: '#0D9488',
+      accentSoftColor: '#CCFBF1',
+      isDefault: true,
+    })
+
+    expect(mockThemesRepository.clearDefaultExcept).toHaveBeenCalledWith(
+      '00000000-0000-0000-0000-000000000000',
+      expect.anything(),
+    )
+    expect(mockThemesRepository.create).toHaveBeenCalledWith(
+      expect.objectContaining({ isDefault: true }),
+      expect.anything(),
+    )
+    expect(result.isDefault).toBe(true)
+  })
 })

@@ -17,6 +17,7 @@ function makeRepo(): jest.Mocked<Repository<Clinic>> {
   const managerRepo = {
     create: jest.fn(),
     save: jest.fn(),
+    update: jest.fn(),
   }
   return {
     findAndCount: jest.fn(),
@@ -24,6 +25,7 @@ function makeRepo(): jest.Mocked<Repository<Clinic>> {
     findOneByOrFail: jest.fn(),
     save: jest.fn(),
     create: jest.fn(),
+    update: jest.fn(),
     createQueryBuilder: jest.fn(),
     manager: {
       getRepository: jest.fn().mockReturnValue(managerRepo),
@@ -312,6 +314,68 @@ describe('ClinicsRepository', () => {
       repo.findOneByOrFail.mockRejectedValue(new Error('Entity not found'))
 
       await expect(repository.update('missing', { name: 'X' })).rejects.toThrow()
+    })
+
+    it('sets themeId when themeId key is present in data', async () => {
+      const clinic = makeClinic()
+      repo.findOneByOrFail.mockResolvedValue(clinic)
+      repo.save.mockResolvedValue(makeClinic({ themeId: 'theme-uuid' }))
+
+      await repository.update('clinic-uuid-1', { themeId: 'theme-uuid' } as any)
+
+      const savedArg = repo.save.mock.calls[0][0] as any
+      expect(savedArg.themeId).toBe('theme-uuid')
+    })
+
+    it('sets themeId to null when themeId is null in data', async () => {
+      const clinic = makeClinic({ themeId: 'old-theme' })
+      repo.findOneByOrFail.mockResolvedValue(clinic)
+      repo.save.mockResolvedValue(makeClinic({ themeId: null }))
+
+      await repository.update('clinic-uuid-1', { themeId: null } as any)
+
+      const savedArg = repo.save.mock.calls[0][0] as any
+      expect(savedArg.themeId).toBeNull()
+    })
+  })
+
+  describe('updateLogo', () => {
+    it('calls repo.update with logoUrl when no queryRunner', async () => {
+      repo.update.mockResolvedValue(undefined as any)
+
+      await repository.updateLogo('clinic-uuid-1', 'https://example.com/logo.jpg')
+
+      expect(repo.update).toHaveBeenCalledWith('clinic-uuid-1', { logoUrl: 'https://example.com/logo.jpg' })
+    })
+
+    it('calls queryRunner manager repo.update when queryRunner is provided', async () => {
+      const qrRepo = { update: jest.fn().mockResolvedValue(undefined) }
+      const queryRunner = { manager: { getRepository: jest.fn().mockReturnValue(qrRepo) } } as any
+
+      await repository.updateLogo('clinic-uuid-1', 'https://example.com/logo.jpg', queryRunner)
+
+      expect(qrRepo.update).toHaveBeenCalledWith('clinic-uuid-1', { logoUrl: 'https://example.com/logo.jpg' })
+      expect(repo.update).not.toHaveBeenCalled()
+    })
+  })
+
+  describe('updateFavicon', () => {
+    it('calls repo.update with faviconUrl when no queryRunner', async () => {
+      repo.update.mockResolvedValue(undefined as any)
+
+      await repository.updateFavicon('clinic-uuid-1', 'https://example.com/favicon.ico')
+
+      expect(repo.update).toHaveBeenCalledWith('clinic-uuid-1', { faviconUrl: 'https://example.com/favicon.ico' })
+    })
+
+    it('calls queryRunner manager repo.update when queryRunner is provided', async () => {
+      const qrRepo = { update: jest.fn().mockResolvedValue(undefined) }
+      const queryRunner = { manager: { getRepository: jest.fn().mockReturnValue(qrRepo) } } as any
+
+      await repository.updateFavicon('clinic-uuid-1', 'https://example.com/favicon.ico', queryRunner)
+
+      expect(qrRepo.update).toHaveBeenCalledWith('clinic-uuid-1', { faviconUrl: 'https://example.com/favicon.ico' })
+      expect(repo.update).not.toHaveBeenCalled()
     })
   })
 })

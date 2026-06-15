@@ -1,12 +1,16 @@
 jest.mock('axios', () => {
-  const interceptorUse = jest.fn()
+  const responseInterceptorUse = jest.fn()
+  const requestInterceptorUse = jest.fn()
   const instance = Object.assign(jest.fn(), {
     get: jest.fn(),
     post: jest.fn(),
     put: jest.fn(),
     patch: jest.fn(),
     delete: jest.fn(),
-    interceptors: { response: { use: interceptorUse } },
+    interceptors: {
+      response: { use: responseInterceptorUse },
+      request: { use: requestInterceptorUse },
+    },
   })
   return {
     create: jest.fn().mockReturnValue(instance),
@@ -28,12 +32,14 @@ describe('api-client', () => {
     const [fulfilled, rejected] = (axiosInstance.interceptors.response.use as jest.Mock).mock.calls[0]
     onFulfilled = fulfilled
     onRejected = rejected
+    // Prevent request interceptor from running on the mock instance
+    ;(axiosInstance.interceptors.request.use as jest.Mock).mockClear()
   })
 
   beforeEach(() => {
     jest.resetAllMocks()
     Object.defineProperty(window, 'location', {
-      value: { href: '' },
+      value: { href: '', pathname: '/backoffice/dashboard' },
       configurable: true,
       writable: true,
     })
@@ -136,7 +142,7 @@ describe('api-client', () => {
       expect(axios.post).toHaveBeenCalledWith(
         expect.stringContaining('/auth/refresh'),
         {},
-        { withCredentials: true },
+        expect.objectContaining({ withCredentials: true }),
       )
       expect(axiosInstance).toHaveBeenCalledWith(expect.objectContaining({ _retry: true }))
       expect(result).toBe(retried)
@@ -153,7 +159,7 @@ describe('api-client', () => {
       }
 
       await expect(onRejected(error)).rejects.toBeDefined()
-      expect(window.location.href).toBe('/login')
+      expect(window.location.href).toBe('/backoffice/login')
     })
 
     it('skips retry when request is already marked as retried', async () => {

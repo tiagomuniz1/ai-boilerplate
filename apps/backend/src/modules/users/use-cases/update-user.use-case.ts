@@ -29,7 +29,7 @@ export class UpdateUserUseCase extends BaseUseCase {
     if (!user) throw new NotFoundException('User not found')
 
     if (dto.email && dto.email !== user.email) {
-      const existing = await this.usersRepository.findByEmail(dto.email)
+      const existing = await this.usersRepository.findByEmail(dto.email, user.clinicId)
       if (existing) throw new ConflictException('Email already in use')
     }
 

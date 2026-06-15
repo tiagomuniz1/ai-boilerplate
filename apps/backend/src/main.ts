@@ -1,9 +1,11 @@
 import 'reflect-metadata'
 import * as dotenv from 'dotenv'
+import * as fs from 'fs'
 import * as path from 'path'
 dotenv.config({ path: path.resolve(process.cwd(), '.env.local') })
 
 import { NestFactory } from '@nestjs/core'
+import { NestExpressApplication } from '@nestjs/platform-express'
 import { ValidationPipe } from '@nestjs/common'
 import helmet from 'helmet'
 import * as cookieParser from 'cookie-parser'
@@ -14,9 +16,15 @@ import { RequestIdInterceptor } from './common/interceptors/request-id.intercept
 import { HttpLoggingInterceptor } from './common/interceptors/http-logging.interceptor'
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule, {
+  const app = await NestFactory.create<NestExpressApplication>(AppModule, {
     logger: WinstonModule.createLogger(createWinstonConfig()),
   })
+
+  if (!process.env.AWS_S3_BUCKET || !process.env.AWS_REGION) {
+    const uploadsDir = path.join(process.cwd(), 'uploads')
+    fs.mkdirSync(uploadsDir, { recursive: true })
+    app.useStaticAssets(uploadsDir, { prefix: '/uploads' })
+  }
 
   app.use(helmet())
   app.use(cookieParser())

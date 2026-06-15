@@ -1,10 +1,4 @@
-import { PUBLIC_ROUTES, NAVIGATION_ITEMS } from './constants'
-
-describe('PUBLIC_ROUTES', () => {
-  it('contains the expected public route paths', () => {
-    expect(PUBLIC_ROUTES).toEqual(['/login', '/register', '/forgot-password'])
-  })
-})
+import { NAVIGATION_ITEMS } from './constants'
 
 describe('NAVIGATION_ITEMS', () => {
   it('is a non-empty array', () => {

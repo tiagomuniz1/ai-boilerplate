@@ -42,7 +42,7 @@ describe('ClinicsController (integration)', () => {
 
     const response = await request(app.getHttpServer())
       .post('/auth/login')
-      .send({ email: user.email, password })
+      .send({ email: user.email, password, slug: 'seed-clinic' })
 
     const setCookieHeader = response.headers['set-cookie'] as unknown as string[] | string
     const cookies = Array.isArray(setCookieHeader) ? setCookieHeader : [setCookieHeader]
@@ -105,6 +105,7 @@ describe('ClinicsController (integration)', () => {
     await clinicRepository.query('DELETE FROM test.doctors')
     await clinicRepository.query('DELETE FROM test.patients')
     await clinicRepository.query('DELETE FROM test.specialties')
+    await clinicRepository.query('DELETE FROM test.refresh_tokens')
     await userRepository.query('DELETE FROM test.users')
     await clinicRepository.query('DELETE FROM test.clinics')
   })
@@ -203,7 +204,7 @@ describe('ClinicsController (integration)', () => {
 
       const loginResponse = await request(app.getHttpServer())
         .post('/auth/login')
-        .send({ email: payload.adminEmail, password: payload.adminPassword })
+        .send({ email: payload.adminEmail, password: payload.adminPassword, slug: payload.slug })
 
       expect(loginResponse.status).toBe(200)
       expect(loginResponse.headers['set-cookie']).toBeDefined()

@@ -1,14 +1,20 @@
 import { Module } from '@nestjs/common'
 import { TypeOrmModule } from '@nestjs/typeorm'
 import { CacheModule } from '../../cache/cache.module'
+import { IStorageAdapter } from '../../common/adapters/storage.adapter.interface'
+import { StorageAdapter } from '../../common/adapters/storage.adapter'
+import { LocalStorageAdapter } from '../../common/adapters/local-storage.adapter'
 import { UsersModule } from '../users/users.module'
 import { Clinic } from './entities/clinic.entity'
 import { ClinicsController } from './controllers/clinics.controller'
 import { CreateClinicUseCase } from './use-cases/create-clinic.use-case'
 import { FindAllClinicsUseCase } from './use-cases/find-all-clinics.use-case'
 import { FindClinicByIdUseCase } from './use-cases/find-clinic-by-id.use-case'
+import { FindClinicBySlugUseCase } from './use-cases/find-clinic-by-slug.use-case'
 import { RegisterClinicUseCase } from './use-cases/register-clinic.use-case'
 import { UpdateClinicUseCase } from './use-cases/update-clinic.use-case'
+import { UploadClinicLogoUseCase } from './use-cases/upload-clinic-logo.use-case'
+import { UploadClinicFaviconUseCase } from './use-cases/upload-clinic-favicon.use-case'
 import { IClinicsRepository } from './repositories/clinics.repository.interface'
 import { ClinicsRepository } from './repositories/clinics.repository'
 
@@ -19,9 +25,20 @@ import { ClinicsRepository } from './repositories/clinics.repository'
     CreateClinicUseCase,
     FindAllClinicsUseCase,
     FindClinicByIdUseCase,
+    FindClinicBySlugUseCase,
     RegisterClinicUseCase,
     UpdateClinicUseCase,
+    UploadClinicLogoUseCase,
+    UploadClinicFaviconUseCase,
     { provide: IClinicsRepository, useClass: ClinicsRepository },
+    {
+      provide: IStorageAdapter,
+      useFactory: () =>
+        process.env.AWS_S3_BUCKET && process.env.AWS_REGION
+          ? new StorageAdapter()
+          : new LocalStorageAdapter(),
+    },
   ],
+  exports: [FindClinicBySlugUseCase],
 })
 export class ClinicsModule {}

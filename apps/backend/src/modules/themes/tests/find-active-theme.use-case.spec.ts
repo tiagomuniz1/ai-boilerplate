@@ -101,4 +101,26 @@ describe('FindActiveThemeUseCase', () => {
     expect(result).toBe(cached)
     expect(mockThemesRepository.findByClinicId).not.toHaveBeenCalled()
   })
+
+  it('continues when cache read fails', async () => {
+    const clinicId = faker.string.uuid()
+    const theme = makeTheme()
+    mockCacheService.get.mockRejectedValue(new Error('Redis error'))
+    mockThemesRepository.findByClinicId.mockResolvedValue(theme as any)
+
+    const result = await useCase.execute(clinicId)
+
+    expect(result?.id).toBe(theme.id)
+  })
+
+  it('continues when cache write fails', async () => {
+    const clinicId = faker.string.uuid()
+    const theme = makeTheme()
+    mockThemesRepository.findByClinicId.mockResolvedValue(theme as any)
+    mockCacheService.set.mockRejectedValue(new Error('Redis error'))
+
+    const result = await useCase.execute(clinicId)
+
+    expect(result?.id).toBe(theme.id)
+  })
 })

@@ -18,6 +18,7 @@ function makeQueryBuilder() {
 
 function makeRepo(): jest.Mocked<Repository<User>> {
   return {
+    findOne: jest.fn(),
     findOneBy: jest.fn(),
     findOneByOrFail: jest.fn(),
     createQueryBuilder: jest.fn(),
@@ -66,20 +67,34 @@ describe('UsersRepository', () => {
   })
 
   describe('findByEmail', () => {
-    it('returns user when found', async () => {
+    it('scopes by clinicId when clinicId is provided', async () => {
       const user = { id: 'uuid-2', email: 'test@example.com' } as User
       repo.findOneBy.mockResolvedValue(user)
 
-      const result = await repository.findByEmail('test@example.com')
+      const result = await repository.findByEmail('test@example.com', CLINIC_ID)
 
-      expect(repo.findOneBy).toHaveBeenCalledWith({ email: 'test@example.com' })
+      expect(repo.findOneBy).toHaveBeenCalledWith({ email: 'test@example.com', clinicId: CLINIC_ID })
+      expect(result).toBe(user)
+    })
+
+    it('filters by clinic_id IS NULL when clinicId is null', async () => {
+      const user = { id: 'uuid-3', email: 'admin@example.com' } as User
+      ;(repo as any).findOne = jest.fn().mockResolvedValue(user)
+
+      const result = await repository.findByEmail('admin@example.com', null)
+
+      expect((repo as any).findOne).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({ email: 'admin@example.com' }),
+        }),
+      )
       expect(result).toBe(user)
     })
 
     it('returns null when not found', async () => {
       repo.findOneBy.mockResolvedValue(null)
 
-      expect(await repository.findByEmail('none@example.com')).toBeNull()
+      expect(await repository.findByEmail('none@example.com', CLINIC_ID)).toBeNull()
     })
   })
 

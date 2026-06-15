@@ -6,10 +6,9 @@ import type { INavigationItemViewModel } from '@/types/navigation.types'
 
 interface SidebarItemProps {
   item: INavigationItemViewModel
-  isCollapsed: boolean
 }
 
-export function SidebarItem({ item, isCollapsed }: SidebarItemProps) {
+export function SidebarItem({ item }: SidebarItemProps) {
   return (
     <Link
       href={item.href}
@@ -31,7 +30,7 @@ export function SidebarItem({ item, isCollapsed }: SidebarItemProps) {
       >
         {item.icon}
       </span>
-      {!isCollapsed && <span>{item.label}</span>}
+      <span>{item.label}</span>
     </Link>
   )
 }

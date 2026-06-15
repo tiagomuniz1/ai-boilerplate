@@ -43,7 +43,7 @@ describe('SpecialtiesController (integration)', () => {
 
     const response = await request(app.getHttpServer())
       .post('/auth/login')
-      .send({ email: user.email, password })
+      .send({ email: user.email, password, slug: 'seed-clinic' })
 
     const setCookieHeader = response.headers['set-cookie'] as unknown as string[] | string
     const cookies = Array.isArray(setCookieHeader) ? setCookieHeader : [setCookieHeader]
@@ -83,6 +83,7 @@ describe('SpecialtiesController (integration)', () => {
     await specialtyRepository.query('DELETE FROM test.doctors')
     await specialtyRepository.query('DELETE FROM test.patients')
     await specialtyRepository.query('DELETE FROM test.specialties')
+    await specialtyRepository.query('DELETE FROM test.refresh_tokens')
     await userRepository.query('DELETE FROM test.users')
     await clinicRepository.query('DELETE FROM test.clinics')
   })

@@ -1,5 +1,6 @@
 jest.mock('../use-cases/create-patient.use-case')
 jest.mock('next/navigation', () => ({ useRouter: jest.fn() }))
+jest.mock('@/lib/slug-context', () => ({ useSlug: () => 'test-clinic' }))
 
 import React from 'react'
 import { renderHook, act, waitFor } from '@testing-library/react'
@@ -58,7 +59,7 @@ describe('useCreatePatient', () => {
 
     act(() => result.current.mutate(input))
 
-    await waitFor(() => expect(mockPush).toHaveBeenCalledWith('/patients'))
+    await waitFor(() => expect(mockPush).toHaveBeenCalledWith('/test-clinic/patients'))
 
     expect(invalidate).toHaveBeenCalledWith({ queryKey: ['patients'] })
     expect(invalidate).toHaveBeenCalledWith({ queryKey: ['users'] })

@@ -33,7 +33,7 @@ export class UpdatePatientUseCase extends BaseUseCase {
     const hasPatientUpdate = Object.values(patientFields).some((v) => v !== undefined)
 
     if (email && email !== patient.user.email) {
-      const existing = await this.usersRepository.findByEmail(email)
+      const existing = await this.usersRepository.findByEmail(email, clinicId)
       if (existing) throw new ConflictException('Email already in use')
     }
 
@@ -52,7 +52,7 @@ export class UpdatePatientUseCase extends BaseUseCase {
       if (error instanceof OptimisticLockVersionMismatchError) {
         throw new ConflictException('Record was modified by another process. Please try again.')
       }
-      if (isUniqueConstraintViolation(error, DB_UNIQUE_CONSTRAINTS.USERS_EMAIL)) {
+      if (isUniqueConstraintViolation(error, DB_UNIQUE_CONSTRAINTS.USERS_EMAIL_CLINIC)) {
         throw new ConflictException('Email already in use')
       }
       throw error

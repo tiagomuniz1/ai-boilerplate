@@ -1,4 +1,4 @@
-import { ConflictException } from '@nestjs/common'
+import { ConflictException, NotFoundException, UnprocessableEntityException } from '@nestjs/common'
 import { DataSource, QueryFailedError } from 'typeorm'
 import { faker } from '@faker-js/faker'
 import { PatientGender, UserRole } from '@app/shared'
@@ -61,6 +61,14 @@ const makeDto = () => ({
   fullName: faker.person.fullName(),
   documentNumber: '12345678901',
   email: faker.internet.email(),
+  phoneNumber: '(11) 99999-9999',
+  birthDate: '1990-05-15',
+  gender: PatientGender.MALE,
+})
+
+const makeExistingUserDto = (userId = faker.string.uuid()) => ({
+  userId,
+  documentNumber: '12345678901',
   phoneNumber: '(11) 99999-9999',
   birthDate: '1990-05-15',
   gender: PatientGender.MALE,
@@ -191,7 +199,7 @@ describe('CreatePatientUseCase', () => {
   it('throws ConflictException when DB email unique constraint fires (race condition)', async () => {
     mockPatientsRepository.findByDocumentNumber.mockResolvedValue(null)
     mockUsersRepository.findByEmail.mockResolvedValue(null)
-    mockUsersRepository.create.mockRejectedValue(makeUniqueViolation(DB_UNIQUE_CONSTRAINTS.USERS_EMAIL))
+    mockUsersRepository.create.mockRejectedValue(makeUniqueViolation(DB_UNIQUE_CONSTRAINTS.USERS_EMAIL_CLINIC))
 
     await expect(useCase.execute(makeDto(), adminCurrentUser)).rejects.toThrow(ConflictException)
   })
@@ -225,5 +233,75 @@ describe('CreatePatientUseCase', () => {
     const result = await useCase.execute(dto, adminCurrentUser)
 
     expect(result.id).toBeDefined()
+  })
+
+  describe('existing user path', () => {
+    it('creates patient linked to existing user without creating a new user', async () => {
+      const user = makeUser()
+      const dto = makeExistingUserDto(user.id)
+      const patient = makePatient(user, { documentNumber: dto.documentNumber })
+
+      mockPatientsRepository.findByDocumentNumber.mockResolvedValue(null)
+      mockUsersRepository.findById.mockResolvedValue(user as any)
+      mockPatientsRepository.findByUserId.mockResolvedValue(null)
+      mockPatientsRepository.create.mockResolvedValue(patient as any)
+      mockCacheService.delByPattern.mockResolvedValue(undefined)
+
+      const result = await useCase.execute(dto, adminCurrentUser)
+
+      expect(result.id).toBe(patient.id)
+      expect(mockUsersRepository.create).not.toHaveBeenCalled()
+      expect(mockPatientsRepository.create).toHaveBeenCalledWith(
+        expect.objectContaining({ userId: user.id, clinicId: CLINIC_ID }),
+      )
+    })
+
+    it('throws NotFoundException when user does not exist', async () => {
+      const dto = makeExistingUserDto()
+      mockPatientsRepository.findByDocumentNumber.mockResolvedValue(null)
+      mockUsersRepository.findById.mockResolvedValue(null)
+
+      await expect(useCase.execute(dto, adminCurrentUser)).rejects.toThrow(NotFoundException)
+      expect(mockPatientsRepository.create).not.toHaveBeenCalled()
+    })
+
+    it('throws ConflictException when user already has a patient profile', async () => {
+      const user = makeUser()
+      const dto = makeExistingUserDto(user.id)
+      mockPatientsRepository.findByDocumentNumber.mockResolvedValue(null)
+      mockUsersRepository.findById.mockResolvedValue(user as any)
+      mockPatientsRepository.findByUserId.mockResolvedValue(makePatient(user) as any)
+
+      await expect(useCase.execute(dto, adminCurrentUser)).rejects.toThrow(ConflictException)
+      expect(mockPatientsRepository.create).not.toHaveBeenCalled()
+    })
+
+    it('throws UnprocessableEntityException when neither userId nor fullName+email are provided', async () => {
+      const dto = { documentNumber: '12345678901', phoneNumber: '(11) 99999-9999', birthDate: '1990-05-15', gender: PatientGender.MALE }
+
+      await expect(useCase.execute(dto as any, adminCurrentUser)).rejects.toThrow(UnprocessableEntityException)
+    })
+
+    it('throws ConflictException when DB document constraint fires in existing user path (race condition)', async () => {
+      const user = makeUser()
+      const dto = makeExistingUserDto(user.id)
+      mockPatientsRepository.findByDocumentNumber.mockResolvedValue(null)
+      mockUsersRepository.findById.mockResolvedValue(user as any)
+      mockPatientsRepository.findByUserId.mockResolvedValue(null)
+      mockPatientsRepository.create.mockRejectedValue(makeUniqueViolation(DB_UNIQUE_CONSTRAINTS.PATIENTS_DOCUMENT))
+
+      await expect(useCase.execute(dto, adminCurrentUser)).rejects.toThrow(ConflictException)
+    })
+
+    it('rethrows non-unique-constraint errors in existing user path', async () => {
+      const user = makeUser()
+      const dto = makeExistingUserDto(user.id)
+      mockPatientsRepository.findByDocumentNumber.mockResolvedValue(null)
+      mockUsersRepository.findById.mockResolvedValue(user as any)
+      mockPatientsRepository.findByUserId.mockResolvedValue(null)
+      mockPatientsRepository.create.mockRejectedValue(new Error('DB failure'))
+
+      await expect(useCase.execute(dto, adminCurrentUser)).rejects.toThrow('DB failure')
+    })
   })
 })

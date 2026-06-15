@@ -1,4 +1,4 @@
-import { UnauthorizedException } from '@nestjs/common'
+import { NotFoundException, UnauthorizedException } from '@nestjs/common'
 import { JwtService } from '@nestjs/jwt'
 import { faker } from '@faker-js/faker'
 import { DataSource } from 'typeorm'
@@ -7,6 +7,7 @@ import { LoginUseCase } from '../use-cases/login.use-case'
 import { IUsersRepository } from '../../users/repositories/users.repository.interface'
 import { IRefreshTokensRepository } from '../repositories/refresh-tokens.repository.interface'
 import { IAuthEnv } from '../use-cases/auth-env.token'
+import { FindClinicBySlugUseCase } from '../../clinics/use-cases/find-clinic-by-slug.use-case'
 import { User } from '../../users/entities/user.entity'
 import { UserRole } from '@app/shared'
 
@@ -40,6 +41,10 @@ const mockAuthEnv: IAuthEnv = {
   jwtRefreshExpiration: '7d',
 }
 
+const mockFindClinicBySlugUseCase = {
+  execute: jest.fn(),
+} as unknown as jest.Mocked<FindClinicBySlugUseCase>
+
 function makeUser(overrides: Partial<User> = {}): User {
   return {
     id: faker.string.uuid(),
@@ -68,6 +73,7 @@ describe('LoginUseCase', () => {
       mockRefreshTokensRepository,
       mockJwtService,
       mockAuthEnv,
+      mockFindClinicBySlugUseCase,
     )
   })
 
@@ -283,5 +289,66 @@ describe('LoginUseCase', () => {
       .catch((e) => e)
 
     expect(patientErr.message).toBe(notFoundErr.message)
+  })
+
+  describe('slug-based clinic scoping', () => {
+    it('resolves clinic from slug and passes clinicId to findByEmail', async () => {
+      const clinicId = faker.string.uuid()
+      const user = makeUser({ clinicId })
+      mockFindClinicBySlugUseCase.execute.mockResolvedValue({ id: clinicId } as any)
+      mockUsersRepository.findByEmail.mockResolvedValue(user)
+      ;(bcrypt.compare as jest.Mock).mockResolvedValue(true)
+      mockJwtService.signAsync.mockResolvedValue('token')
+      mockRefreshTokensRepository.create.mockResolvedValue({} as any)
+
+      await useCase.execute({ email: user.email, password: 'password123', slug: 'minha-clinica' })
+
+      expect(mockFindClinicBySlugUseCase.execute).toHaveBeenCalledWith('minha-clinica')
+      expect(mockUsersRepository.findByEmail).toHaveBeenCalledWith(user.email, clinicId)
+    })
+
+    it('throws UnauthorizedException when slug does not match any clinic', async () => {
+      mockFindClinicBySlugUseCase.execute.mockRejectedValue(new NotFoundException())
+
+      await expect(
+        useCase.execute({ email: faker.internet.email(), password: 'password123', slug: 'unknown-slug' }),
+      ).rejects.toThrow(new UnauthorizedException('Invalid credentials'))
+
+      expect(mockUsersRepository.findByEmail).not.toHaveBeenCalled()
+    })
+
+    it('re-throws non-NotFoundException errors from slug resolution', async () => {
+      mockFindClinicBySlugUseCase.execute.mockRejectedValue(new Error('Redis down'))
+
+      await expect(
+        useCase.execute({ email: faker.internet.email(), password: 'password123', slug: 'minha-clinica' }),
+      ).rejects.toThrow('Redis down')
+    })
+
+    it('backoffice login skips slug resolution and uses clinicId null', async () => {
+      const user = makeUser({ clinicId: null as any, role: UserRole.PLATFORM_ADMIN })
+      mockUsersRepository.findByEmail.mockResolvedValue(user)
+      ;(bcrypt.compare as jest.Mock).mockResolvedValue(true)
+      mockJwtService.signAsync.mockResolvedValue('token')
+      mockRefreshTokensRepository.create.mockResolvedValue({} as any)
+
+      await useCase.execute({ email: user.email, password: 'password123', slug: 'backoffice' })
+
+      expect(mockFindClinicBySlugUseCase.execute).not.toHaveBeenCalled()
+      expect(mockUsersRepository.findByEmail).toHaveBeenCalledWith(user.email, null)
+    })
+
+    it('login without slug skips slug resolution and uses clinicId null', async () => {
+      const user = makeUser({ clinicId: null as any, role: UserRole.PLATFORM_ADMIN })
+      mockUsersRepository.findByEmail.mockResolvedValue(user)
+      ;(bcrypt.compare as jest.Mock).mockResolvedValue(true)
+      mockJwtService.signAsync.mockResolvedValue('token')
+      mockRefreshTokensRepository.create.mockResolvedValue({} as any)
+
+      await useCase.execute({ email: user.email, password: 'password123' })
+
+      expect(mockFindClinicBySlugUseCase.execute).not.toHaveBeenCalled()
+      expect(mockUsersRepository.findByEmail).toHaveBeenCalledWith(user.email, null)
+    })
   })
 })

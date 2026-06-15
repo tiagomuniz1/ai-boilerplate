@@ -40,7 +40,7 @@ describe('useCreateClinicAdminUser', () => {
     })
   })
 
-  it('navigates to /clinics/:clinicId on success', async () => {
+  it('navigates to /backoffice/clinics/:clinicId on success', async () => {
     ;(createUserUseCase as jest.Mock).mockResolvedValue(model)
 
     const { result } = renderHook(() => useCreateClinicAdminUser(CLINIC_ID), { wrapper })
@@ -48,7 +48,7 @@ describe('useCreateClinicAdminUser', () => {
     act(() => result.current.mutate(input))
 
     await waitFor(() => {
-      expect(mockPush).toHaveBeenCalledWith(`/clinics/${CLINIC_ID}`)
+      expect(mockPush).toHaveBeenCalledWith(`/backoffice/clinics/${CLINIC_ID}`)
     })
   })
 

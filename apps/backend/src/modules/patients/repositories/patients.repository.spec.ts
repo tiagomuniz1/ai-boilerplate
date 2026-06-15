@@ -180,6 +180,7 @@ describe('PatientsRepository', () => {
     it('saves patient and reloads with user relation', async () => {
       const data = {
         userId: 'user-uuid-1',
+        clinicId: 'clinic-uuid-1',
         documentNumber: '12345678901',
         phoneNumber: '(11) 99999-9999',
         birthDate: '1990-05-15',

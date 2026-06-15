@@ -97,4 +97,13 @@ describe('FindAllThemesUseCase', () => {
 
     expect(result.total).toBe(1)
   })
+
+  it('uses default page=1 and limit=20 when query is empty', async () => {
+    mockThemesRepository.findAll.mockResolvedValue([[makeTheme() as any], 1])
+
+    await useCase.execute({} as any)
+
+    expect(mockThemesRepository.findAll).toHaveBeenCalledWith(1, 20)
+    expect(mockCacheService.set).toHaveBeenCalledWith('themes:list:1:20', expect.any(Object), 60)
+  })
 })

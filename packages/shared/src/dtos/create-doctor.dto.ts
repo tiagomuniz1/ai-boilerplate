@@ -1,8 +1,19 @@
-import { ArrayMinSize, IsArray, IsOptional, IsString, IsUUID, Matches, MaxLength } from 'class-validator'
+import { ArrayMinSize, IsArray, IsEmail, IsOptional, IsString, IsUUID, Matches, MaxLength, MinLength, ValidateIf } from 'class-validator'
 
 export class CreateDoctorDto {
+  @IsOptional()
   @IsUUID()
-  userId!: string
+  userId?: string
+
+  @ValidateIf(o => !o.userId)
+  @IsString()
+  @MinLength(3)
+  @MaxLength(120)
+  fullName?: string
+
+  @ValidateIf(o => !o.userId)
+  @IsEmail()
+  email?: string
 
   @IsString()
   @Matches(/^\d{1,6}\/[A-Z]{2}$/, { message: 'crmNumber must be in the format NNNNN/UF (e.g., 12345/SP)' })

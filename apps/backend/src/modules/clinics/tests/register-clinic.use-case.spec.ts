@@ -13,6 +13,8 @@ const mockClinicsRepository: jest.Mocked<IClinicsRepository> = {
   findBySlug: jest.fn(),
   create: jest.fn(),
   update: jest.fn(),
+  updateLogo: jest.fn(),
+  updateFavicon: jest.fn(),
 }
 
 const mockUsersRepository: jest.Mocked<IUsersRepository> = {
@@ -287,13 +289,11 @@ describe('RegisterClinicUseCase', () => {
       expect(mockUsersRepository.create).not.toHaveBeenCalled()
     })
 
-    it('throws ConflictException when email is already in use', async () => {
-      mockClinicsRepository.findBySlug.mockResolvedValue(null)
-      mockUsersRepository.findByEmail.mockResolvedValue(makeUser() as any)
-
-      await expect(useCase.execute(makeDto())).rejects.toThrow(
-        new ConflictException('Email already in use'),
+    it('throws ConflictException when slug is "backoffice" (reserved)', async () => {
+      await expect(useCase.execute(makeDto({ slug: 'backoffice' }))).rejects.toThrow(
+        new ConflictException('Slug is reserved and cannot be used'),
       )
+      expect(mockClinicsRepository.findBySlug).not.toHaveBeenCalled()
       expect(mockClinicsRepository.create).not.toHaveBeenCalled()
       expect(mockUsersRepository.create).not.toHaveBeenCalled()
     })
@@ -317,11 +317,11 @@ describe('RegisterClinicUseCase', () => {
       )
     })
 
-    it('throws ConflictException when UQ_users_email_active constraint is violated', async () => {
+    it('throws ConflictException when UQ_users_email_clinic constraint is violated', async () => {
       mockClinicsRepository.findBySlug.mockResolvedValue(null)
       mockUsersRepository.findByEmail.mockResolvedValue(null)
       mockClinicsRepository.create.mockResolvedValue(makeClinic() as any)
-      mockUsersRepository.create.mockRejectedValue(makeConstraintError('UQ_users_email_active'))
+      mockUsersRepository.create.mockRejectedValue(makeConstraintError('UQ_users_email_clinic'))
 
       await expect(useCase.execute(makeDto())).rejects.toThrow(
         new ConflictException('Email already in use'),

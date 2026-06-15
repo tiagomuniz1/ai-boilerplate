@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { Button } from '@/components/ui/atoms/button/button'
 import { Typography } from '@/components/ui/atoms/typography/typography'
 import { useTheme } from '@/components/features/themes/hooks/use-theme.hook'
+import { ClinicUploadSection } from './clinic-upload-section'
 import type { IClinicModel } from '../types/clinic.types'
 
 interface ClinicDetailsProps {
@@ -36,12 +37,12 @@ export function ClinicDetails({ clinic }: ClinicDetailsProps) {
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <Link href={`/clinics/${clinic.id}/users/new`}>
+          <Link href={`/backoffice/clinics/${clinic.id}/users/new`}>
             <Button variant="secondary" size="sm" data-testid="clinic-details-new-user-button">
               + Usuário
             </Button>
           </Link>
-          <Link href={`/clinics/${clinic.id}/edit`}>
+          <Link href={`/backoffice/clinics/${clinic.id}/edit`}>
             <Button variant="ghost" size="sm" data-testid="clinic-details-edit-button">
               Editar
             </Button>
@@ -176,6 +177,17 @@ export function ClinicDetails({ clinic }: ClinicDetailsProps) {
           Endereço não cadastrado.
         </div>
       )}
+
+      <div className="overflow-hidden rounded-xl border border-line bg-surface shadow-sm">
+        <div className="border-b border-line px-6 py-3">
+          <span className="text-xs font-medium uppercase tracking-wider text-text-mute">
+            Identidade Visual
+          </span>
+        </div>
+        <div className="px-6 py-4">
+          <ClinicUploadSection clinic={clinic} />
+        </div>
+      </div>
     </div>
   )
 }

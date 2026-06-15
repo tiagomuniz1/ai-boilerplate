@@ -16,72 +16,62 @@ const baseItem: INavigationItemViewModel = {
 }
 
 describe('SidebarItem', () => {
-  it('renders the item label when not collapsed', () => {
-    render(<SidebarItem item={baseItem} isCollapsed={false} />)
+  it('renders the item label', () => {
+    render(<SidebarItem item={baseItem} />)
     expect(screen.getByText('Dashboard')).toBeInTheDocument()
   })
 
-  it('hides the label when collapsed', () => {
-    render(<SidebarItem item={baseItem} isCollapsed />)
-    expect(screen.queryByText('Dashboard')).not.toBeInTheDocument()
-  })
-
-  it('renders the icon when collapsed', () => {
-    render(<SidebarItem item={baseItem} isCollapsed />)
-    expect(screen.getByTestId('nav-icon')).toBeInTheDocument()
-  })
-
-  it('renders the icon when expanded', () => {
-    render(<SidebarItem item={baseItem} isCollapsed={false} />)
+  it('renders the icon', () => {
+    render(<SidebarItem item={baseItem} />)
     expect(screen.getByTestId('nav-icon')).toBeInTheDocument()
   })
 
   it('renders as a link with correct href', () => {
-    render(<SidebarItem item={baseItem} isCollapsed={false} />)
+    render(<SidebarItem item={baseItem} />)
     expect(screen.getByRole('link')).toHaveAttribute('href', '/dashboard')
   })
 
   it('sets aria-current when active', () => {
-    render(<SidebarItem item={{ ...baseItem, isActive: true }} isCollapsed={false} />)
+    render(<SidebarItem item={{ ...baseItem, isActive: true }} />)
     expect(screen.getByRole('link')).toHaveAttribute('aria-current', 'page')
   })
 
   it('does not set aria-current when not active', () => {
-    render(<SidebarItem item={baseItem} isCollapsed={false} />)
+    render(<SidebarItem item={baseItem} />)
     expect(screen.getByRole('link')).not.toHaveAttribute('aria-current')
   })
 
   it('applies accent-soft background and text-text when active', () => {
-    render(<SidebarItem item={{ ...baseItem, isActive: true }} isCollapsed={false} />)
+    render(<SidebarItem item={{ ...baseItem, isActive: true }} />)
     expect(screen.getByRole('link')).toHaveClass('bg-accent-soft')
     expect(screen.getByRole('link')).toHaveClass('text-text')
   })
 
   it('icon span gets text-accent class when active', () => {
-    render(<SidebarItem item={{ ...baseItem, isActive: true }} isCollapsed={false} />)
+    render(<SidebarItem item={{ ...baseItem, isActive: true }} />)
     const iconSpan = screen.getByTestId('nav-icon').parentElement
     expect(iconSpan).toHaveClass('text-accent')
   })
 
   it('applies inactive styles when not active', () => {
-    render(<SidebarItem item={baseItem} isCollapsed={false} />)
+    render(<SidebarItem item={baseItem} />)
     expect(screen.getByRole('link')).toHaveClass('text-text-dim')
   })
 
   it('icon span does not have text-accent class when inactive', () => {
-    render(<SidebarItem item={baseItem} isCollapsed={false} />)
+    render(<SidebarItem item={baseItem} />)
     const iconSpan = screen.getByTestId('nav-icon').parentElement
     expect(iconSpan).not.toHaveClass('text-accent')
   })
 
   it('has correct data-testid', () => {
-    render(<SidebarItem item={baseItem} isCollapsed={false} />)
+    render(<SidebarItem item={baseItem} />)
     expect(screen.getByTestId('sidebar-item-dashboard')).toBeInTheDocument()
   })
 
   it('data-testid uses the item id', () => {
     const usersItem: INavigationItemViewModel = { ...baseItem, id: 'users', href: '/users' }
-    render(<SidebarItem item={usersItem} isCollapsed={false} />)
+    render(<SidebarItem item={usersItem} />)
     expect(screen.getByTestId('sidebar-item-users')).toBeInTheDocument()
   })
 })

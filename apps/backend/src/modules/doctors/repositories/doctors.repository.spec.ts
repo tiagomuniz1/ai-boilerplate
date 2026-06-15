@@ -201,6 +201,7 @@ describe('DoctorsRepository', () => {
   describe('create', () => {
     it('creates doctor with specialties, saves, and reloads with all relations', async () => {
       const data = { userId: 'user-uuid-1', crmNumber: '12345/SP', bio: null }
+      const clinicId = CLINIC_ID
       const specialties = [{ id: 'spec-uuid-1', name: 'Cardiologia' }] as any
       const entity = { id: 'uuid-1', ...data, specialties: [] } as unknown as Doctor
       const withRelations = makeDoctor()
@@ -208,18 +209,19 @@ describe('DoctorsRepository', () => {
       const managerRepo = (repo.manager as any)._managerRepo
       managerRepo.create.mockReturnValue(entity)
       managerRepo.save.mockResolvedValue(entity)
-      repo.findOne.mockResolvedValue(withRelations)
+      managerRepo.findOne.mockResolvedValue(withRelations)
 
-      const result = await repository.create(data as any, specialties)
+      const result = await repository.create(data as any, clinicId, specialties)
 
       expect(managerRepo.create).toHaveBeenCalledWith({
         userId: data.userId,
+        clinicId,
         crmNumber: data.crmNumber,
         bio: data.bio,
       })
       expect(entity.specialties).toBe(specialties)
       expect(managerRepo.save).toHaveBeenCalledWith(entity)
-      expect(repo.findOne).toHaveBeenCalledWith({
+      expect(managerRepo.findOne).toHaveBeenCalledWith({
         where: { id: entity.id },
         relations: ['user', 'specialties'],
       })
@@ -228,6 +230,7 @@ describe('DoctorsRepository', () => {
 
     it('uses queryRunner manager repo when provided', async () => {
       const data = { userId: 'user-uuid-1', crmNumber: '12345/SP', bio: null }
+      const clinicId = CLINIC_ID
       const specialties = [] as any
       const entity = { id: 'uuid-qr', specialties: [] } as unknown as Doctor
       const withRelations = makeDoctor({ id: 'uuid-qr' })
@@ -235,10 +238,10 @@ describe('DoctorsRepository', () => {
       const qrRepo = makeManagerRepo()
       qrRepo.create.mockReturnValue(entity)
       qrRepo.save.mockResolvedValue(entity)
+      qrRepo.findOne.mockResolvedValue(withRelations)
       const queryRunner = { manager: { getRepository: jest.fn().mockReturnValue(qrRepo) } } as any
-      repo.findOne.mockResolvedValue(withRelations)
 
-      const result = await repository.create(data as any, specialties, queryRunner)
+      const result = await repository.create(data as any, clinicId, specialties, queryRunner)
 
       expect(qrRepo.save).toHaveBeenCalled()
       expect((repo.manager as any)._managerRepo.save).not.toHaveBeenCalled()
@@ -253,18 +256,19 @@ describe('DoctorsRepository', () => {
       const updated = makeDoctor({ specialties: newSpecialties })
 
       const managerRepo = (repo.manager as any)._managerRepo
-      managerRepo.findOne.mockResolvedValue(doctor)
+      managerRepo.findOne
+        .mockResolvedValueOnce(doctor)
+        .mockResolvedValueOnce(updated)
       managerRepo.save.mockResolvedValue({ ...doctor, specialties: newSpecialties })
-      repo.findOne.mockResolvedValue(updated)
 
       const result = await repository.update('uuid-1', { crmNumber: '99999/SP' }, newSpecialties)
 
-      expect(managerRepo.findOne).toHaveBeenCalledWith({
+      expect(managerRepo.findOne).toHaveBeenNthCalledWith(1, {
         where: { id: 'uuid-1' },
         relations: ['specialties'],
       })
       expect(managerRepo.save).toHaveBeenCalled()
-      expect(repo.findOne).toHaveBeenCalledWith({
+      expect(managerRepo.findOne).toHaveBeenNthCalledWith(2, {
         where: { id: 'uuid-1' },
         relations: ['user', 'specialties'],
       })
@@ -279,7 +283,6 @@ describe('DoctorsRepository', () => {
       const managerRepo = (repo.manager as any)._managerRepo
       managerRepo.findOne.mockResolvedValue(doctor)
       managerRepo.save.mockResolvedValue(doctor)
-      repo.findOne.mockResolvedValue(updated)
 
       await repository.update('uuid-1', { crmNumber: '99999/SP' }, null)
 
@@ -301,7 +304,6 @@ describe('DoctorsRepository', () => {
       qrRepo.findOne.mockResolvedValue(doctor)
       qrRepo.save.mockResolvedValue(doctor)
       const queryRunner = { manager: { getRepository: jest.fn().mockReturnValue(qrRepo) } } as any
-      repo.findOne.mockResolvedValue(withRelations)
 
       await repository.update('uuid-1', { bio: 'new bio' }, null, queryRunner)
 

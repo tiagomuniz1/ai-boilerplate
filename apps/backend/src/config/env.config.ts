@@ -13,6 +13,8 @@ export interface IEnvConfig {
   JWT_EXPIRATION: string
   JWT_REFRESH_EXPIRATION: string
   FRONTEND_URL: string
+  AWS_S3_BUCKET: string | undefined
+  AWS_REGION: string | undefined
 }
 
 export function getEnvConfig(): IEnvConfig {
@@ -41,6 +43,8 @@ export function getEnvConfig(): IEnvConfig {
     JWT_EXPIRATION: process.env.JWT_EXPIRATION!,
     JWT_REFRESH_EXPIRATION: process.env.JWT_REFRESH_EXPIRATION!,
     FRONTEND_URL: process.env.FRONTEND_URL!,
+    AWS_S3_BUCKET: process.env.AWS_S3_BUCKET,
+    AWS_REGION: process.env.AWS_REGION,
   }
 }
 

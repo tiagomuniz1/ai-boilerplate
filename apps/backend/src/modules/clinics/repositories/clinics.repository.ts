@@ -58,6 +58,16 @@ export class ClinicsRepository implements IClinicsRepository {
     return repo.save(entity)
   }
 
+  async updateLogo(id: string, logoUrl: string, queryRunner?: QueryRunner): Promise<void> {
+    const repo = queryRunner ? queryRunner.manager.getRepository(Clinic) : this.repository
+    await repo.update(id, { logoUrl })
+  }
+
+  async updateFavicon(id: string, faviconUrl: string, queryRunner?: QueryRunner): Promise<void> {
+    const repo = queryRunner ? queryRunner.manager.getRepository(Clinic) : this.repository
+    await repo.update(id, { faviconUrl })
+  }
+
   async update(id: string, data: UpdateClinicDto): Promise<Clinic> {
     const clinic = await this.repository.findOneByOrFail({ id })
 

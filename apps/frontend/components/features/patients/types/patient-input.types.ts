@@ -1,8 +1,9 @@
 import { PatientGender } from '@app/shared'
 
 export interface ICreatePatientInput {
-  fullName: string
-  email: string
+  userId?: string
+  fullName?: string
+  email?: string
   phoneNumber: string
   birthDate: string
   documentNumber: string

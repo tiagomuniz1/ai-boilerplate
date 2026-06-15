@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
+import { useSlug } from '@/lib/slug-context'
 import { Skeleton } from '@/components/ui/atoms/skeleton/skeleton'
 import { Alert } from '@/components/ui/molecules/alert/alert'
 import { Button } from '@/components/ui/atoms/button/button'
@@ -14,6 +15,7 @@ import { DeleteUserDialog } from './delete-user-dialog'
 import type { IUserModel } from '../types/user-model.types'
 
 export function UserList() {
+  const slug = useSlug()
   const [searchTerm, setSearchTerm] = useState('')
   const [debouncedSearch, setDebouncedSearch] = useState('')
 
@@ -68,7 +70,7 @@ export function UserList() {
             </p>
           )}
         </div>
-        <Link href="/users/new">
+        <Link href={`/${slug}/users/new`}>
           <Button variant="primary" data-testid="user-list-new-button">
             + Novo usuário
           </Button>

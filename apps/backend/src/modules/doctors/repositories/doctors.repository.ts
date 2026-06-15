@@ -61,13 +61,13 @@ export class DoctorsRepository implements IDoctorsRepository {
       .getOne()
   }
 
-  async create(data: CreateDoctorDto, specialties: Specialty[], queryRunner?: QueryRunner): Promise<Doctor> {
+  async create(data: CreateDoctorDto & { userId: string }, clinicId: string, specialties: Specialty[], queryRunner?: QueryRunner): Promise<Doctor> {
     const manager = queryRunner ? queryRunner.manager : this.repository.manager
     const repo = manager.getRepository(Doctor)
-    const doctor = repo.create({ userId: data.userId, crmNumber: data.crmNumber, bio: data.bio })
+    const doctor = repo.create({ userId: data.userId, clinicId, crmNumber: data.crmNumber, bio: data.bio })
     doctor.specialties = specialties
     const saved = await repo.save(doctor)
-    return this.repository.findOne({ where: { id: saved.id }, relations: ['user', 'specialties'] }) as Promise<Doctor>
+    return repo.findOne({ where: { id: saved.id }, relations: ['user', 'specialties'] }) as Promise<Doctor>
   }
 
   async update(id: string, data: UpdateDoctorDto, specialties: Specialty[] | null, queryRunner?: QueryRunner): Promise<Doctor> {
@@ -79,7 +79,7 @@ export class DoctorsRepository implements IDoctorsRepository {
     if (data.bio !== undefined) doctor.bio = data.bio
     if (specialties !== null) doctor.specialties = specialties
     const saved = await repo.save(doctor)
-    return this.repository.findOne({ where: { id: saved.id }, relations: ['user', 'specialties'] }) as Promise<Doctor>
+    return repo.findOne({ where: { id: saved.id }, relations: ['user', 'specialties'] }) as Promise<Doctor>
   }
 
   async delete(id: string, queryRunner?: QueryRunner): Promise<void> {

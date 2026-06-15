@@ -85,6 +85,38 @@ describe('clinicsService', () => {
     expect(result).toBe(dto)
   })
 
+  it('uploadLogo builds FormData with "logo" field and calls POST /clinics/me/logo', async () => {
+    const dto = makeClinicDto()
+    mockApiClient.post.mockResolvedValue(dto)
+    const file = new File(['img'], 'logo.jpg', { type: 'image/jpeg' })
+
+    const result = await clinicsService.uploadLogo(file)
+
+    expect(mockApiClient.post).toHaveBeenCalledWith(
+      '/clinics/me/logo',
+      expect.any(FormData),
+    )
+    const formData = mockApiClient.post.mock.calls[0][1] as FormData
+    expect(formData.get('logo')).toBe(file)
+    expect(result).toBe(dto)
+  })
+
+  it('uploadFavicon builds FormData with "favicon" field and calls POST /clinics/me/favicon', async () => {
+    const dto = makeClinicDto()
+    mockApiClient.post.mockResolvedValue(dto)
+    const file = new File(['ico'], 'favicon.ico', { type: 'image/x-icon' })
+
+    const result = await clinicsService.uploadFavicon(file)
+
+    expect(mockApiClient.post).toHaveBeenCalledWith(
+      '/clinics/me/favicon',
+      expect.any(FormData),
+    )
+    const formData = mockApiClient.post.mock.calls[0][1] as FormData
+    expect(formData.get('favicon')).toBe(file)
+    expect(result).toBe(dto)
+  })
+
   it('register calls POST /clinics/register with data and returns result', async () => {
     const response = {
       clinic: { id: 'uuid-1', name: 'Clínica do Coração', slug: 'clinica-do-coracao' },

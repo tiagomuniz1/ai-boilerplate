@@ -3,6 +3,7 @@ import type { UserRole } from '@app/shared'
 export interface ILoginInput {
   email: string
   password: string
+  slug?: string
 }
 
 export interface IAuthUserDto {

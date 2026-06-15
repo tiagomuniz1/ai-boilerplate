@@ -21,6 +21,9 @@ export class CreateClinicUseCase extends BaseUseCase {
   async execute(dto: CreateClinicDto): Promise<ClinicResponseDto> {
     const slug = dto.slug ?? this.generateSlug(dto.name)
 
+
+    const RESERVED_SLUGS = ['backoffice']
+    if (RESERVED_SLUGS.includes(slug)) throw new ConflictException('Slug is reserved and cannot be used')
     const existing = await this.clinicsRepository.findBySlug(slug)
     if (existing) throw new ConflictException('Slug already in use')
 
@@ -51,6 +54,8 @@ export class CreateClinicUseCase extends BaseUseCase {
       slug: clinic.slug,
       isActive: clinic.isActive,
       themeId: clinic.themeId ?? null,
+      logoUrl: clinic.logoUrl ?? null,
+      faviconUrl: clinic.faviconUrl ?? null,
       address: clinic.addressStreet != null
         ? {
             street: clinic.addressStreet,

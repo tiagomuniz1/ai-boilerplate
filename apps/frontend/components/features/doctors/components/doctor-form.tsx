@@ -1,7 +1,7 @@
 'use client'
 
-import { useEffect } from 'react'
-import { useForm, useController } from 'react-hook-form'
+import { useEffect, useRef, useState } from 'react'
+import { useForm, useController, Control } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { useQuery } from '@tanstack/react-query'
@@ -29,12 +29,29 @@ const specialtyIdsField = z
 
 const bioField = z.string().max(500, 'Bio deve ter no máximo 500 caracteres').optional()
 
-const createSchema = z.object({
-  userId: z.string().min(1, 'Selecione um usuário'),
-  crmNumber: crmField,
-  specialtyIds: specialtyIdsField,
-  bio: bioField,
-})
+const createSchema = z
+  .object({
+    userMode: z.enum(['existing', 'new']),
+    userId: z.string().optional(),
+    fullName: z.string().optional(),
+    email: z.string().optional(),
+    crmNumber: crmField,
+    specialtyIds: specialtyIdsField,
+    bio: bioField,
+  })
+  .superRefine((data, ctx) => {
+    if (data.userMode === 'existing' && !data.userId) {
+      ctx.addIssue({ code: 'custom', path: ['userId'], message: 'Selecione um usuário' })
+    }
+    if (data.userMode === 'new') {
+      if (!data.fullName || data.fullName.trim().length < 3) {
+        ctx.addIssue({ code: 'custom', path: ['fullName'], message: 'Nome deve ter no mínimo 3 caracteres' })
+      }
+      if (!data.email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(data.email)) {
+        ctx.addIssue({ code: 'custom', path: ['email'], message: 'E-mail inválido' })
+      }
+    }
+  })
 
 const updateSchema = z.object({
   crmNumber: crmField.optional().or(z.literal('')),
@@ -45,6 +62,7 @@ const updateSchema = z.object({
 
 type CreateFormValues = z.infer<typeof createSchema>
 type UpdateFormValues = z.infer<typeof updateSchema>
+
 
 interface DoctorFormCreateProps {
   mode: 'create'
@@ -82,32 +100,31 @@ function DoctorFormCreate({ isPending, globalError, onSubmit }: DoctorFormCreate
     handleSubmit,
     setError,
     control,
+    watch,
     formState: { errors },
   } = useForm<CreateFormValues>({
     resolver: zodResolver(createSchema),
-    defaultValues: { specialtyIds: [] },
+    defaultValues: { userMode: 'existing', specialtyIds: [] },
   })
 
   const { field: specialtyField } = useController({ name: 'specialtyIds', control })
+  const { field: userModeField } = useController({ name: 'userMode', control })
 
-  const { data: usersResponse, isPending: isLoadingUsers } = useQuery({
-    queryKey: ['users-for-select'],
-    queryFn: () => userService.getAll({ limit: 100 }),
-  })
+  const userMode = watch('userMode')
 
   const { data: specialtiesResponse, isPending: isLoadingSpecialties } = useQuery({
     queryKey: ['specialties-for-select'],
     queryFn: () => specialtiesService.getAll({ limit: 100 }),
   })
 
-  const users = usersResponse?.data ?? []
   const specialties = specialtiesResponse?.data ?? []
 
   function handleFormSubmit(data: CreateFormValues) {
-    onSubmit(
-      { userId: data.userId, crmNumber: data.crmNumber, specialtyIds: data.specialtyIds, bio: data.bio || undefined },
-      setError as (field: keyof ICreateDoctorInput, error: { message: string }) => void,
-    )
+    const input: ICreateDoctorInput =
+      data.userMode === 'existing'
+        ? { userId: data.userId, crmNumber: data.crmNumber, specialtyIds: data.specialtyIds, bio: data.bio || undefined }
+        : { fullName: data.fullName, email: data.email, crmNumber: data.crmNumber, specialtyIds: data.specialtyIds, bio: data.bio || undefined }
+    onSubmit(input, setError as (field: keyof ICreateDoctorInput, error: { message: string }) => void)
   }
 
   function toggleSpecialty(id: string) {
@@ -128,13 +145,55 @@ function DoctorFormCreate({ isPending, globalError, onSubmit }: DoctorFormCreate
           </Alert>
         )}
 
-        <UserSelect
-          registerProps={register('userId')}
-          error={errors.userId?.message}
-          users={users}
-          isLoading={isLoadingUsers}
-          disabled={false}
-        />
+        <div className="flex flex-col gap-1.5">
+          <span className="text-sm font-medium text-text">Usuário</span>
+          <div className="flex gap-4" data-testid="doctor-form-user-mode">
+            <label className="flex cursor-pointer items-center gap-2 text-sm text-text">
+              <input
+                type="radio"
+                value="existing"
+                data-testid="doctor-form-user-mode-existing"
+                checked={userModeField.value === 'existing'}
+                onChange={() => userModeField.onChange('existing')}
+                className="accent-accent"
+              />
+              Usuário existente
+            </label>
+            <label className="flex cursor-pointer items-center gap-2 text-sm text-text">
+              <input
+                type="radio"
+                value="new"
+                data-testid="doctor-form-user-mode-new"
+                checked={userModeField.value === 'new'}
+                onChange={() => userModeField.onChange('new')}
+                className="accent-accent"
+              />
+              Novo usuário
+            </label>
+          </div>
+        </div>
+
+        {userMode === 'existing' ? (
+          <UserSearch control={control} error={errors.userId?.message} />
+        ) : (
+          <>
+            <Input
+              label="Nome completo"
+              id="fullName"
+              data-testid="doctor-form-fullname"
+              error={errors.fullName?.message}
+              {...register('fullName')}
+            />
+            <Input
+              label="E-mail"
+              id="email"
+              type="email"
+              data-testid="doctor-form-email"
+              error={errors.email?.message}
+              {...register('email')}
+            />
+          </>
+        )}
 
         <Input
           label="CRM"
@@ -362,51 +421,101 @@ function SpecialtyCheckboxGroup({
   )
 }
 
-function UserSelect({
-  registerProps,
-  error,
-  users,
-  isLoading,
-  disabled,
-}: {
-  registerProps: React.SelectHTMLAttributes<HTMLSelectElement> & { name: string }
-  error?: string
-  users: Array<{ id: string; fullName: string; email: string }>
-  isLoading: boolean
-  disabled: boolean
-}) {
-  const selectId = 'userId'
+function UserSearch({ control, error }: { control: Control<CreateFormValues>; error?: string }) {
+  const [inputValue, setInputValue] = useState('')
+  const [debouncedTerm, setDebouncedTerm] = useState('')
+  const [isOpen, setIsOpen] = useState(false)
+  const containerRef = useRef<HTMLDivElement>(null)
+  const debounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  const { field } = useController({ name: 'userId', control })
+
+  const { data: searchResponse, isFetching } = useQuery({
+    queryKey: ['users-search', debouncedTerm],
+    queryFn: () => userService.getAll({ search: debouncedTerm, limit: 10 }),
+    enabled: debouncedTerm.length >= 2,
+  })
+  const searchResults = searchResponse?.data ?? []
+
+  function handleInputChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const value = e.target.value
+    setInputValue(value)
+    setIsOpen(true)
+    if (field.value) field.onChange(undefined)
+    if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current)
+    debounceTimerRef.current = setTimeout(() => setDebouncedTerm(value), 300)
+  }
+
+  function handleSelect(user: { id: string; fullName: string; email: string }) {
+    field.onChange(user.id)
+    setInputValue(`${user.fullName} — ${user.email}`)
+    setIsOpen(false)
+  }
+
+  useEffect(() => {
+    function handleOutsideClick(e: MouseEvent) {
+      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+        setIsOpen(false)
+      }
+    }
+    document.addEventListener('mousedown', handleOutsideClick)
+    return () => document.removeEventListener('mousedown', handleOutsideClick)
+  }, [])
+
+  const showDropdown = isOpen && debouncedTerm.length >= 2
+
   return (
-    <div className="flex flex-col gap-1.5">
-      <label htmlFor={selectId} className="text-sm font-medium text-text">
+    <div className="relative flex flex-col gap-1.5" ref={containerRef}>
+      <label htmlFor="user-search" className="text-sm font-medium text-text">
         Usuário
       </label>
-      <select
-        id={selectId}
+      <input
+        id="user-search"
+        type="text"
+        value={inputValue}
+        onChange={handleInputChange}
+        onFocus={() => { if (debouncedTerm.length >= 2) setIsOpen(true) }}
+        placeholder="Buscar por nome ou e-mail..."
+        autoComplete="off"
         aria-invalid={!!error}
-        aria-describedby={error ? `${selectId}-error` : undefined}
-        disabled={disabled || isLoading}
+        data-testid="doctor-form-user-search"
         className={cn(
           'h-10 w-full rounded-md px-3 text-base',
           'bg-surface border border-line',
-          'text-text',
+          'text-text placeholder:text-text/50',
           'transition-colors duration-150',
           'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-bg',
           error && 'border-danger focus-visible:ring-danger',
-          (disabled || isLoading) && 'opacity-50 cursor-not-allowed',
         )}
-        data-testid="doctor-form-user"
-        {...registerProps}
-      >
-        <option value="">{isLoading ? 'Carregando...' : '— Selecione —'}</option>
-        {users.map((user) => (
-          <option key={user.id} value={user.id}>
-            {user.fullName} — {user.email}
-          </option>
-        ))}
-      </select>
+      />
+      {showDropdown && (
+        <ul
+          className="absolute left-0 top-full z-10 mt-1 w-full rounded-md border border-line bg-surface shadow-md"
+          data-testid="doctor-form-user-search-results"
+        >
+          {isFetching ? (
+            <li className="px-3 py-2 text-sm text-text/60">Buscando...</li>
+          ) : searchResults.length === 0 ? (
+            <li className="px-3 py-2 text-sm text-text/60">Nenhum usuário encontrado</li>
+          ) : (
+            searchResults.map((u) => (
+              <li
+                key={u.id}
+                role="option"
+                aria-selected={field.value === u.id}
+                data-testid="doctor-form-user-option"
+                onMouseDown={(e) => e.preventDefault()}
+                onClick={() => handleSelect(u)}
+                className="cursor-pointer px-3 py-2 text-sm hover:bg-accent/10"
+              >
+                {u.fullName} — {u.email}
+              </li>
+            ))
+          )}
+        </ul>
+      )}
       {error && (
-        <span id={`${selectId}-error`} role="alert" className="text-xs text-danger">
+        <span role="alert" className="text-xs text-danger">
           {error}
         </span>
       )}

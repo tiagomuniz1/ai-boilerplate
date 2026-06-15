@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
+import { useSlug } from '@/lib/slug-context'
 import { Alert } from '@/components/ui/molecules/alert/alert'
 import { Button } from '@/components/ui/atoms/button/button'
 import { Input } from '@/components/ui/atoms/input/input'
@@ -20,6 +21,7 @@ const genderLabel: Record<PatientGender, string> = {
 }
 
 export function PatientList() {
+  const slug = useSlug()
   const [searchTerm, setSearchTerm] = useState('')
   const [debouncedSearch, setDebouncedSearch] = useState('')
   const [patientToDelete, setPatientToDelete] = useState<IPatientModel | null>(null)
@@ -73,7 +75,7 @@ export function PatientList() {
             </p>
           )}
         </div>
-        <Link href="/patients/new">
+        <Link href={`/${slug}/patients/new`}>
           <Button variant="primary" data-testid="patient-list-new-button">
             + Novo paciente
           </Button>
@@ -193,14 +195,14 @@ export function PatientList() {
                           Excluir
                         </Button>
                         <Link
-                          href={`/patients/${patient.id}/edit`}
+                          href={`/${slug}/patients/${patient.id}/edit`}
                           data-testid={`patient-edit-link-${patient.id}`}
                           className="text-xs text-text-mute hover:text-text transition-colors"
                         >
                           Editar
                         </Link>
                         <Link
-                          href={`/patients/${patient.id}`}
+                          href={`/${slug}/patients/${patient.id}`}
                           data-testid={`patient-view-link-${patient.id}`}
                           className="flex items-center justify-center rounded-md p-1.5 text-text-mute transition-colors hover:bg-line hover:text-text"
                           aria-label={`Ver detalhes de ${patient.fullName}`}

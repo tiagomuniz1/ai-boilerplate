@@ -1,5 +1,6 @@
 jest.mock('next/navigation', () => ({ useRouter: jest.fn() }))
 jest.mock('../use-cases/create-schedule.use-case')
+jest.mock('@/lib/slug-context', () => ({ useSlug: () => 'test-clinic' }))
 
 import React from 'react'
 import { renderHook, act, waitFor } from '@testing-library/react'
@@ -67,7 +68,7 @@ describe('useCreateSchedule', () => {
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true))
 
-    expect(mockPush).toHaveBeenCalledWith('/schedules')
+    expect(mockPush).toHaveBeenCalledWith('/test-clinic/schedules')
   })
 
   it('returns error state on failure', async () => {

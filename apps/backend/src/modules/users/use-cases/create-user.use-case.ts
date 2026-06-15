@@ -39,7 +39,7 @@ export class CreateUserUseCase extends BaseUseCase {
       clinicId = currentUser.clinicId!
     }
 
-    const existing = await this.usersRepository.findByEmail(dto.email)
+    const existing = await this.usersRepository.findByEmail(dto.email, clinicId)
     if (existing) throw new ConflictException('Email already in use')
 
     const hashedPassword = await bcrypt.hash(dto.password, 10)
@@ -47,7 +47,10 @@ export class CreateUserUseCase extends BaseUseCase {
     try {
       user = await this.usersRepository.create({ ...dto, password: hashedPassword }, clinicId)
     } catch (error) {
-      if (isUniqueConstraintViolation(error, DB_UNIQUE_CONSTRAINTS.USERS_EMAIL)) {
+      const emailConstraint = clinicId === null
+        ? DB_UNIQUE_CONSTRAINTS.USERS_EMAIL_PLATFORM_ADMIN
+        : DB_UNIQUE_CONSTRAINTS.USERS_EMAIL_CLINIC
+      if (isUniqueConstraintViolation(error, emailConstraint)) {
         throw new ConflictException('Email already in use')
       }
       if (isForeignKeyViolation(error)) {

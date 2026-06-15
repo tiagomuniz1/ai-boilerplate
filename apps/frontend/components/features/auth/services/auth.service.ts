@@ -3,6 +3,6 @@ import type { ILoginInput, IAuthUserDto } from '../types/auth.types'
 
 export const authService = {
   login: (data: ILoginInput) => apiClient.post<IAuthUserDto>('/auth/login', data),
-  logout: () => apiClient.post<void>('/auth/logout'),
+  logout: (slug?: string) => apiClient.post<void>('/auth/logout', slug ? { slug } : undefined),
   getMe: () => apiClient.get<IAuthUserDto>('/auth/me'),
 }

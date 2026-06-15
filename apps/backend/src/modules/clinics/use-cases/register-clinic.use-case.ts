@@ -26,11 +26,11 @@ export class RegisterClinicUseCase extends BaseUseCase {
   async execute(dto: RegisterClinicDto): Promise<RegisterClinicResponseDto> {
     const slug = dto.slug ?? this.generateSlug(dto.clinicName)
 
+
+    const RESERVED_SLUGS = ['backoffice']
+    if (RESERVED_SLUGS.includes(slug)) throw new ConflictException('Slug is reserved and cannot be used')
     const existingClinic = await this.clinicsRepository.findBySlug(slug)
     if (existingClinic) throw new ConflictException('Slug already in use')
-
-    const existingUser = await this.usersRepository.findByEmail(dto.adminEmail)
-    if (existingUser) throw new ConflictException('Email already in use')
 
     const hashedPassword = await bcrypt.hash(dto.adminPassword, 10)
 
@@ -59,7 +59,7 @@ export class RegisterClinicUseCase extends BaseUseCase {
       if (isUniqueConstraintViolation(error, DB_UNIQUE_CONSTRAINTS.CLINICS_SLUG)) {
         throw new ConflictException('Slug already in use')
       }
-      if (isUniqueConstraintViolation(error, DB_UNIQUE_CONSTRAINTS.USERS_EMAIL)) {
+      if (isUniqueConstraintViolation(error, DB_UNIQUE_CONSTRAINTS.USERS_EMAIL_CLINIC)) {
         throw new ConflictException('Email already in use')
       }
       throw error

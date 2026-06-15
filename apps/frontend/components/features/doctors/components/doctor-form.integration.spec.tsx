@@ -51,13 +51,32 @@ describe('DoctorForm (integration) — create mode', () => {
     ;(specialtiesService.getAll as jest.Mock).mockResolvedValue({ data: mockSpecialties, total: 2, page: 1, limit: 100 })
   })
 
-  it('renders all create fields', async () => {
+  it('renders user mode toggle, crm, specialties and bio fields', async () => {
     renderWithProviders(<DoctorForm mode="create" isPending={false} onSubmit={jest.fn()} />)
 
-    expect(screen.getByTestId('doctor-form-user')).toBeInTheDocument()
+    expect(screen.getByTestId('doctor-form-user-mode')).toBeInTheDocument()
+    expect(screen.getByTestId('doctor-form-user-mode-existing')).toBeChecked()
     expect(screen.getByTestId('doctor-form-crm')).toBeInTheDocument()
     expect(screen.getByTestId('doctor-form-specialty-group')).toBeInTheDocument()
     expect(screen.getByTestId('doctor-form-bio')).toBeInTheDocument()
+  })
+
+  it('shows user search by default (existing user mode)', async () => {
+    renderWithProviders(<DoctorForm mode="create" isPending={false} onSubmit={jest.fn()} />)
+
+    expect(screen.getByTestId('doctor-form-user-search')).toBeInTheDocument()
+    expect(screen.queryByTestId('doctor-form-fullname')).not.toBeInTheDocument()
+    expect(screen.queryByTestId('doctor-form-email')).not.toBeInTheDocument()
+  })
+
+  it('switches to fullName + email fields when new user mode is selected', async () => {
+    renderWithProviders(<DoctorForm mode="create" isPending={false} onSubmit={jest.fn()} />)
+
+    await userEvent.click(screen.getByTestId('doctor-form-user-mode-new'))
+
+    expect(screen.queryByTestId('doctor-form-user-search')).not.toBeInTheDocument()
+    expect(screen.getByTestId('doctor-form-fullname')).toBeInTheDocument()
+    expect(screen.getByTestId('doctor-form-email')).toBeInTheDocument()
   })
 
   it('renders specialty checkboxes after loading', async () => {
@@ -69,16 +88,19 @@ describe('DoctorForm (integration) — create mode', () => {
     })
   })
 
-  it('calls onSubmit with form values on valid submit', async () => {
+  it('calls onSubmit with userId in existing user mode', async () => {
     const onSubmit = jest.fn()
 
     renderWithProviders(<DoctorForm mode="create" isPending={false} onSubmit={onSubmit} />)
 
-    await waitFor(() => {
-      expect(screen.getByTestId('doctor-form-user')).not.toBeDisabled()
-    })
+    await userEvent.type(screen.getByTestId('doctor-form-user-search'), 'João')
 
-    await userEvent.selectOptions(screen.getByTestId('doctor-form-user'), 'user-uuid-1')
+    await waitFor(
+      () => expect(screen.getByTestId('doctor-form-user-option')).toBeInTheDocument(),
+      { timeout: 2000 },
+    )
+    await userEvent.click(screen.getByTestId('doctor-form-user-option'))
+
     await userEvent.type(screen.getByTestId('doctor-form-crm'), '12345/SP')
 
     await waitFor(() => {
@@ -100,13 +122,56 @@ describe('DoctorForm (integration) — create mode', () => {
     })
   })
 
-  it('shows validation errors for empty required fields', async () => {
+  it('calls onSubmit with fullName + email in new user mode', async () => {
+    const onSubmit = jest.fn()
+
+    renderWithProviders(<DoctorForm mode="create" isPending={false} onSubmit={onSubmit} />)
+
+    await userEvent.click(screen.getByTestId('doctor-form-user-mode-new'))
+
+    await userEvent.type(screen.getByTestId('doctor-form-fullname'), 'Dra. Maria Santos')
+    await userEvent.type(screen.getByTestId('doctor-form-email'), 'maria@clinica.com')
+    await userEvent.type(screen.getByTestId('doctor-form-crm'), '54321/RJ')
+
+    await waitFor(() => {
+      expect(screen.getByTestId(`doctor-form-specialty-${SPEC_ID_1}`)).toBeInTheDocument()
+    })
+    await userEvent.click(screen.getByTestId(`doctor-form-specialty-${SPEC_ID_1}`))
+
+    await userEvent.click(screen.getByTestId('doctor-form-submit'))
+
+    await waitFor(() => {
+      expect(onSubmit).toHaveBeenCalledWith(
+        expect.objectContaining({
+          fullName: 'Dra. Maria Santos',
+          email: 'maria@clinica.com',
+          crmNumber: '54321/RJ',
+          specialtyIds: [SPEC_ID_1],
+        }),
+        expect.any(Function),
+      )
+    })
+  })
+
+  it('shows validation error when no user is selected in existing mode', async () => {
     renderWithProviders(<DoctorForm mode="create" isPending={false} onSubmit={jest.fn()} />)
 
     await userEvent.click(screen.getByTestId('doctor-form-submit'))
 
     await waitFor(() => {
       expect(screen.getByText('Selecione um usuário')).toBeInTheDocument()
+    })
+  })
+
+  it('shows validation errors when fullName and email are missing in new user mode', async () => {
+    renderWithProviders(<DoctorForm mode="create" isPending={false} onSubmit={jest.fn()} />)
+
+    await userEvent.click(screen.getByTestId('doctor-form-user-mode-new'))
+    await userEvent.click(screen.getByTestId('doctor-form-submit'))
+
+    await waitFor(() => {
+      expect(screen.getByText('Nome deve ter no mínimo 3 caracteres')).toBeInTheDocument()
+      expect(screen.getByText('E-mail inválido')).toBeInTheDocument()
     })
   })
 
@@ -124,11 +189,13 @@ describe('DoctorForm (integration) — create mode', () => {
   it('shows validation error when no specialty is selected', async () => {
     renderWithProviders(<DoctorForm mode="create" isPending={false} onSubmit={jest.fn()} />)
 
-    await waitFor(() => {
-      expect(screen.getByTestId('doctor-form-user')).not.toBeDisabled()
-    })
+    await userEvent.type(screen.getByTestId('doctor-form-user-search'), 'João')
+    await waitFor(
+      () => expect(screen.getByTestId('doctor-form-user-option')).toBeInTheDocument(),
+      { timeout: 2000 },
+    )
+    await userEvent.click(screen.getByTestId('doctor-form-user-option'))
 
-    await userEvent.selectOptions(screen.getByTestId('doctor-form-user'), 'user-uuid-1')
     await userEvent.type(screen.getByTestId('doctor-form-crm'), '12345/SP')
     await userEvent.click(screen.getByTestId('doctor-form-submit'))
 
@@ -142,11 +209,13 @@ describe('DoctorForm (integration) — create mode', () => {
 
     renderWithProviders(<DoctorForm mode="create" isPending={false} onSubmit={onSubmit} />)
 
-    await waitFor(() => {
-      expect(screen.getByTestId('doctor-form-user')).not.toBeDisabled()
-    })
+    await userEvent.type(screen.getByTestId('doctor-form-user-search'), 'João')
+    await waitFor(
+      () => expect(screen.getByTestId('doctor-form-user-option')).toBeInTheDocument(),
+      { timeout: 2000 },
+    )
+    await userEvent.click(screen.getByTestId('doctor-form-user-option'))
 
-    await userEvent.selectOptions(screen.getByTestId('doctor-form-user'), 'user-uuid-1')
     await userEvent.type(screen.getByTestId('doctor-form-crm'), '12345/SP')
 
     await waitFor(() => {
@@ -266,7 +335,7 @@ describe('DoctorForm (integration) — edit mode', () => {
 
     expect(screen.getByTestId('doctor-form-user-readonly')).toBeInTheDocument()
     expect(screen.getByTestId('doctor-form-user-readonly')).toHaveTextContent('Dr. João Silva')
-    expect(screen.queryByTestId('doctor-form-user')).not.toBeInTheDocument()
+    expect(screen.queryByTestId('doctor-form-user-search')).not.toBeInTheDocument()
   })
 
   it('calls onSubmit with updated specialties', async () => {

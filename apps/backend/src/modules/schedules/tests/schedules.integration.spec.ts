@@ -64,6 +64,7 @@ describe('SchedulesController (integration)', () => {
     await doctorRepository.query('DELETE FROM test.doctors')
     await doctorRepository.query('DELETE FROM test.patients')
     await specialtyRepository.query('DELETE FROM test.specialties')
+    await scheduleRepository.query('DELETE FROM test.refresh_tokens')
     await userRepository.query('DELETE FROM test.users')
     await clinicRepository.query('DELETE FROM test.clinics')
 
@@ -150,7 +151,7 @@ describe('SchedulesController (integration)', () => {
     const loginAndExtractToken = async (email: string) => {
       const res = await request(app.getHttpServer())
         .post('/auth/login')
-        .send({ email, password })
+        .send({ email, password, slug: 'seed-clinic' })
       const rawCookies = res.headers['set-cookie']
       if (!rawCookies) throw new Error(`Login failed for ${email}: status ${res.status}`)
       const cookies = Array.isArray(rawCookies) ? rawCookies : [rawCookies as string]
@@ -171,6 +172,7 @@ describe('SchedulesController (integration)', () => {
     await doctorRepository.query('DELETE FROM test.doctors')
     await doctorRepository.query('DELETE FROM test.patients')
     await specialtyRepository.query('DELETE FROM test.specialties')
+    await scheduleRepository.query('DELETE FROM test.refresh_tokens')
     await userRepository.query('DELETE FROM test.users')
     await clinicRepository.query('DELETE FROM test.clinics')
     await app.close()

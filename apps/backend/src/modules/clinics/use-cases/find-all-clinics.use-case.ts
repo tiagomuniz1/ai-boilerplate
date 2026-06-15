@@ -54,6 +54,8 @@ export class FindAllClinicsUseCase extends BaseUseCase {
       slug: clinic.slug,
       isActive: clinic.isActive,
       themeId: clinic.themeId ?? null,
+      logoUrl: clinic.logoUrl ?? null,
+      faviconUrl: clinic.faviconUrl ?? null,
       address: clinic.addressStreet != null
         ? {
             street: clinic.addressStreet,

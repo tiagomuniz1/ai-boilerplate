@@ -19,10 +19,31 @@ export const clinicsService = {
     )
   },
   getById: (id: string) => apiClient.get<ClinicResponseDto>(`/clinics/${id}`),
+  getBySlug: (slug: string) => apiClient.get<ClinicResponseDto>(`/clinics/slug/${slug}`),
   getMe: () => apiClient.get<ClinicResponseDto>('/clinics/me'),
   create: (data: ICreateClinicInput) => apiClient.post<ClinicResponseDto>('/clinics', data),
   update: (id: string, data: IUpdateClinicInput) =>
     apiClient.patch<ClinicResponseDto>(`/clinics/${id}`, data),
   register: (data: RegisterClinicDto) =>
     apiClient.post<RegisterClinicResponseDto>('/clinics/register', data),
+  uploadLogo: (file: File) => {
+    const formData = new FormData()
+    formData.append('logo', file)
+    return apiClient.post<ClinicResponseDto>('/clinics/me/logo', formData)
+  },
+  uploadLogoById: (id: string, file: File) => {
+    const formData = new FormData()
+    formData.append('logo', file)
+    return apiClient.post<ClinicResponseDto>(`/clinics/${id}/logo`, formData)
+  },
+  uploadFavicon: (file: File) => {
+    const formData = new FormData()
+    formData.append('favicon', file)
+    return apiClient.post<ClinicResponseDto>('/clinics/me/favicon', formData)
+  },
+  uploadFaviconById: (id: string, file: File) => {
+    const formData = new FormData()
+    formData.append('favicon', file)
+    return apiClient.post<ClinicResponseDto>(`/clinics/${id}/favicon`, formData)
+  },
 }

@@ -1,6 +1,7 @@
 jest.mock('../use-cases/login.use-case')
 jest.mock('next/navigation', () => ({ useRouter: jest.fn() }))
 jest.mock('@/stores/auth.store')
+jest.mock('@/lib/slug-context', () => ({ useSlug: () => 'test-clinic' }))
 
 import React from 'react'
 import { renderHook, act, waitFor } from '@testing-library/react'
@@ -40,7 +41,7 @@ describe('useLogin', () => {
     await waitFor(() => expect(loginUseCase).toHaveBeenCalled())
 
     const [firstArg] = (loginUseCase as jest.Mock).mock.calls[0]
-    expect(firstArg).toEqual({ email: 'alice@example.com', password: 'password123' })
+    expect(firstArg).toEqual({ email: 'alice@example.com', password: 'password123', slug: 'test-clinic' })
   })
 
   it('calls setUser and router.push on success', async () => {
@@ -55,7 +56,7 @@ describe('useLogin', () => {
 
     await waitFor(() => {
       expect(mockSetUser).toHaveBeenCalledWith(user)
-      expect(mockPush).toHaveBeenCalledWith('/dashboard')
+      expect(mockPush).toHaveBeenCalledWith('/test-clinic/dashboard')
     })
   })
 

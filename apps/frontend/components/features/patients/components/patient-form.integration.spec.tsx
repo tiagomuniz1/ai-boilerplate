@@ -1,16 +1,22 @@
 jest.mock('next/navigation', () => ({ useRouter: jest.fn() }))
 jest.mock('../services/patients.service')
+jest.mock('@/components/features/users/services/users.service')
 
 import { screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { useRouter } from 'next/navigation'
 import { PatientGender } from '@app/shared'
 import { patientsService } from '../services/patients.service'
+import { userService } from '@/components/features/users/services/users.service'
 import { renderWithProviders } from '@/tests/utils/render-with-providers'
 import { PatientForm } from './patient-form'
 import type { IPatientModel } from '../types/patient-model.types'
 
 const mockPush = jest.fn()
+
+const mockUsers = [
+  { id: 'user-1', fullName: 'Ana Costa', email: 'ana@example.com', role: 'user', isActive: true, createdAt: new Date() },
+]
 
 const existingPatient: IPatientModel = {
   id: 'uuid-1',
@@ -28,20 +34,46 @@ describe('PatientForm (integration) — create mode', () => {
   beforeEach(() => {
     jest.clearAllMocks()
     ;(useRouter as jest.Mock).mockReturnValue({ push: mockPush })
+    ;(userService.getAll as jest.Mock).mockResolvedValue({ data: mockUsers, total: 1, page: 1, limit: 100 })
   })
 
-  it('renders all create fields', () => {
+  it('renders user mode toggle and defaults to new user mode', () => {
     renderWithProviders(<PatientForm mode="create" isPending={false} onSubmit={jest.fn()} />)
 
+    expect(screen.getByTestId('patient-form-user-mode')).toBeInTheDocument()
+    expect(screen.getByTestId('patient-form-user-mode-new')).toBeChecked()
+    expect(screen.getByTestId('patient-form-user-mode-existing')).not.toBeChecked()
     expect(screen.getByTestId('patient-form-fullname')).toBeInTheDocument()
     expect(screen.getByTestId('patient-form-email')).toBeInTheDocument()
+  })
+
+  it('shows user search and hides fullName/email when switching to existing mode', async () => {
+    renderWithProviders(<PatientForm mode="create" isPending={false} onSubmit={jest.fn()} />)
+
+    await userEvent.click(screen.getByTestId('patient-form-user-mode-existing'))
+
+    expect(screen.getByTestId('patient-form-user-search')).toBeInTheDocument()
+    expect(screen.queryByTestId('patient-form-fullname')).not.toBeInTheDocument()
+    expect(screen.queryByTestId('patient-form-email')).not.toBeInTheDocument()
+  })
+
+  it('always shows patient-specific fields regardless of mode', async () => {
+    renderWithProviders(<PatientForm mode="create" isPending={false} onSubmit={jest.fn()} />)
+
+    expect(screen.getByTestId('patient-form-phone')).toBeInTheDocument()
+    expect(screen.getByTestId('patient-form-birthdate')).toBeInTheDocument()
+    expect(screen.getByTestId('patient-form-document')).toBeInTheDocument()
+    expect(screen.getByTestId('patient-form-gender')).toBeInTheDocument()
+
+    await userEvent.click(screen.getByTestId('patient-form-user-mode-existing'))
+
     expect(screen.getByTestId('patient-form-phone')).toBeInTheDocument()
     expect(screen.getByTestId('patient-form-birthdate')).toBeInTheDocument()
     expect(screen.getByTestId('patient-form-document')).toBeInTheDocument()
     expect(screen.getByTestId('patient-form-gender')).toBeInTheDocument()
   })
 
-  it('calls onSubmit with form values on valid submit', async () => {
+  it('calls onSubmit with fullName and email in new user mode', async () => {
     const onSubmit = jest.fn()
 
     renderWithProviders(<PatientForm mode="create" isPending={false} onSubmit={onSubmit} />)
@@ -51,10 +83,7 @@ describe('PatientForm (integration) — create mode', () => {
     await userEvent.type(screen.getByTestId('patient-form-phone'), '(11) 98765-4321')
     await userEvent.type(screen.getByTestId('patient-form-document'), '98765432100')
     await userEvent.selectOptions(screen.getByTestId('patient-form-gender'), PatientGender.FEMALE)
-
-    const birthdateInput = screen.getByTestId('patient-form-birthdate')
-    await userEvent.type(birthdateInput, '1992-08-20')
-
+    await userEvent.type(screen.getByTestId('patient-form-birthdate'), '1992-08-20')
     await userEvent.click(screen.getByTestId('patient-form-submit'))
 
     await waitFor(() => {
@@ -62,7 +91,7 @@ describe('PatientForm (integration) — create mode', () => {
         expect.objectContaining({
           fullName: 'Maria Oliveira',
           email: 'maria@example.com',
-          phoneNumber: '11987654321',
+          phoneNumber: '(11) 98765-4321',
           documentNumber: '98765432100',
           gender: PatientGender.FEMALE,
         }),
@@ -71,9 +100,62 @@ describe('PatientForm (integration) — create mode', () => {
     })
   })
 
-  it('shows validation errors for empty required fields', async () => {
+  it('calls onSubmit with userId in existing user mode', async () => {
+    const onSubmit = jest.fn()
+
+    renderWithProviders(<PatientForm mode="create" isPending={false} onSubmit={onSubmit} />)
+
+    await userEvent.click(screen.getByTestId('patient-form-user-mode-existing'))
+
+    await waitFor(() => {
+      expect(screen.getByTestId('patient-form-user-search')).toBeInTheDocument()
+    })
+
+    await userEvent.type(screen.getByTestId('patient-form-user-search'), 'Ana')
+
+    await waitFor(
+      () => expect(screen.getByTestId('patient-form-user-option')).toBeInTheDocument(),
+      { timeout: 2000 },
+    )
+
+    await userEvent.click(screen.getByTestId('patient-form-user-option'))
+    await userEvent.type(screen.getByTestId('patient-form-phone'), '(11) 98765-4321')
+    await userEvent.type(screen.getByTestId('patient-form-document'), '98765432100')
+    await userEvent.selectOptions(screen.getByTestId('patient-form-gender'), PatientGender.FEMALE)
+    await userEvent.type(screen.getByTestId('patient-form-birthdate'), '1992-08-20')
+    await userEvent.click(screen.getByTestId('patient-form-submit'))
+
+    await waitFor(() => {
+      expect(onSubmit).toHaveBeenCalledWith(
+        expect.objectContaining({
+          userId: 'user-1',
+          phoneNumber: '(11) 98765-4321',
+          documentNumber: '98765432100',
+          gender: PatientGender.FEMALE,
+        }),
+        expect.any(Function),
+      )
+    })
+    const call = onSubmit.mock.calls[0][0]
+    expect(call.fullName).toBeUndefined()
+    expect(call.email).toBeUndefined()
+  })
+
+  it('shows validation error when no user selected in existing mode', async () => {
     renderWithProviders(<PatientForm mode="create" isPending={false} onSubmit={jest.fn()} />)
 
+    await userEvent.click(screen.getByTestId('patient-form-user-mode-existing'))
+    await userEvent.click(screen.getByTestId('patient-form-submit'))
+
+    await waitFor(() => {
+      expect(screen.getByText('Selecione um usuário')).toBeInTheDocument()
+    })
+  })
+
+  it('shows validation errors for empty required fields in new user mode', async () => {
+    renderWithProviders(<PatientForm mode="create" isPending={false} onSubmit={jest.fn()} />)
+
+    await userEvent.click(screen.getByTestId('patient-form-user-mode-new'))
     await userEvent.click(screen.getByTestId('patient-form-submit'))
 
     await waitFor(() => {
@@ -81,9 +163,10 @@ describe('PatientForm (integration) — create mode', () => {
     })
   })
 
-  it('shows validation error for invalid email', async () => {
+  it('shows validation error for invalid email in new user mode', async () => {
     renderWithProviders(<PatientForm mode="create" isPending={false} onSubmit={jest.fn()} />)
 
+    await userEvent.click(screen.getByTestId('patient-form-user-mode-new'))
     await userEvent.type(screen.getByTestId('patient-form-email'), 'invalid-email')
     await userEvent.click(screen.getByTestId('patient-form-submit'))
 

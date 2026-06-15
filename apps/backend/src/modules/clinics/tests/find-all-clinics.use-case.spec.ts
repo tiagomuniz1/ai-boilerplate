@@ -10,6 +10,8 @@ const mockClinicsRepository: jest.Mocked<IClinicsRepository> = {
   findBySlug: jest.fn(),
   create: jest.fn(),
   update: jest.fn(),
+  updateLogo: jest.fn(),
+  updateFavicon: jest.fn(),
 }
 
 const mockCacheService = {
