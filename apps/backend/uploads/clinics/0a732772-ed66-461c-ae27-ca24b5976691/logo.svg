@@ -1,0 +1,44 @@
+<svg xmlns="http://www.w3.org/2000/svg"
+     viewBox="10 0 140 56"
+     width="169"
+     height="56">
+
+  <style>
+    .umi {
+      font-family: "Didot", "Bodoni MT", serif;
+      font-size: 34px;
+      font-weight: 400;
+      letter-spacing: 6px;
+      fill: #3F4348;
+    }
+
+    .subtitle {
+      font-family: "Montserrat", sans-serif;
+      font-size: 7px;
+      letter-spacing: 4px;
+      fill: #5B5E63;
+    }
+
+    .accent {
+      stroke: #A7856B;
+      stroke-width: 1.2;
+    }
+
+    .dot {
+      fill: #A7856B;
+    }
+  </style>
+
+  <g transform="translate(-10,0)">
+    <text x="84.5" y="26" text-anchor="middle" class="umi">UMI</text>
+
+    <line x1="25" y1="36" x2="78" y2="36" class="accent"/>
+    <circle cx="84.5" cy="36" r="1.8" class="dot"/>
+    <line x1="91" y1="36" x2="144" y2="36" class="accent"/>
+
+    <text x="84.5" y="51" text-anchor="middle" class="subtitle">
+      OBSTETRÍCIA
+    </text>
+  </g>
+
+</svg>

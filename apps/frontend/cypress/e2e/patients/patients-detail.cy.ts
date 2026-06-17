@@ -1,4 +1,5 @@
-const MOCK_TOKEN = 'mock-access-token'
+import { visitClinic, expectClinicPath, CLINIC_SLUG, CLINIC_ID } from '../../support/clinic'
+
 const MOCK_PATIENT_ID = 'eeeeeeee-1111-1111-1111-000000000001'
 
 const mockAuthUser = {
@@ -19,28 +20,6 @@ const mockPatient = {
   updatedAt: '2024-01-15T10:00:00.000Z',
 }
 
-function visitWithMockAuth(url: string) {
-  cy.intercept('GET', `${Cypress.env('API_URL')}/auth/me`, {
-    statusCode: 200,
-    body: mockAuthUser,
-  })
-  cy.setCookie('access_token', MOCK_TOKEN, {
-    httpOnly: true,
-    secure: false,
-    sameSite: 'strict',
-    path: '/',
-    domain: 'localhost',
-  })
-  cy.visit(url, {
-    onBeforeLoad(win) {
-      win.localStorage.setItem(
-        'auth-user',
-        JSON.stringify({ state: { user: mockAuthUser }, version: 0 }),
-      )
-    },
-  })
-}
-
 describe('Patients Detail', () => {
   beforeEach(() => {
     cy.clearCookies()
@@ -48,8 +27,8 @@ describe('Patients Detail', () => {
   })
 
   it('redirects to /login when not authenticated', () => {
-    cy.visit(`/patients/${MOCK_PATIENT_ID}`)
-    cy.url().should('include', '/login')
+    cy.visit(`/${CLINIC_SLUG}/patients/${MOCK_PATIENT_ID}`)
+    expectClinicPath('/login')
   })
 
   it('shows skeleton during data fetch', () => {
@@ -57,7 +36,7 @@ describe('Patients Detail', () => {
       req.reply({ delay: 1500, statusCode: 200, body: mockPatient })
     }).as('getPatient')
 
-    visitWithMockAuth(`/patients/${MOCK_PATIENT_ID}`)
+    visitClinic(`/patients/${MOCK_PATIENT_ID}`, mockAuthUser)
     cy.get('[data-testid="patient-details-skeleton"]').should('be.visible')
     cy.wait('@getPatient')
     cy.get('[data-testid="patient-details-skeleton"]').should('not.exist')
@@ -69,7 +48,7 @@ describe('Patients Detail', () => {
       body: { status: 404, title: 'Not Found', detail: 'Patient not found' },
     }).as('getPatient')
 
-    visitWithMockAuth(`/patients/${MOCK_PATIENT_ID}`)
+    visitClinic(`/patients/${MOCK_PATIENT_ID}`, mockAuthUser)
     cy.wait('@getPatient')
     cy.get('[data-testid="patient-details-error"]').should('be.visible')
     cy.get('[data-testid="patient-details"]').should('not.exist')
@@ -81,7 +60,7 @@ describe('Patients Detail', () => {
       body: mockPatient,
     }).as('getPatient')
 
-    visitWithMockAuth(`/patients/${MOCK_PATIENT_ID}`)
+    visitClinic(`/patients/${MOCK_PATIENT_ID}`, mockAuthUser)
     cy.wait('@getPatient')
 
     cy.get('[data-testid="patient-details"]').should('be.visible')
@@ -104,10 +83,10 @@ describe('Patients Detail', () => {
       body: { data: [], total: 0, page: 1, limit: 20 },
     })
 
-    visitWithMockAuth(`/patients/${MOCK_PATIENT_ID}`)
+    visitClinic(`/patients/${MOCK_PATIENT_ID}`, mockAuthUser)
     cy.wait('@getPatient')
     cy.get('[data-testid="patient-details-back-button"]').click()
-    cy.url().should('match', /\/patients$/)
+    expectClinicPath('/patients')
   })
 
   it('edit button navigates to /patients/[id]/edit', () => {
@@ -116,10 +95,10 @@ describe('Patients Detail', () => {
       body: mockPatient,
     }).as('getPatient')
 
-    visitWithMockAuth(`/patients/${MOCK_PATIENT_ID}`)
+    visitClinic(`/patients/${MOCK_PATIENT_ID}`, mockAuthUser)
     cy.wait('@getPatient')
     cy.get('[data-testid="patient-details-edit-button"]').click()
-    cy.url().should('include', `/patients/${MOCK_PATIENT_ID}/edit`)
+    expectClinicPath(`/patients/${MOCK_PATIENT_ID}/edit`)
   })
 
   it('delete button opens dialog with patient name', () => {
@@ -128,7 +107,7 @@ describe('Patients Detail', () => {
       body: mockPatient,
     }).as('getPatient')
 
-    visitWithMockAuth(`/patients/${MOCK_PATIENT_ID}`)
+    visitClinic(`/patients/${MOCK_PATIENT_ID}`, mockAuthUser)
     cy.wait('@getPatient')
     cy.get('[data-testid="patient-details-delete-button"]').click()
     cy.get('[data-testid="delete-patient-dialog"]').should('be.visible')
@@ -141,7 +120,7 @@ describe('Patients Detail', () => {
       body: mockPatient,
     }).as('getPatient')
 
-    visitWithMockAuth(`/patients/${MOCK_PATIENT_ID}`)
+    visitClinic(`/patients/${MOCK_PATIENT_ID}`, mockAuthUser)
     cy.wait('@getPatient')
     cy.get('[data-testid="patient-details-delete-button"]').click()
     cy.get('[data-testid="delete-patient-dialog"]').should('be.visible')
@@ -160,13 +139,13 @@ describe('Patients Detail', () => {
       body: { status: 500, title: 'Internal Server Error' },
     }).as('deletePatient')
 
-    visitWithMockAuth(`/patients/${MOCK_PATIENT_ID}`)
+    visitClinic(`/patients/${MOCK_PATIENT_ID}`, mockAuthUser)
     cy.wait('@getPatient')
     cy.get('[data-testid="patient-details-delete-button"]').click()
     cy.get('[data-testid="delete-patient-dialog-confirm"]').click()
     cy.wait('@deletePatient')
     cy.get('[data-testid="delete-patient-dialog"]').should('not.exist')
-    cy.url().should('include', `/patients/${MOCK_PATIENT_ID}`)
+    expectClinicPath(`/patients/${MOCK_PATIENT_ID}`)
   })
 
   it('delete success navigates to /patients', () => {
@@ -183,12 +162,12 @@ describe('Patients Detail', () => {
       body: { data: [], total: 0, page: 1, limit: 20 },
     })
 
-    visitWithMockAuth(`/patients/${MOCK_PATIENT_ID}`)
+    visitClinic(`/patients/${MOCK_PATIENT_ID}`, mockAuthUser)
     cy.wait('@getPatient')
     cy.get('[data-testid="patient-details-delete-button"]').click()
     cy.get('[data-testid="delete-patient-dialog-confirm"]').click()
     cy.wait('@deletePatient')
-    cy.url().should('match', /\/patients$/)
+    expectClinicPath('/patients')
   })
 })
 

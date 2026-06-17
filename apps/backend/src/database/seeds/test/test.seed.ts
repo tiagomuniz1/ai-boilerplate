@@ -13,7 +13,7 @@ process.env.JWT_EXPIRATION = process.env.JWT_EXPIRATION ?? '900s'
 process.env.JWT_REFRESH_EXPIRATION = process.env.JWT_REFRESH_EXPIRATION ?? '7d'
 process.env.FRONTEND_URL = process.env.FRONTEND_URL ?? 'http://localhost:3000'
 process.env.REDIS_HOST = process.env.REDIS_HOST ?? 'localhost'
-process.env.REDIS_PORT = process.env.REDIS_PORT ?? '6379'
+process.env.REDIS_PORT = process.env.REDIS_PORT ?? '6399'
 
 export default async function globalSetup() {
   const dataSource = new DataSource({

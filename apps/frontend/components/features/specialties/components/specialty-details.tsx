@@ -27,7 +27,7 @@ function DetailRow({ label, value, testId }: { label: string; value: string; tes
 export function SpecialtyDetails({ specialty, onDeleteClick }: SpecialtyDetailsProps) {
   const slug = useSlug()
   const user = useAuthStore((state) => state.user)
-  const isAdmin = user?.role === UserRole.ADMIN
+  const isAdmin = user?.role === UserRole.PLATFORM_ADMIN
 
   return (
     <div className="flex flex-col gap-6" data-testid="specialty-details">

@@ -53,6 +53,7 @@ const existingClinic: IClinicModel = {
   isActive: true,
   themeId: null,
   logoUrl: null,
+  logoDarkUrl: null,
   faviconUrl: null,
   address: {
     street: 'Rua das Flores',

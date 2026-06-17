@@ -61,7 +61,7 @@ const config: Config = {
 
             /* ===== TYPOGRAPHY ===== */
             fontFamily: {
-                sans: ['var(--font-inter)', 'system-ui', 'sans-serif'],
+                sans: ['var(--font-satoshi)', 'system-ui', 'sans-serif'],
                 serif: ['var(--font-fraunces)', 'Georgia', 'serif'],
             },
 

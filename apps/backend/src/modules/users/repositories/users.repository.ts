@@ -32,7 +32,10 @@ export class UsersRepository implements IUsersRepository {
     return this.repository.findOneBy({ id, clinicId })
   }
 
-  async findByEmail(email: string, clinicId: string | null): Promise<User | null> {
+  async findByEmail(email: string, clinicId?: string | null): Promise<User | null> {
+    if (clinicId === undefined) {
+      return this.repository.findOneBy({ email })
+    }
     if (clinicId === null) {
       return this.repository.findOne({ where: { email, clinicId: IsNull() } })
     }

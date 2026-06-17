@@ -65,6 +65,7 @@ export class UploadClinicFaviconUseCase extends BaseUseCase {
       isActive: clinic.isActive,
       themeId: clinic.themeId ?? null,
       logoUrl: clinic.logoUrl ?? null,
+      logoDarkUrl: clinic.logoDarkUrl ?? null,
       faviconUrl: clinic.faviconUrl,
       address: clinic.addressStreet != null
         ? {

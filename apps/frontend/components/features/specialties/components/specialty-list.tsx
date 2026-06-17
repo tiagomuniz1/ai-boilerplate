@@ -18,7 +18,7 @@ import type { ISpecialtyModel } from '../types/specialty-model.types'
 export function SpecialtyList() {
   const slug = useSlug()
   const user = useAuthStore((state) => state.user)
-  const isAdmin = user?.role === UserRole.ADMIN
+  const isAdmin = user?.role === UserRole.PLATFORM_ADMIN
 
   const [searchTerm, setSearchTerm] = useState('')
   const [debouncedSearch, setDebouncedSearch] = useState('')

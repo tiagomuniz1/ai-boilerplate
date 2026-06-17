@@ -13,6 +13,7 @@ function makeClinic(overrides: object = {}) {
     slug: 'clinica-do-coracao',
     isActive: true,
     logoUrl: null as string | null,
+    logoDarkUrl: null as string | null,
     faviconUrl: null as string | null,
     themeId: null,
     address: null,

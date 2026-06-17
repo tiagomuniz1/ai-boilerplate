@@ -25,32 +25,32 @@ export class SpecialtiesController {
   ) {}
 
   @Post()
-  @Roles(UserRole.ADMIN)
+  @Roles(UserRole.PLATFORM_ADMIN)
   @HttpCode(201)
   create(@Body() dto: CreateSpecialtyDto): Promise<SpecialtyResponseDto> {
     return this.createSpecialtyUseCase.execute(dto)
   }
 
   @Get()
-  @Roles(UserRole.ADMIN, UserRole.DOCTOR, UserRole.USER)
+  @Roles(UserRole.PLATFORM_ADMIN, UserRole.ADMIN, UserRole.DOCTOR, UserRole.USER)
   findAll(@Query() query: SpecialtyListQueryDto): Promise<PaginatedSpecialtiesResponseDto> {
     return this.findAllSpecialtiesUseCase.execute(query)
   }
 
   @Get(':id')
-  @Roles(UserRole.ADMIN, UserRole.DOCTOR, UserRole.USER)
+  @Roles(UserRole.PLATFORM_ADMIN, UserRole.ADMIN, UserRole.DOCTOR, UserRole.USER)
   findById(@Param('id') id: string): Promise<SpecialtyResponseDto> {
     return this.findSpecialtyByIdUseCase.execute(id)
   }
 
   @Patch(':id')
-  @Roles(UserRole.ADMIN)
+  @Roles(UserRole.PLATFORM_ADMIN)
   update(@Param('id') id: string, @Body() dto: UpdateSpecialtyDto): Promise<SpecialtyResponseDto> {
     return this.updateSpecialtyUseCase.execute(id, dto)
   }
 
   @Delete(':id')
-  @Roles(UserRole.ADMIN)
+  @Roles(UserRole.PLATFORM_ADMIN)
   @HttpCode(204)
   delete(@Param('id') id: string): Promise<void> {
     return this.deleteSpecialtyUseCase.execute(id)

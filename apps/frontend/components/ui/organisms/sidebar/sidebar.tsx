@@ -5,6 +5,7 @@ import { usePathname } from 'next/navigation'
 import { useSidebarNavigation } from '@/hooks/use-sidebar-navigation.hook'
 import { useAuthStore } from '@/stores/auth.store'
 import { useCurrentClinic } from '@/components/features/clinics/hooks/use-current-clinic.hook'
+import { useThemeStore } from '@/stores/theme.store'
 import { SidebarItem } from './sidebar-item'
 
 function getInitials(fullName: string): string {
@@ -17,6 +18,7 @@ export function Sidebar() {
   const { items } = useSidebarNavigation()
   const user = useAuthStore((state) => state.user)
   const { data: clinic } = useCurrentClinic()
+  const theme = useThemeStore((s) => s.theme)
   const pathname = usePathname()
   const [mounted, setMounted] = useState(false)
 
@@ -25,8 +27,9 @@ export function Sidebar() {
   }, [])
 
   const isBackoffice = pathname?.startsWith('/backoffice') ?? false
-  const clinicName = isBackoffice ? 'Backoffice' : (clinic?.name ?? 'Umi')
+  const clinicName = isBackoffice ? 'Backoffice' : (clinic?.name ?? 'Clínica')
   const clinicInitial = clinicName.charAt(0).toUpperCase()
+  const logoUrl = (theme === 'dark' && clinic?.logoDarkUrl) ? clinic.logoDarkUrl : clinic?.logoUrl
 
   return (
     <aside
@@ -35,10 +38,10 @@ export function Sidebar() {
       style={{ padding: '20px 14px 16px' }}
     >
       <div className="flex items-center gap-[10px] pb-5 px-2">
-        {clinic?.logoUrl ? (
+        {logoUrl ? (
           <div data-testid="sidebar-logo" className="flex-1 min-w-0">
             <img
-              src={clinic.logoUrl}
+              src={logoUrl}
               alt={clinicName}
               className="w-full h-auto object-contain object-left"
             />

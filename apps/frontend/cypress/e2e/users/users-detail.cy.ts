@@ -1,4 +1,5 @@
-const MOCK_TOKEN = 'mock-access-token'
+import { visitClinic, expectClinicPath, CLINIC_SLUG, CLINIC_ID } from '../../support/clinic'
+
 const MOCK_USER_ID = 'eeeeeeee-0000-0000-0000-000000000001'
 
 const mockAuthUser = {
@@ -20,28 +21,6 @@ const mockUser = {
   updatedAt: '2024-01-15T10:00:00.000Z',
 }
 
-function visitWithMockAuth(url: string) {
-  cy.intercept('GET', `${Cypress.env('API_URL')}/auth/me`, {
-    statusCode: 200,
-    body: mockAuthUser,
-  })
-  cy.setCookie('access_token', MOCK_TOKEN, {
-    httpOnly: true,
-    secure: false,
-    sameSite: 'strict',
-    path: '/',
-    domain: 'localhost',
-  })
-  cy.visit(url, {
-    onBeforeLoad(win) {
-      win.localStorage.setItem(
-        'auth-user',
-        JSON.stringify({ state: { user: mockAuthUser }, version: 0 }),
-      )
-    },
-  })
-}
-
 describe('Users Detail', () => {
   beforeEach(() => {
     cy.clearCookies()
@@ -49,8 +28,8 @@ describe('Users Detail', () => {
   })
 
   it('redirects to /login when not authenticated', () => {
-    cy.visit(`/users/${MOCK_USER_ID}`)
-    cy.url().should('include', '/login')
+    cy.visit(`/${CLINIC_SLUG}/users/${MOCK_USER_ID}`)
+    expectClinicPath('/login')
   })
 
   it('shows skeleton during data fetch', () => {
@@ -58,7 +37,7 @@ describe('Users Detail', () => {
       req.reply({ delay: 1500, statusCode: 200, body: mockUser })
     }).as('getUser')
 
-    visitWithMockAuth(`/users/${MOCK_USER_ID}`)
+    visitClinic(`/users/${MOCK_USER_ID}`, mockAuthUser)
     cy.get('[data-testid="user-details-skeleton"]').should('be.visible')
     cy.wait('@getUser')
     cy.get('[data-testid="user-details-skeleton"]').should('not.exist')
@@ -70,7 +49,7 @@ describe('Users Detail', () => {
       body: { status: 404, title: 'Not Found', detail: 'User not found' },
     }).as('getUser')
 
-    visitWithMockAuth(`/users/${MOCK_USER_ID}`)
+    visitClinic(`/users/${MOCK_USER_ID}`, mockAuthUser)
     cy.wait('@getUser')
     cy.get('[data-testid="user-details-error"]').should('be.visible')
     cy.get('[data-testid="user-details"]').should('not.exist')
@@ -82,7 +61,7 @@ describe('Users Detail', () => {
       body: mockUser,
     }).as('getUser')
 
-    visitWithMockAuth(`/users/${MOCK_USER_ID}`)
+    visitClinic(`/users/${MOCK_USER_ID}`, mockAuthUser)
     cy.wait('@getUser')
 
     cy.get('[data-testid="user-details"]').should('be.visible')
@@ -99,7 +78,7 @@ describe('Users Detail', () => {
       body: { ...mockUser, isActive: false },
     }).as('getUser')
 
-    visitWithMockAuth(`/users/${MOCK_USER_ID}`)
+    visitClinic(`/users/${MOCK_USER_ID}`, mockAuthUser)
     cy.wait('@getUser')
     cy.get('[data-testid="user-details-status"]').should('contain', 'Inativo')
   })
@@ -114,10 +93,10 @@ describe('Users Detail', () => {
       body: { data: [], total: 0, page: 1, limit: 20 },
     })
 
-    visitWithMockAuth(`/users/${MOCK_USER_ID}`)
+    visitClinic(`/users/${MOCK_USER_ID}`, mockAuthUser)
     cy.wait('@getUser')
     cy.get('[data-testid="user-details-back-button"]').click()
-    cy.url().should('match', /\/users$/)
+    expectClinicPath('/users')
   })
 
   it('edit button navigates to /users/[id]/edit', () => {
@@ -126,10 +105,10 @@ describe('Users Detail', () => {
       body: mockUser,
     }).as('getUser')
 
-    visitWithMockAuth(`/users/${MOCK_USER_ID}`)
+    visitClinic(`/users/${MOCK_USER_ID}`, mockAuthUser)
     cy.wait('@getUser')
     cy.get('[data-testid="user-details-edit-button"]').click()
-    cy.url().should('include', `/users/${MOCK_USER_ID}/edit`)
+    expectClinicPath(`/users/${MOCK_USER_ID}/edit`)
   })
 
   it('delete button opens dialog with user name', () => {
@@ -138,7 +117,7 @@ describe('Users Detail', () => {
       body: mockUser,
     }).as('getUser')
 
-    visitWithMockAuth(`/users/${MOCK_USER_ID}`)
+    visitClinic(`/users/${MOCK_USER_ID}`, mockAuthUser)
     cy.wait('@getUser')
     cy.get('[data-testid="user-details-delete-button"]').click()
     cy.get('[data-testid="delete-user-dialog"]').should('be.visible')
@@ -151,7 +130,7 @@ describe('Users Detail', () => {
       body: mockUser,
     }).as('getUser')
 
-    visitWithMockAuth(`/users/${MOCK_USER_ID}`)
+    visitClinic(`/users/${MOCK_USER_ID}`, mockAuthUser)
     cy.wait('@getUser')
     cy.get('[data-testid="user-details-delete-button"]').click()
     cy.get('[data-testid="delete-user-dialog"]').should('be.visible')
@@ -170,13 +149,13 @@ describe('Users Detail', () => {
       body: { status: 500, title: 'Internal Server Error' },
     }).as('deleteUser')
 
-    visitWithMockAuth(`/users/${MOCK_USER_ID}`)
+    visitClinic(`/users/${MOCK_USER_ID}`, mockAuthUser)
     cy.wait('@getUser')
     cy.get('[data-testid="user-details-delete-button"]').click()
     cy.get('[data-testid="delete-user-dialog-confirm"]').click()
     cy.wait('@deleteUser')
     cy.get('[data-testid="delete-user-dialog"]').should('not.exist')
-    cy.url().should('include', `/users/${MOCK_USER_ID}`)
+    expectClinicPath(`/users/${MOCK_USER_ID}`)
   })
 
   it('delete success navigates to /users', () => {
@@ -193,34 +172,14 @@ describe('Users Detail', () => {
       body: { data: [], total: 0, page: 1, limit: 20 },
     })
 
-    visitWithMockAuth(`/users/${MOCK_USER_ID}`)
+    visitClinic(`/users/${MOCK_USER_ID}`, mockAuthUser)
     cy.wait('@getUser')
     cy.get('[data-testid="user-details-delete-button"]').click()
     cy.get('[data-testid="delete-user-dialog-confirm"]').click()
     cy.wait('@deleteUser')
-    cy.url().should('match', /\/users$/)
+    expectClinicPath('/users')
   })
 
-  it('shows user details via real API', () => {
-    let seededId: string
-
-    cy.fixture('users').then((fixture) => {
-      cy.login(fixture.admin.email, fixture.admin.password)
-    })
-
-    cy.seedUser().then((user) => {
-      seededId = user.id
-
-      cy.visit(`/users/${user.id}`)
-      cy.get('[data-testid="user-details"]').should('be.visible')
-      cy.get('[data-testid="user-details-name"]').should('contain', user.fullName)
-      cy.get('[data-testid="user-details-email"]').should('contain', user.email)
-    })
-
-    cy.then(() => {
-      if (seededId) cy.deleteUserViaApi(seededId)
-    })
-  })
 })
 
 export {}

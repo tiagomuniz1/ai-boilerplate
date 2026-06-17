@@ -14,16 +14,25 @@ import { Specialty } from '../entities/specialty.entity'
 const SEED_CLINIC_ID = '10000000-0000-4000-8000-000000000000'
 
 process.env.NODE_ENV = 'test'
+process.env.DB_HOST = process.env.DB_HOST ?? 'localhost'
+process.env.DB_PORT = process.env.DB_PORT ?? '5499'
+process.env.DB_USER = process.env.DB_USER ?? 'postgres'
+process.env.DB_PASS = process.env.DB_PASS ?? 'postgres'
+process.env.DB_NAME = process.env.DB_NAME ?? 'app'
 process.env.DB_SCHEMA = 'test'
+process.env.REDIS_HOST = process.env.REDIS_HOST ?? 'localhost'
+process.env.REDIS_PORT = process.env.REDIS_PORT ?? '6399'
 process.env.JWT_SECRET = process.env.JWT_SECRET ?? 'test-jwt-secret-key'
 process.env.JWT_EXPIRATION = '900s'
 process.env.JWT_REFRESH_EXPIRATION = '7d'
+process.env.FRONTEND_URL = process.env.FRONTEND_URL ?? 'http://localhost:3000'
 
 describe('SpecialtiesController (integration)', () => {
   let app: INestApplication
   let userRepository: Repository<User>
   let clinicRepository: Repository<Clinic>
   let specialtyRepository: Repository<Specialty>
+  let platformAdminToken: string
   let adminToken: string
   let doctorToken: string
   let userToken: string
@@ -47,7 +56,30 @@ describe('SpecialtiesController (integration)', () => {
 
     const setCookieHeader = response.headers['set-cookie'] as unknown as string[] | string
     const cookies = Array.isArray(setCookieHeader) ? setCookieHeader : [setCookieHeader]
-    const match = cookies.find((c: string) => c.startsWith('access_token='))
+    const match = cookies.find((c: string) => c.startsWith('access_token_seed-clinic='))
+    return match ? match.slice('access_token_seed-clinic='.length).split(';')[0] : ''
+  }
+
+  async function loginAsPlatformAdmin(): Promise<string> {
+    const password = 'Password123!'
+    const hashedPassword = await bcrypt.hash(password, 1)
+    const user = await userRepository.save(
+      userRepository.create({
+        fullName: 'Platform Admin',
+        email: `platform.${faker.string.alphanumeric(6)}@specialties.test`,
+        password: hashedPassword,
+        role: UserRole.PLATFORM_ADMIN,
+        clinicId: null,
+      }),
+    )
+
+    const response = await request(app.getHttpServer())
+      .post('/auth/login')
+      .send({ email: user.email, password })
+
+    const setCookieHeader = response.headers['set-cookie'] as unknown as string[] | string
+    const cookies = Array.isArray(setCookieHeader) ? setCookieHeader : [setCookieHeader]
+    const match = cookies.find((c: string) => c?.startsWith('access_token='))
     return match ? match.slice('access_token='.length).split(';')[0] : ''
   }
 
@@ -72,6 +104,7 @@ describe('SpecialtiesController (integration)', () => {
       clinicRepository.create({ id: SEED_CLINIC_ID, name: 'Seed Clinic', slug: 'seed-clinic', isActive: true }),
     )
 
+    platformAdminToken = await loginAsPlatformAdmin()
     adminToken = await loginAs(UserRole.ADMIN)
     doctorToken = await loginAs(UserRole.DOCTOR)
     userToken = await loginAs(UserRole.USER)
@@ -101,7 +134,7 @@ describe('SpecialtiesController (integration)', () => {
 
   describe('POST /specialties', () => {
     it('returns 201 with SpecialtyResponseDto on success', async () => {
-      const { body } = await createSpecialty(adminToken, { name: 'Cardiologia' }).expect(201)
+      const { body } = await createSpecialty(platformAdminToken, { name: 'Cardiologia' }).expect(201)
 
       expect(body.id).toBeDefined()
       expect(body.name).toBe('Cardiologia')
@@ -111,7 +144,7 @@ describe('SpecialtiesController (integration)', () => {
     })
 
     it('returns 201 with description when provided', async () => {
-      const { body } = await createSpecialty(adminToken, {
+      const { body } = await createSpecialty(platformAdminToken, {
         name: 'Neurologia',
         description: 'Especialidade do sistema nervoso',
       }).expect(201)
@@ -120,43 +153,47 @@ describe('SpecialtiesController (integration)', () => {
     })
 
     it('response never contains version or deletedAt', async () => {
-      const { body } = await createSpecialty(adminToken, { name: 'Cardiologia' }).expect(201)
+      const { body } = await createSpecialty(platformAdminToken, { name: 'Cardiologia' }).expect(201)
 
       expect(body.version).toBeUndefined()
       expect(body.deletedAt).toBeUndefined()
     })
 
     it('returns 409 when name already in use by active specialty', async () => {
-      await createSpecialty(adminToken, { name: 'Cardiologia' }).expect(201)
-      await createSpecialty(adminToken, { name: 'Cardiologia' }).expect(409)
+      await createSpecialty(platformAdminToken, { name: 'Cardiologia' }).expect(201)
+      await createSpecialty(platformAdminToken, { name: 'Cardiologia' }).expect(409)
     })
 
     it('returns 409 for case-insensitive duplicate name', async () => {
-      await createSpecialty(adminToken, { name: 'Cardiologia' }).expect(201)
-      await createSpecialty(adminToken, { name: 'cardiologia' }).expect(409)
+      await createSpecialty(platformAdminToken, { name: 'Cardiologia' }).expect(201)
+      await createSpecialty(platformAdminToken, { name: 'cardiologia' }).expect(409)
     })
 
     it('returns 201 when reusing name of soft-deleted specialty', async () => {
-      const { body: created } = await createSpecialty(adminToken, { name: 'Cardiologia' }).expect(201)
+      const { body: created } = await createSpecialty(platformAdminToken, { name: 'Cardiologia' }).expect(201)
 
       await request(app.getHttpServer())
         .delete(`/specialties/${created.id}`)
-        .set('Authorization', `Bearer ${adminToken}`)
+        .set('Authorization', `Bearer ${platformAdminToken}`)
         .expect(204)
 
-      await createSpecialty(adminToken, { name: 'Cardiologia' }).expect(201)
+      await createSpecialty(platformAdminToken, { name: 'Cardiologia' }).expect(201)
     })
 
     it('returns 400 when name is too short', async () => {
-      await createSpecialty(adminToken, { name: 'AB' }).expect(400)
+      await createSpecialty(platformAdminToken, { name: 'AB' }).expect(400)
     })
 
     it('returns 400 when unknown field is sent', async () => {
-      await createSpecialty(adminToken, { name: 'Cardiologia', unknownField: 'value' }).expect(400)
+      await createSpecialty(platformAdminToken, { name: 'Cardiologia', unknownField: 'value' }).expect(400)
     })
 
     it('returns 401 when no token provided', async () => {
       await request(app.getHttpServer()).post('/specialties').send({ name: 'Cardiologia' }).expect(401)
+    })
+
+    it('returns 403 when ADMIN tries to create', async () => {
+      await createSpecialty(adminToken, { name: 'Cardiologia' }).expect(403)
     })
 
     it('returns 403 when DOCTOR tries to create', async () => {
@@ -170,12 +207,12 @@ describe('SpecialtiesController (integration)', () => {
 
   describe('GET /specialties', () => {
     it('returns 200 with paginated response', async () => {
-      await createSpecialty(adminToken, { name: 'Cardiologia' })
-      await createSpecialty(adminToken, { name: 'Neurologia' })
+      await createSpecialty(platformAdminToken, { name: 'Cardiologia' })
+      await createSpecialty(platformAdminToken, { name: 'Neurologia' })
 
       const { body } = await request(app.getHttpServer())
         .get('/specialties')
-        .set('Authorization', `Bearer ${adminToken}`)
+        .set('Authorization', `Bearer ${platformAdminToken}`)
         .expect(200)
 
       expect(body.data).toBeDefined()
@@ -185,12 +222,12 @@ describe('SpecialtiesController (integration)', () => {
     })
 
     it('filters by name via search param', async () => {
-      await createSpecialty(adminToken, { name: 'Cardiologia' })
-      await createSpecialty(adminToken, { name: 'Neurologia' })
+      await createSpecialty(platformAdminToken, { name: 'Cardiologia' })
+      await createSpecialty(platformAdminToken, { name: 'Neurologia' })
 
       const { body } = await request(app.getHttpServer())
         .get('/specialties?search=Cardio')
-        .set('Authorization', `Bearer ${adminToken}`)
+        .set('Authorization', `Bearer ${platformAdminToken}`)
         .expect(200)
 
       expect(body.data.some((s: any) => s.name === 'Cardiologia')).toBe(true)
@@ -198,11 +235,11 @@ describe('SpecialtiesController (integration)', () => {
     })
 
     it('response data never contains version or deletedAt', async () => {
-      await createSpecialty(adminToken, { name: 'Cardiologia' })
+      await createSpecialty(platformAdminToken, { name: 'Cardiologia' })
 
       const { body } = await request(app.getHttpServer())
         .get('/specialties')
-        .set('Authorization', `Bearer ${adminToken}`)
+        .set('Authorization', `Bearer ${platformAdminToken}`)
         .expect(200)
 
       body.data.forEach((s: any) => {
@@ -214,8 +251,15 @@ describe('SpecialtiesController (integration)', () => {
     it('returns 400 when limit exceeds 100', async () => {
       await request(app.getHttpServer())
         .get('/specialties?limit=101')
-        .set('Authorization', `Bearer ${adminToken}`)
+        .set('Authorization', `Bearer ${platformAdminToken}`)
         .expect(400)
+    })
+
+    it('returns 200 for ADMIN', async () => {
+      await request(app.getHttpServer())
+        .get('/specialties')
+        .set('Authorization', `Bearer ${adminToken}`)
+        .expect(200)
     })
 
     it('returns 200 for DOCTOR', async () => {
@@ -239,11 +283,11 @@ describe('SpecialtiesController (integration)', () => {
 
   describe('GET /specialties/:id', () => {
     it('returns 200 with SpecialtyResponseDto', async () => {
-      const { body: created } = await createSpecialty(adminToken, { name: 'Cardiologia' }).expect(201)
+      const { body: created } = await createSpecialty(platformAdminToken, { name: 'Cardiologia' }).expect(201)
 
       const { body } = await request(app.getHttpServer())
         .get(`/specialties/${created.id}`)
-        .set('Authorization', `Bearer ${adminToken}`)
+        .set('Authorization', `Bearer ${platformAdminToken}`)
         .expect(200)
 
       expect(body.id).toBe(created.id)
@@ -255,26 +299,35 @@ describe('SpecialtiesController (integration)', () => {
     it('returns 404 when specialty does not exist', async () => {
       await request(app.getHttpServer())
         .get(`/specialties/${faker.string.uuid()}`)
-        .set('Authorization', `Bearer ${adminToken}`)
+        .set('Authorization', `Bearer ${platformAdminToken}`)
         .expect(404)
     })
 
     it('returns 404 when searching by id after deletion', async () => {
-      const { body: created } = await createSpecialty(adminToken, { name: 'Cardiologia' }).expect(201)
+      const { body: created } = await createSpecialty(platformAdminToken, { name: 'Cardiologia' }).expect(201)
 
       await request(app.getHttpServer())
         .delete(`/specialties/${created.id}`)
-        .set('Authorization', `Bearer ${adminToken}`)
+        .set('Authorization', `Bearer ${platformAdminToken}`)
         .expect(204)
 
       await request(app.getHttpServer())
         .get(`/specialties/${created.id}`)
-        .set('Authorization', `Bearer ${adminToken}`)
+        .set('Authorization', `Bearer ${platformAdminToken}`)
         .expect(404)
     })
 
+    it('returns 200 for ADMIN', async () => {
+      const { body: created } = await createSpecialty(platformAdminToken, { name: 'Cardiologia' }).expect(201)
+
+      await request(app.getHttpServer())
+        .get(`/specialties/${created.id}`)
+        .set('Authorization', `Bearer ${adminToken}`)
+        .expect(200)
+    })
+
     it('returns 200 for DOCTOR', async () => {
-      const { body: created } = await createSpecialty(adminToken, { name: 'Cardiologia' }).expect(201)
+      const { body: created } = await createSpecialty(platformAdminToken, { name: 'Cardiologia' }).expect(201)
 
       await request(app.getHttpServer())
         .get(`/specialties/${created.id}`)
@@ -283,7 +336,7 @@ describe('SpecialtiesController (integration)', () => {
     })
 
     it('returns 200 for USER', async () => {
-      const { body: created } = await createSpecialty(adminToken, { name: 'Cardiologia' }).expect(201)
+      const { body: created } = await createSpecialty(platformAdminToken, { name: 'Cardiologia' }).expect(201)
 
       await request(app.getHttpServer())
         .get(`/specialties/${created.id}`)
@@ -298,11 +351,11 @@ describe('SpecialtiesController (integration)', () => {
 
   describe('PATCH /specialties/:id', () => {
     it('returns 200 with updated SpecialtyResponseDto', async () => {
-      const { body: created } = await createSpecialty(adminToken, { name: 'Cardiologia' }).expect(201)
+      const { body: created } = await createSpecialty(platformAdminToken, { name: 'Cardiologia' }).expect(201)
 
       const { body } = await request(app.getHttpServer())
         .patch(`/specialties/${created.id}`)
-        .set('Authorization', `Bearer ${adminToken}`)
+        .set('Authorization', `Bearer ${platformAdminToken}`)
         .send({ name: 'Neurologia' })
         .expect(200)
 
@@ -311,14 +364,14 @@ describe('SpecialtiesController (integration)', () => {
     })
 
     it('clears description when null is sent', async () => {
-      const { body: created } = await createSpecialty(adminToken, {
+      const { body: created } = await createSpecialty(platformAdminToken, {
         name: 'Cardiologia',
         description: 'Old description',
       }).expect(201)
 
       const { body } = await request(app.getHttpServer())
         .patch(`/specialties/${created.id}`)
-        .set('Authorization', `Bearer ${adminToken}`)
+        .set('Authorization', `Bearer ${platformAdminToken}`)
         .send({ description: null })
         .expect(200)
 
@@ -326,11 +379,11 @@ describe('SpecialtiesController (integration)', () => {
     })
 
     it('does not conflict when updating with the same name', async () => {
-      const { body: created } = await createSpecialty(adminToken, { name: 'Cardiologia' }).expect(201)
+      const { body: created } = await createSpecialty(platformAdminToken, { name: 'Cardiologia' }).expect(201)
 
       const { body } = await request(app.getHttpServer())
         .patch(`/specialties/${created.id}`)
-        .set('Authorization', `Bearer ${adminToken}`)
+        .set('Authorization', `Bearer ${platformAdminToken}`)
         .send({ name: 'Cardiologia' })
         .expect(200)
 
@@ -338,12 +391,12 @@ describe('SpecialtiesController (integration)', () => {
     })
 
     it('returns 409 when updating to a name already used by another specialty', async () => {
-      const { body: s1 } = await createSpecialty(adminToken, { name: 'Cardiologia' }).expect(201)
-      await createSpecialty(adminToken, { name: 'Neurologia' }).expect(201)
+      const { body: s1 } = await createSpecialty(platformAdminToken, { name: 'Cardiologia' }).expect(201)
+      await createSpecialty(platformAdminToken, { name: 'Neurologia' }).expect(201)
 
       await request(app.getHttpServer())
         .patch(`/specialties/${s1.id}`)
-        .set('Authorization', `Bearer ${adminToken}`)
+        .set('Authorization', `Bearer ${platformAdminToken}`)
         .send({ name: 'Neurologia' })
         .expect(409)
     })
@@ -351,17 +404,17 @@ describe('SpecialtiesController (integration)', () => {
     it('returns 404 when specialty does not exist', async () => {
       await request(app.getHttpServer())
         .patch(`/specialties/${faker.string.uuid()}`)
-        .set('Authorization', `Bearer ${adminToken}`)
+        .set('Authorization', `Bearer ${platformAdminToken}`)
         .send({ name: 'Neurologia' })
         .expect(404)
     })
 
     it('response never contains version or deletedAt', async () => {
-      const { body: created } = await createSpecialty(adminToken, { name: 'Cardiologia' }).expect(201)
+      const { body: created } = await createSpecialty(platformAdminToken, { name: 'Cardiologia' }).expect(201)
 
       const { body } = await request(app.getHttpServer())
         .patch(`/specialties/${created.id}`)
-        .set('Authorization', `Bearer ${adminToken}`)
+        .set('Authorization', `Bearer ${platformAdminToken}`)
         .send({ name: 'Neurologia' })
         .expect(200)
 
@@ -373,8 +426,18 @@ describe('SpecialtiesController (integration)', () => {
       await request(app.getHttpServer()).patch(`/specialties/${faker.string.uuid()}`).send({ name: 'X' }).expect(401)
     })
 
+    it('returns 403 when ADMIN tries to update', async () => {
+      const { body: created } = await createSpecialty(platformAdminToken, { name: 'Cardiologia' }).expect(201)
+
+      await request(app.getHttpServer())
+        .patch(`/specialties/${created.id}`)
+        .set('Authorization', `Bearer ${adminToken}`)
+        .send({ name: 'Neurologia' })
+        .expect(403)
+    })
+
     it('returns 403 when DOCTOR tries to update', async () => {
-      const { body: created } = await createSpecialty(adminToken, { name: 'Cardiologia' }).expect(201)
+      const { body: created } = await createSpecialty(platformAdminToken, { name: 'Cardiologia' }).expect(201)
 
       await request(app.getHttpServer())
         .patch(`/specialties/${created.id}`)
@@ -384,7 +447,7 @@ describe('SpecialtiesController (integration)', () => {
     })
 
     it('returns 403 when USER tries to update', async () => {
-      const { body: created } = await createSpecialty(adminToken, { name: 'Cardiologia' }).expect(201)
+      const { body: created } = await createSpecialty(platformAdminToken, { name: 'Cardiologia' }).expect(201)
 
       await request(app.getHttpServer())
         .patch(`/specialties/${created.id}`)
@@ -396,20 +459,20 @@ describe('SpecialtiesController (integration)', () => {
 
   describe('DELETE /specialties/:id', () => {
     it('returns 204 on successful soft delete', async () => {
-      const { body: created } = await createSpecialty(adminToken, { name: 'Cardiologia' }).expect(201)
+      const { body: created } = await createSpecialty(platformAdminToken, { name: 'Cardiologia' }).expect(201)
 
       await request(app.getHttpServer())
         .delete(`/specialties/${created.id}`)
-        .set('Authorization', `Bearer ${adminToken}`)
+        .set('Authorization', `Bearer ${platformAdminToken}`)
         .expect(204)
     })
 
     it('sets deleted_at on the record (soft delete)', async () => {
-      const { body: created } = await createSpecialty(adminToken, { name: 'Cardiologia' }).expect(201)
+      const { body: created } = await createSpecialty(platformAdminToken, { name: 'Cardiologia' }).expect(201)
 
       await request(app.getHttpServer())
         .delete(`/specialties/${created.id}`)
-        .set('Authorization', `Bearer ${adminToken}`)
+        .set('Authorization', `Bearer ${platformAdminToken}`)
         .expect(204)
 
       const deleted = await specialtyRepository.findOne({
@@ -422,21 +485,21 @@ describe('SpecialtiesController (integration)', () => {
     it('returns 404 when specialty does not exist', async () => {
       await request(app.getHttpServer())
         .delete(`/specialties/${faker.string.uuid()}`)
-        .set('Authorization', `Bearer ${adminToken}`)
+        .set('Authorization', `Bearer ${platformAdminToken}`)
         .expect(404)
     })
 
     it('returns 404 when trying to delete an already deleted specialty', async () => {
-      const { body: created } = await createSpecialty(adminToken, { name: 'Cardiologia' }).expect(201)
+      const { body: created } = await createSpecialty(platformAdminToken, { name: 'Cardiologia' }).expect(201)
 
       await request(app.getHttpServer())
         .delete(`/specialties/${created.id}`)
-        .set('Authorization', `Bearer ${adminToken}`)
+        .set('Authorization', `Bearer ${platformAdminToken}`)
         .expect(204)
 
       await request(app.getHttpServer())
         .delete(`/specialties/${created.id}`)
-        .set('Authorization', `Bearer ${adminToken}`)
+        .set('Authorization', `Bearer ${platformAdminToken}`)
         .expect(404)
     })
 
@@ -444,8 +507,17 @@ describe('SpecialtiesController (integration)', () => {
       await request(app.getHttpServer()).delete(`/specialties/${faker.string.uuid()}`).expect(401)
     })
 
+    it('returns 403 when ADMIN tries to delete', async () => {
+      const { body: created } = await createSpecialty(platformAdminToken, { name: 'Cardiologia' }).expect(201)
+
+      await request(app.getHttpServer())
+        .delete(`/specialties/${created.id}`)
+        .set('Authorization', `Bearer ${adminToken}`)
+        .expect(403)
+    })
+
     it('returns 403 when DOCTOR tries to delete', async () => {
-      const { body: created } = await createSpecialty(adminToken, { name: 'Cardiologia' }).expect(201)
+      const { body: created } = await createSpecialty(platformAdminToken, { name: 'Cardiologia' }).expect(201)
 
       await request(app.getHttpServer())
         .delete(`/specialties/${created.id}`)
@@ -454,7 +526,7 @@ describe('SpecialtiesController (integration)', () => {
     })
 
     it('returns 403 when USER tries to delete', async () => {
-      const { body: created } = await createSpecialty(adminToken, { name: 'Cardiologia' }).expect(201)
+      const { body: created } = await createSpecialty(platformAdminToken, { name: 'Cardiologia' }).expect(201)
 
       await request(app.getHttpServer())
         .delete(`/specialties/${created.id}`)
@@ -463,7 +535,7 @@ describe('SpecialtiesController (integration)', () => {
     })
 
     it('returns 409 when specialty is linked to an active doctor', async () => {
-      const { body: specialty } = await createSpecialty(adminToken, { name: 'Ortopedia' }).expect(201)
+      const { body: specialty } = await createSpecialty(platformAdminToken, { name: 'Ortopedia' }).expect(201)
 
       const hashedPassword = await (await import('bcrypt')).hash('Password123!', 1)
       const doctorUser = await userRepository.save(
@@ -485,14 +557,14 @@ describe('SpecialtiesController (integration)', () => {
 
       const { body } = await request(app.getHttpServer())
         .delete(`/specialties/${specialty.id}`)
-        .set('Authorization', `Bearer ${adminToken}`)
+        .set('Authorization', `Bearer ${platformAdminToken}`)
         .expect(409)
 
       expect(body.detail).toContain('doctor')
     })
 
     it('allows deletion after all linked doctors are removed', async () => {
-      const { body: specialty } = await createSpecialty(adminToken, { name: 'Reumatologia' }).expect(201)
+      const { body: specialty } = await createSpecialty(platformAdminToken, { name: 'Reumatologia' }).expect(201)
 
       const hashedPassword = await (await import('bcrypt')).hash('Password123!', 1)
       const doctorUser = await userRepository.save(
@@ -514,7 +586,7 @@ describe('SpecialtiesController (integration)', () => {
 
       await request(app.getHttpServer())
         .delete(`/specialties/${specialty.id}`)
-        .set('Authorization', `Bearer ${adminToken}`)
+        .set('Authorization', `Bearer ${platformAdminToken}`)
         .expect(409)
 
       await request(app.getHttpServer())
@@ -524,7 +596,7 @@ describe('SpecialtiesController (integration)', () => {
 
       await request(app.getHttpServer())
         .delete(`/specialties/${specialty.id}`)
-        .set('Authorization', `Bearer ${adminToken}`)
+        .set('Authorization', `Bearer ${platformAdminToken}`)
         .expect(204)
     })
   })

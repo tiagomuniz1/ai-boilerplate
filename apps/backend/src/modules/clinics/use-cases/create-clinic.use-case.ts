@@ -55,6 +55,7 @@ export class CreateClinicUseCase extends BaseUseCase {
       isActive: clinic.isActive,
       themeId: clinic.themeId ?? null,
       logoUrl: clinic.logoUrl ?? null,
+      logoDarkUrl: clinic.logoDarkUrl ?? null,
       faviconUrl: clinic.faviconUrl ?? null,
       address: clinic.addressStreet != null
         ? {

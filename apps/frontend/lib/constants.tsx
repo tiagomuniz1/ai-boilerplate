@@ -155,7 +155,7 @@ export const NAVIGATION_ITEMS: INavigationItem[] = [
     id: 'specialties',
     label: 'Especialidades',
     href: '/specialties',
-    requiredRoles: [UserRole.ADMIN, UserRole.DOCTOR, UserRole.USER],
+    requiredRoles: [UserRole.PLATFORM_ADMIN],
     icon: (
       <svg
         xmlns="http://www.w3.org/2000/svg"

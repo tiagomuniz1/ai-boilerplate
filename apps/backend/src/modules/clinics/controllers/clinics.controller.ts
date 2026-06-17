@@ -35,6 +35,7 @@ import { FindClinicBySlugUseCase } from '../use-cases/find-clinic-by-slug.use-ca
 import { RegisterClinicUseCase } from '../use-cases/register-clinic.use-case'
 import { UpdateClinicUseCase } from '../use-cases/update-clinic.use-case'
 import { UploadClinicLogoUseCase } from '../use-cases/upload-clinic-logo.use-case'
+import { UploadClinicLogoDarkUseCase } from '../use-cases/upload-clinic-logo-dark.use-case'
 import { UploadClinicFaviconUseCase } from '../use-cases/upload-clinic-favicon.use-case'
 
 @Controller('clinics')
@@ -47,6 +48,7 @@ export class ClinicsController {
     private readonly registerClinicUseCase: RegisterClinicUseCase,
     private readonly updateClinicUseCase: UpdateClinicUseCase,
     private readonly uploadClinicLogoUseCase: UploadClinicLogoUseCase,
+    private readonly uploadClinicLogoDarkUseCase: UploadClinicLogoDarkUseCase,
     private readonly uploadClinicFaviconUseCase: UploadClinicFaviconUseCase,
   ) {}
 
@@ -89,6 +91,18 @@ export class ClinicsController {
     return this.uploadClinicLogoUseCase.execute(currentUser.clinicId, file)
   }
 
+  @Post('me/logo-dark')
+  @Roles(UserRole.ADMIN)
+  @UseInterceptors(FileInterceptor('logo-dark', { storage: memoryStorage() }))
+  async uploadMyLogoDark(
+    @CurrentUser() currentUser: ICurrentUser,
+    @UploadedFile() file: Express.Multer.File,
+  ): Promise<ClinicResponseDto> {
+    if (!currentUser.clinicId) throw new UnauthorizedException('No clinic associated with this account')
+    if (!file) throw new UnauthorizedException('No file provided')
+    return this.uploadClinicLogoDarkUseCase.execute(currentUser.clinicId, file)
+  }
+
   @Post('me/favicon')
   @Roles(UserRole.ADMIN)
   @UseInterceptors(FileInterceptor('favicon', { storage: memoryStorage() }))
@@ -128,6 +142,17 @@ export class ClinicsController {
   ): Promise<ClinicResponseDto> {
     if (!file) throw new UnauthorizedException('No file provided')
     return this.uploadClinicLogoUseCase.execute(id, file)
+  }
+
+  @Post(':id/logo-dark')
+  @Roles(UserRole.PLATFORM_ADMIN)
+  @UseInterceptors(FileInterceptor('logo-dark', { storage: memoryStorage() }))
+  uploadLogoDark(
+    @Param('id') id: string,
+    @UploadedFile() file: Express.Multer.File,
+  ): Promise<ClinicResponseDto> {
+    if (!file) throw new UnauthorizedException('No file provided')
+    return this.uploadClinicLogoDarkUseCase.execute(id, file)
   }
 
   @Post(':id/favicon')

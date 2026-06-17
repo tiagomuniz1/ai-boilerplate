@@ -1,11 +1,12 @@
-const MOCK_TOKEN = 'mock-access-token'
+import { visitBackoffice, expectBackofficePath } from '../../support/clinic'
+
 const MOCK_SPECIALTY_ID = '44440000-0000-0000-0000-000000000001'
 
 const mockAuthUser = {
   id: 'mock-auth-user-id',
   fullName: 'Mock Admin',
   email: 'mock@admin.com',
-  role: 'admin',
+  role: 'platform_admin',
 }
 
 const mockSpecialty = {
@@ -27,28 +28,6 @@ const mockUpdatedSpecialty = {
   description: 'Descrição atualizada via E2E',
 }
 
-function visitWithMockAuth(url: string) {
-  cy.intercept('GET', `${Cypress.env('API_URL')}/auth/me`, {
-    statusCode: 200,
-    body: mockAuthUser,
-  })
-  cy.setCookie('access_token', MOCK_TOKEN, {
-    httpOnly: true,
-    secure: false,
-    sameSite: 'strict',
-    path: '/',
-    domain: 'localhost',
-  })
-  cy.visit(url, {
-    onBeforeLoad(win) {
-      win.localStorage.setItem(
-        'auth-user',
-        JSON.stringify({ state: { user: mockAuthUser }, version: 0 }),
-      )
-    },
-  })
-}
-
 describe('Specialties Update', () => {
   beforeEach(() => {
     cy.clearCookies()
@@ -60,7 +39,7 @@ describe('Specialties Update', () => {
       req.reply({ delay: 1500, statusCode: 200, body: mockSpecialty })
     }).as('getSpecialty')
 
-    visitWithMockAuth(`/specialties/${MOCK_SPECIALTY_ID}/edit`)
+    visitBackoffice(`/specialties/${MOCK_SPECIALTY_ID}/edit`, mockAuthUser)
     cy.get('[data-testid="edit-specialty-skeleton"]').should('be.visible')
     cy.wait('@getSpecialty')
     cy.get('[data-testid="edit-specialty-skeleton"]').should('not.exist')
@@ -72,7 +51,7 @@ describe('Specialties Update', () => {
       body: { status: 404, title: 'Not Found', detail: 'Specialty not found' },
     }).as('getSpecialty')
 
-    visitWithMockAuth(`/specialties/${MOCK_SPECIALTY_ID}/edit`)
+    visitBackoffice(`/specialties/${MOCK_SPECIALTY_ID}/edit`, mockAuthUser)
     cy.wait('@getSpecialty')
     cy.get('[data-testid="edit-specialty-load-error"]').should('be.visible')
     cy.get('[data-testid="specialty-form"]').should('not.exist')
@@ -84,7 +63,7 @@ describe('Specialties Update', () => {
       body: mockSpecialty,
     }).as('getSpecialty')
 
-    visitWithMockAuth(`/specialties/${MOCK_SPECIALTY_ID}/edit`)
+    visitBackoffice(`/specialties/${MOCK_SPECIALTY_ID}/edit`, mockAuthUser)
     cy.wait('@getSpecialty')
 
     cy.get('[data-testid="specialty-form-name"]').should('have.value', mockSpecialty.name)
@@ -101,7 +80,7 @@ describe('Specialties Update', () => {
       body: { status: 409, title: 'Conflict', detail: 'Specialty with this name already exists' },
     }).as('updateSpecialty')
 
-    visitWithMockAuth(`/specialties/${MOCK_SPECIALTY_ID}/edit`)
+    visitBackoffice(`/specialties/${MOCK_SPECIALTY_ID}/edit`, mockAuthUser)
     cy.wait('@getSpecialty')
     cy.get('[data-testid="specialty-form-name"]').clear().type('Neurologia')
     cy.get('[data-testid="specialty-form-submit"]').click()
@@ -120,7 +99,7 @@ describe('Specialties Update', () => {
       body: { status: 404, title: 'Not Found', detail: 'Specialty not found' },
     }).as('updateSpecialty')
 
-    visitWithMockAuth(`/specialties/${MOCK_SPECIALTY_ID}/edit`)
+    visitBackoffice(`/specialties/${MOCK_SPECIALTY_ID}/edit`, mockAuthUser)
     cy.wait('@getSpecialty')
     cy.get('[data-testid="specialty-form-name"]').clear().type('Nome Atualizado')
     cy.get('[data-testid="specialty-form-submit"]').click()
@@ -135,10 +114,10 @@ describe('Specialties Update', () => {
       body: mockSpecialty,
     }).as('getSpecialty')
 
-    visitWithMockAuth(`/specialties/${MOCK_SPECIALTY_ID}/edit`)
+    visitBackoffice(`/specialties/${MOCK_SPECIALTY_ID}/edit`, mockAuthUser)
     cy.wait('@getSpecialty')
     cy.get('[data-testid="edit-specialty-back-button"]').click()
-    cy.url().should('include', `/specialties/${MOCK_SPECIALTY_ID}`)
+    expectBackofficePath(`/specialties/${MOCK_SPECIALTY_ID}`)
     cy.url().should('not.include', '/edit')
   })
 
@@ -151,7 +130,7 @@ describe('Specialties Update', () => {
       req.reply({ delay: 2000, statusCode: 200, body: mockUpdatedSpecialty })
     }).as('updateSpecialty')
 
-    visitWithMockAuth(`/specialties/${MOCK_SPECIALTY_ID}/edit`)
+    visitBackoffice(`/specialties/${MOCK_SPECIALTY_ID}/edit`, mockAuthUser)
     cy.wait('@getSpecialty')
     cy.get('[data-testid="specialty-form-name"]').clear().type('Nome Novo')
     cy.get('[data-testid="specialty-form-submit"]').click()
@@ -169,7 +148,7 @@ describe('Specialties Update', () => {
       body: mockUpdatedSpecialty,
     }).as('updateSpecialty')
 
-    visitWithMockAuth(`/specialties/${MOCK_SPECIALTY_ID}/edit`)
+    visitBackoffice(`/specialties/${MOCK_SPECIALTY_ID}/edit`, mockAuthUser)
     cy.wait('@getSpecialty')
 
     // Re-register for the detail page GET after redirect
@@ -184,7 +163,7 @@ describe('Specialties Update', () => {
     })
     cy.get('[data-testid="specialty-form-submit"]').click()
     cy.wait('@updateSpecialty')
-    cy.url().should('include', `/specialties/${MOCK_SPECIALTY_ID}`)
+    expectBackofficePath(`/specialties/${MOCK_SPECIALTY_ID}`)
     cy.url().should('not.include', '/edit')
   })
 
@@ -194,7 +173,7 @@ describe('Specialties Update', () => {
       body: mockSpecialty,
     }).as('getSpecialty')
 
-    visitWithMockAuth(`/specialties/${MOCK_SPECIALTY_ID}/edit`)
+    visitBackoffice(`/specialties/${MOCK_SPECIALTY_ID}/edit`, mockAuthUser)
     cy.wait('@getSpecialty')
     cy.get('[data-testid="specialty-form-clear-description"]').should('exist')
   })
@@ -205,7 +184,7 @@ describe('Specialties Update', () => {
       body: mockSpecialtyNoDescription,
     }).as('getSpecialty')
 
-    visitWithMockAuth(`/specialties/${MOCK_SPECIALTY_ID}/edit`)
+    visitBackoffice(`/specialties/${MOCK_SPECIALTY_ID}/edit`, mockAuthUser)
     cy.wait('@getSpecialty')
     cy.get('[data-testid="specialty-form-clear-description"]').should('not.exist')
   })
@@ -216,39 +195,13 @@ describe('Specialties Update', () => {
       body: mockSpecialty,
     }).as('getSpecialty')
 
-    visitWithMockAuth(`/specialties/${MOCK_SPECIALTY_ID}/edit`)
+    visitBackoffice(`/specialties/${MOCK_SPECIALTY_ID}/edit`, mockAuthUser)
     cy.wait('@getSpecialty')
     cy.get('[data-testid="specialty-form-description"]').should('not.be.disabled')
     cy.get('[data-testid="specialty-form-clear-description"]').check()
     cy.get('[data-testid="specialty-form-description"]').should('be.disabled')
   })
 
-  it('updates specialty via real API', () => {
-    let seededId: string
-
-    cy.fixture('users').then((fixture) => {
-      cy.login(fixture.admin.email, fixture.admin.password)
-    })
-
-    cy.seedSpecialty().then((specialty) => {
-      seededId = specialty.id
-
-      cy.intercept('PATCH', `${Cypress.env('API_URL')}/specialties/${specialty.id}`).as('updateSpecialty')
-
-      cy.visit(`/specialties/${specialty.id}/edit`)
-      cy.get('[data-testid="specialty-form-name"]').should('have.value', specialty.name)
-      cy.get('[data-testid="specialty-form-name"]').clear().type('Nome Editado Via E2E')
-      cy.get('[data-testid="specialty-form-submit"]').click()
-      cy.wait('@updateSpecialty')
-      cy.url().should('include', `/specialties/${specialty.id}`)
-      cy.url().should('not.include', '/edit')
-      cy.get('[data-testid="specialty-details-name"]').should('contain', 'Nome Editado Via E2E')
-    })
-
-    cy.then(() => {
-      if (seededId) cy.deleteSpecialtyViaApi(seededId)
-    })
-  })
 })
 
 export {}

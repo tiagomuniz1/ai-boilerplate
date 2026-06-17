@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/atoms/button/button'
 import { Typography } from '@/components/ui/atoms/typography/typography'
 import { useTheme } from '@/components/features/themes/hooks/use-theme.hook'
 import { ClinicUploadSection } from './clinic-upload-section'
+import { ClinicSpecialtySection } from '@/components/features/clinic-specialties/components/clinic-specialty-section'
 import type { IClinicModel } from '../types/clinic.types'
 
 interface ClinicDetailsProps {
@@ -188,6 +189,8 @@ export function ClinicDetails({ clinic }: ClinicDetailsProps) {
           <ClinicUploadSection clinic={clinic} />
         </div>
       </div>
+
+      <ClinicSpecialtySection clinicId={clinic.id} />
     </div>
   )
 }

@@ -32,6 +32,9 @@ export class RegisterClinicUseCase extends BaseUseCase {
     const existingClinic = await this.clinicsRepository.findBySlug(slug)
     if (existingClinic) throw new ConflictException('Slug already in use')
 
+    const existingUser = await this.usersRepository.findByEmail(dto.adminEmail)
+    if (existingUser) throw new ConflictException('Email already in use')
+
     const hashedPassword = await bcrypt.hash(dto.adminPassword, 10)
 
     let clinic: Clinic

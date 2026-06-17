@@ -1,4 +1,4 @@
-const MOCK_TOKEN = 'mock-access-token'
+import { visitClinic, expectClinicPath, CLINIC_SLUG, CLINIC_ID } from '../../support/clinic'
 
 const mockAuthUser = {
   id: 'mock-auth-user-id',
@@ -21,28 +21,6 @@ const mockPatient = {
 const emptyListResponse = { data: [], total: 0, page: 1, limit: 20 }
 const populatedListResponse = { data: [mockPatient], total: 1, page: 1, limit: 20 }
 
-function visitWithMockAuth(url: string) {
-  cy.intercept('GET', `${Cypress.env('API_URL')}/auth/me`, {
-    statusCode: 200,
-    body: mockAuthUser,
-  })
-  cy.setCookie('access_token', MOCK_TOKEN, {
-    httpOnly: true,
-    secure: false,
-    sameSite: 'strict',
-    path: '/',
-    domain: 'localhost',
-  })
-  cy.visit(url, {
-    onBeforeLoad(win) {
-      win.localStorage.setItem(
-        'auth-user',
-        JSON.stringify({ state: { user: mockAuthUser }, version: 0 }),
-      )
-    },
-  })
-}
-
 describe('Patients List', () => {
   beforeEach(() => {
     cy.clearCookies()
@@ -50,8 +28,8 @@ describe('Patients List', () => {
   })
 
   it('redirects to /login when not authenticated', () => {
-    cy.visit('/patients')
-    cy.url().should('include', '/login')
+    cy.visit(`/${CLINIC_SLUG}/patients`)
+    expectClinicPath('/login')
   })
 
   it('shows skeleton during data fetch', () => {
@@ -59,7 +37,7 @@ describe('Patients List', () => {
       req.reply({ delay: 1500, statusCode: 200, body: populatedListResponse })
     }).as('getPatients')
 
-    visitWithMockAuth('/patients')
+    visitClinic('/patients', mockAuthUser)
     cy.get('[data-testid="patient-list-skeleton"]').should('be.visible')
     cy.wait('@getPatients')
     cy.get('[data-testid="patient-list-skeleton"]').should('not.exist')
@@ -71,7 +49,7 @@ describe('Patients List', () => {
       body: emptyListResponse,
     }).as('getPatients')
 
-    visitWithMockAuth('/patients')
+    visitClinic('/patients', mockAuthUser)
     cy.wait('@getPatients')
     cy.get('[data-testid="patient-list-empty"]').should('be.visible')
     cy.get('[data-testid="patient-list-table"]').should('not.exist')
@@ -83,7 +61,7 @@ describe('Patients List', () => {
       body: { title: 'Internal Server Error' },
     }).as('getPatients')
 
-    visitWithMockAuth('/patients')
+    visitClinic('/patients', mockAuthUser)
     cy.wait('@getPatients')
     cy.get('[data-testid="patient-list-error"]').should('be.visible')
     cy.get('[data-testid="patient-list-table"]').should('not.exist')
@@ -95,7 +73,7 @@ describe('Patients List', () => {
       body: populatedListResponse,
     }).as('getPatients')
 
-    visitWithMockAuth('/patients')
+    visitClinic('/patients', mockAuthUser)
     cy.wait('@getPatients')
 
     cy.get('[data-testid="patient-list-table"]').should('be.visible')
@@ -111,11 +89,11 @@ describe('Patients List', () => {
       body: emptyListResponse,
     }).as('getPatients')
 
-    visitWithMockAuth('/patients')
+    visitClinic('/patients', mockAuthUser)
     cy.wait('@getPatients')
     cy.get('[data-testid="patient-list-new-button"]').should('be.visible')
     cy.get('[data-testid="patient-list-new-button"]').click()
-    cy.url().should('include', '/patients/new')
+    expectClinicPath('/patients/new')
   })
 
   it('renders search input', () => {
@@ -124,7 +102,7 @@ describe('Patients List', () => {
       body: emptyListResponse,
     }).as('getPatients')
 
-    visitWithMockAuth('/patients')
+    visitClinic('/patients', mockAuthUser)
     cy.wait('@getPatients')
     cy.get('[data-testid="patient-list-search"]').should('be.visible')
   })
@@ -135,7 +113,7 @@ describe('Patients List', () => {
       body: populatedListResponse,
     }).as('getPatients')
 
-    visitWithMockAuth('/patients')
+    visitClinic('/patients', mockAuthUser)
     cy.wait('@getPatients')
 
     cy.intercept('GET', `${Cypress.env('API_URL')}/patients*`, {
@@ -153,7 +131,7 @@ describe('Patients List', () => {
       body: emptyListResponse,
     }).as('getPatients')
 
-    visitWithMockAuth('/patients')
+    visitClinic('/patients', mockAuthUser)
     cy.wait('@getPatients')
 
     cy.intercept('GET', `${Cypress.env('API_URL')}/patients*`, {
@@ -174,7 +152,7 @@ describe('Patients List', () => {
       body: populatedListResponse,
     }).as('getPatients')
 
-    visitWithMockAuth('/patients')
+    visitClinic('/patients', mockAuthUser)
     cy.wait('@getPatients')
 
     cy.get(`[data-testid="patient-view-link-${mockPatient.id}"]`).should('exist')

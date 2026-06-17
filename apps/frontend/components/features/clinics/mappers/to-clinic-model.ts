@@ -9,6 +9,7 @@ export function toClinicModel(dto: ClinicResponseDto): IClinicModel {
     isActive: dto.isActive,
     themeId: dto.themeId ?? null,
     logoUrl: dto.logoUrl ?? null,
+    logoDarkUrl: dto.logoDarkUrl ?? null,
     faviconUrl: dto.faviconUrl ?? null,
     address: dto.address
       ? {

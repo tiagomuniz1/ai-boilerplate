@@ -18,7 +18,15 @@ import { createHash } from 'crypto'
 const SEED_CLINIC_ID = '10000000-0000-4000-8000-000000000000'
 
 process.env.NODE_ENV = 'test'
+process.env.DB_HOST = process.env.DB_HOST ?? 'localhost'
+process.env.DB_PORT = process.env.DB_PORT ?? '5499'
+process.env.DB_USER = process.env.DB_USER ?? 'postgres'
+process.env.DB_PASS = process.env.DB_PASS ?? 'postgres'
+process.env.DB_NAME = process.env.DB_NAME ?? 'app'
 process.env.DB_SCHEMA = 'test'
+process.env.REDIS_HOST = process.env.REDIS_HOST ?? 'localhost'
+process.env.REDIS_PORT = process.env.REDIS_PORT ?? '6399'
+process.env.FRONTEND_URL = process.env.FRONTEND_URL ?? 'http://localhost:3000'
 process.env.JWT_SECRET = process.env.JWT_SECRET ?? 'test-jwt-secret-key'
 process.env.JWT_EXPIRATION = '900s'
 process.env.JWT_REFRESH_EXPIRATION = '7d'
@@ -96,8 +104,8 @@ describe('AuthController (integration)', () => {
       .send({ email, password, slug: 'seed-clinic' })
     const cookies = response.headers['set-cookie'] as unknown as string[]
     return {
-      accessToken: extractCookieValue(cookies, 'access_token'),
-      refreshToken: extractCookieValue(cookies, 'refresh_token'),
+      accessToken: extractCookieValue(cookies, 'access_token_seed-clinic'),
+      refreshToken: extractCookieValue(cookies, 'refresh_token_seed-clinic'),
     }
   }
 
@@ -121,8 +129,8 @@ describe('AuthController (integration)', () => {
       expect(response.body).not.toHaveProperty('expiresIn')
 
       const cookies = response.headers['set-cookie'] as unknown as string[]
-      const accessTokenCookie = cookies.find((c) => c.startsWith('access_token='))
-      const refreshTokenCookie = cookies.find((c) => c.startsWith('refresh_token='))
+      const accessTokenCookie = cookies.find((c) => c.startsWith('access_token_seed-clinic='))
+      const refreshTokenCookie = cookies.find((c) => c.startsWith('refresh_token_seed-clinic='))
 
       expect(accessTokenCookie).toBeDefined()
       expect(accessTokenCookie).toContain('HttpOnly')
@@ -144,7 +152,7 @@ describe('AuthController (integration)', () => {
         .expect(200)
 
       const cookies = response.headers['set-cookie'] as unknown as string[]
-      const refreshToken = extractCookieValue(cookies, 'refresh_token')
+      const refreshToken = extractCookieValue(cookies, 'refresh_token_seed-clinic')
 
       const tokenHash = createHash('sha256').update(refreshToken).digest('hex')
       const stored = await refreshTokenRepository.findOneBy({ tokenHash })

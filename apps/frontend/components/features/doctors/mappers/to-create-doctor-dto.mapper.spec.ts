@@ -22,4 +22,21 @@ describe('toCreateDoctorDto', () => {
 
     expect(dto.bio).toBeUndefined()
   })
+
+  it('maps fullName and email when creating a new user', () => {
+    const newUserInput = {
+      fullName: 'Maria Áurea de Andrade Borba',
+      email: 'maria.aurea@example.com',
+      crmNumber: '28250/PE',
+      specialtyIds: ['spec-uuid-1'],
+      bio: 'Bio da médica.',
+    }
+
+    const dto = toCreateDoctorDto(newUserInput)
+
+    expect(dto.fullName).toBe(newUserInput.fullName)
+    expect(dto.email).toBe(newUserInput.email)
+    expect(dto.userId).toBeUndefined()
+    expect(dto.crmNumber).toBe(newUserInput.crmNumber)
+  })
 })

@@ -5,6 +5,7 @@ import Image from 'next/image'
 import { Button } from '@/components/ui/atoms/button/button'
 import { Alert } from '@/components/ui/molecules/alert/alert'
 import { useUploadClinicLogo } from '../hooks/use-upload-clinic-logo.hook'
+import { useUploadClinicLogoDark } from '../hooks/use-upload-clinic-logo-dark.hook'
 import { useUploadClinicFavicon } from '../hooks/use-upload-clinic-favicon.hook'
 import type { IClinicModel } from '../types/clinic.types'
 
@@ -29,6 +30,7 @@ export function ClinicUploadSection({ clinic }: ClinicUploadSectionProps) {
   return (
     <div className="flex flex-col gap-6" data-testid="clinic-upload-section">
       <LogoUpload clinicId={clinic.id} currentLogoUrl={clinic.logoUrl} clinicName={clinic.name} />
+      <LogoDarkUpload clinicId={clinic.id} currentLogoDarkUrl={clinic.logoDarkUrl} clinicName={clinic.name} />
       <FaviconUpload clinicId={clinic.id} currentFaviconUrl={clinic.faviconUrl} />
     </div>
   )
@@ -117,6 +119,99 @@ function LogoUpload({ clinicId, currentLogoUrl, clinicName }: LogoUploadProps) {
 
       {error && (
         <Alert variant="error" data-testid="logo-upload-error">
+          {error}
+        </Alert>
+      )}
+    </div>
+  )
+}
+
+interface LogoDarkUploadProps {
+  clinicId: string
+  currentLogoDarkUrl: string | null
+  clinicName: string
+}
+
+function LogoDarkUpload({ clinicId, currentLogoDarkUrl, clinicName }: LogoDarkUploadProps) {
+  const inputRef = useRef<HTMLInputElement>(null)
+  const [error, setError] = useState<string | null>(null)
+  const { mutate, isPending } = useUploadClinicLogoDark(clinicId)
+
+  function handleChange(event: React.ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0]
+    if (!file) return
+
+    setError(null)
+
+    if (!LOGO_TYPES.includes(file.type)) {
+      setError('Tipo inválido. Utilize JPEG, PNG ou WebP.')
+      resetInput(event.target)
+      return
+    }
+
+    if (file.size > LOGO_MAX_BYTES) {
+      setError('Arquivo muito grande. O limite é 2MB.')
+      resetInput(event.target)
+      return
+    }
+
+    mutate(file, {
+      onError: () => setError('Não foi possível enviar o arquivo. Tente novamente.'),
+    })
+    resetInput(event.target)
+  }
+
+  return (
+    <div className="flex flex-col gap-3" data-testid="logo-dark-upload">
+      <div className="flex flex-col gap-0.5">
+        <span className="text-sm font-medium text-text">Logomarca (tema escuro)</span>
+        <span className="text-xs text-text-mute">Opcional. Se não enviada, a logomarca padrão será usada no tema escuro.</span>
+      </div>
+
+      <div className="flex items-center gap-4">
+        <div
+          data-testid="logo-dark-preview"
+          className="w-16 h-16 rounded-[10px] overflow-hidden shrink-0 border border-line bg-[#0b1220] grid place-items-center"
+        >
+          {currentLogoDarkUrl ? (
+            <Image
+              src={currentLogoDarkUrl}
+              alt={clinicName}
+              width={64}
+              height={64}
+              className="w-full h-full object-contain"
+            />
+          ) : (
+            <span className="text-xl font-semibold text-white/30">
+              {clinicName.charAt(0).toUpperCase()}
+            </span>
+          )}
+        </div>
+
+        <Button
+          type="button"
+          variant="secondary"
+          size="sm"
+          disabled={isPending}
+          isLoading={isPending}
+          data-testid="logo-dark-upload-button"
+          onClick={() => inputRef.current?.click()}
+        >
+          {isPending ? 'Enviando...' : 'Alterar logo escura'}
+        </Button>
+      </div>
+
+      <input
+        ref={inputRef}
+        type="file"
+        accept={LOGO_TYPES.join(',')}
+        className="hidden"
+        data-testid="logo-dark-file-input"
+        onChange={handleChange}
+      />
+
+      {error && (
+        <Alert variant="error" data-testid="logo-dark-upload-error">
           {error}
         </Alert>
       )}

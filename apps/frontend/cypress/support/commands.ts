@@ -39,6 +39,7 @@ declare global {
   namespace Cypress {
     interface Chainable {
       login(email: string, password: string): Chainable<void>
+      loginAsClinicUser(email: string, password: string, slug: string): Chainable<string>
       createUserViaApi(input: CreateUserInput, accessToken?: string): Chainable<{ id: string }>
       deleteUserViaApi(id: string, accessToken?: string): Chainable<void>
       seedUser(): Chainable<{ id: string; email: string; fullName: string }>
@@ -57,15 +58,58 @@ declare global {
   }
 }
 
+function extractAndSetCookies(response: Cypress.Response<unknown>): void {
+  const setCookieHeader = response.headers['set-cookie'] as string | string[] | undefined
+  if (!setCookieHeader) return
+  const cookieStrings = Array.isArray(setCookieHeader) ? setCookieHeader : [setCookieHeader]
+  cookieStrings.forEach((cookieStr) => {
+    const nameValue = cookieStr.split(';')[0].trim()
+    const eqIdx = nameValue.indexOf('=')
+    if (eqIdx === -1) return
+    const name = nameValue.slice(0, eqIdx)
+    const value = nameValue.slice(eqIdx + 1)
+    cy.setCookie(name, value, {
+      httpOnly: true,
+      secure: false,
+      sameSite: 'strict',
+      path: '/',
+      domain: 'localhost',
+    })
+  })
+}
+
 Cypress.Commands.add('login', (email: string, password: string) => {
   cy.request({
     method: 'POST',
     url: `${Cypress.env('API_URL')}/auth/login`,
     body: { email, password },
+  }).then(extractAndSetCookies)
+})
+
+// Slug-aware login: passes `slug` in the request body so the backend sets the
+// `access_token_{slug}` cookie (multi-tenant convention). Yields the raw token
+// string for use in cy.request Authorization headers.
+//
+// Token extraction is stored in a closure var so the second .then() can return
+// it — Cypress forbids returning a value from a .then() that also enqueues cy.*
+// commands (mixing sync return with async cy queue).
+Cypress.Commands.add('loginAsClinicUser', (email: string, password: string, slug: string) => {
+  let token = ''
+
+  return cy.request({
+    method: 'POST',
+    url: `${Cypress.env('API_URL')}/auth/login`,
+    body: { email, password, slug },
   }).then((response) => {
     const setCookieHeader = response.headers['set-cookie'] as string | string[] | undefined
-    if (!setCookieHeader) return
-    const cookieStrings = Array.isArray(setCookieHeader) ? setCookieHeader : [setCookieHeader]
+    const cookieStrings = setCookieHeader
+      ? (Array.isArray(setCookieHeader) ? setCookieHeader : [setCookieHeader])
+      : []
+
+    const tokenCookieName = `access_token_${slug}=`
+    const tokenCookie = cookieStrings.find((c) => c.startsWith(tokenCookieName))
+    token = tokenCookie ? tokenCookie.split(';')[0].replace(tokenCookieName, '') : ''
+
     cookieStrings.forEach((cookieStr) => {
       const nameValue = cookieStr.split(';')[0].trim()
       const eqIdx = nameValue.indexOf('=')
@@ -80,7 +124,7 @@ Cypress.Commands.add('login', (email: string, password: string) => {
         domain: 'localhost',
       })
     })
-  })
+  }).then(() => token)
 })
 
 Cypress.Commands.add('createUserViaApi', (input: CreateUserInput, accessToken?: string) => {

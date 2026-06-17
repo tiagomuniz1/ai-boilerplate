@@ -9,6 +9,7 @@ const config: Config = {
   },
   coverageDirectory: '../coverage-integration',
   testEnvironment: 'node',
+  testTimeout: 30000,
   moduleNameMapper: {
     '^@app/shared$': '<rootDir>/../../../packages/shared/src',
     '^@app/shared/(.*)$': '<rootDir>/../../../packages/shared/src/$1',

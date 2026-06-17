@@ -1,4 +1,5 @@
-const MOCK_TOKEN = 'mock-access-token'
+import { visitClinic, expectClinicPath, CLINIC_SLUG, CLINIC_ID } from '../../support/clinic'
+
 const MOCK_DOCTOR_ID = 'cccccccc-2222-2222-2222-000000000001'
 
 const SPEC_ID_1 = '00000000-0000-4000-a000-000000000001'
@@ -11,9 +12,11 @@ const mockAuthUser = {
   role: 'admin',
 }
 
-const mockSpecialties = [
-  { id: SPEC_ID_1, name: 'Cardiologia', description: null, createdAt: '2024-01-01T00:00:00.000Z', updatedAt: '2024-01-01T00:00:00.000Z' },
-  { id: SPEC_ID_2, name: 'Neurologia', description: null, createdAt: '2024-01-01T00:00:00.000Z', updatedAt: '2024-01-01T00:00:00.000Z' },
+// O form busca as especialidades da clínica via GET /clinics/{clinicId}/specialties
+// e usa `specialtyId` como id do checkbox (doctor-form-specialty-${specialtyId}).
+const mockClinicSpecialties = [
+  { id: 'link-1', clinicId: CLINIC_ID, specialtyId: SPEC_ID_1, name: 'Cardiologia', description: null, linkedAt: '2024-01-01T00:00:00.000Z' },
+  { id: 'link-2', clinicId: CLINIC_ID, specialtyId: SPEC_ID_2, name: 'Neurologia', description: null, linkedAt: '2024-01-01T00:00:00.000Z' },
 ]
 
 const mockDoctor = {
@@ -34,35 +37,13 @@ const mockUpdatedDoctor = {
   ],
 }
 
-const specialtiesListResponse = { data: mockSpecialties, total: 2, page: 1, limit: 100 }
-
-function visitWithMockAuth(url: string) {
-  cy.intercept('GET', `${Cypress.env('API_URL')}/auth/me`, {
-    statusCode: 200,
-    body: mockAuthUser,
-  })
-  cy.setCookie('access_token', MOCK_TOKEN, {
-    httpOnly: true,
-    secure: false,
-    sameSite: 'strict',
-    path: '/',
-    domain: 'localhost',
-  })
-  cy.visit(url, {
-    onBeforeLoad(win) {
-      win.localStorage.setItem(
-        'auth-user',
-        JSON.stringify({ state: { user: mockAuthUser }, version: 0 }),
-      )
-    },
-  })
-}
+const specialtiesListResponse = { data: mockClinicSpecialties, total: 2, page: 1, limit: 100 }
 
 describe('Doctors Update', () => {
   beforeEach(() => {
     cy.clearCookies()
     cy.clearLocalStorage()
-    cy.intercept('GET', `${Cypress.env('API_URL')}/specialties*`, {
+    cy.intercept('GET', `${Cypress.env('API_URL')}/clinics/${CLINIC_ID}/specialties*`, {
       statusCode: 200,
       body: specialtiesListResponse,
     }).as('getSpecialties')
@@ -73,7 +54,7 @@ describe('Doctors Update', () => {
       req.reply({ delay: 1500, statusCode: 200, body: mockDoctor })
     }).as('getDoctor')
 
-    visitWithMockAuth(`/doctors/${MOCK_DOCTOR_ID}/edit`)
+    visitClinic(`/doctors/${MOCK_DOCTOR_ID}/edit`, mockAuthUser)
     cy.get('[data-testid="edit-doctor-skeleton"]').should('be.visible')
     cy.wait('@getDoctor')
     cy.get('[data-testid="edit-doctor-skeleton"]').should('not.exist')
@@ -85,7 +66,7 @@ describe('Doctors Update', () => {
       body: mockDoctor,
     }).as('getDoctor')
 
-    visitWithMockAuth(`/doctors/${MOCK_DOCTOR_ID}/edit`)
+    visitClinic(`/doctors/${MOCK_DOCTOR_ID}/edit`, mockAuthUser)
     cy.wait('@getDoctor')
     cy.wait('@getSpecialties')
 
@@ -101,7 +82,7 @@ describe('Doctors Update', () => {
       body: mockDoctor,
     }).as('getDoctor')
 
-    visitWithMockAuth(`/doctors/${MOCK_DOCTOR_ID}/edit`)
+    visitClinic(`/doctors/${MOCK_DOCTOR_ID}/edit`, mockAuthUser)
     cy.wait('@getDoctor')
 
     cy.get('[data-testid="doctor-form-user-readonly"]').should('exist')
@@ -114,7 +95,7 @@ describe('Doctors Update', () => {
       body: { status: 404, title: 'Not Found', detail: 'Doctor not found' },
     }).as('getDoctor')
 
-    visitWithMockAuth(`/doctors/${MOCK_DOCTOR_ID}/edit`)
+    visitClinic(`/doctors/${MOCK_DOCTOR_ID}/edit`, mockAuthUser)
     cy.wait('@getDoctor')
     cy.get('[data-testid="edit-doctor-load-error"]').should('be.visible')
     cy.get('[data-testid="doctor-form"]').should('not.exist')
@@ -130,7 +111,7 @@ describe('Doctors Update', () => {
       body: { status: 409, title: 'Conflict', detail: 'CRM already in use' },
     }).as('updateDoctor')
 
-    visitWithMockAuth(`/doctors/${MOCK_DOCTOR_ID}/edit`)
+    visitClinic(`/doctors/${MOCK_DOCTOR_ID}/edit`, mockAuthUser)
     cy.wait('@getDoctor')
     cy.get('[data-testid="doctor-form-crm"]').clear().type('99999/SP')
     cy.get('[data-testid="doctor-form-submit"]').click()
@@ -144,10 +125,10 @@ describe('Doctors Update', () => {
       body: mockDoctor,
     }).as('getDoctor')
 
-    visitWithMockAuth(`/doctors/${MOCK_DOCTOR_ID}/edit`)
+    visitClinic(`/doctors/${MOCK_DOCTOR_ID}/edit`, mockAuthUser)
     cy.wait('@getDoctor')
     cy.get('[data-testid="edit-doctor-back-button"]').click()
-    cy.url().should('include', `/doctors/${MOCK_DOCTOR_ID}`)
+    expectClinicPath(`/doctors/${MOCK_DOCTOR_ID}`)
   })
 
   it('disables submit button while request is in flight', () => {
@@ -159,7 +140,7 @@ describe('Doctors Update', () => {
       req.reply({ delay: 2000, statusCode: 200, body: mockUpdatedDoctor })
     }).as('updateDoctor')
 
-    visitWithMockAuth(`/doctors/${MOCK_DOCTOR_ID}/edit`)
+    visitClinic(`/doctors/${MOCK_DOCTOR_ID}/edit`, mockAuthUser)
     cy.wait('@getDoctor')
     cy.wait('@getSpecialties')
     cy.get(`[data-testid="doctor-form-specialty-${SPEC_ID_2}"]`).check()
@@ -178,7 +159,7 @@ describe('Doctors Update', () => {
       body: mockUpdatedDoctor,
     }).as('updateDoctor')
 
-    visitWithMockAuth(`/doctors/${MOCK_DOCTOR_ID}/edit`)
+    visitClinic(`/doctors/${MOCK_DOCTOR_ID}/edit`, mockAuthUser)
     cy.wait('@getDoctor')
     cy.wait('@getSpecialties')
 
@@ -188,7 +169,7 @@ describe('Doctors Update', () => {
     cy.get(`[data-testid="doctor-form-specialty-${SPEC_ID_2}"]`).check()
     cy.get('[data-testid="doctor-form-submit"]').click()
     cy.wait('@updateDoctor')
-    cy.url().should('include', `/doctors/${MOCK_DOCTOR_ID}`)
+    expectClinicPath(`/doctors/${MOCK_DOCTOR_ID}`)
   })
 
   it('shows isActive checkbox checked when doctor is active (ADMIN)', () => {
@@ -197,7 +178,7 @@ describe('Doctors Update', () => {
       body: mockDoctor,
     }).as('getDoctor')
 
-    visitWithMockAuth(`/doctors/${MOCK_DOCTOR_ID}/edit`)
+    visitClinic(`/doctors/${MOCK_DOCTOR_ID}/edit`, mockAuthUser)
     cy.wait('@getDoctor')
     cy.get('[data-testid="doctor-form-isactive"]').should('be.checked')
   })
@@ -208,7 +189,7 @@ describe('Doctors Update', () => {
       body: { ...mockDoctor, user: { ...mockDoctor.user, isActive: false } },
     }).as('getDoctor')
 
-    visitWithMockAuth(`/doctors/${MOCK_DOCTOR_ID}/edit`)
+    visitClinic(`/doctors/${MOCK_DOCTOR_ID}/edit`, mockAuthUser)
     cy.wait('@getDoctor')
     cy.get('[data-testid="doctor-form-isactive"]').should('not.be.checked')
   })
@@ -223,7 +204,7 @@ describe('Doctors Update', () => {
       body: { ...mockDoctor, user: { ...mockDoctor.user, isActive: false } },
     }).as('updateDoctor')
 
-    visitWithMockAuth(`/doctors/${MOCK_DOCTOR_ID}/edit`)
+    visitClinic(`/doctors/${MOCK_DOCTOR_ID}/edit`, mockAuthUser)
     cy.wait('@getDoctor')
     cy.get('[data-testid="doctor-form-isactive"]').should('be.checked')
     cy.get('[data-testid="doctor-form-isactive"]').uncheck()
@@ -231,7 +212,7 @@ describe('Doctors Update', () => {
     cy.wait('@updateDoctor').then((interception) => {
       expect(interception.request.body.isActive).to.equal(false)
     })
-    cy.url().should('include', `/doctors/${MOCK_DOCTOR_ID}`)
+    expectClinicPath(`/doctors/${MOCK_DOCTOR_ID}`)
   })
 
   it('activates doctor by checking isActive and saving', () => {
@@ -244,7 +225,7 @@ describe('Doctors Update', () => {
       body: mockDoctor,
     }).as('updateDoctor')
 
-    visitWithMockAuth(`/doctors/${MOCK_DOCTOR_ID}/edit`)
+    visitClinic(`/doctors/${MOCK_DOCTOR_ID}/edit`, mockAuthUser)
     cy.wait('@getDoctor')
     cy.get('[data-testid="doctor-form-isactive"]').should('not.be.checked')
     cy.get('[data-testid="doctor-form-isactive"]').check()
@@ -252,7 +233,7 @@ describe('Doctors Update', () => {
     cy.wait('@updateDoctor').then((interception) => {
       expect(interception.request.body.isActive).to.equal(true)
     })
-    cy.url().should('include', `/doctors/${MOCK_DOCTOR_ID}`)
+    expectClinicPath(`/doctors/${MOCK_DOCTOR_ID}`)
   })
 
   it('shows details page correctly after navigating from list', () => {
@@ -265,7 +246,7 @@ describe('Doctors Update', () => {
       body: mockDoctor,
     }).as('getDoctor')
 
-    visitWithMockAuth('/doctors')
+    visitClinic('/doctors', mockAuthUser)
     cy.wait('@getDoctors')
     cy.get(`[data-testid="doctor-view-link-${MOCK_DOCTOR_ID}"]`).click()
     cy.wait('@getDoctor')

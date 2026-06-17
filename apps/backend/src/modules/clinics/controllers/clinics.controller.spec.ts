@@ -8,6 +8,7 @@ import { FindClinicBySlugUseCase } from '../use-cases/find-clinic-by-slug.use-ca
 import { RegisterClinicUseCase } from '../use-cases/register-clinic.use-case'
 import { UpdateClinicUseCase } from '../use-cases/update-clinic.use-case'
 import { UploadClinicLogoUseCase } from '../use-cases/upload-clinic-logo.use-case'
+import { UploadClinicLogoDarkUseCase } from '../use-cases/upload-clinic-logo-dark.use-case'
 import { UploadClinicFaviconUseCase } from '../use-cases/upload-clinic-favicon.use-case'
 import { ListClinicsQueryDto } from '../dto/list-clinics-query.dto'
 import type { ICurrentUser } from '../../auth/types/current-user.type'
@@ -19,6 +20,7 @@ const mockFindById = { execute: jest.fn() } as unknown as jest.Mocked<FindClinic
 const mockFindBySlug = { execute: jest.fn() } as unknown as jest.Mocked<FindClinicBySlugUseCase>
 const mockUpdate = { execute: jest.fn() } as unknown as jest.Mocked<UpdateClinicUseCase>
 const mockUploadLogo = { execute: jest.fn() } as unknown as jest.Mocked<UploadClinicLogoUseCase>
+const mockUploadLogoDark = { execute: jest.fn() } as unknown as jest.Mocked<UploadClinicLogoDarkUseCase>
 const mockUploadFavicon = { execute: jest.fn() } as unknown as jest.Mocked<UploadClinicFaviconUseCase>
 
 const makeClinicResponse = (overrides = {}) => ({
@@ -62,6 +64,7 @@ describe('ClinicsController', () => {
       mockRegister,
       mockUpdate,
       mockUploadLogo,
+      mockUploadLogoDark,
       mockUploadFavicon,
     )
   })
@@ -194,6 +197,29 @@ describe('ClinicsController', () => {
     const result = await controller.uploadLogo('clinic-uuid-1', file)
 
     expect(mockUploadLogo.execute).toHaveBeenCalledWith('clinic-uuid-1', file)
+    expect(result).toBe(response)
+  })
+
+  it('uploadMyLogoDark delegates to UploadClinicLogoDarkUseCase with clinicId and file', async () => {
+    const currentUser: ICurrentUser = { id: 'user-uuid', role: UserRole.ADMIN, clinicId: 'clinic-uuid-1' }
+    const file = makeFile({ fieldname: 'logo-dark' })
+    const response = makeClinicResponse({ logoDarkUrl: 'https://bucket.s3.amazonaws.com/clinics/clinic-uuid-1/logo-dark.jpg' })
+    mockUploadLogoDark.execute.mockResolvedValue(response as any)
+
+    const result = await controller.uploadMyLogoDark(currentUser, file)
+
+    expect(mockUploadLogoDark.execute).toHaveBeenCalledWith('clinic-uuid-1', file)
+    expect(result).toBe(response)
+  })
+
+  it('uploadLogoDark delegates to UploadClinicLogoDarkUseCase with param id and file', async () => {
+    const file = makeFile({ fieldname: 'logo-dark' })
+    const response = makeClinicResponse({ logoDarkUrl: 'https://bucket.s3.amazonaws.com/clinics/clinic-uuid-1/logo-dark.jpg' })
+    mockUploadLogoDark.execute.mockResolvedValue(response as any)
+
+    const result = await controller.uploadLogoDark('clinic-uuid-1', file)
+
+    expect(mockUploadLogoDark.execute).toHaveBeenCalledWith('clinic-uuid-1', file)
     expect(result).toBe(response)
   })
 

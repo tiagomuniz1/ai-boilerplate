@@ -1,4 +1,4 @@
-const MOCK_TOKEN = 'mock-access-token'
+import { visitClinic, expectClinicPath, CLINIC_SLUG, CLINIC_ID } from '../../support/clinic'
 
 const mockAuthUser = {
   id: 'mock-auth-user-id',
@@ -25,28 +25,6 @@ const mockCreatedPatient = {
 
 const emptyListResponse = { data: [], total: 0, page: 1, limit: 20 }
 
-function visitWithMockAuth(url: string) {
-  cy.intercept('GET', `${Cypress.env('API_URL')}/auth/me`, {
-    statusCode: 200,
-    body: mockAuthUser,
-  })
-  cy.setCookie('access_token', MOCK_TOKEN, {
-    httpOnly: true,
-    secure: false,
-    sameSite: 'strict',
-    path: '/',
-    domain: 'localhost',
-  })
-  cy.visit(url, {
-    onBeforeLoad(win) {
-      win.localStorage.setItem(
-        'auth-user',
-        JSON.stringify({ state: { user: mockAuthUser }, version: 0 }),
-      )
-    },
-  })
-}
-
 describe('Patients Create', () => {
   beforeEach(() => {
     cy.clearCookies()
@@ -54,21 +32,21 @@ describe('Patients Create', () => {
   })
 
   it('shows validation errors when submitting empty form', () => {
-    visitWithMockAuth('/patients/new')
+    visitClinic('/patients/new', mockAuthUser)
     cy.get('[data-testid="patient-form-submit"]').click()
     cy.contains('Nome deve ter no mínimo 3 caracteres').should('be.visible')
     cy.contains('E-mail inválido').should('be.visible')
   })
 
   it('shows validation error when phone format is invalid', () => {
-    visitWithMockAuth('/patients/new')
+    visitClinic('/patients/new', mockAuthUser)
     cy.get('[data-testid="patient-form-phone"]').type('123')
     cy.get('[data-testid="patient-form-submit"]').click()
     cy.contains('Telefone inválido').should('be.visible')
   })
 
   it('shows validation error when document number is invalid', () => {
-    visitWithMockAuth('/patients/new')
+    visitClinic('/patients/new', mockAuthUser)
     cy.get('[data-testid="patient-form-document"]').type('123')
     cy.get('[data-testid="patient-form-submit"]').click()
     cy.contains('Documento deve ter 11 dígitos numéricos').should('be.visible')
@@ -80,7 +58,7 @@ describe('Patients Create', () => {
       body: { status: 409, title: 'Conflict', detail: 'Email already in use' },
     }).as('createPatient')
 
-    visitWithMockAuth('/patients/new')
+    visitClinic('/patients/new', mockAuthUser)
     cy.fixture('patients').then((fixture) => {
       cy.get('[data-testid="patient-form-fullname"]').type(fixture.newPatient.fullName)
       cy.get('[data-testid="patient-form-email"]').type(fixture.newPatient.email)
@@ -100,7 +78,7 @@ describe('Patients Create', () => {
       req.reply({ delay: 2000, statusCode: 201, body: mockCreatedPatient })
     }).as('createPatient')
 
-    visitWithMockAuth('/patients/new')
+    visitClinic('/patients/new', mockAuthUser)
     cy.fixture('patients').then((fixture) => {
       cy.get('[data-testid="patient-form-fullname"]').type(fixture.newPatient.fullName)
       cy.get('[data-testid="patient-form-email"]').type(fixture.newPatient.email)
@@ -120,9 +98,9 @@ describe('Patients Create', () => {
       body: emptyListResponse,
     }).as('getPatients')
 
-    visitWithMockAuth('/patients/new')
+    visitClinic('/patients/new', mockAuthUser)
     cy.get('[data-testid="new-patient-back-button"]').click()
-    cy.url().should('match', /\/patients$/)
+    expectClinicPath('/patients')
   })
 
   it('creates patient and redirects to /patients list', () => {
@@ -135,7 +113,7 @@ describe('Patients Create', () => {
       body: { data: [mockCreatedPatient], total: 1, page: 1, limit: 20 },
     }).as('getPatients')
 
-    visitWithMockAuth('/patients/new')
+    visitClinic('/patients/new', mockAuthUser)
     cy.fixture('patients').then((fixture) => {
       cy.get('[data-testid="patient-form-fullname"]').type(fixture.newPatient.fullName)
       cy.get('[data-testid="patient-form-email"]').type(fixture.newPatient.email)
@@ -146,7 +124,7 @@ describe('Patients Create', () => {
     })
     cy.get('[data-testid="patient-form-submit"]').click()
     cy.wait('@createPatient')
-    cy.url().should('match', /\/patients$/)
+    expectClinicPath('/patients')
     cy.wait('@getPatients')
     cy.get(`[data-testid="patient-table-row-${mockCreatedPatient.id}"]`).should('exist')
   })

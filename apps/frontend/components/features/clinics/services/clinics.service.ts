@@ -36,6 +36,16 @@ export const clinicsService = {
     formData.append('logo', file)
     return apiClient.post<ClinicResponseDto>(`/clinics/${id}/logo`, formData)
   },
+  uploadLogoDark: (file: File) => {
+    const formData = new FormData()
+    formData.append('logo-dark', file)
+    return apiClient.post<ClinicResponseDto>('/clinics/me/logo-dark', formData)
+  },
+  uploadLogoDarkById: (id: string, file: File) => {
+    const formData = new FormData()
+    formData.append('logo-dark', file)
+    return apiClient.post<ClinicResponseDto>(`/clinics/${id}/logo-dark`, formData)
+  },
   uploadFavicon: (file: File) => {
     const formData = new FormData()
     formData.append('favicon', file)

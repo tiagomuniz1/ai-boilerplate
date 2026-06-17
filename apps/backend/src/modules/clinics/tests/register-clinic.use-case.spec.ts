@@ -14,6 +14,7 @@ const mockClinicsRepository: jest.Mocked<IClinicsRepository> = {
   create: jest.fn(),
   update: jest.fn(),
   updateLogo: jest.fn(),
+  updateLogoDark: jest.fn(),
   updateFavicon: jest.fn(),
 }
 
@@ -284,6 +285,17 @@ describe('RegisterClinicUseCase', () => {
 
       await expect(useCase.execute(makeDto())).rejects.toThrow(
         new ConflictException('Slug already in use'),
+      )
+      expect(mockClinicsRepository.create).not.toHaveBeenCalled()
+      expect(mockUsersRepository.create).not.toHaveBeenCalled()
+    })
+
+    it('throws ConflictException when email is already registered globally', async () => {
+      mockClinicsRepository.findBySlug.mockResolvedValue(null)
+      mockUsersRepository.findByEmail.mockResolvedValue(makeUser() as any)
+
+      await expect(useCase.execute(makeDto())).rejects.toThrow(
+        new ConflictException('Email already in use'),
       )
       expect(mockClinicsRepository.create).not.toHaveBeenCalled()
       expect(mockUsersRepository.create).not.toHaveBeenCalled()

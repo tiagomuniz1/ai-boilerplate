@@ -12,6 +12,7 @@ const mockClinicsRepository: jest.Mocked<IClinicsRepository> = {
   create: jest.fn(),
   update: jest.fn(),
   updateLogo: jest.fn(),
+  updateLogoDark: jest.fn(),
   updateFavicon: jest.fn(),
 }
 
@@ -31,6 +32,7 @@ const makeClinic = (overrides = {}) => ({
   version: 1,
   themeId: null as string | null,
   logoUrl: null as string | null,
+  logoDarkUrl: null as string | null,
   faviconUrl: null as string | null,
   addressStreet: 'Rua das Flores',
   addressNumber: '123',

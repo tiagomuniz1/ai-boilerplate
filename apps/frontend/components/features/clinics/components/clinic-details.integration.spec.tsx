@@ -1,5 +1,8 @@
 jest.mock('next/navigation', () => ({ useRouter: jest.fn() }))
 jest.mock('@/components/features/themes/hooks/use-theme.hook')
+jest.mock('@/components/features/clinic-specialties/components/clinic-specialty-section', () => ({
+  ClinicSpecialtySection: () => <div data-testid="clinic-specialty-section" />,
+}))
 
 import { screen } from '@testing-library/react'
 import { useRouter } from 'next/navigation'
@@ -31,6 +34,7 @@ const activeClinic: IClinicModel = {
   isActive: true,
   themeId: null,
   logoUrl: null,
+  logoDarkUrl: null,
   faviconUrl: null,
   address: {
     street: 'Rua das Flores',

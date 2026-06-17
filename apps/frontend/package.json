@@ -12,7 +12,8 @@
     "test:unit:coverage": "jest --testPathPattern='.*\\.spec\\.(ts|tsx)$' --coverage --passWithNoTests",
     "typecheck": "tsc --noEmit",
     "lint": "next lint",
-    "cypress:run": "cypress run --browser chrome --headed"
+    "cypress:run": "cypress run",
+    "cypress:run:headed": "cypress run --browser chrome --headed"
   },
   "dependencies": {
     "@aws-sdk/client-ssm": "^3.600.0",
@@ -25,6 +26,7 @@
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "react-hook-form": "^7.52.2",
+    "reflect-metadata": "^0.2.2",
     "tailwind-merge": "^3.5.0",
     "zod": "^3.23.8",
     "zustand": "^4.5.4"

@@ -33,8 +33,8 @@ describe('SpecialtyDetails (integration)', () => {
     ;(useRouter as jest.Mock).mockReturnValue({ push: mockPush })
   })
 
-  describe('as ADMIN', () => {
-    beforeEach(() => mockAuthStoreAs(UserRole.ADMIN))
+  describe('as PLATFORM_ADMIN', () => {
+    beforeEach(() => mockAuthStoreAs(UserRole.PLATFORM_ADMIN))
 
     it('renders name and dates', () => {
       renderWithProviders(<SpecialtyDetails specialty={specialty} onDeleteClick={jest.fn()} />)

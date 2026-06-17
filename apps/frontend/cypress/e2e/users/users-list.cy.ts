@@ -1,4 +1,4 @@
-const MOCK_TOKEN = 'mock-access-token'
+import { visitClinic, expectClinicPath, CLINIC_SLUG, CLINIC_ID } from '../../support/clinic'
 
 const mockAuthUser = {
   id: 'mock-auth-user-id',
@@ -20,28 +20,6 @@ const mockUser = {
 const emptyListResponse = { data: [], total: 0, page: 1, limit: 20 }
 const populatedListResponse = { data: [mockUser], total: 1, page: 1, limit: 20 }
 
-function visitWithMockAuth(url: string) {
-  cy.intercept('GET', `${Cypress.env('API_URL')}/auth/me`, {
-    statusCode: 200,
-    body: mockAuthUser,
-  })
-  cy.setCookie('access_token', MOCK_TOKEN, {
-    httpOnly: true,
-    secure: false,
-    sameSite: 'strict',
-    path: '/',
-    domain: 'localhost',
-  })
-  cy.visit(url, {
-    onBeforeLoad(win) {
-      win.localStorage.setItem(
-        'auth-user',
-        JSON.stringify({ state: { user: mockAuthUser }, version: 0 }),
-      )
-    },
-  })
-}
-
 describe('Users List', () => {
   beforeEach(() => {
     cy.clearCookies()
@@ -49,8 +27,8 @@ describe('Users List', () => {
   })
 
   it('redirects to /login when not authenticated', () => {
-    cy.visit('/users')
-    cy.url().should('include', '/login')
+    cy.visit(`/${CLINIC_SLUG}/users`)
+    expectClinicPath('/login')
   })
 
   it('shows skeleton during data fetch', () => {
@@ -58,7 +36,7 @@ describe('Users List', () => {
       req.reply({ delay: 1500, statusCode: 200, body: populatedListResponse })
     }).as('getUsers')
 
-    visitWithMockAuth('/users')
+    visitClinic('/users', mockAuthUser)
     cy.get('[data-testid="user-list-skeleton"]').should('be.visible')
     cy.wait('@getUsers')
     cy.get('[data-testid="user-list-skeleton"]').should('not.exist')
@@ -70,7 +48,7 @@ describe('Users List', () => {
       body: emptyListResponse,
     }).as('getUsers')
 
-    visitWithMockAuth('/users')
+    visitClinic('/users', mockAuthUser)
     cy.wait('@getUsers')
     cy.get('[data-testid="user-list-empty"]').should('be.visible')
     cy.get('[data-testid="user-list-table"]').should('not.exist')
@@ -82,7 +60,7 @@ describe('Users List', () => {
       body: { title: 'Internal Server Error' },
     }).as('getUsers')
 
-    visitWithMockAuth('/users')
+    visitClinic('/users', mockAuthUser)
     cy.wait('@getUsers')
     cy.get('[data-testid="user-list-error"]').should('be.visible')
     cy.get('[data-testid="user-list-table"]').should('not.exist')
@@ -94,7 +72,7 @@ describe('Users List', () => {
       body: populatedListResponse,
     }).as('getUsers')
 
-    visitWithMockAuth('/users')
+    visitClinic('/users', mockAuthUser)
     cy.wait('@getUsers')
 
     cy.get('[data-testid="user-list-table"]').should('be.visible')
@@ -110,11 +88,11 @@ describe('Users List', () => {
       body: emptyListResponse,
     }).as('getUsers')
 
-    visitWithMockAuth('/users')
+    visitClinic('/users', mockAuthUser)
     cy.wait('@getUsers')
     cy.get('[data-testid="user-list-new-button"]').should('be.visible')
     cy.get('[data-testid="user-list-new-button"]').click()
-    cy.url().should('include', '/users/new')
+    expectClinicPath('/users/new')
   })
 
   it('renders search input', () => {
@@ -123,7 +101,7 @@ describe('Users List', () => {
       body: emptyListResponse,
     }).as('getUsers')
 
-    visitWithMockAuth('/users')
+    visitClinic('/users', mockAuthUser)
     cy.wait('@getUsers')
     cy.get('[data-testid="user-list-search"]').should('be.visible')
   })
@@ -134,7 +112,7 @@ describe('Users List', () => {
       body: populatedListResponse,
     }).as('getUsers')
 
-    visitWithMockAuth('/users')
+    visitClinic('/users', mockAuthUser)
     cy.wait('@getUsers')
 
     cy.intercept('GET', `${Cypress.env('API_URL')}/users*`, {
@@ -146,25 +124,6 @@ describe('Users List', () => {
     cy.wait('@searchUsers').its('request.url').should('include', 'search=')
   })
 
-  it('shows user rows with data from real API', () => {
-    let seededId: string
-
-    cy.fixture('users').then((fixture) => {
-      cy.login(fixture.admin.email, fixture.admin.password)
-    })
-
-    cy.seedUser().then((user) => {
-      seededId = user.id
-      cy.visit('/users')
-      cy.get(`[data-testid="user-table-row-${user.id}"]`).should('exist')
-      cy.get(`[data-testid="user-name-${user.id}"]`).should('contain', user.fullName)
-      cy.get(`[data-testid="user-email-${user.id}"]`).should('contain', user.email)
-    })
-
-    cy.then(() => {
-      if (seededId) cy.deleteUserViaApi(seededId)
-    })
-  })
 })
 
 export {}

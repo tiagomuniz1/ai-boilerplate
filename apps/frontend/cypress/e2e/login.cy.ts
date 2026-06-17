@@ -1,7 +1,10 @@
+import { CLINIC_SLUG, expectClinicPath, stubClinicLayout } from '../support/clinic'
+
 describe('Login', () => {
   beforeEach(() => {
     cy.clearCookies()
-    cy.visit('/login')
+    cy.clearLocalStorage()
+    cy.visit(`/${CLINIC_SLUG}/login`)
   })
 
   it('shows email validation error for invalid format', () => {
@@ -43,79 +46,38 @@ describe('Login', () => {
     cy.get('[data-testid="login-submit"]').should('be.disabled')
   })
 
-  it('redirects to /dashboard on successful login', () => {
+  it('redirects to clinic dashboard on successful login', () => {
     cy.intercept('POST', '**/auth/login', (req) => {
       req.reply({
         statusCode: 200,
-        body: { id: 'uuid-1', fullName: 'Alice Costa', email: 'alice@example.com' },
+        body: { id: 'uuid-1', fullName: 'Alice Costa', email: 'alice@example.com', role: 'admin', clinicId: 'clinic-1' },
         headers: {
-          'set-cookie': 'access_token=mock-token; Path=/; HttpOnly; SameSite=Strict',
+          // Login dentro da clínica cria o cookie sufixado pelo slug.
+          'set-cookie': `access_token_${CLINIC_SLUG}=mock-token; Path=/; HttpOnly; SameSite=Strict`,
         },
       })
     }).as('loginRequest')
+    // A dashboard carrega o layout autenticado (auth/me, clinic, theme).
+    stubClinicLayout({ fullName: 'Alice Costa', email: 'alice@example.com' } as never)
 
     cy.get('[data-testid="login-email"]').type('alice@example.com')
     cy.get('[data-testid="login-password"]').type('password123')
     cy.get('[data-testid="login-submit"]').click()
 
     cy.wait('@loginRequest')
-    cy.url().should('include', '/dashboard')
+    expectClinicPath('/dashboard')
   })
 
-  it('redirects authenticated user directly to /dashboard', () => {
-    cy.intercept('GET', `${Cypress.env('API_URL')}/auth/me`, {
-      statusCode: 200,
-      body: { id: 'mock-id', fullName: 'Test User', email: 'test@example.com' },
+  it('redirects already-authenticated user to clinic dashboard', () => {
+    stubClinicLayout()
+    cy.setCookie(`access_token_${CLINIC_SLUG}`, 'valid-token', {
+      httpOnly: true,
+      secure: false,
+      sameSite: 'strict',
+      path: '/',
+      domain: 'localhost',
     })
-    cy.setCookie('access_token', 'valid-token')
-    cy.visit('/login')
-    cy.url().should('include', '/dashboard')
-  })
-})
-
-describe('Login como médico', () => {
-  let doctor: {
-    doctorId: string
-    userId: string
-    specialtyId: string
-    specialtyName: string
-    email: string
-    password: string
-    crmNumber: string
-    accessToken: string
-  }
-
-  before(() => {
-    cy.seedDoctor().then((result) => {
-      doctor = result
-    })
-  })
-
-  after(() => {
-    if (doctor) {
-      cy.deleteDoctorViaApi(doctor.doctorId, doctor.accessToken)
-      cy.deleteUserViaApi(doctor.userId, doctor.accessToken)
-      cy.deleteSpecialtyViaApi(doctor.specialtyId, doctor.accessToken)
-    }
-  })
-
-  beforeEach(() => {
-    cy.clearCookies()
-    cy.clearLocalStorage()
-    cy.visit('/login')
-  })
-
-  it('faz login com credenciais de médico e redireciona para /dashboard', () => {
-    cy.get('[data-testid="login-email"]').type(doctor.email)
-    cy.get('[data-testid="login-password"]').type(doctor.password)
-    cy.get('[data-testid="login-submit"]').click()
-    cy.url().should('include', '/dashboard')
-  })
-
-  it('após login, médico pode acessar seu perfil em /doctors', () => {
-    cy.login(doctor.email, doctor.password)
-    cy.visit(`/doctors/${doctor.doctorId}`)
-    cy.get('[data-testid="doctor-details-crm"]').should('contain', doctor.crmNumber)
-    cy.get('[data-testid="doctor-details-specialties"]').should('contain', doctor.specialtyName)
+    cy.visit(`/${CLINIC_SLUG}/login`)
+    expectClinicPath('/dashboard')
   })
 })

@@ -1,4 +1,4 @@
-const MOCK_TOKEN = 'mock-access-token'
+import { visitClinic, expectClinicPath, CLINIC_SLUG, CLINIC_ID } from '../../support/clinic'
 
 const mockDoctorUser = {
   id: 'doctor-user-uuid',
@@ -23,16 +23,6 @@ const mockSchedule = {
 
 const updatedSchedule = { ...mockSchedule, startTime: '09:00' }
 
-function visitAsDoctor(url: string) {
-  cy.intercept('GET', `${Cypress.env('API_URL')}/auth/me`, { statusCode: 200, body: mockDoctorUser })
-  cy.setCookie('access_token', MOCK_TOKEN, { httpOnly: true, secure: false, sameSite: 'strict', path: '/', domain: 'localhost' })
-  cy.visit(url, {
-    onBeforeLoad(win) {
-      win.localStorage.setItem('auth-user', JSON.stringify({ state: { user: mockDoctorUser }, version: 0 }))
-    },
-  })
-}
-
 describe('Schedules Update', () => {
   beforeEach(() => {
     cy.clearCookies()
@@ -45,7 +35,7 @@ describe('Schedules Update', () => {
       req.reply({ delay: 500, statusCode: 200, body: mockSchedule })
     }).as('getScheduleSlow')
 
-    visitAsDoctor(`/schedules/${mockSchedule.id}/edit`)
+    visitClinic(`/schedules/${mockSchedule.id}/edit`, mockDoctorUser)
     cy.get('[data-testid="edit-schedule-skeleton"]').should('be.visible')
     cy.wait('@getScheduleSlow')
     cy.get('[data-testid="schedule-form"]').should('be.visible')
@@ -57,14 +47,14 @@ describe('Schedules Update', () => {
       body: { title: 'Internal Server Error' },
     }).as('getScheduleError')
 
-    visitAsDoctor(`/schedules/${mockSchedule.id}/edit`)
+    visitClinic(`/schedules/${mockSchedule.id}/edit`, mockDoctorUser)
     cy.wait('@getScheduleError')
     cy.get('[data-testid="edit-schedule-error"]').should('be.visible')
     cy.get('[data-testid="schedule-form"]').should('not.exist')
   })
 
   it('loads schedule data into form fields', () => {
-    visitAsDoctor(`/schedules/${mockSchedule.id}/edit`)
+    visitClinic(`/schedules/${mockSchedule.id}/edit`, mockDoctorUser)
     cy.wait('@getSchedule')
 
     cy.get('[data-testid="schedule-form-day"]').should('have.value', 'MONDAY')
@@ -76,21 +66,21 @@ describe('Schedules Update', () => {
   it('updates schedule and redirects to detail page', () => {
     cy.intercept('PATCH', `${Cypress.env('API_URL')}/schedules/${mockSchedule.id}`, { statusCode: 200, body: updatedSchedule }).as('updateSchedule')
 
-    visitAsDoctor(`/schedules/${mockSchedule.id}/edit`)
+    visitClinic(`/schedules/${mockSchedule.id}/edit`, mockDoctorUser)
     cy.wait('@getSchedule')
 
     cy.get('[data-testid="schedule-form-start-time"]').clear().type('09:00')
     cy.get('[data-testid="schedule-form-submit"]').click()
 
     cy.wait('@updateSchedule')
-    cy.url().should('include', `/schedules/${mockSchedule.id}`)
+    expectClinicPath(`/schedules/${mockSchedule.id}`)
     cy.url().should('not.include', '/edit')
   })
 
   it('sends correct fields in PATCH request', () => {
     cy.intercept('PATCH', `${Cypress.env('API_URL')}/schedules/${mockSchedule.id}`, { statusCode: 200, body: updatedSchedule }).as('updateSchedule')
 
-    visitAsDoctor(`/schedules/${mockSchedule.id}/edit`)
+    visitClinic(`/schedules/${mockSchedule.id}/edit`, mockDoctorUser)
     cy.wait('@getSchedule')
 
     cy.get('[data-testid="schedule-form-day"]').select('WEDNESDAY')
@@ -104,7 +94,7 @@ describe('Schedules Update', () => {
   })
 
   it('shows validation error when endTime is before startTime', () => {
-    visitAsDoctor(`/schedules/${mockSchedule.id}/edit`)
+    visitClinic(`/schedules/${mockSchedule.id}/edit`, mockDoctorUser)
     cy.wait('@getSchedule')
 
     cy.get('[data-testid="schedule-form-start-time"]').clear().type('14:00')
@@ -120,7 +110,7 @@ describe('Schedules Update', () => {
       body: { status: 409, title: 'Conflict', detail: 'Schedule overlaps' },
     }).as('updateSchedule')
 
-    visitAsDoctor(`/schedules/${mockSchedule.id}/edit`)
+    visitClinic(`/schedules/${mockSchedule.id}/edit`, mockDoctorUser)
     cy.wait('@getSchedule')
 
     cy.get('[data-testid="schedule-form-start-time"]').clear().type('09:00')
@@ -128,7 +118,7 @@ describe('Schedules Update', () => {
 
     cy.wait('@updateSchedule')
     cy.get('[data-testid="schedule-form-error"]').should('be.visible').and('contain', 'conflita')
-    cy.url().should('include', '/edit')
+    cy.location('pathname').should('include', '/edit')
   })
 
   it('disables submit button while request is in flight', () => {
@@ -136,7 +126,7 @@ describe('Schedules Update', () => {
       req.reply({ delay: 2000, statusCode: 200, body: updatedSchedule })
     }).as('updateSchedule')
 
-    visitAsDoctor(`/schedules/${mockSchedule.id}/edit`)
+    visitClinic(`/schedules/${mockSchedule.id}/edit`, mockDoctorUser)
     cy.wait('@getSchedule')
 
     cy.get('[data-testid="schedule-form-start-time"]').clear().type('09:00')
@@ -147,11 +137,11 @@ describe('Schedules Update', () => {
   })
 
   it('back button returns to schedule detail page', () => {
-    visitAsDoctor(`/schedules/${mockSchedule.id}/edit`)
+    visitClinic(`/schedules/${mockSchedule.id}/edit`, mockDoctorUser)
     cy.wait('@getSchedule')
 
     cy.get('[data-testid="edit-schedule-back-button"]').click()
-    cy.url().should('include', `/schedules/${mockSchedule.id}`)
+    expectClinicPath(`/schedules/${mockSchedule.id}`)
     cy.url().should('not.include', '/edit')
   })
 })

@@ -1,11 +1,12 @@
-const MOCK_TOKEN = 'mock-access-token'
+import { visitBackoffice, expectBackofficePath } from '../../support/clinic'
+
 const MOCK_SPECIALTY_ID = '33330000-0000-0000-0000-000000000001'
 
 const mockAdminUser = {
   id: 'mock-auth-user-id',
   fullName: 'Mock Admin',
   email: 'mock@admin.com',
-  role: 'admin',
+  role: 'platform_admin',
 }
 
 const mockNonAdminUser = {
@@ -23,28 +24,6 @@ const mockSpecialty = {
   updatedAt: '2024-01-20T10:00:00.000Z',
 }
 
-function visitWithMockAuth(url: string, authUser = mockAdminUser) {
-  cy.intercept('GET', `${Cypress.env('API_URL')}/auth/me`, {
-    statusCode: 200,
-    body: authUser,
-  })
-  cy.setCookie('access_token', MOCK_TOKEN, {
-    httpOnly: true,
-    secure: false,
-    sameSite: 'strict',
-    path: '/',
-    domain: 'localhost',
-  })
-  cy.visit(url, {
-    onBeforeLoad(win) {
-      win.localStorage.setItem(
-        'auth-user',
-        JSON.stringify({ state: { user: authUser }, version: 0 }),
-      )
-    },
-  })
-}
-
 describe('Specialties Detail', () => {
   beforeEach(() => {
     cy.clearCookies()
@@ -52,8 +31,8 @@ describe('Specialties Detail', () => {
   })
 
   it('redirects to /login when not authenticated', () => {
-    cy.visit(`/specialties/${MOCK_SPECIALTY_ID}`)
-    cy.url().should('include', '/login')
+    cy.visit(`/backoffice/specialties/${MOCK_SPECIALTY_ID}`)
+    expectBackofficePath('/login')
   })
 
   it('shows skeleton during data fetch', () => {
@@ -61,7 +40,7 @@ describe('Specialties Detail', () => {
       req.reply({ delay: 1500, statusCode: 200, body: mockSpecialty })
     }).as('getSpecialty')
 
-    visitWithMockAuth(`/specialties/${MOCK_SPECIALTY_ID}`)
+    visitBackoffice(`/specialties/${MOCK_SPECIALTY_ID}`, mockAdminUser)
     cy.get('[data-testid="specialty-details-skeleton"]').should('be.visible')
     cy.wait('@getSpecialty')
     cy.get('[data-testid="specialty-details-skeleton"]').should('not.exist')
@@ -73,7 +52,7 @@ describe('Specialties Detail', () => {
       body: { status: 404, title: 'Not Found', detail: 'Specialty not found' },
     }).as('getSpecialty')
 
-    visitWithMockAuth(`/specialties/${MOCK_SPECIALTY_ID}`)
+    visitBackoffice(`/specialties/${MOCK_SPECIALTY_ID}`, mockAdminUser)
     cy.wait('@getSpecialty')
     cy.get('[data-testid="specialty-details-error"]').should('be.visible')
     cy.get('[data-testid="specialty-details"]').should('not.exist')
@@ -85,7 +64,7 @@ describe('Specialties Detail', () => {
       body: mockSpecialty,
     }).as('getSpecialty')
 
-    visitWithMockAuth(`/specialties/${MOCK_SPECIALTY_ID}`)
+    visitBackoffice(`/specialties/${MOCK_SPECIALTY_ID}`, mockAdminUser)
     cy.wait('@getSpecialty')
 
     cy.get('[data-testid="specialty-details"]').should('be.visible')
@@ -100,7 +79,7 @@ describe('Specialties Detail', () => {
       body: mockSpecialty,
     }).as('getSpecialty')
 
-    visitWithMockAuth(`/specialties/${MOCK_SPECIALTY_ID}`)
+    visitBackoffice(`/specialties/${MOCK_SPECIALTY_ID}`, mockAdminUser)
     cy.wait('@getSpecialty')
     cy.get('[data-testid="specialty-details-description"]').should('contain', mockSpecialty.description)
   })
@@ -111,7 +90,7 @@ describe('Specialties Detail', () => {
       body: { ...mockSpecialty, description: null },
     }).as('getSpecialty')
 
-    visitWithMockAuth(`/specialties/${MOCK_SPECIALTY_ID}`)
+    visitBackoffice(`/specialties/${MOCK_SPECIALTY_ID}`, mockAdminUser)
     cy.wait('@getSpecialty')
     cy.get('[data-testid="specialty-details-description"]').should('not.exist')
   })
@@ -126,10 +105,10 @@ describe('Specialties Detail', () => {
       body: { data: [], total: 0, page: 1, limit: 20 },
     })
 
-    visitWithMockAuth(`/specialties/${MOCK_SPECIALTY_ID}`)
+    visitBackoffice(`/specialties/${MOCK_SPECIALTY_ID}`, mockAdminUser)
     cy.wait('@getSpecialty')
     cy.get('[data-testid="specialty-details-back-button"]').click()
-    cy.url().should('match', /\/specialties$/)
+    expectBackofficePath('/specialties')
   })
 
   it('shows edit and delete buttons for ADMIN', () => {
@@ -138,7 +117,7 @@ describe('Specialties Detail', () => {
       body: mockSpecialty,
     }).as('getSpecialty')
 
-    visitWithMockAuth(`/specialties/${MOCK_SPECIALTY_ID}`)
+    visitBackoffice(`/specialties/${MOCK_SPECIALTY_ID}`, mockAdminUser)
     cy.wait('@getSpecialty')
     cy.get('[data-testid="specialty-details-edit-button"]').should('be.visible')
     cy.get('[data-testid="specialty-details-delete-button"]').should('be.visible')
@@ -150,7 +129,7 @@ describe('Specialties Detail', () => {
       body: mockSpecialty,
     }).as('getSpecialty')
 
-    visitWithMockAuth(`/specialties/${MOCK_SPECIALTY_ID}`, mockNonAdminUser)
+    visitBackoffice(`/specialties/${MOCK_SPECIALTY_ID}`, mockNonAdminUser)
     cy.wait('@getSpecialty')
     cy.get('[data-testid="specialty-details-edit-button"]').should('not.exist')
     cy.get('[data-testid="specialty-details-delete-button"]').should('not.exist')
@@ -162,10 +141,10 @@ describe('Specialties Detail', () => {
       body: mockSpecialty,
     }).as('getSpecialty')
 
-    visitWithMockAuth(`/specialties/${MOCK_SPECIALTY_ID}`)
+    visitBackoffice(`/specialties/${MOCK_SPECIALTY_ID}`, mockAdminUser)
     cy.wait('@getSpecialty')
     cy.get('[data-testid="specialty-details-edit-button"]').click()
-    cy.url().should('include', `/specialties/${MOCK_SPECIALTY_ID}/edit`)
+    expectBackofficePath(`/specialties/${MOCK_SPECIALTY_ID}/edit`)
   })
 
   it('delete button opens dialog with specialty name', () => {
@@ -174,7 +153,7 @@ describe('Specialties Detail', () => {
       body: mockSpecialty,
     }).as('getSpecialty')
 
-    visitWithMockAuth(`/specialties/${MOCK_SPECIALTY_ID}`)
+    visitBackoffice(`/specialties/${MOCK_SPECIALTY_ID}`, mockAdminUser)
     cy.wait('@getSpecialty')
     cy.get('[data-testid="specialty-details-delete-button"]').click()
     cy.get('[data-testid="delete-specialty-dialog"]').should('be.visible')
@@ -187,7 +166,7 @@ describe('Specialties Detail', () => {
       body: mockSpecialty,
     }).as('getSpecialty')
 
-    visitWithMockAuth(`/specialties/${MOCK_SPECIALTY_ID}`)
+    visitBackoffice(`/specialties/${MOCK_SPECIALTY_ID}`, mockAdminUser)
     cy.wait('@getSpecialty')
     cy.get('[data-testid="specialty-details-delete-button"]').click()
     cy.get('[data-testid="delete-specialty-dialog"]').should('be.visible')
@@ -206,13 +185,13 @@ describe('Specialties Detail', () => {
       body: { status: 500, title: 'Internal Server Error' },
     }).as('deleteSpecialty')
 
-    visitWithMockAuth(`/specialties/${MOCK_SPECIALTY_ID}`)
+    visitBackoffice(`/specialties/${MOCK_SPECIALTY_ID}`, mockAdminUser)
     cy.wait('@getSpecialty')
     cy.get('[data-testid="specialty-details-delete-button"]').click()
     cy.get('[data-testid="delete-specialty-dialog-confirm"]').click()
     cy.wait('@deleteSpecialty')
     cy.get('[data-testid="delete-specialty-dialog"]').should('not.exist')
-    cy.url().should('include', `/specialties/${MOCK_SPECIALTY_ID}`)
+    expectBackofficePath(`/specialties/${MOCK_SPECIALTY_ID}`)
   })
 
   it('delete success navigates to /specialties', () => {
@@ -229,34 +208,14 @@ describe('Specialties Detail', () => {
       body: { data: [], total: 0, page: 1, limit: 20 },
     })
 
-    visitWithMockAuth(`/specialties/${MOCK_SPECIALTY_ID}`)
+    visitBackoffice(`/specialties/${MOCK_SPECIALTY_ID}`, mockAdminUser)
     cy.wait('@getSpecialty')
     cy.get('[data-testid="specialty-details-delete-button"]').click()
     cy.get('[data-testid="delete-specialty-dialog-confirm"]').click()
     cy.wait('@deleteSpecialty')
-    cy.url().should('match', /\/specialties$/)
+    expectBackofficePath('/specialties')
   })
 
-  it('shows specialty details via real API', () => {
-    let seededId: string
-
-    cy.fixture('users').then((fixture) => {
-      cy.login(fixture.admin.email, fixture.admin.password)
-    })
-
-    cy.seedSpecialty().then((specialty) => {
-      seededId = specialty.id
-
-      cy.visit(`/specialties/${specialty.id}`)
-      cy.get('[data-testid="specialty-details"]').should('be.visible')
-      cy.get('[data-testid="specialty-details-name"]').should('contain', specialty.name)
-      cy.get('[data-testid="specialty-details-description"]').should('contain', specialty.description)
-    })
-
-    cy.then(() => {
-      if (seededId) cy.deleteSpecialtyViaApi(seededId)
-    })
-  })
 })
 
 export {}

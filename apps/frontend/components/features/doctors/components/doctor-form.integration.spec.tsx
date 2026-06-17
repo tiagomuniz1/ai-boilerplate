@@ -1,14 +1,14 @@
 jest.mock('next/navigation', () => ({ useRouter: jest.fn() }))
 jest.mock('../services/doctors.service')
 jest.mock('@/components/features/users/services/users.service')
-jest.mock('@/components/features/specialties/services/specialties.service')
+jest.mock('@/components/features/clinic-specialties/services/clinic-specialties.service')
 jest.mock('@/stores/auth.store')
 
 import { screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { useRouter } from 'next/navigation'
 import { userService } from '@/components/features/users/services/users.service'
-import { specialtiesService } from '@/components/features/specialties/services/specialties.service'
+import { clinicSpecialtiesService } from '@/components/features/clinic-specialties/services/clinic-specialties.service'
 import { useAuthStore } from '@/stores/auth.store'
 import { renderWithProviders } from '@/tests/utils/render-with-providers'
 import { DoctorForm } from './doctor-form'
@@ -20,15 +20,16 @@ const mockUsers = [
   { id: 'user-uuid-1', fullName: 'Dr. João Silva', email: 'joao@example.com', role: 'user', isActive: true, createdAt: new Date(), updatedAt: new Date() },
 ]
 
+const CLINIC_ID = 'clinic-uuid-1'
 const SPEC_ID_1 = '00000000-0000-4000-a000-000000000001'
 const SPEC_ID_2 = '00000000-0000-4000-a000-000000000002'
 
-const mockSpecialties = [
-  { id: SPEC_ID_1, name: 'Cardiologia', description: null, createdAt: new Date(), updatedAt: new Date() },
-  { id: SPEC_ID_2, name: 'Neurologia', description: null, createdAt: new Date(), updatedAt: new Date() },
+const mockClinicSpecialties = [
+  { id: 'link-uuid-1', clinicId: CLINIC_ID, specialtyId: SPEC_ID_1, name: 'Cardiologia', description: null, linkedAt: new Date() },
+  { id: 'link-uuid-2', clinicId: CLINIC_ID, specialtyId: SPEC_ID_2, name: 'Neurologia', description: null, linkedAt: new Date() },
 ]
 
-const mockAdminUser = { id: 'auth-user-id', fullName: 'Admin', email: 'admin@test.com', role: 'admin' as const }
+const mockAdminUser = { id: 'auth-user-id', fullName: 'Admin', email: 'admin@test.com', role: 'admin' as const, clinicId: CLINIC_ID }
 
 const existingDoctor: IDoctorModel = {
   id: 'uuid-1',
@@ -48,7 +49,7 @@ describe('DoctorForm (integration) — create mode', () => {
       selector({ user: mockAdminUser }),
     )
     ;(userService.getAll as jest.Mock).mockResolvedValue({ data: mockUsers, total: 1, page: 1, limit: 100 })
-    ;(specialtiesService.getAll as jest.Mock).mockResolvedValue({ data: mockSpecialties, total: 2, page: 1, limit: 100 })
+    ;(clinicSpecialtiesService.getAll as jest.Mock).mockResolvedValue({ data: mockClinicSpecialties, total: 2, page: 1, limit: 100 })
   })
 
   it('renders user mode toggle, crm, specialties and bio fields', async () => {
@@ -263,8 +264,8 @@ describe('DoctorForm (integration) — create mode', () => {
     expect(screen.getByTestId(`doctor-form-specialty-${SPEC_ID_1}`)).not.toBeChecked()
   })
 
-  it('shows empty specialties message when no specialties are available', async () => {
-    ;(specialtiesService.getAll as jest.Mock).mockResolvedValue({ data: [], total: 0, page: 1, limit: 100 })
+  it('shows empty specialties message when no clinic specialties are available', async () => {
+    ;(clinicSpecialtiesService.getAll as jest.Mock).mockResolvedValue({ data: [], total: 0, page: 1, limit: 100 })
 
     renderWithProviders(<DoctorForm mode="create" isPending={false} onSubmit={jest.fn()} />)
 
@@ -300,7 +301,7 @@ describe('DoctorForm (integration) — edit mode', () => {
     ;(useAuthStore as unknown as jest.Mock).mockImplementation((selector: (s: { user: typeof mockAdminUser }) => unknown) =>
       selector({ user: mockAdminUser }),
     )
-    ;(specialtiesService.getAll as jest.Mock).mockResolvedValue({ data: mockSpecialties, total: 2, page: 1, limit: 100 })
+    ;(clinicSpecialtiesService.getAll as jest.Mock).mockResolvedValue({ data: mockClinicSpecialties, total: 2, page: 1, limit: 100 })
   })
 
   it('pre-fills form with existing doctor data', async () => {

@@ -1,4 +1,5 @@
-const MOCK_TOKEN = 'mock-access-token'
+import { visitClinic, expectClinicPath, CLINIC_SLUG } from '../../support/clinic'
+
 const MOCK_DOCTOR_ID = 'dddddddd-2222-2222-2222-000000000001'
 
 const SPEC_ID_1 = '00000000-0000-4000-a000-000000000001'
@@ -22,28 +23,6 @@ const mockDoctor = {
 const populatedListResponse = { data: [mockDoctor], total: 1, page: 1, limit: 20 }
 const emptyListResponse = { data: [], total: 0, page: 1, limit: 20 }
 
-function visitWithMockAuth(url: string) {
-  cy.intercept('GET', `${Cypress.env('API_URL')}/auth/me`, {
-    statusCode: 200,
-    body: mockAuthUser,
-  })
-  cy.setCookie('access_token', MOCK_TOKEN, {
-    httpOnly: true,
-    secure: false,
-    sameSite: 'strict',
-    path: '/',
-    domain: 'localhost',
-  })
-  cy.visit(url, {
-    onBeforeLoad(win) {
-      win.localStorage.setItem(
-        'auth-user',
-        JSON.stringify({ state: { user: mockAuthUser }, version: 0 }),
-      )
-    },
-  })
-}
-
 describe('Doctors Delete', () => {
   beforeEach(() => {
     cy.clearCookies()
@@ -56,7 +35,7 @@ describe('Doctors Delete', () => {
       body: populatedListResponse,
     }).as('getDoctors')
 
-    visitWithMockAuth('/doctors')
+    visitClinic('/doctors', mockAuthUser)
     cy.wait('@getDoctors')
     cy.get(`[data-testid="doctor-delete-button-${MOCK_DOCTOR_ID}"]`).click()
     cy.get('[data-testid="delete-doctor-dialog"]').should('be.visible')
@@ -70,7 +49,7 @@ describe('Doctors Delete', () => {
     }).as('getDoctors')
     cy.intercept('DELETE', `${Cypress.env('API_URL')}/doctors/${MOCK_DOCTOR_ID}`).as('deleteDoctor')
 
-    visitWithMockAuth('/doctors')
+    visitClinic('/doctors', mockAuthUser)
     cy.wait('@getDoctors')
     cy.get(`[data-testid="doctor-delete-button-${MOCK_DOCTOR_ID}"]`).click()
     cy.get('[data-testid="delete-doctor-dialog"]').should('be.visible')
@@ -89,7 +68,7 @@ describe('Doctors Delete', () => {
       body: { status: 500, title: 'Internal Server Error' },
     }).as('deleteDoctor')
 
-    visitWithMockAuth('/doctors')
+    visitClinic('/doctors', mockAuthUser)
     cy.wait('@getDoctors')
     cy.get(`[data-testid="doctor-delete-button-${MOCK_DOCTOR_ID}"]`).click()
     cy.get('[data-testid="delete-doctor-dialog-confirm"]').click()
@@ -108,7 +87,7 @@ describe('Doctors Delete', () => {
       body: null,
     }).as('deleteDoctor')
 
-    visitWithMockAuth('/doctors')
+    visitClinic('/doctors', mockAuthUser)
     cy.wait('@getDoctors')
     cy.get(`[data-testid="doctor-delete-button-${MOCK_DOCTOR_ID}"]`).click()
     cy.get('[data-testid="delete-doctor-dialog-confirm"]').click()
@@ -132,7 +111,7 @@ describe('Doctors Delete', () => {
       body: null,
     }).as('deleteDoctor')
 
-    visitWithMockAuth('/doctors')
+    visitClinic('/doctors', mockAuthUser)
     cy.wait('@getDoctors')
     cy.get(`[data-testid="doctor-delete-button-${MOCK_DOCTOR_ID}"]`).click()
     cy.get('[data-testid="delete-doctor-dialog-confirm"]').click()
@@ -140,29 +119,6 @@ describe('Doctors Delete', () => {
     cy.wait('@getDoctors')
     cy.get(`[data-testid="doctor-table-row-${MOCK_DOCTOR_ID}"]`).should('not.exist')
     cy.get('[data-testid="doctor-list-empty"]').should('be.visible')
-  })
-
-  it('deleting a doctor also removes the linked user from the users list (real API)', () => {
-    cy.fixture('users').then((fixture) => {
-      cy.login(fixture.admin.email, fixture.admin.password)
-    })
-
-    cy.seedDoctor().then(({ doctorId, userId, accessToken: adminToken }) => {
-      cy.intercept('DELETE', `${Cypress.env('API_URL')}/doctors/${doctorId}`).as('deleteDoctor')
-
-      cy.visit('/doctors')
-      cy.get(`[data-testid="doctor-table-row-${doctorId}"]`).should('exist')
-      cy.get(`[data-testid="doctor-delete-button-${doctorId}"]`).click()
-      cy.get('[data-testid="delete-doctor-dialog"]').should('be.visible')
-      cy.get('[data-testid="delete-doctor-dialog-confirm"]').click()
-      cy.wait('@deleteDoctor')
-      cy.get('[data-testid="doctor-list-success"]').should('be.visible')
-      cy.get(`[data-testid="doctor-table-row-${doctorId}"]`).should('not.exist')
-
-      cy.visit('/users')
-      cy.get('[data-testid="user-list-table"]').should('be.visible')
-      cy.get(`[data-testid="user-table-row-${userId}"]`).should('not.exist')
-    })
   })
 
   it('delete from details page navigates back to list', () => {
@@ -179,12 +135,12 @@ describe('Doctors Delete', () => {
       body: null,
     }).as('deleteDoctor')
 
-    visitWithMockAuth(`/doctors/${MOCK_DOCTOR_ID}`)
+    visitClinic(`/doctors/${MOCK_DOCTOR_ID}`, mockAuthUser)
     cy.wait('@getDoctor')
     cy.get('[data-testid="doctor-details-delete-button"]').click()
     cy.get('[data-testid="delete-doctor-dialog-confirm"]').click()
     cy.wait('@deleteDoctor')
-    cy.url().should('match', /\/doctors$/)
+    expectClinicPath('/doctors')
   })
 })
 

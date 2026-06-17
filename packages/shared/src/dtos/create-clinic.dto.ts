@@ -1,4 +1,5 @@
-import { IsOptional, IsString, IsUUID, Matches, MaxLength, MinLength, ValidateNested } from 'class-validator'
+import { Type } from 'class-transformer'
+import { IsDefined, IsOptional, IsString, IsUUID, Matches, MaxLength, MinLength, ValidateNested } from 'class-validator'
 import { AddressDto } from './address.dto'
 
 export class CreateClinicDto {
@@ -18,6 +19,8 @@ export class CreateClinicDto {
   @IsUUID()
   themeId?: string | null
 
+  @IsDefined()
   @ValidateNested()
+  @Type(() => AddressDto)
   address!: AddressDto
 }

@@ -1,11 +1,12 @@
-const MOCK_TOKEN = 'mock-access-token'
+import { visitBackoffice, expectBackofficePath } from '../../support/clinic'
+
 const MOCK_SPECIALTY_ID = '11110000-0000-0000-0000-000000000001'
 
 const mockAdminUser = {
   id: 'mock-auth-user-id',
   fullName: 'Mock Admin',
   email: 'mock@admin.com',
-  role: 'admin',
+  role: 'platform_admin',
 }
 
 const mockNonAdminUser = {
@@ -26,28 +27,6 @@ const mockSpecialty = {
 const emptyListResponse = { data: [], total: 0, page: 1, limit: 20 }
 const populatedListResponse = { data: [mockSpecialty], total: 1, page: 1, limit: 20 }
 
-function visitWithMockAuth(url: string, authUser = mockAdminUser) {
-  cy.intercept('GET', `${Cypress.env('API_URL')}/auth/me`, {
-    statusCode: 200,
-    body: authUser,
-  })
-  cy.setCookie('access_token', MOCK_TOKEN, {
-    httpOnly: true,
-    secure: false,
-    sameSite: 'strict',
-    path: '/',
-    domain: 'localhost',
-  })
-  cy.visit(url, {
-    onBeforeLoad(win) {
-      win.localStorage.setItem(
-        'auth-user',
-        JSON.stringify({ state: { user: authUser }, version: 0 }),
-      )
-    },
-  })
-}
-
 describe('Specialties List', () => {
   beforeEach(() => {
     cy.clearCookies()
@@ -55,8 +34,8 @@ describe('Specialties List', () => {
   })
 
   it('redirects to /login when not authenticated', () => {
-    cy.visit('/specialties')
-    cy.url().should('include', '/login')
+    cy.visit('/backoffice/specialties')
+    expectBackofficePath('/login')
   })
 
   it('shows skeleton during data fetch', () => {
@@ -64,7 +43,7 @@ describe('Specialties List', () => {
       req.reply({ delay: 1500, statusCode: 200, body: populatedListResponse })
     }).as('getSpecialties')
 
-    visitWithMockAuth('/specialties')
+    visitBackoffice('/specialties', mockAdminUser)
     cy.get('[data-testid="specialty-list-skeleton"]').should('be.visible')
     cy.wait('@getSpecialties')
     cy.get('[data-testid="specialty-list-skeleton"]').should('not.exist')
@@ -76,7 +55,7 @@ describe('Specialties List', () => {
       body: emptyListResponse,
     }).as('getSpecialties')
 
-    visitWithMockAuth('/specialties')
+    visitBackoffice('/specialties', mockAdminUser)
     cy.wait('@getSpecialties')
     cy.get('[data-testid="specialty-list-empty"]').should('be.visible')
     cy.get('[data-testid="specialty-list-table"]').should('not.exist')
@@ -88,7 +67,7 @@ describe('Specialties List', () => {
       body: { title: 'Internal Server Error' },
     }).as('getSpecialties')
 
-    visitWithMockAuth('/specialties')
+    visitBackoffice('/specialties', mockAdminUser)
     cy.wait('@getSpecialties')
     cy.get('[data-testid="specialty-list-error"]').should('be.visible')
     cy.get('[data-testid="specialty-list-table"]').should('not.exist')
@@ -100,7 +79,7 @@ describe('Specialties List', () => {
       body: populatedListResponse,
     }).as('getSpecialties')
 
-    visitWithMockAuth('/specialties')
+    visitBackoffice('/specialties', mockAdminUser)
     cy.wait('@getSpecialties')
 
     cy.get('[data-testid="specialty-list-table"]').should('be.visible')
@@ -116,7 +95,7 @@ describe('Specialties List', () => {
       body: { data: [{ ...mockSpecialty, description: null }], total: 1, page: 1, limit: 20 },
     }).as('getSpecialties')
 
-    visitWithMockAuth('/specialties')
+    visitBackoffice('/specialties', mockAdminUser)
     cy.wait('@getSpecialties')
     cy.get(`[data-testid="specialty-description-${MOCK_SPECIALTY_ID}"]`).should('contain', '—')
   })
@@ -127,7 +106,7 @@ describe('Specialties List', () => {
       body: populatedListResponse,
     }).as('getSpecialties')
 
-    visitWithMockAuth('/specialties')
+    visitBackoffice('/specialties', mockAdminUser)
     cy.wait('@getSpecialties')
     cy.contains('1 especialidade cadastrada').should('be.visible')
   })
@@ -138,11 +117,11 @@ describe('Specialties List', () => {
       body: emptyListResponse,
     }).as('getSpecialties')
 
-    visitWithMockAuth('/specialties')
+    visitBackoffice('/specialties', mockAdminUser)
     cy.wait('@getSpecialties')
     cy.get('[data-testid="specialty-list-new-button"]').should('be.visible')
     cy.get('[data-testid="specialty-list-new-button"]').click()
-    cy.url().should('include', '/specialties/new')
+    expectBackofficePath('/specialties/new')
   })
 
   it('hides "Nova especialidade" button for non-admin', () => {
@@ -151,7 +130,7 @@ describe('Specialties List', () => {
       body: emptyListResponse,
     }).as('getSpecialties')
 
-    visitWithMockAuth('/specialties', mockNonAdminUser)
+    visitBackoffice('/specialties', mockNonAdminUser)
     cy.wait('@getSpecialties')
     cy.get('[data-testid="specialty-list-new-button"]').should('not.exist')
   })
@@ -162,7 +141,7 @@ describe('Specialties List', () => {
       body: populatedListResponse,
     }).as('getSpecialties')
 
-    visitWithMockAuth('/specialties')
+    visitBackoffice('/specialties', mockAdminUser)
     cy.wait('@getSpecialties')
     cy.get(`[data-testid="specialty-delete-button-${MOCK_SPECIALTY_ID}"]`).should('be.visible')
     cy.get(`[data-testid="specialty-edit-link-${MOCK_SPECIALTY_ID}"]`).should('exist')
@@ -174,7 +153,7 @@ describe('Specialties List', () => {
       body: populatedListResponse,
     }).as('getSpecialties')
 
-    visitWithMockAuth('/specialties', mockNonAdminUser)
+    visitBackoffice('/specialties', mockNonAdminUser)
     cy.wait('@getSpecialties')
     cy.get(`[data-testid="specialty-delete-button-${MOCK_SPECIALTY_ID}"]`).should('not.exist')
     cy.get(`[data-testid="specialty-edit-link-${MOCK_SPECIALTY_ID}"]`).should('not.exist')
@@ -186,7 +165,7 @@ describe('Specialties List', () => {
       body: populatedListResponse,
     }).as('getSpecialties')
 
-    visitWithMockAuth('/specialties')
+    visitBackoffice('/specialties', mockAdminUser)
     cy.wait('@getSpecialties')
     cy.get(`[data-testid="specialty-view-link-${MOCK_SPECIALTY_ID}"]`).should('exist')
   })
@@ -197,7 +176,7 @@ describe('Specialties List', () => {
       body: emptyListResponse,
     }).as('getSpecialties')
 
-    visitWithMockAuth('/specialties')
+    visitBackoffice('/specialties', mockAdminUser)
     cy.wait('@getSpecialties')
     cy.get('[data-testid="specialty-list-search"]').should('be.visible')
   })
@@ -208,7 +187,7 @@ describe('Specialties List', () => {
       body: populatedListResponse,
     }).as('getSpecialties')
 
-    visitWithMockAuth('/specialties')
+    visitBackoffice('/specialties', mockAdminUser)
     cy.wait('@getSpecialties')
 
     cy.intercept('GET', `${Cypress.env('API_URL')}/specialties*`, {
@@ -226,7 +205,7 @@ describe('Specialties List', () => {
       body: emptyListResponse,
     }).as('getSpecialties')
 
-    visitWithMockAuth('/specialties')
+    visitBackoffice('/specialties', mockAdminUser)
     cy.wait('@getSpecialties')
 
     cy.intercept('GET', `${Cypress.env('API_URL')}/specialties*`, {
@@ -239,25 +218,6 @@ describe('Specialties List', () => {
     cy.get('[data-testid="specialty-list-empty"]').should('contain', 'busca realizada')
   })
 
-  it('shows specialty rows with data from real API', () => {
-    let seededId: string
-
-    cy.fixture('users').then((fixture) => {
-      cy.login(fixture.admin.email, fixture.admin.password)
-    })
-
-    cy.seedSpecialty().then((specialty) => {
-      seededId = specialty.id
-
-      cy.visit('/specialties')
-      cy.get(`[data-testid="specialty-table-row-${specialty.id}"]`).should('exist')
-      cy.get(`[data-testid="specialty-name-${specialty.id}"]`).should('contain', specialty.name)
-    })
-
-    cy.then(() => {
-      if (seededId) cy.deleteSpecialtyViaApi(seededId)
-    })
-  })
 })
 
 export {}

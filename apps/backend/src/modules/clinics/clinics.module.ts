@@ -14,6 +14,7 @@ import { FindClinicBySlugUseCase } from './use-cases/find-clinic-by-slug.use-cas
 import { RegisterClinicUseCase } from './use-cases/register-clinic.use-case'
 import { UpdateClinicUseCase } from './use-cases/update-clinic.use-case'
 import { UploadClinicLogoUseCase } from './use-cases/upload-clinic-logo.use-case'
+import { UploadClinicLogoDarkUseCase } from './use-cases/upload-clinic-logo-dark.use-case'
 import { UploadClinicFaviconUseCase } from './use-cases/upload-clinic-favicon.use-case'
 import { IClinicsRepository } from './repositories/clinics.repository.interface'
 import { ClinicsRepository } from './repositories/clinics.repository'
@@ -29,6 +30,7 @@ import { ClinicsRepository } from './repositories/clinics.repository'
     RegisterClinicUseCase,
     UpdateClinicUseCase,
     UploadClinicLogoUseCase,
+    UploadClinicLogoDarkUseCase,
     UploadClinicFaviconUseCase,
     { provide: IClinicsRepository, useClass: ClinicsRepository },
     {
@@ -39,6 +41,6 @@ import { ClinicsRepository } from './repositories/clinics.repository'
           : new LocalStorageAdapter(),
     },
   ],
-  exports: [FindClinicBySlugUseCase],
+  exports: [FindClinicByIdUseCase, FindClinicBySlugUseCase],
 })
 export class ClinicsModule {}

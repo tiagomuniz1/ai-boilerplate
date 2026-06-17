@@ -1,3 +1,4 @@
+import 'reflect-metadata'
 export * from './dtos/index'
 export * from './types/index'
 export * from './enums/index'

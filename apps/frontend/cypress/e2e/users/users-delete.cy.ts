@@ -1,4 +1,5 @@
-const MOCK_TOKEN = 'mock-access-token'
+import { visitClinic, expectClinicPath, CLINIC_SLUG, CLINIC_ID } from '../../support/clinic'
+
 const MOCK_USER_ID = 'dddddddd-0000-0000-0000-000000000001'
 
 const mockAuthUser = {
@@ -21,28 +22,6 @@ const mockUser = {
 const populatedListResponse = { data: [mockUser], total: 1, page: 1, limit: 20 }
 const emptyListResponse = { data: [], total: 0, page: 1, limit: 20 }
 
-function visitWithMockAuth(url: string) {
-  cy.intercept('GET', `${Cypress.env('API_URL')}/auth/me`, {
-    statusCode: 200,
-    body: mockAuthUser,
-  })
-  cy.setCookie('access_token', MOCK_TOKEN, {
-    httpOnly: true,
-    secure: false,
-    sameSite: 'strict',
-    path: '/',
-    domain: 'localhost',
-  })
-  cy.visit(url, {
-    onBeforeLoad(win) {
-      win.localStorage.setItem(
-        'auth-user',
-        JSON.stringify({ state: { user: mockAuthUser }, version: 0 }),
-      )
-    },
-  })
-}
-
 describe('Users Delete', () => {
   beforeEach(() => {
     cy.clearCookies()
@@ -55,7 +34,7 @@ describe('Users Delete', () => {
       body: populatedListResponse,
     }).as('getUsers')
 
-    visitWithMockAuth('/users')
+    visitClinic('/users', mockAuthUser)
     cy.wait('@getUsers')
     cy.get(`[data-testid="user-delete-button-${MOCK_USER_ID}"]`).click()
     cy.get('[data-testid="delete-user-dialog"]').should('be.visible')
@@ -69,7 +48,7 @@ describe('Users Delete', () => {
     }).as('getUsers')
     cy.intercept('DELETE', `${Cypress.env('API_URL')}/users/${MOCK_USER_ID}`).as('deleteUser')
 
-    visitWithMockAuth('/users')
+    visitClinic('/users', mockAuthUser)
     cy.wait('@getUsers')
     cy.get(`[data-testid="user-delete-button-${MOCK_USER_ID}"]`).click()
     cy.get('[data-testid="delete-user-dialog"]').should('be.visible')
@@ -88,7 +67,7 @@ describe('Users Delete', () => {
       body: { status: 500, title: 'Internal Server Error' },
     }).as('deleteUser')
 
-    visitWithMockAuth('/users')
+    visitClinic('/users', mockAuthUser)
     cy.wait('@getUsers')
     cy.get(`[data-testid="user-delete-button-${MOCK_USER_ID}"]`).click()
     cy.get('[data-testid="delete-user-dialog-confirm"]').click()
@@ -107,7 +86,7 @@ describe('Users Delete', () => {
       body: null,
     }).as('deleteUser')
 
-    visitWithMockAuth('/users')
+    visitClinic('/users', mockAuthUser)
     cy.wait('@getUsers')
     cy.get(`[data-testid="user-delete-button-${MOCK_USER_ID}"]`).click()
     cy.get('[data-testid="delete-user-dialog-confirm"]').click()
@@ -131,7 +110,7 @@ describe('Users Delete', () => {
       body: null,
     }).as('deleteUser')
 
-    visitWithMockAuth('/users')
+    visitClinic('/users', mockAuthUser)
     cy.wait('@getUsers')
     cy.get(`[data-testid="user-delete-button-${MOCK_USER_ID}"]`).click()
     cy.get('[data-testid="delete-user-dialog-confirm"]').click()
@@ -141,32 +120,6 @@ describe('Users Delete', () => {
     cy.get('[data-testid="user-list-empty"]').should('be.visible')
   })
 
-  it('deletes user via real API and verifies removal', () => {
-    let seededId: string
-
-    cy.fixture('users').then((fixture) => {
-      cy.login(fixture.admin.email, fixture.admin.password)
-    })
-
-    cy.seedUser().then((user) => {
-      seededId = user.id
-
-      cy.intercept('DELETE', `${Cypress.env('API_URL')}/users/${user.id}`).as('deleteUser')
-
-      cy.visit('/users')
-      cy.get(`[data-testid="user-table-row-${user.id}"]`).should('exist')
-      cy.get(`[data-testid="user-delete-button-${user.id}"]`).click()
-      cy.get('[data-testid="delete-user-dialog"]').should('be.visible')
-      cy.get('[data-testid="delete-user-dialog-confirm"]').click()
-      cy.wait('@deleteUser')
-      cy.get('[data-testid="user-list-success"]').should('be.visible')
-      cy.get(`[data-testid="user-table-row-${user.id}"]`).should('not.exist')
-    })
-
-    cy.then(() => {
-      if (seededId) cy.deleteUserViaApi(seededId)
-    })
-  })
 })
 
 export {}

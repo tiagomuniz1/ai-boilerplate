@@ -176,6 +176,7 @@ __metadata:
     react: "npm:^18.3.1"
     react-dom: "npm:^18.3.1"
     react-hook-form: "npm:^7.52.2"
+    reflect-metadata: "npm:^0.2.2"
     tailwind-merge: "npm:^3.5.0"
     tailwindcss: "npm:^3.4.9"
     ts-jest: "npm:^29.2.3"
@@ -192,6 +193,7 @@ __metadata:
   dependencies:
     class-transformer: "npm:^0.5.1"
     class-validator: "npm:^0.14.1"
+    reflect-metadata: "npm:^0.2.2"
     typescript: "npm:^5.4.5"
   languageName: unknown
   linkType: soft

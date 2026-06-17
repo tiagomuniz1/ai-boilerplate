@@ -27,6 +27,7 @@ export interface IClinicModel {
   isActive: boolean
   themeId: string | null
   logoUrl: string | null
+  logoDarkUrl: string | null
   faviconUrl: string | null
   address: IAddressModel | null
   createdAt: Date

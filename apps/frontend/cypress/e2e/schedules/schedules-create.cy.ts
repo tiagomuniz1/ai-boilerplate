@@ -1,4 +1,5 @@
-const MOCK_TOKEN = 'mock-access-token'
+import { visitClinic, expectClinicPath, CLINIC_SLUG, CLINIC_ID } from '../../support/clinic'
+
 
 const SPEC_ID_1 = '00000000-0000-4000-a000-000000000001'
 const DOC_UUID = '00000000-0000-4000-b000-000000000001'
@@ -48,26 +49,6 @@ const mockDoctorsList = {
   limit: 100,
 }
 
-function visitAsDoctor(url: string) {
-  cy.intercept('GET', `${Cypress.env('API_URL')}/auth/me`, { statusCode: 200, body: mockDoctorUser })
-  cy.setCookie('access_token', MOCK_TOKEN, { httpOnly: true, secure: false, sameSite: 'strict', path: '/', domain: 'localhost' })
-  cy.visit(url, {
-    onBeforeLoad(win) {
-      win.localStorage.setItem('auth-user', JSON.stringify({ state: { user: mockDoctorUser }, version: 0 }))
-    },
-  })
-}
-
-function visitAsAdmin(url: string) {
-  cy.intercept('GET', `${Cypress.env('API_URL')}/auth/me`, { statusCode: 200, body: mockAdminUser })
-  cy.setCookie('access_token', MOCK_TOKEN, { httpOnly: true, secure: false, sameSite: 'strict', path: '/', domain: 'localhost' })
-  cy.visit(url, {
-    onBeforeLoad(win) {
-      win.localStorage.setItem('auth-user', JSON.stringify({ state: { user: mockAdminUser }, version: 0 }))
-    },
-  })
-}
-
 describe('Schedules Create', () => {
   beforeEach(() => {
     cy.clearCookies()
@@ -77,27 +58,27 @@ describe('Schedules Create', () => {
   })
 
   it('DOCTOR: does not show doctor select field', () => {
-    visitAsDoctor('/schedules/new')
+    visitClinic('/schedules/new', mockDoctorUser)
     cy.get('[data-testid="schedule-form"]').should('be.visible')
     cy.get('[data-testid="schedule-form-doctor"]').should('not.exist')
   })
 
   it('ADMIN: shows doctor select field populated with doctors', () => {
-    visitAsAdmin('/schedules/new')
+    visitClinic('/schedules/new', mockAdminUser)
     cy.get('[data-testid="schedule-form-doctor"]').should('be.visible')
     cy.get('[data-testid="schedule-form-doctor"] option').should('have.length.gt', 1)
     cy.contains('Dr. João Silva').should('exist')
   })
 
   it('shows validation errors when submitting empty form as DOCTOR', () => {
-    visitAsDoctor('/schedules/new')
+    visitClinic('/schedules/new', mockDoctorUser)
     cy.get('[data-testid="schedule-form-submit"]').click()
     cy.get('[data-testid="schedule-form-day"]').should('have.attr', 'aria-invalid', 'true')
     cy.get('[data-testid="schedule-form-start-time"]').should('have.attr', 'aria-invalid', 'true')
   })
 
   it('shows validation error when endTime is before startTime', () => {
-    visitAsDoctor('/schedules/new')
+    visitClinic('/schedules/new', mockDoctorUser)
     cy.get('[data-testid="schedule-form-day"]').select('TUESDAY')
     cy.get('[data-testid="schedule-form-start-time"]').clear().type('13:00')
     cy.get('[data-testid="schedule-form-end-time"]').clear().type('09:00')
@@ -106,7 +87,7 @@ describe('Schedules Create', () => {
   })
 
   it('shows validation error when interval is not divisible by slot duration', () => {
-    visitAsDoctor('/schedules/new')
+    visitClinic('/schedules/new', mockDoctorUser)
     cy.get('[data-testid="schedule-form-day"]').select('TUESDAY')
     cy.get('[data-testid="schedule-form-start-time"]').clear().type('08:00')
     cy.get('[data-testid="schedule-form-end-time"]').clear().type('09:00')
@@ -116,7 +97,7 @@ describe('Schedules Create', () => {
   })
 
   it('applies time mask — typing digits only auto-inserts colon', () => {
-    visitAsDoctor('/schedules/new')
+    visitClinic('/schedules/new', mockDoctorUser)
     cy.get('[data-testid="schedule-form-start-time"]').clear().type('0900')
     cy.get('[data-testid="schedule-form-start-time"]').should('have.value', '09:00')
   })
@@ -124,7 +105,7 @@ describe('Schedules Create', () => {
   it('DOCTOR: creates schedule and redirects to /schedules', () => {
     cy.intercept('POST', `${Cypress.env('API_URL')}/schedules`, { statusCode: 201, body: mockCreatedSchedule }).as('createSchedule')
 
-    visitAsDoctor('/schedules/new')
+    visitClinic('/schedules/new', mockDoctorUser)
     cy.get('[data-testid="schedule-form-day"]').select('TUESDAY')
     cy.get('[data-testid="schedule-form-start-time"]').clear().type('09:00')
     cy.get('[data-testid="schedule-form-end-time"]').clear().type('13:00')
@@ -132,13 +113,13 @@ describe('Schedules Create', () => {
     cy.get('[data-testid="schedule-form-submit"]').click()
 
     cy.wait('@createSchedule')
-    cy.url().should('match', /\/schedules$/)
+    expectClinicPath('/schedules')
   })
 
   it('ADMIN: selects doctor and creates schedule', () => {
     cy.intercept('POST', `${Cypress.env('API_URL')}/schedules`, { statusCode: 201, body: mockCreatedSchedule }).as('createSchedule')
 
-    visitAsAdmin('/schedules/new')
+    visitClinic('/schedules/new', mockAdminUser)
     cy.get('[data-testid="schedule-form-doctor"]').select(DOC_UUID)
     cy.get('[data-testid="schedule-form-day"]').select('TUESDAY')
     cy.get('[data-testid="schedule-form-start-time"]').clear().type('09:00')
@@ -147,7 +128,7 @@ describe('Schedules Create', () => {
     cy.get('[data-testid="schedule-form-submit"]').click()
 
     cy.wait('@createSchedule').its('request.body').should('have.property', 'doctorId', DOC_UUID)
-    cy.url().should('match', /\/schedules$/)
+    expectClinicPath('/schedules')
   })
 
   it('shows conflict error on 409 response', () => {
@@ -156,7 +137,7 @@ describe('Schedules Create', () => {
       body: { status: 409, title: 'Conflict', detail: 'Schedule overlaps' },
     }).as('createSchedule')
 
-    visitAsDoctor('/schedules/new')
+    visitClinic('/schedules/new', mockDoctorUser)
     cy.get('[data-testid="schedule-form-day"]').select('TUESDAY')
     cy.get('[data-testid="schedule-form-start-time"]').clear().type('09:00')
     cy.get('[data-testid="schedule-form-end-time"]').clear().type('13:00')
@@ -165,7 +146,7 @@ describe('Schedules Create', () => {
 
     cy.wait('@createSchedule')
     cy.get('[data-testid="schedule-form-error"]').should('be.visible').and('contain', 'conflita')
-    cy.url().should('include', '/schedules/new')
+    expectClinicPath('/schedules/new')
   })
 
   it('shows doctor not found error on 404 response', () => {
@@ -174,7 +155,7 @@ describe('Schedules Create', () => {
       body: { status: 404, title: 'Not Found', detail: 'Doctor not found' },
     }).as('createSchedule')
 
-    visitAsDoctor('/schedules/new')
+    visitClinic('/schedules/new', mockDoctorUser)
     cy.get('[data-testid="schedule-form-day"]').select('TUESDAY')
     cy.get('[data-testid="schedule-form-start-time"]').clear().type('09:00')
     cy.get('[data-testid="schedule-form-end-time"]').clear().type('13:00')
@@ -190,7 +171,7 @@ describe('Schedules Create', () => {
       req.reply({ delay: 2000, statusCode: 201, body: mockCreatedSchedule })
     }).as('createSchedule')
 
-    visitAsDoctor('/schedules/new')
+    visitClinic('/schedules/new', mockDoctorUser)
     cy.get('[data-testid="schedule-form-day"]').select('TUESDAY')
     cy.get('[data-testid="schedule-form-start-time"]').clear().type('09:00')
     cy.get('[data-testid="schedule-form-end-time"]').clear().type('13:00')
@@ -202,9 +183,9 @@ describe('Schedules Create', () => {
   })
 
   it('back button returns to /schedules without creating', () => {
-    visitAsDoctor('/schedules/new')
+    visitClinic('/schedules/new', mockDoctorUser)
     cy.get('[data-testid="new-schedule-back-button"]').click()
-    cy.url().should('match', /\/schedules$/)
+    expectClinicPath('/schedules')
   })
 })
 

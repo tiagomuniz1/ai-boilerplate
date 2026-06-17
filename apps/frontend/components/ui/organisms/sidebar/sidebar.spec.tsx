@@ -65,9 +65,9 @@ describe('Sidebar', () => {
     expect(screen.getByTestId('sidebar-logo')).toBeInTheDocument()
   })
 
-  it('shows "Umi" as fallback name when no clinic is loaded', () => {
+  it('shows generic fallback name when no clinic is loaded', () => {
     render(<Sidebar />)
-    expect(screen.getByTestId('sidebar-clinic-name')).toHaveTextContent('Umi')
+    expect(screen.getByTestId('sidebar-clinic-name')).toHaveTextContent('Clínica')
   })
 
   it('shows clinic name when clinic data is available', () => {
@@ -82,9 +82,9 @@ describe('Sidebar', () => {
     expect(screen.getByTestId('sidebar-logo')).toHaveTextContent('C')
   })
 
-  it('shows "U" in logo icon when no clinic is loaded', () => {
+  it('shows "C" in logo icon when no clinic is loaded', () => {
     render(<Sidebar />)
-    expect(screen.getByTestId('sidebar-logo')).toHaveTextContent('U')
+    expect(screen.getByTestId('sidebar-logo')).toHaveTextContent('C')
   })
 
   it('shows "Backoffice" when on a /backoffice path', () => {
@@ -129,7 +129,7 @@ describe('Sidebar', () => {
     mockUseCurrentClinic.mockReturnValue({ data: undefined } as any)
     render(<Sidebar />)
     expect(screen.queryByRole('img')).not.toBeInTheDocument()
-    expect(screen.getByTestId('sidebar-logo')).toHaveTextContent('U')
+    expect(screen.getByTestId('sidebar-logo')).toHaveTextContent('C')
   })
 
   it('renders a nav element', () => {

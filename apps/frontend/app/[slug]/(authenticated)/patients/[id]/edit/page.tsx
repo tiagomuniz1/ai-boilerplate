@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { useParams } from 'next/navigation'
 import Link from 'next/link'
+import { useSlug } from '@/lib/slug-context'
 import { Skeleton } from '@/components/ui/atoms/skeleton/skeleton'
 import { Alert } from '@/components/ui/molecules/alert/alert'
 import { Button } from '@/components/ui/atoms/button/button'
@@ -15,6 +16,7 @@ import type { IApiError } from '@/types/api.types'
 
 export default function EditPatientPage() {
   const { id } = useParams<{ id: string }>()
+  const slug = useSlug()
   const { data: patient, isPending: isLoadingPatient, isError: isLoadError } = usePatient(id)
   const { mutate: updatePatient, isPending: isUpdating } = useUpdatePatient()
   const [globalError, setGlobalError] = useState<string | null>(null)
@@ -47,7 +49,7 @@ export default function EditPatientPage() {
   return (
     <main className="p-6 max-w-lg" data-testid="edit-patient-page">
       <div className="flex items-center gap-4 mb-6">
-        <Link href={id ? `/patients/${id}` : '/patients'}>
+        <Link href={id ? `/${slug}/patients/${id}` : `/${slug}/patients`}>
           <Button variant="ghost" size="sm" data-testid="edit-patient-back-button">
             ← Voltar
           </Button>

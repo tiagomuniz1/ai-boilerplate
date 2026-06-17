@@ -14,6 +14,7 @@ const mockClinicsRepository: jest.Mocked<IClinicsRepository> = {
   create: jest.fn(),
   update: jest.fn(),
   updateLogo: jest.fn(),
+  updateLogoDark: jest.fn(),
   updateFavicon: jest.fn(),
 }
 
@@ -34,6 +35,7 @@ function makeClinic(overrides: Partial<Clinic> = {}): Clinic {
     isActive: true,
     themeId: null,
     logoUrl: null,
+    logoDarkUrl: null,
     faviconUrl: null,
     addressStreet: null,
     addressNumber: null,

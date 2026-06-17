@@ -12,7 +12,7 @@ import { cn } from '@/lib/cn'
 import { UserRole } from '@app/shared'
 import { useAuthStore } from '@/stores/auth.store'
 import { userService } from '@/components/features/users/services/users.service'
-import { specialtiesService } from '@/components/features/specialties/services/specialties.service'
+import { clinicSpecialtiesService } from '@/components/features/clinic-specialties/services/clinic-specialties.service'
 import type { ICreateDoctorInput, IUpdateDoctorInput } from '../types/doctor-input.types'
 import type { IDoctorModel } from '../types/doctor-model.types'
 
@@ -95,6 +95,9 @@ export function DoctorForm(props: DoctorFormProps) {
 }
 
 function DoctorFormCreate({ isPending, globalError, onSubmit }: DoctorFormCreateProps) {
+  const authUser = useAuthStore((state) => state.user)
+  const clinicId = authUser?.clinicId ?? ''
+
   const {
     register,
     handleSubmit,
@@ -112,12 +115,16 @@ function DoctorFormCreate({ isPending, globalError, onSubmit }: DoctorFormCreate
 
   const userMode = watch('userMode')
 
-  const { data: specialtiesResponse, isPending: isLoadingSpecialties } = useQuery({
-    queryKey: ['specialties-for-select'],
-    queryFn: () => specialtiesService.getAll({ limit: 100 }),
+  const { data: clinicSpecialtiesResponse, isPending: isLoadingSpecialties } = useQuery({
+    queryKey: ['clinic-specialties-for-select', clinicId],
+    queryFn: () => clinicSpecialtiesService.getAll(clinicId, { limit: 100 }),
+    enabled: !!clinicId,
   })
 
-  const specialties = specialtiesResponse?.data ?? []
+  const specialties = (clinicSpecialtiesResponse?.data ?? []).map((s) => ({
+    id: s.specialtyId,
+    name: s.name,
+  }))
 
   function handleFormSubmit(data: CreateFormValues) {
     const input: ICreateDoctorInput =
@@ -236,6 +243,7 @@ function DoctorFormCreate({ isPending, globalError, onSubmit }: DoctorFormCreate
 function DoctorFormEdit({ defaultValues, isPending, globalError, onSubmit }: DoctorFormEditProps) {
   const authUser = useAuthStore((state) => state.user)
   const isAdmin = authUser?.role === UserRole.ADMIN
+  const clinicId = authUser?.clinicId ?? ''
 
   const {
     register,
@@ -254,12 +262,16 @@ function DoctorFormEdit({ defaultValues, isPending, globalError, onSubmit }: Doc
 
   const { field: specialtyField } = useController({ name: 'specialtyIds', control })
 
-  const { data: specialtiesResponse, isPending: isLoadingSpecialties } = useQuery({
-    queryKey: ['specialties-for-select'],
-    queryFn: () => specialtiesService.getAll({ limit: 100 }),
+  const { data: clinicSpecialtiesResponse, isPending: isLoadingSpecialties } = useQuery({
+    queryKey: ['clinic-specialties-for-select', clinicId],
+    queryFn: () => clinicSpecialtiesService.getAll(clinicId, { limit: 100 }),
+    enabled: !!clinicId,
   })
 
-  const specialties = specialtiesResponse?.data ?? []
+  const specialties = (clinicSpecialtiesResponse?.data ?? []).map((s) => ({
+    id: s.specialtyId,
+    name: s.name,
+  }))
 
   useEffect(() => {
     reset({

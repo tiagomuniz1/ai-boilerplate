@@ -75,14 +75,38 @@ const SEED_THEMES = [
     bgDarkColor: '#191410',
   },
   {
-    name: 'AtlasOS',
-    slug: 'atlas-os',
-    accentColor: '#1A6B38',
-    accentSoftColor: '#B8E8CF',
+    name: 'Pulso',
+    slug: 'pulso',
+    accentColor: '#5B1027',
+    accentSoftColor: '#F5D8DF',
+    isDefault: false,
+    borderRadius: ThemeBorderRadius.ROUND,
+    bgColor: '#FAF7F4',
+    bgDarkColor: '#0B1120',
+  },
+  {
+    name: 'Azul Clínico',
+    slug: 'azul-clinico',
+    accentColor: '#2563EB',
+    accentSoftColor: '#DBEAFE',
     isDefault: false,
     borderRadius: ThemeBorderRadius.DEFAULT,
-    bgColor: '#C5E8D5',
-    bgDarkColor: '#071410',
+  },
+  {
+    name: 'Roxo Bem-Estar',
+    slug: 'roxo-bem-estar',
+    accentColor: '#7C3AED',
+    accentSoftColor: '#EDE9FE',
+    isDefault: false,
+    borderRadius: ThemeBorderRadius.DEFAULT,
+  },
+  {
+    name: 'Verde Saúde',
+    slug: 'verde-saude',
+    accentColor: '#16A34A',
+    accentSoftColor: '#DCFCE7',
+    isDefault: false,
+    borderRadius: ThemeBorderRadius.DEFAULT,
   },
 ]
 
@@ -119,26 +143,31 @@ async function seedClinic(dataSource: DataSource, defaultThemeId: string): Promi
       .into(Clinic)
       .values({
         id: SEED_CLINIC_ID,
-        name: 'Clínica Demo',
-        slug: 'clinica-demo',
+        name: 'Pulso',
+        slug: 'pulso',
         isActive: true,
         themeId: defaultThemeId,
       })
       .execute()
-    console.log('Dev seed: demo clinic created.')
+    console.log('Dev seed: Pulso clinic created.')
     return
   }
 
-  if (!existing.themeId) {
-    await repository.update(SEED_CLINIC_ID, { themeId: defaultThemeId })
-    console.log('Dev seed: demo clinic theme assigned.')
+  const needsUpdate: Record<string, unknown> = {}
+  if (!existing.themeId) needsUpdate.themeId = defaultThemeId
+  if (existing.name !== 'Pulso') needsUpdate.name = 'Pulso'
+  if (existing.slug !== 'pulso') needsUpdate.slug = 'pulso'
+
+  if (Object.keys(needsUpdate).length > 0) {
+    await repository.update(SEED_CLINIC_ID, needsUpdate)
+    console.log('Dev seed: Pulso clinic updated.')
   } else {
-    console.log('Dev seed: demo clinic already exists, skipping.')
+    console.log('Dev seed: Pulso clinic already exists, skipping.')
   }
 }
 
 async function seedPlatformAdmin(repository: ReturnType<DataSource['getRepository']>): Promise<void> {
-  const existing = await repository.findOneBy({ email: 'tiagomuniz2@gmail.com' })
+  const existing = await repository.findOneBy({ email: 'platform@pulso.center' })
   if (existing) {
     if (existing.role !== UserRole.PLATFORM_ADMIN) {
       await repository.update(existing.id, { role: UserRole.PLATFORM_ADMIN, clinicId: null })
@@ -153,7 +182,7 @@ async function seedPlatformAdmin(repository: ReturnType<DataSource['getRepositor
   await repository.save(
     repository.create({
       fullName: 'Platform Admin',
-      email: 'tiagomuniz2@gmail.com',
+      email: 'platform@pulso.center',
       password,
       role: UserRole.PLATFORM_ADMIN,
       clinicId: null,
@@ -164,7 +193,7 @@ async function seedPlatformAdmin(repository: ReturnType<DataSource['getRepositor
 }
 
 async function seedClinicAdmin(repository: ReturnType<DataSource['getRepository']>): Promise<void> {
-  const existing = await repository.findOneBy({ email: 'tiagomuniz1@gmail.com' })
+  const existing = await repository.findOneBy({ email: 'admin@pulso.center' })
   if (existing) {
     const updates: Record<string, unknown> = {}
     if (existing.role !== UserRole.ADMIN) updates.role = UserRole.ADMIN
@@ -182,8 +211,8 @@ async function seedClinicAdmin(repository: ReturnType<DataSource['getRepository'
   const password = await bcrypt.hash('123123123', 10)
   await repository.save(
     repository.create({
-      fullName: 'Tiago Muniz',
-      email: 'tiagomuniz1@gmail.com',
+      fullName: 'Administrator',
+      email: 'admin@pulso.center',
       password,
       role: UserRole.ADMIN,
       clinicId: SEED_CLINIC_ID,

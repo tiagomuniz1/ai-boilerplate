@@ -44,8 +44,8 @@ describe('SpecialtyList (integration)', () => {
     ;(useRouter as jest.Mock).mockReturnValue({ push: mockPush })
   })
 
-  describe('as ADMIN', () => {
-    beforeEach(() => mockAuthStoreAs(UserRole.ADMIN))
+  describe('as PLATFORM_ADMIN', () => {
+    beforeEach(() => mockAuthStoreAs(UserRole.PLATFORM_ADMIN))
 
     it('renders skeleton while loading', () => {
       ;(specialtiesService.getAll as jest.Mock).mockReturnValue(new Promise(() => {}))
@@ -105,7 +105,7 @@ describe('SpecialtyList (integration)', () => {
       })
     })
 
-    it('renders "Nova especialidade" button for ADMIN', async () => {
+    it('renders "Nova especialidade" button for PLATFORM_ADMIN', async () => {
       ;(specialtiesService.getAll as jest.Mock).mockResolvedValue(makePaginatedResponse([]))
 
       renderWithProviders(<SpecialtyList />)
@@ -113,7 +113,7 @@ describe('SpecialtyList (integration)', () => {
       expect(screen.getByTestId('specialty-list-new-button')).toBeInTheDocument()
     })
 
-    it('renders edit and delete actions for ADMIN', async () => {
+    it('renders edit and delete actions for PLATFORM_ADMIN', async () => {
       ;(specialtiesService.getAll as jest.Mock).mockResolvedValue(makePaginatedResponse())
 
       renderWithProviders(<SpecialtyList />)

@@ -15,7 +15,15 @@ import { Specialty } from '../../specialties/entities/specialty.entity'
 const SEED_CLINIC_ID = '10000000-0000-4000-8000-000000000000'
 
 process.env.NODE_ENV = 'test'
+process.env.DB_HOST = process.env.DB_HOST ?? 'localhost'
+process.env.DB_PORT = process.env.DB_PORT ?? '5499'
+process.env.DB_USER = process.env.DB_USER ?? 'postgres'
+process.env.DB_PASS = process.env.DB_PASS ?? 'postgres'
+process.env.DB_NAME = process.env.DB_NAME ?? 'app'
 process.env.DB_SCHEMA = 'test'
+process.env.REDIS_HOST = process.env.REDIS_HOST ?? 'localhost'
+process.env.REDIS_PORT = process.env.REDIS_PORT ?? '6399'
+process.env.FRONTEND_URL = process.env.FRONTEND_URL ?? 'http://localhost:3000'
 process.env.JWT_SECRET = process.env.JWT_SECRET ?? 'test-jwt-secret-key'
 process.env.JWT_EXPIRATION = '900s'
 process.env.JWT_REFRESH_EXPIRATION = '7d'
@@ -41,8 +49,8 @@ describe('DoctorsController (integration)', () => {
     const setCookieHeader = response.headers['set-cookie'] as unknown as string[] | string | undefined
     if (!setCookieHeader) return ''
     const cookies = Array.isArray(setCookieHeader) ? setCookieHeader : [setCookieHeader]
-    const match = cookies.find((c: string) => c?.startsWith('access_token='))
-    return match ? match.slice('access_token='.length).split(';')[0] : ''
+    const match = cookies.find((c: string) => c?.startsWith('access_token_seed-clinic='))
+    return match ? match.slice('access_token_seed-clinic='.length).split(';')[0] : ''
   }
 
   beforeAll(async () => {

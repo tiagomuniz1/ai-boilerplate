@@ -16,6 +16,7 @@ export class ClinicResponseDto {
   isActive!: boolean
   themeId!: string | null
   logoUrl!: string | null
+  logoDarkUrl!: string | null
   faviconUrl!: string | null
   address!: AddressResponseDto | null
   createdAt!: Date
