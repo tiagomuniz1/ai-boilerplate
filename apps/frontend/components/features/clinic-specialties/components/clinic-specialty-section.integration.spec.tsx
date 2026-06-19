@@ -290,6 +290,60 @@ describe('ClinicSpecialtySection (integration)', () => {
     })
   })
 
+  it('shows "Todas as especialidades já estão vinculadas." when modal opens with no available specialties and no search', async () => {
+    const linkedDto = makeLinkedDto({ specialtyId: 'specialty-uuid-2', name: 'Neurologia' })
+    ;(clinicSpecialtiesService.getAll as jest.Mock).mockResolvedValue(makeLinkedPaginated([linkedDto]))
+    ;(specialtiesService.getAll as jest.Mock).mockResolvedValue(
+      makeGlobalPaginated([makeGlobalDto({ id: 'specialty-uuid-2' })]),
+    )
+
+    renderWithProviders(<ClinicSpecialtySection clinicId={CLINIC_ID} />)
+
+    await waitFor(() => {
+      expect(screen.getByTestId('clinic-specialty-table')).toBeInTheDocument()
+    })
+
+    await userEvent.click(screen.getByTestId('clinic-specialty-link-button'))
+
+    await waitFor(() => {
+      expect(screen.getByTestId('clinic-specialty-modal-empty')).toBeInTheDocument()
+    })
+
+    expect(screen.getByTestId('clinic-specialty-modal-empty')).toHaveTextContent(
+      'Todas as especialidades já estão vinculadas.',
+    )
+  })
+
+  it('shows "Nenhuma especialidade encontrada." when search term yields no matches', async () => {
+    ;(clinicSpecialtiesService.getAll as jest.Mock).mockResolvedValue(makeLinkedPaginated([]))
+    ;(specialtiesService.getAll as jest.Mock).mockResolvedValue(
+      makeGlobalPaginated([makeGlobalDto()]),
+    )
+
+    renderWithProviders(<ClinicSpecialtySection clinicId={CLINIC_ID} />)
+
+    await waitFor(() => {
+      expect(screen.getByTestId('clinic-specialty-empty')).toBeInTheDocument()
+    })
+
+    await userEvent.click(screen.getByTestId('clinic-specialty-link-button'))
+
+    await waitFor(() => {
+      expect(screen.getByTestId('clinic-specialty-modal-search')).toBeInTheDocument()
+    })
+
+    await userEvent.type(screen.getByTestId('clinic-specialty-modal-search'), 'xyzzy')
+
+    await waitFor(
+      () => {
+        expect(screen.getByTestId('clinic-specialty-modal-empty')).toHaveTextContent(
+          'Nenhuma especialidade encontrada.',
+        )
+      },
+      { timeout: 2000 },
+    )
+  })
+
   it('shows error message when unlink fails', async () => {
     ;(clinicSpecialtiesService.getAll as jest.Mock).mockResolvedValue(makeLinkedPaginated())
     ;(specialtiesService.getAll as jest.Mock).mockResolvedValue(makeGlobalPaginated([]))

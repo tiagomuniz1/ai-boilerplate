@@ -359,6 +359,26 @@ describe('ClinicsRepository', () => {
     })
   })
 
+  describe('updateLogoDark', () => {
+    it('calls repo.update with logoDarkUrl when no queryRunner', async () => {
+      repo.update.mockResolvedValue(undefined as any)
+
+      await repository.updateLogoDark('clinic-uuid-1', 'https://example.com/logo-dark.jpg')
+
+      expect(repo.update).toHaveBeenCalledWith('clinic-uuid-1', { logoDarkUrl: 'https://example.com/logo-dark.jpg' })
+    })
+
+    it('calls queryRunner manager repo.update when queryRunner is provided', async () => {
+      const qrRepo = { update: jest.fn().mockResolvedValue(undefined) }
+      const queryRunner = { manager: { getRepository: jest.fn().mockReturnValue(qrRepo) } } as any
+
+      await repository.updateLogoDark('clinic-uuid-1', 'https://example.com/logo-dark.jpg', queryRunner)
+
+      expect(qrRepo.update).toHaveBeenCalledWith('clinic-uuid-1', { logoDarkUrl: 'https://example.com/logo-dark.jpg' })
+      expect(repo.update).not.toHaveBeenCalled()
+    })
+  })
+
   describe('updateFavicon', () => {
     it('calls repo.update with faviconUrl when no queryRunner', async () => {
       repo.update.mockResolvedValue(undefined as any)

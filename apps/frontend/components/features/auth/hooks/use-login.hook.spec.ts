@@ -7,6 +7,7 @@ import React from 'react'
 import { renderHook, act, waitFor } from '@testing-library/react'
 import { QueryClientProvider } from '@tanstack/react-query'
 import { useRouter } from 'next/navigation'
+import { UserRole } from '@app/shared'
 import { useAuthStore } from '@/stores/auth.store'
 import { loginUseCase } from '../use-cases/login.use-case'
 import { useLogin } from './use-login.hook'
@@ -57,6 +58,21 @@ describe('useLogin', () => {
     await waitFor(() => {
       expect(mockSetUser).toHaveBeenCalledWith(user)
       expect(mockPush).toHaveBeenCalledWith('/test-clinic/dashboard')
+    })
+  })
+
+  it('redirects to /clinics for PLATFORM_ADMIN role', async () => {
+    const user = { id: 'uuid-1', fullName: 'Platform Admin', email: 'admin@example.com', role: UserRole.PLATFORM_ADMIN }
+    ;(loginUseCase as jest.Mock).mockResolvedValue(user)
+
+    const { result } = renderHook(() => useLogin(), { wrapper })
+
+    act(() => {
+      result.current.mutate({ email: 'admin@example.com', password: 'password123' })
+    })
+
+    await waitFor(() => {
+      expect(mockPush).toHaveBeenCalledWith('/test-clinic/clinics')
     })
   })
 

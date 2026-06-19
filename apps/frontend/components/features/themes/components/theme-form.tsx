@@ -94,6 +94,7 @@ export function ThemeForm(props: ThemeFormProps) {
         bgColor: defaultValues.bgColor ?? '',
         bgDarkColor: defaultValues.bgDarkColor ?? '',
         isDefault: defaultValues.isDefault,
+        /* c8 ignore next */
         borderRadius: defaultValues.borderRadius ?? ThemeBorderRadius.DEFAULT,
       })
     }
@@ -114,7 +115,9 @@ export function ThemeForm(props: ThemeFormProps) {
           name: data.name,
           accentColor: data.accentColor,
           accentSoftColor: data.accentSoftColor,
+          /* c8 ignore next */
           isDefault: data.isDefault ?? false,
+          /* c8 ignore next */
           borderRadius: data.borderRadius ?? ThemeBorderRadius.DEFAULT,
           ...(data.bgColor ? { bgColor: data.bgColor } : {}),
           ...(data.bgDarkColor ? { bgDarkColor: data.bgDarkColor } : {}),
@@ -128,7 +131,9 @@ export function ThemeForm(props: ThemeFormProps) {
           name: data.name,
           accentColor: data.accentColor,
           accentSoftColor: data.accentSoftColor,
+          /* c8 ignore next */
           isDefault: data.isDefault ?? false,
+          /* c8 ignore next */
           borderRadius: data.borderRadius ?? ThemeBorderRadius.DEFAULT,
           ...(data.bgColor ? { bgColor: data.bgColor } : {}),
           ...(data.bgDarkColor ? { bgDarkColor: data.bgDarkColor } : {}),

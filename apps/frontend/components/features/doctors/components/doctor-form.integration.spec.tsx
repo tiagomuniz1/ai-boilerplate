@@ -4,7 +4,7 @@ jest.mock('@/components/features/users/services/users.service')
 jest.mock('@/components/features/clinic-specialties/services/clinic-specialties.service')
 jest.mock('@/stores/auth.store')
 
-import { screen, waitFor } from '@testing-library/react'
+import { screen, waitFor, act, fireEvent } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { useRouter } from 'next/navigation'
 import { userService } from '@/components/features/users/services/users.service'
@@ -291,6 +291,38 @@ describe('DoctorForm (integration) — create mode', () => {
     renderWithProviders(<DoctorForm mode="create" isPending={true} onSubmit={jest.fn()} />)
 
     expect(screen.getByTestId('doctor-form-submit')).toBeDisabled()
+  })
+
+  it('shows "Nenhum usuário encontrado" when user search returns no results', async () => {
+    ;(userService.getAll as jest.Mock).mockResolvedValue({ data: [], total: 0, page: 1, limit: 100 })
+
+    renderWithProviders(<DoctorForm mode="create" isPending={false} onSubmit={jest.fn()} />)
+
+    fireEvent.change(screen.getByTestId('doctor-form-user-search'), { target: { value: 'xz' } })
+
+    await waitFor(
+      () => expect(screen.getByText('Nenhum usuário encontrado')).toBeInTheDocument(),
+      { timeout: 2000 },
+    )
+  })
+
+  it('shows "Buscando..." in dropdown while user search is fetching', async () => {
+    jest.useFakeTimers()
+    ;(userService.getAll as jest.Mock).mockReturnValue(new Promise(() => {}))
+
+    renderWithProviders(<DoctorForm mode="create" isPending={false} onSubmit={jest.fn()} />)
+
+    fireEvent.change(screen.getByTestId('doctor-form-user-search'), { target: { value: 'Jo' } })
+
+    act(() => { jest.advanceTimersByTime(300) })
+
+    await waitFor(() => {
+      expect(screen.getByTestId('doctor-form-user-search-results')).toBeInTheDocument()
+    })
+
+    expect(screen.getByText('Buscando...')).toBeInTheDocument()
+
+    jest.useRealTimers()
   })
 })
 

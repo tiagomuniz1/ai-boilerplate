@@ -1,0 +1,18 @@
+{
+  "doctorId": "00000000-0000-4000-b000-000000000001",
+  "date": "2025-07-04",
+  "slots": [
+    {
+      "startTime": "09:00",
+      "endTime": "09:30",
+      "scheduleId": "00000000-0000-4000-c000-000000000001",
+      "slotDurationInMinutes": 30
+    },
+    {
+      "startTime": "09:30",
+      "endTime": "10:00",
+      "scheduleId": "00000000-0000-4000-c000-000000000001",
+      "slotDurationInMinutes": 30
+    }
+  ]
+}

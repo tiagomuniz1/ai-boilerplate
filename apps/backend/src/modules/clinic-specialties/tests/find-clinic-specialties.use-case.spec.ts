@@ -161,4 +161,52 @@ describe('FindClinicSpecialtiesUseCase', () => {
       undefined,
     )
   })
+
+  it('continues when cache write fails', async () => {
+    const clinicId = faker.string.uuid()
+    const record = makeRecord(clinicId)
+
+    mockFindClinicByIdUseCase.execute.mockResolvedValue({} as any)
+    mockCacheService.get.mockResolvedValue(null)
+    mockClinicSpecialtiesRepository.findByClinicId.mockResolvedValue([[record] as any, 1])
+    mockCacheService.set.mockRejectedValue(new Error('Redis error'))
+
+    const result = await useCase.execute(clinicId, { page: 1, limit: 20 }, makePlatformAdmin())
+
+    expect(result.data).toHaveLength(1)
+  })
+
+  it('uses default page=1 and limit=20 when not provided in query', async () => {
+    const clinicId = faker.string.uuid()
+
+    mockFindClinicByIdUseCase.execute.mockResolvedValue({} as any)
+    mockCacheService.get.mockResolvedValue(null)
+    mockClinicSpecialtiesRepository.findByClinicId.mockResolvedValue([[], 0])
+    mockCacheService.set.mockResolvedValue(undefined)
+
+    const result = await useCase.execute(clinicId, {} as any, makePlatformAdmin())
+
+    expect(result.page).toBe(1)
+    expect(result.limit).toBe(20)
+    expect(mockClinicSpecialtiesRepository.findByClinicId).toHaveBeenCalledWith(clinicId, 1, 20, undefined)
+  })
+
+  it('includes search in cache key when search is provided', async () => {
+    const clinicId = faker.string.uuid()
+    const record = makeRecord(clinicId)
+
+    mockFindClinicByIdUseCase.execute.mockResolvedValue({} as any)
+    mockCacheService.get.mockResolvedValue(null)
+    mockClinicSpecialtiesRepository.findByClinicId.mockResolvedValue([[record] as any, 1])
+    mockCacheService.set.mockResolvedValue(undefined)
+
+    await useCase.execute(clinicId, { page: 1, limit: 20, search: 'Cardio' }, makePlatformAdmin())
+
+    expect(mockCacheService.set).toHaveBeenCalledWith(
+      expect.stringContaining('Cardio'),
+      expect.any(Object),
+      60,
+    )
+    expect(mockClinicSpecialtiesRepository.findByClinicId).toHaveBeenCalledWith(clinicId, 1, 20, 'Cardio')
+  })
 })

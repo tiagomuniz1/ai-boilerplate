@@ -275,6 +275,16 @@ describe('ScheduleList (integration)', () => {
       expect(screen.getByText('2 agendas encontradas')).toBeInTheDocument()
     })
 
+    it('shows singular count when exactly 1 schedule is found', async () => {
+      ;(schedulesService.getAll as jest.Mock).mockResolvedValue(makePaginatedResponse([makeScheduleDto()]))
+
+      renderWithProviders(<ScheduleList />)
+
+      await waitFor(() => expect(screen.getByTestId('schedule-list-table')).toBeInTheDocument())
+
+      expect(screen.getByText('1 agenda encontrada')).toBeInTheDocument()
+    })
+
     it('renders doctorName from the schedule DTO', async () => {
       ;(schedulesService.getAll as jest.Mock).mockResolvedValue(
         makePaginatedResponse([makeScheduleDto({ doctorName: 'Dr. Maria Santos' })]),

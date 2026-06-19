@@ -1,0 +1,588 @@
+import { INestApplication, ValidationPipe } from '@nestjs/common'
+import { Test } from '@nestjs/testing'
+import { getRepositoryToken } from '@nestjs/typeorm'
+import { faker } from '@faker-js/faker'
+import * as bcrypt from 'bcrypt'
+import * as cookieParser from 'cookie-parser'
+import * as request from 'supertest'
+import { Repository } from 'typeorm'
+import { AppointmentStatus, DayOfWeek, PatientGender, UserRole } from '@app/shared'
+import { AppModule } from '../../../app.module'
+import { Clinic } from '../../clinics/entities/clinic.entity'
+import { User } from '../../users/entities/user.entity'
+import { Doctor } from '../../doctors/entities/doctor.entity'
+import { Patient } from '../../patients/entities/patient.entity'
+import { Specialty } from '../../specialties/entities/specialty.entity'
+import { Schedule } from '../../schedules/entities/schedule.entity'
+import { Appointment } from '../entities/appointment.entity'
+
+const SEED_CLINIC_ID = '10000000-0000-4000-8000-000000000000'
+
+process.env.NODE_ENV = 'test'
+process.env.DB_HOST = process.env.DB_HOST ?? 'localhost'
+process.env.DB_PORT = process.env.DB_PORT ?? '5499'
+process.env.DB_USER = process.env.DB_USER ?? 'postgres'
+process.env.DB_PASS = process.env.DB_PASS ?? 'postgres'
+process.env.DB_NAME = process.env.DB_NAME ?? 'app'
+process.env.DB_SCHEMA = 'test'
+process.env.REDIS_HOST = process.env.REDIS_HOST ?? 'localhost'
+process.env.REDIS_PORT = process.env.REDIS_PORT ?? '6399'
+process.env.FRONTEND_URL = process.env.FRONTEND_URL ?? 'http://localhost:3000'
+process.env.JWT_SECRET = process.env.JWT_SECRET ?? 'test-jwt-secret-key'
+process.env.JWT_EXPIRATION = '900s'
+process.env.JWT_REFRESH_EXPIRATION = '7d'
+
+describe('AppointmentsController (integration)', () => {
+  let app: INestApplication
+  let userRepository: Repository<User>
+  let clinicRepository: Repository<Clinic>
+  let doctorRepository: Repository<Doctor>
+  let patientRepository: Repository<Patient>
+  let specialtyRepository: Repository<Specialty>
+  let scheduleRepository: Repository<Schedule>
+  let appointmentRepository: Repository<Appointment>
+
+  let adminToken: string
+  let doctorToken: string
+  let otherDoctorToken: string
+  let userToken: string
+  let doctorId: string
+  let otherDoctorId: string
+  let patientId: string
+  let scheduleId: string
+
+  // Friday 2 weeks from now, to ensure we always have a future FRIDAY available
+  const futureDate = (() => {
+    const d = new Date()
+    d.setUTCDate(d.getUTCDate() + ((5 - d.getUTCDay() + 7) % 7 || 7) + 7)
+    return d.toISOString().split('T')[0]
+  })()
+
+  beforeAll(async () => {
+    const module = await Test.createTestingModule({
+      imports: [AppModule],
+    }).compile()
+
+    app = module.createNestApplication()
+    app.use(cookieParser())
+    app.useGlobalPipes(
+      new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true, transform: true }),
+    )
+    await app.listen(0)
+
+    userRepository = module.get(getRepositoryToken(User))
+    clinicRepository = module.get(getRepositoryToken(Clinic))
+    doctorRepository = module.get(getRepositoryToken(Doctor))
+    patientRepository = module.get(getRepositoryToken(Patient))
+    specialtyRepository = module.get(getRepositoryToken(Specialty))
+    scheduleRepository = module.get(getRepositoryToken(Schedule))
+    appointmentRepository = module.get(getRepositoryToken(Appointment))
+  })
+
+  beforeEach(async () => {
+    await appointmentRepository.query('DELETE FROM test.appointments')
+    await scheduleRepository.query('DELETE FROM test.schedule_exceptions')
+    await scheduleRepository.query('DELETE FROM test.schedules')
+    await patientRepository.query('DELETE FROM test.patients')
+    await doctorRepository.query('DELETE FROM test.doctor_specialties')
+    await doctorRepository.query('DELETE FROM test.doctors')
+    await specialtyRepository.query('DELETE FROM test.specialties')
+    await userRepository.query('DELETE FROM test.refresh_tokens')
+    await userRepository.query('DELETE FROM test.users')
+    await clinicRepository.query('DELETE FROM test.clinics')
+
+    await clinicRepository.save(
+      clinicRepository.create({
+        id: SEED_CLINIC_ID,
+        name: 'Appointment Clinic',
+        slug: 'seed-clinic',
+        isActive: true,
+      }),
+    )
+
+    const password = 'Password123!'
+    const hashed = await bcrypt.hash(password, 1)
+
+    await userRepository.save(
+      userRepository.create({
+        fullName: 'Admin User',
+        email: 'admin@appointments.test',
+        password: hashed,
+        role: UserRole.ADMIN,
+        clinicId: SEED_CLINIC_ID,
+      }),
+    )
+
+    const doctorUser = await userRepository.save(
+      userRepository.create({
+        fullName: 'Doctor User',
+        email: 'doctor@appointments.test',
+        password: hashed,
+        role: UserRole.DOCTOR,
+        clinicId: SEED_CLINIC_ID,
+      }),
+    )
+
+    const otherDoctorUser = await userRepository.save(
+      userRepository.create({
+        fullName: 'Other Doctor',
+        email: 'other@appointments.test',
+        password: hashed,
+        role: UserRole.DOCTOR,
+        clinicId: SEED_CLINIC_ID,
+      }),
+    )
+
+    await userRepository.save(
+      userRepository.create({
+        fullName: 'Regular User',
+        email: 'user@appointments.test',
+        password: hashed,
+        role: UserRole.USER,
+        clinicId: SEED_CLINIC_ID,
+      }),
+    )
+
+    const specialty = await specialtyRepository.save(specialtyRepository.create({ name: 'Clínica Geral' }))
+
+    const doctorEntity = doctorRepository.create({
+      userId: doctorUser.id,
+      crmNumber: '12345/SP',
+      clinicId: SEED_CLINIC_ID,
+    })
+    doctorEntity.specialties = [specialty]
+    const doctorProfile = await doctorRepository.save(doctorEntity)
+    doctorId = doctorProfile.id
+
+    const otherDoctorEntity = doctorRepository.create({
+      userId: otherDoctorUser.id,
+      crmNumber: '99999/SP',
+      clinicId: SEED_CLINIC_ID,
+    })
+    otherDoctorEntity.specialties = [specialty]
+    const otherDoctorProfile = await doctorRepository.save(otherDoctorEntity)
+    otherDoctorId = otherDoctorProfile.id
+
+    const patientUser = await userRepository.save(
+      userRepository.create({
+        fullName: 'Test Patient',
+        email: 'patient-user@appointments.test',
+        password: hashed,
+        role: UserRole.USER,
+        clinicId: SEED_CLINIC_ID,
+      }),
+    )
+    const patientRecord = await patientRepository.save(
+      patientRepository.create({
+        userId: patientUser.id,
+        clinicId: SEED_CLINIC_ID,
+        documentNumber: faker.string.numeric(11),
+        phoneNumber: faker.string.numeric(11),
+        birthDate: '1990-01-01',
+        gender: PatientGender.MALE,
+      }),
+    )
+    patientId = patientRecord.id
+
+    const scheduleRecord = await scheduleRepository.save(
+      scheduleRepository.create({
+        doctorId,
+        clinicId: SEED_CLINIC_ID,
+        dayOfWeek: DayOfWeek.FRIDAY,
+        startTime: '08:00',
+        endTime: '10:00',
+        slotDurationInMinutes: 30,
+        validFrom: null,
+        validUntil: null,
+      }),
+    )
+    scheduleId = scheduleRecord.id
+
+    const loginAndExtractToken = async (email: string) => {
+      const res = await request(app.getHttpServer())
+        .post('/auth/login')
+        .send({ email, password, slug: 'seed-clinic' })
+      const rawCookies = res.headers['set-cookie']
+      if (!rawCookies) throw new Error(`Login failed for ${email}: status ${res.status}`)
+      const cookies = Array.isArray(rawCookies) ? rawCookies : [rawCookies as string]
+      const match = cookies.find((c: string) => c?.startsWith('access_token_seed-clinic='))
+      return match ? match.slice('access_token_seed-clinic='.length).split(';')[0] : ''
+    }
+
+    adminToken = await loginAndExtractToken('admin@appointments.test')
+    doctorToken = await loginAndExtractToken('doctor@appointments.test')
+    otherDoctorToken = await loginAndExtractToken('other@appointments.test')
+    userToken = await loginAndExtractToken('user@appointments.test')
+  })
+
+  afterAll(async () => {
+    await appointmentRepository.query('DELETE FROM test.appointments')
+    await scheduleRepository.query('DELETE FROM test.schedule_exceptions')
+    await scheduleRepository.query('DELETE FROM test.schedules')
+    await patientRepository.query('DELETE FROM test.patients')
+    await doctorRepository.query('DELETE FROM test.doctor_specialties')
+    await doctorRepository.query('DELETE FROM test.doctors')
+    await specialtyRepository.query('DELETE FROM test.specialties')
+    await userRepository.query('DELETE FROM test.refresh_tokens')
+    await userRepository.query('DELETE FROM test.users')
+    await clinicRepository.query('DELETE FROM test.clinics')
+    await app.close()
+  })
+
+  describe('GET /appointments/availability', () => {
+    it('returns 200 with available slots for ADMIN', async () => {
+      const { body } = await request(app.getHttpServer())
+        .get('/appointments/availability')
+        .set('Cookie', `access_token=${adminToken}`)
+        .query({ doctorId, date: futureDate })
+        .expect(200)
+
+      expect(body.doctorId).toBe(doctorId)
+      expect(body.date).toBe(futureDate)
+      expect(Array.isArray(body.slots)).toBe(true)
+      expect(body.slots.length).toBeGreaterThan(0)
+      expect(body.slots[0]).toHaveProperty('startTime')
+      expect(body.slots[0]).toHaveProperty('endTime')
+      expect(body.slots[0]).toHaveProperty('scheduleId')
+    })
+
+    it('returns 200 for DOCTOR (uses own profile)', async () => {
+      const { body } = await request(app.getHttpServer())
+        .get('/appointments/availability')
+        .set('Cookie', `access_token=${doctorToken}`)
+        .query({ date: futureDate })
+        .expect(200)
+
+      expect(body.doctorId).toBe(doctorId)
+    })
+
+    it('returns 422 when ADMIN omits doctorId', async () => {
+      await request(app.getHttpServer())
+        .get('/appointments/availability')
+        .set('Cookie', `access_token=${adminToken}`)
+        .query({ date: futureDate })
+        .expect(422)
+    })
+
+    it('returns 401 for unauthenticated requests', async () => {
+      await request(app.getHttpServer())
+        .get('/appointments/availability')
+        .query({ doctorId, date: futureDate })
+        .expect(401)
+    })
+  })
+
+  describe('POST /appointments', () => {
+    it('returns 201 when DOCTOR creates own appointment', async () => {
+      const { body } = await request(app.getHttpServer())
+        .post('/appointments')
+        .set('Cookie', `access_token=${doctorToken}`)
+        .send({ patientId, date: futureDate, startTime: '08:00' })
+        .expect(201)
+
+      expect(body.id).toBeDefined()
+      expect(body.doctorId).toBe(doctorId)
+      expect(body.patientId).toBe(patientId)
+      expect(body.date).toBe(futureDate)
+      expect(body.startTime).toBe('08:00')
+      expect(body.endTime).toBe('08:30')
+      expect(body.scheduleId).toBe(scheduleId)
+      expect(body.status).toBe(AppointmentStatus.SCHEDULED)
+    })
+
+    it('returns 201 when ADMIN creates appointment with doctorId', async () => {
+      const { body } = await request(app.getHttpServer())
+        .post('/appointments')
+        .set('Cookie', `access_token=${adminToken}`)
+        .send({ doctorId, patientId, date: futureDate, startTime: '08:00' })
+        .expect(201)
+
+      expect(body.doctorId).toBe(doctorId)
+    })
+
+    it('returns 409 when same slot is booked twice', async () => {
+      await request(app.getHttpServer())
+        .post('/appointments')
+        .set('Cookie', `access_token=${doctorToken}`)
+        .send({ patientId, date: futureDate, startTime: '08:00' })
+        .expect(201)
+
+      await request(app.getHttpServer())
+        .post('/appointments')
+        .set('Cookie', `access_token=${doctorToken}`)
+        .send({ patientId, date: futureDate, startTime: '08:00' })
+        .expect(409)
+    })
+
+    it('returns 422 when ADMIN omits doctorId', async () => {
+      await request(app.getHttpServer())
+        .post('/appointments')
+        .set('Cookie', `access_token=${adminToken}`)
+        .send({ patientId, date: futureDate, startTime: '08:00' })
+        .expect(422)
+    })
+
+    it('returns 422 when booking in the past', async () => {
+      const yesterday = new Date()
+      yesterday.setUTCDate(yesterday.getUTCDate() - 1)
+      await request(app.getHttpServer())
+        .post('/appointments')
+        .set('Cookie', `access_token=${doctorToken}`)
+        .send({ patientId, date: yesterday.toISOString().split('T')[0], startTime: '08:00' })
+        .expect(422)
+    })
+
+    it('returns 422 when slot is outside schedule', async () => {
+      await request(app.getHttpServer())
+        .post('/appointments')
+        .set('Cookie', `access_token=${doctorToken}`)
+        .send({ patientId, date: futureDate, startTime: '15:00' })
+        .expect(422)
+    })
+
+    it('returns 403 for USER role', async () => {
+      await request(app.getHttpServer())
+        .post('/appointments')
+        .set('Cookie', `access_token=${userToken}`)
+        .send({ patientId, date: futureDate, startTime: '08:00' })
+        .expect(403)
+    })
+
+    it('returns 400 when required fields are missing', async () => {
+      await request(app.getHttpServer())
+        .post('/appointments')
+        .set('Cookie', `access_token=${doctorToken}`)
+        .send({ patientId })
+        .expect(400)
+    })
+  })
+
+  describe('GET /appointments', () => {
+    it('returns 200 with list for ADMIN', async () => {
+      const { body } = await request(app.getHttpServer())
+        .get('/appointments')
+        .set('Cookie', `access_token=${adminToken}`)
+        .expect(200)
+
+      expect(body).toHaveProperty('data')
+      expect(body).toHaveProperty('total')
+      expect(body).toHaveProperty('page')
+      expect(body).toHaveProperty('limit')
+    })
+
+    it('DOCTOR sees only own appointments', async () => {
+      await request(app.getHttpServer())
+        .post('/appointments')
+        .set('Cookie', `access_token=${doctorToken}`)
+        .send({ patientId, date: futureDate, startTime: '08:00' })
+        .expect(201)
+
+      const { body } = await request(app.getHttpServer())
+        .get('/appointments')
+        .set('Cookie', `access_token=${doctorToken}`)
+        .expect(200)
+
+      expect(body.data.every((a: any) => a.doctorId === doctorId)).toBe(true)
+    })
+
+    it('returns 200 for USER role (read-only)', async () => {
+      await request(app.getHttpServer())
+        .get('/appointments')
+        .set('Cookie', `access_token=${userToken}`)
+        .expect(200)
+    })
+
+    it('returns 401 for unauthenticated requests', async () => {
+      await request(app.getHttpServer()).get('/appointments').expect(401)
+    })
+  })
+
+  describe('GET /appointments/:id', () => {
+    it('returns 200 for ADMIN viewing any appointment', async () => {
+      const { body: created } = await request(app.getHttpServer())
+        .post('/appointments')
+        .set('Cookie', `access_token=${doctorToken}`)
+        .send({ patientId, date: futureDate, startTime: '08:00' })
+        .expect(201)
+
+      const { body } = await request(app.getHttpServer())
+        .get(`/appointments/${created.id}`)
+        .set('Cookie', `access_token=${adminToken}`)
+        .expect(200)
+
+      expect(body.id).toBe(created.id)
+    })
+
+    it('returns 403 when DOCTOR views another doctor appointment', async () => {
+      const { body: created } = await request(app.getHttpServer())
+        .post('/appointments')
+        .set('Cookie', `access_token=${doctorToken}`)
+        .send({ patientId, date: futureDate, startTime: '08:00' })
+        .expect(201)
+
+      await request(app.getHttpServer())
+        .get(`/appointments/${created.id}`)
+        .set('Cookie', `access_token=${otherDoctorToken}`)
+        .expect(403)
+    })
+
+    it('returns 404 for non-existent appointment', async () => {
+      await request(app.getHttpServer())
+        .get(`/appointments/${faker.string.uuid()}`)
+        .set('Cookie', `access_token=${adminToken}`)
+        .expect(404)
+    })
+  })
+
+  describe('PATCH /appointments/:id/cancel', () => {
+    it('returns 200 when ADMIN cancels appointment', async () => {
+      const { body: created } = await request(app.getHttpServer())
+        .post('/appointments')
+        .set('Cookie', `access_token=${doctorToken}`)
+        .send({ patientId, date: futureDate, startTime: '08:00' })
+        .expect(201)
+
+      const { body } = await request(app.getHttpServer())
+        .patch(`/appointments/${created.id}/cancel`)
+        .set('Cookie', `access_token=${adminToken}`)
+        .send({ cancellationReason: 'Patient requested' })
+        .expect(200)
+
+      expect(body.status).toBe(AppointmentStatus.CANCELLED)
+      expect(body.cancellationReason).toBe('Patient requested')
+    })
+
+    it('returns 200 when DOCTOR cancels own appointment', async () => {
+      const { body: created } = await request(app.getHttpServer())
+        .post('/appointments')
+        .set('Cookie', `access_token=${doctorToken}`)
+        .send({ patientId, date: futureDate, startTime: '08:00' })
+        .expect(201)
+
+      const { body } = await request(app.getHttpServer())
+        .patch(`/appointments/${created.id}/cancel`)
+        .set('Cookie', `access_token=${doctorToken}`)
+        .send({})
+        .expect(200)
+
+      expect(body.status).toBe(AppointmentStatus.CANCELLED)
+    })
+
+    it('returns 403 when DOCTOR cancels another doctor appointment', async () => {
+      const { body: created } = await request(app.getHttpServer())
+        .post('/appointments')
+        .set('Cookie', `access_token=${doctorToken}`)
+        .send({ patientId, date: futureDate, startTime: '08:00' })
+        .expect(201)
+
+      await request(app.getHttpServer())
+        .patch(`/appointments/${created.id}/cancel`)
+        .set('Cookie', `access_token=${otherDoctorToken}`)
+        .send({})
+        .expect(403)
+    })
+
+    it('returns 422 when cancelling an already cancelled appointment', async () => {
+      const { body: created } = await request(app.getHttpServer())
+        .post('/appointments')
+        .set('Cookie', `access_token=${doctorToken}`)
+        .send({ patientId, date: futureDate, startTime: '08:00' })
+        .expect(201)
+
+      await request(app.getHttpServer())
+        .patch(`/appointments/${created.id}/cancel`)
+        .set('Cookie', `access_token=${adminToken}`)
+        .send({})
+        .expect(200)
+
+      await request(app.getHttpServer())
+        .patch(`/appointments/${created.id}/cancel`)
+        .set('Cookie', `access_token=${adminToken}`)
+        .send({})
+        .expect(422)
+    })
+
+    it('returns 403 for USER role', async () => {
+      const { body: created } = await request(app.getHttpServer())
+        .post('/appointments')
+        .set('Cookie', `access_token=${doctorToken}`)
+        .send({ patientId, date: futureDate, startTime: '08:00' })
+        .expect(201)
+
+      await request(app.getHttpServer())
+        .patch(`/appointments/${created.id}/cancel`)
+        .set('Cookie', `access_token=${userToken}`)
+        .send({})
+        .expect(403)
+    })
+  })
+
+  describe('PATCH /appointments/:id/complete', () => {
+    it('returns 422 when completing a future appointment', async () => {
+      const { body: created } = await request(app.getHttpServer())
+        .post('/appointments')
+        .set('Cookie', `access_token=${doctorToken}`)
+        .send({ patientId, date: futureDate, startTime: '08:00' })
+        .expect(201)
+
+      await request(app.getHttpServer())
+        .patch(`/appointments/${created.id}/complete`)
+        .set('Cookie', `access_token=${adminToken}`)
+        .expect(422)
+    })
+
+    it('returns 200 when completing a past appointment', async () => {
+      const yesterday = new Date()
+      yesterday.setUTCDate(yesterday.getUTCDate() - 1)
+      const pastDate = yesterday.toISOString().split('T')[0]
+
+      const pastSchedule = await scheduleRepository.save(
+        scheduleRepository.create({
+          doctorId,
+          clinicId: SEED_CLINIC_ID,
+          dayOfWeek: [DayOfWeek.SUNDAY, DayOfWeek.MONDAY, DayOfWeek.TUESDAY, DayOfWeek.WEDNESDAY, DayOfWeek.THURSDAY, DayOfWeek.FRIDAY, DayOfWeek.SATURDAY][yesterday.getUTCDay()],
+          startTime: '08:00',
+          endTime: '10:00',
+          slotDurationInMinutes: 30,
+          validFrom: null,
+          validUntil: null,
+        }),
+      )
+
+      const appointment = await appointmentRepository.save(
+        appointmentRepository.create({
+          clinicId: SEED_CLINIC_ID,
+          doctorId,
+          patientId,
+          scheduleId: pastSchedule.id,
+          date: pastDate,
+          startTime: '08:00',
+          endTime: '08:30',
+          status: AppointmentStatus.SCHEDULED,
+          reason: null,
+          cancellationReason: null,
+        }),
+      )
+
+      const { body } = await request(app.getHttpServer())
+        .patch(`/appointments/${appointment.id}/complete`)
+        .set('Cookie', `access_token=${adminToken}`)
+        .expect(200)
+
+      expect(body.status).toBe(AppointmentStatus.COMPLETED)
+    })
+
+    it('returns 403 for USER role', async () => {
+      const { body: created } = await request(app.getHttpServer())
+        .post('/appointments')
+        .set('Cookie', `access_token=${doctorToken}`)
+        .send({ patientId, date: futureDate, startTime: '08:00' })
+        .expect(201)
+
+      await request(app.getHttpServer())
+        .patch(`/appointments/${created.id}/complete`)
+        .set('Cookie', `access_token=${userToken}`)
+        .expect(403)
+    })
+  })
+})

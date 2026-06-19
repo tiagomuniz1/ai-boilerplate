@@ -134,4 +134,20 @@ describe('useLogout', () => {
 
     expect(result.current.error).toBeNull()
   })
+
+  it('does not throw when localStorage.removeItem throws during logout success', async () => {
+    mockAuthService.logout.mockResolvedValue(undefined)
+    const removeItemSpy = jest.spyOn(Storage.prototype, 'removeItem').mockImplementation(() => {
+      throw new Error('SecurityError')
+    })
+
+    const { result } = renderLogoutHook()
+
+    await act(async () => {
+      await result.current.logout()
+    })
+
+    expect(result.current.error).toBeNull()
+    removeItemSpy.mockRestore()
+  })
 })

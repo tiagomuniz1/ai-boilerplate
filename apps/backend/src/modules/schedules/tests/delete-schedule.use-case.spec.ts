@@ -5,7 +5,7 @@ import { DayOfWeek, UserRole } from '@app/shared'
 import { CacheService } from '../../../cache/cache.service'
 import { ICurrentUser } from '../../auth/types/current-user.type'
 import { IDoctorsRepository } from '../../doctors/repositories/doctors.repository.interface'
-import { IAppointmentsRepository } from '../repositories/appointments.repository.stub'
+import { IAppointmentsRepository } from '../repositories/appointments.repository.adapter'
 import { ISchedulesRepository } from '../repositories/schedules.repository.interface'
 import { DeleteScheduleUseCase } from '../use-cases/delete-schedule.use-case'
 
@@ -17,6 +17,7 @@ const mockSchedulesRepository: jest.Mocked<ISchedulesRepository> = {
   update: jest.fn(),
   delete: jest.fn(),
   deleteAllByDoctorId: jest.fn(),
+  findActiveByDoctorAndDate: jest.fn(),
 }
 
 const mockDoctorsRepository: jest.Mocked<IDoctorsRepository> = {

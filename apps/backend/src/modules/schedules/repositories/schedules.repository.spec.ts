@@ -319,6 +319,42 @@ describe('SchedulesRepository', () => {
     })
   })
 
+  describe('findActiveByDoctorAndDate', () => {
+    it('returns active schedules for doctor on given date and dayOfWeek', async () => {
+      const doctorId = faker.string.uuid()
+      const schedule = makeSchedule({ doctorId, dayOfWeek: DayOfWeek.MONDAY })
+      const qb = {
+        innerJoin: jest.fn().mockReturnThis(),
+        where: jest.fn().mockReturnThis(),
+        andWhere: jest.fn().mockReturnThis(),
+        getMany: jest.fn().mockResolvedValue([schedule]),
+      }
+      mockRepository.createQueryBuilder.mockReturnValue(qb)
+
+      const result = await repository.findActiveByDoctorAndDate(doctorId, DayOfWeek.MONDAY, '2099-06-16', CLINIC_ID)
+
+      expect(qb.andWhere).toHaveBeenCalledWith('schedule.doctor_id = :doctorId', { doctorId })
+      expect(qb.andWhere).toHaveBeenCalledWith('schedule.day_of_week = :dayOfWeek', { dayOfWeek: DayOfWeek.MONDAY })
+      expect(qb.andWhere).toHaveBeenCalledWith('u.clinic_id = :clinicId', { clinicId: CLINIC_ID })
+      expect(result).toEqual([schedule])
+    })
+
+    it('returns empty array when no active schedules found', async () => {
+      const doctorId = faker.string.uuid()
+      const qb = {
+        innerJoin: jest.fn().mockReturnThis(),
+        where: jest.fn().mockReturnThis(),
+        andWhere: jest.fn().mockReturnThis(),
+        getMany: jest.fn().mockResolvedValue([]),
+      }
+      mockRepository.createQueryBuilder.mockReturnValue(qb)
+
+      const result = await repository.findActiveByDoctorAndDate(doctorId, DayOfWeek.FRIDAY, '2099-06-20', CLINIC_ID)
+
+      expect(result).toEqual([])
+    })
+  })
+
   describe('deleteAllByDoctorId', () => {
     it('soft-deletes all schedules matching doctorId', async () => {
       const doctorId = 'doctor-uuid-1'

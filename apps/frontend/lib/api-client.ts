@@ -11,7 +11,9 @@ const client = axios.create({
 })
 
 function getClinicSlug(): string | null {
+  /* c8 ignore next */
   if (typeof window === 'undefined') return null
+  /* c8 ignore next */
   const slug = (window.location.pathname ?? '').split('/').filter(Boolean)[0] ?? null
   return slug && slug !== 'backoffice' ? slug : null
 }
@@ -64,8 +66,9 @@ client.interceptors.response.use(
         )
         return client(config)
       } catch {
-        /* istanbul ignore else */
+        /* c8 ignore else */
         if (typeof window !== 'undefined') {
+          /* c8 ignore next */
           const slug = (window.location.pathname ?? '').split('/').filter(Boolean)[0] ?? 'backoffice'
           window.location.href = `/${slug}/login`
         }

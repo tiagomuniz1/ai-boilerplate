@@ -1,0 +1,57 @@
+{
+  "scheduled": {
+    "id": "00000000-0000-4000-d000-000000000001",
+    "doctorId": "00000000-0000-4000-b000-000000000001",
+    "doctorName": "Dr. Test Doctor",
+    "patientId": "00000000-0000-4000-e000-000000000001",
+    "patientName": "Patient One",
+    "scheduleId": "00000000-0000-4000-c000-000000000001",
+    "date": "2025-06-10",
+    "startTime": "09:00",
+    "endTime": "09:30",
+    "status": "scheduled",
+    "reason": "Consulta de rotina",
+    "cancellationReason": null,
+    "createdAt": "2025-06-01T10:00:00.000Z",
+    "updatedAt": "2025-06-01T10:00:00.000Z"
+  },
+  "cancelled": {
+    "id": "00000000-0000-4000-d000-000000000002",
+    "doctorId": "00000000-0000-4000-b000-000000000001",
+    "doctorName": "Dr. Test Doctor",
+    "patientId": "00000000-0000-4000-e000-000000000001",
+    "patientName": "Patient One",
+    "scheduleId": "00000000-0000-4000-c000-000000000001",
+    "date": "2025-06-10",
+    "startTime": "10:00",
+    "endTime": "10:30",
+    "status": "cancelled",
+    "reason": null,
+    "cancellationReason": "Paciente remarcou",
+    "createdAt": "2025-06-01T10:00:00.000Z",
+    "updatedAt": "2025-06-05T10:00:00.000Z"
+  },
+  "paginated": {
+    "data": [
+      {
+        "id": "00000000-0000-4000-d000-000000000001",
+        "doctorId": "00000000-0000-4000-b000-000000000001",
+        "doctorName": "Dr. Test Doctor",
+        "patientId": "00000000-0000-4000-e000-000000000001",
+        "patientName": "Patient One",
+        "scheduleId": "00000000-0000-4000-c000-000000000001",
+        "date": "2025-06-10",
+        "startTime": "09:00",
+        "endTime": "09:30",
+        "status": "scheduled",
+        "reason": "Consulta de rotina",
+        "cancellationReason": null,
+        "createdAt": "2025-06-01T10:00:00.000Z",
+        "updatedAt": "2025-06-01T10:00:00.000Z"
+      }
+    ],
+    "total": 1,
+    "page": 1,
+    "limit": 100
+  }
+}

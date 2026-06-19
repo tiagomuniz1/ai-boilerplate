@@ -276,4 +276,23 @@ describe('ClinicsController', () => {
     expect(() => controller.uploadFavicon('clinic-uuid-1', undefined as any)).toThrow(UnauthorizedException)
     expect(mockUploadFavicon.execute).not.toHaveBeenCalled()
   })
+
+  it('uploadMyLogoDark throws UnauthorizedException when clinicId is null', async () => {
+    const currentUser: ICurrentUser = { id: 'user-uuid', role: UserRole.PLATFORM_ADMIN, clinicId: null }
+
+    await expect(controller.uploadMyLogoDark(currentUser, makeFile())).rejects.toThrow(UnauthorizedException)
+    expect(mockUploadLogoDark.execute).not.toHaveBeenCalled()
+  })
+
+  it('uploadMyLogoDark throws UnauthorizedException when file is undefined', async () => {
+    const currentUser: ICurrentUser = { id: 'user-uuid', role: UserRole.ADMIN, clinicId: 'clinic-uuid-1' }
+
+    await expect(controller.uploadMyLogoDark(currentUser, undefined as any)).rejects.toThrow(UnauthorizedException)
+    expect(mockUploadLogoDark.execute).not.toHaveBeenCalled()
+  })
+
+  it('uploadLogoDark throws UnauthorizedException when file is undefined', () => {
+    expect(() => controller.uploadLogoDark('clinic-uuid-1', undefined as any)).toThrow(UnauthorizedException)
+    expect(mockUploadLogoDark.execute).not.toHaveBeenCalled()
+  })
 })

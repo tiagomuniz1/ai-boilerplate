@@ -96,6 +96,16 @@ describe('UsersRepository', () => {
 
       expect(await repository.findByEmail('none@example.com', CLINIC_ID)).toBeNull()
     })
+
+    it('finds by email only when clinicId is undefined', async () => {
+      const user = { id: 'uuid-platform-admin', email: 'platform@example.com' } as User
+      repo.findOneBy.mockResolvedValue(user)
+
+      const result = await repository.findByEmail('platform@example.com')
+
+      expect(repo.findOneBy).toHaveBeenCalledWith({ email: 'platform@example.com' })
+      expect(result).toBe(user)
+    })
   })
 
   describe('findAll', () => {

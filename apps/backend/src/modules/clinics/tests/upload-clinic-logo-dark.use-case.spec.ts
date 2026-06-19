@@ -229,4 +229,28 @@ describe('UploadClinicLogoDarkUseCase', () => {
 
     await expect(useCase.execute(clinic.id, file)).resolves.toBeDefined()
   })
+
+  it('includes address in response when clinic has address data', async () => {
+    const clinic = makeClinic({
+      addressStreet: 'Rua das Flores',
+      addressNumber: '123',
+      addressComplement: null,
+      addressNeighborhood: 'Centro',
+      addressCity: 'São Paulo',
+      addressState: 'SP',
+      addressZipCode: '01310-100',
+      addressCountry: 'BR',
+    })
+    const file = makeFile()
+
+    mockClinicsRepository.findById.mockResolvedValue(clinic)
+    mockStorageAdapter.upload.mockResolvedValue('https://bucket.s3.us-east-1.amazonaws.com/url')
+    mockClinicsRepository.updateLogoDark.mockResolvedValue(undefined)
+
+    const result = await useCase.execute(clinic.id, file)
+
+    expect(result.address).not.toBeNull()
+    expect(result.address!.street).toBe('Rua das Flores')
+    expect(result.address!.city).toBe('São Paulo')
+  })
 })

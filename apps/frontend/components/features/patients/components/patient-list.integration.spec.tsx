@@ -190,4 +190,14 @@ describe('PatientList (integration)', () => {
       )
     })
   })
+
+  it('shows singular count when exactly 1 patient is found', async () => {
+    ;(patientsService.getAll as jest.Mock).mockResolvedValue({ data: [makeDto()], total: 1, page: 1, limit: 20 })
+
+    renderWithProviders(<PatientList />)
+
+    await waitFor(() => {
+      expect(screen.getByText('1 paciente cadastrado')).toBeInTheDocument()
+    })
+  })
 })

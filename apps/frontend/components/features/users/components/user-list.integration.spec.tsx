@@ -329,4 +329,14 @@ describe('UserList (integration)', () => {
     expect(screen.getByTestId('user-profile-doctor-uuid-1')).toHaveTextContent('Médico')
     expect(screen.getByTestId('user-profile-patient-uuid-1')).toHaveTextContent('Paciente')
   })
+
+  it('shows singular count when exactly 1 user is found', async () => {
+    ;(userService.getAll as jest.Mock).mockResolvedValue({ data: [makeDto()], total: 1, page: 1, limit: 20 })
+
+    renderWithProviders(<UserList />)
+
+    await waitFor(() => {
+      expect(screen.getByText('1 usuário cadastrado')).toBeInTheDocument()
+    })
+  })
 })

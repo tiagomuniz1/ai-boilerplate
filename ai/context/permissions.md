@@ -72,7 +72,7 @@ O sistema possui quatro perfis de usuário (`UserRole`). Cada perfil reflete um 
 | Editar | ✓ | ✗ | ✗ | ✗ |
 | Excluir | ✓ | ✗ | ✗ | ✗ |
 
-> Acesso de DOCTOR a dados de pacientes será implementado no módulo de consultas (com vínculo à consulta, não acesso irrestrito à lista).
+> DOCTOR não acessa `/patients` diretamente. Dados do paciente são acessados via vínculo com a consulta no módulo de agendamentos.
 
 ---
 
@@ -90,6 +90,21 @@ O sistema possui quatro perfis de usuário (`UserRole`). Cada perfil reflete um 
 
 ---
 
+## Consultas (`/appointments`)
+
+| Ação | ADMIN | DOCTOR | USER | PATIENT |
+|---|:---:|:---:|:---:|:---:|
+| Criar consulta | ✓ | só as próprias | ✗ | ✗ |
+| Listar consultas | ✓ todas | só as próprias | ✓ (leitura) | ✗ |
+| Ver por ID | ✓ | só a própria | ✓ (leitura) | ✗ |
+| Cancelar | ✓ qualquer | só a própria | ✗ | ✗ |
+| Concluir | ✓ qualquer | só a própria | ✗ | ✗ |
+| Ver disponibilidade | ✓ | ✓ própria | ✓ | ✗ |
+
+> DOCTOR que cria uma consulta usa o próprio `doctorId` (via `userId`). ADMIN deve informar `doctorId` no body. Slot é derivado da configuração de agenda — cliente envia apenas `date` + `startTime`. Concluir rejeita consultas futuras.
+
+---
+
 ## Sidebar — Itens visíveis por role
 
 | Item | ADMIN | DOCTOR | USER |
@@ -99,19 +114,20 @@ O sistema possui quatro perfis de usuário (`UserRole`). Cada perfil reflete um 
 | Pacientes | ✓ | ✗ | ✓ |
 | Médicos | ✓ | ✓ | ✓ |
 | Agendas | ✓ | ✓ | ✗ |
+| Consultas | ✓ | ✓ | ✓ |
 
 ---
 
 ## Resumo por perfil
 
 ### ADMIN
-Acesso irrestrito. Gerencia usuários, médicos, pacientes e todas as agendas. Único perfil que pode criar usuários, ativar/desativar contas e excluir registros.
+Acesso irrestrito. Gerencia usuários, médicos, pacientes, agendas e todas as consultas. Único perfil que pode criar usuários, ativar/desativar contas e excluir registros.
 
 ### DOCTOR
-Acessa o sistema para gerenciar a própria agenda e visualizar o próprio perfil de médico. Pode editar os próprios dados de usuário e de médico. Não vê dados de outros médicos, pacientes ou usuários.
+Acessa o sistema para gerenciar a própria agenda, criar e acompanhar as próprias consultas. Pode editar os próprios dados de usuário e de médico. Não vê dados de outros médicos, agendas de outros ou consultas de outros médicos.
 
 ### USER (Recepcionista)
-Acessa o sistema para consultar dados operacionais. Pode ver a lista de pacientes e médicos (somente leitura). Pode editar o próprio cadastro de usuário. Não opera nenhum módulo de negócio — não cria, edita ou exclui registros de terceiros.
+Acessa o sistema para consultar dados operacionais. Pode ver a lista de pacientes, médicos e consultas (somente leitura). Pode ver a disponibilidade de qualquer médico. Pode editar o próprio cadastro de usuário. Não cria, cancela ou conclui consultas.
 
 ### PATIENT
-Não acessa o sistema. O registro existe no banco para vincular ao módulo de consultas (implementação futura). Tentativas de login são bloqueadas silenciosamente.
+Não acessa o sistema. O registro existe no banco para vincular ao módulo de consultas. Tentativas de login são bloqueadas silenciosamente.

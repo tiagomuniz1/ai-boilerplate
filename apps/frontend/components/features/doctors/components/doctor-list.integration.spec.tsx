@@ -258,4 +258,14 @@ describe('DoctorList (integration)', () => {
       )
     })
   })
+
+  it('shows singular count when exactly 1 doctor is found', async () => {
+    ;(doctorsService.getAll as jest.Mock).mockResolvedValue({ data: [makeDto()], total: 1, page: 1, limit: 20 })
+
+    renderWithProviders(<DoctorList />)
+
+    await waitFor(() => {
+      expect(screen.getByText('1 médico cadastrado')).toBeInTheDocument()
+    })
+  })
 })

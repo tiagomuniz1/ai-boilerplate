@@ -1,0 +1,12 @@
+export class AvailableSlotDto {
+  startTime: string
+  endTime: string
+  scheduleId: string
+  slotDurationInMinutes: number
+}
+
+export class AvailabilityResponseDto {
+  doctorId: string
+  date: string
+  slots: AvailableSlotDto[]
+}

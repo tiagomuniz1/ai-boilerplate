@@ -144,6 +144,25 @@ export class SchedulesRepository implements ISchedulesRepository {
     await repo.softDelete(id)
   }
 
+  async findActiveByDoctorAndDate(
+    doctorId: string,
+    dayOfWeek: DayOfWeek,
+    date: string,
+    clinicId: string,
+  ): Promise<Schedule[]> {
+    return this.repository
+      .createQueryBuilder('schedule')
+      .innerJoin('doctors', 'd', 'd.id = schedule.doctor_id AND d.deleted_at IS NULL')
+      .innerJoin('users', 'u', 'u.id = d.user_id AND u.deleted_at IS NULL')
+      .where('schedule.deleted_at IS NULL')
+      .andWhere('u.clinic_id = :clinicId', { clinicId })
+      .andWhere('schedule.doctor_id = :doctorId', { doctorId })
+      .andWhere('schedule.day_of_week = :dayOfWeek', { dayOfWeek })
+      .andWhere('(schedule.valid_from IS NULL OR schedule.valid_from <= :date)', { date })
+      .andWhere('(schedule.valid_until IS NULL OR schedule.valid_until >= :date)', { date })
+      .getMany()
+  }
+
   async deleteAllByDoctorId(doctorId: string, _clinicId: string, queryRunner?: QueryRunner): Promise<void> {
     const repo = queryRunner
       ? queryRunner.manager.getRepository(Schedule)

@@ -12,7 +12,7 @@ import { BaseUseCase } from '../../../common/base.use-case'
 import { CacheService } from '../../../cache/cache.service'
 import { ICurrentUser } from '../../auth/types/current-user.type'
 import { IDoctorsRepository } from '../../doctors/repositories/doctors.repository.interface'
-import { IAppointmentsRepository } from '../repositories/appointments.repository.stub'
+import { IAppointmentsRepository } from '../repositories/appointments.repository.adapter'
 import { ISchedulesRepository } from '../repositories/schedules.repository.interface'
 import { Schedule } from '../entities/schedule.entity'
 
@@ -56,7 +56,7 @@ export class UpdateScheduleUseCase extends BaseUseCase {
       }
     }
 
-    const hasFuture = await this.appointmentsRepository.hasFutureAppointmentsByScheduleId(id)
+    const hasFuture = await this.appointmentsRepository.hasFutureAppointmentsByScheduleId(id, clinicId)
     if (hasFuture) {
       throw new ConflictException('Schedule has future appointments and cannot be modified')
     }

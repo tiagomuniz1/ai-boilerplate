@@ -1,0 +1,41 @@
+import { forwardRef, Module } from '@nestjs/common'
+import { TypeOrmModule } from '@nestjs/typeorm'
+import { CacheModule } from '../../cache/cache.module'
+import { DoctorsModule } from '../doctors/doctors.module'
+import { AppointmentsModule } from '../appointments/appointments.module'
+import { ScheduleException } from './entities/schedule-exception.entity'
+import { ScheduleExceptionsController } from './controllers/schedule-exceptions.controller'
+import { CreateScheduleExceptionUseCase } from './use-cases/create-schedule-exception.use-case'
+import { UpdateScheduleExceptionUseCase } from './use-cases/update-schedule-exception.use-case'
+import { DeleteScheduleExceptionUseCase } from './use-cases/delete-schedule-exception.use-case'
+import { FindScheduleExceptionByIdUseCase } from './use-cases/find-schedule-exception-by-id.use-case'
+import { ListScheduleExceptionsUseCase } from './use-cases/list-schedule-exceptions.use-case'
+import { GetActiveExceptionsForDoctorUseCase } from './use-cases/get-active-exceptions-for-doctor.use-case'
+import { IScheduleExceptionsRepository } from './repositories/schedule-exceptions.repository.interface'
+import { ScheduleExceptionsRepository } from './repositories/schedule-exceptions.repository'
+import {
+  AppointmentsRepositoryAdapter,
+  IAppointmentsRepository,
+} from './repositories/appointments.repository.adapter'
+
+@Module({
+  imports: [
+    TypeOrmModule.forFeature([ScheduleException]),
+    CacheModule,
+    forwardRef(() => DoctorsModule),
+    forwardRef(() => AppointmentsModule),
+  ],
+  controllers: [ScheduleExceptionsController],
+  providers: [
+    CreateScheduleExceptionUseCase,
+    UpdateScheduleExceptionUseCase,
+    DeleteScheduleExceptionUseCase,
+    FindScheduleExceptionByIdUseCase,
+    ListScheduleExceptionsUseCase,
+    GetActiveExceptionsForDoctorUseCase,
+    { provide: IScheduleExceptionsRepository, useClass: ScheduleExceptionsRepository },
+    { provide: IAppointmentsRepository, useClass: AppointmentsRepositoryAdapter },
+  ],
+  exports: [GetActiveExceptionsForDoctorUseCase],
+})
+export class ScheduleExceptionsModule {}

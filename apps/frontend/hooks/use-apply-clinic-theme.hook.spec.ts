@@ -282,4 +282,30 @@ describe('useApplyClinicTheme', () => {
 
     expect(localStorageRemoveSpy).toHaveBeenCalledWith('clinic-theme-vars')
   })
+
+  it('uses DEFAULT radius preset when theme.borderRadius is null', () => {
+    mockUseActiveTheme.mockReturnValue({
+      data: { ...sampleTheme, borderRadius: null as unknown as ThemeBorderRadius },
+    } as ReturnType<typeof useActiveTheme>)
+
+    renderHook(() => useApplyClinicTheme())
+
+    expect(setPropertySpy).toHaveBeenCalledWith('--radius-sm', '4px')
+    expect(setPropertySpy).toHaveBeenCalledWith('--radius', '6px')
+    expect(setPropertySpy).toHaveBeenCalledWith('--radius-lg', '12px')
+  })
+
+  it('does not throw when localStorage.setItem throws', () => {
+    mockUseActiveTheme.mockReturnValue({ data: sampleTheme } as ReturnType<typeof useActiveTheme>)
+    localStorageSetSpy.mockImplementation(() => { throw new Error('QuotaExceededError') })
+
+    expect(() => renderHook(() => useApplyClinicTheme())).not.toThrow()
+  })
+
+  it('does not throw when localStorage.removeItem throws in the else branch', () => {
+    mockUseActiveTheme.mockReturnValue({ data: undefined } as ReturnType<typeof useActiveTheme>)
+    localStorageRemoveSpy.mockImplementation(() => { throw new Error('SecurityError') })
+
+    expect(() => renderHook(() => useApplyClinicTheme())).not.toThrow()
+  })
 })

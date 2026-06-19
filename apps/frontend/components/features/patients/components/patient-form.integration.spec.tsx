@@ -2,7 +2,7 @@ jest.mock('next/navigation', () => ({ useRouter: jest.fn() }))
 jest.mock('../services/patients.service')
 jest.mock('@/components/features/users/services/users.service')
 
-import { screen, waitFor } from '@testing-library/react'
+import { screen, waitFor, act, fireEvent } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { useRouter } from 'next/navigation'
 import { PatientGender } from '@app/shared'
@@ -217,6 +217,83 @@ describe('PatientForm (integration) — create mode', () => {
 
     expect(screen.getByTestId('patient-form-submit')).toBeDisabled()
   })
+
+  it('shows "Nenhum usuário encontrado" when search returns no results', async () => {
+    ;(userService.getAll as jest.Mock).mockResolvedValue({ data: [], total: 0, page: 1, limit: 10 })
+
+    renderWithProviders(<PatientForm mode="create" isPending={false} onSubmit={jest.fn()} />)
+
+    await userEvent.click(screen.getByTestId('patient-form-user-mode-existing'))
+    fireEvent.change(screen.getByTestId('patient-form-user-search'), { target: { value: 'xz' } })
+
+    await waitFor(
+      () => expect(screen.getByText('Nenhum usuário encontrado')).toBeInTheDocument(),
+      { timeout: 2000 },
+    )
+  })
+
+  it('clears selected userId when user types in search after selecting', async () => {
+    renderWithProviders(<PatientForm mode="create" isPending={false} onSubmit={jest.fn()} />)
+
+    await userEvent.click(screen.getByTestId('patient-form-user-mode-existing'))
+
+    await waitFor(() => expect(screen.getByTestId('patient-form-user-search')).toBeInTheDocument())
+
+    await userEvent.type(screen.getByTestId('patient-form-user-search'), 'Ana')
+
+    await waitFor(
+      () => expect(screen.getByTestId('patient-form-user-option')).toBeInTheDocument(),
+      { timeout: 2000 },
+    )
+
+    await userEvent.click(screen.getByTestId('patient-form-user-option'))
+
+    // Type again after selecting — clears userId (line 283 TRUE branch)
+    await userEvent.type(screen.getByTestId('patient-form-user-search'), ' Costa')
+
+    // Should show validation error when submitting (userId was cleared)
+    await userEvent.click(screen.getByTestId('patient-form-submit'))
+
+    await waitFor(() => {
+      expect(screen.getByText('Selecione um usuário')).toBeInTheDocument()
+    })
+  })
+
+  it('onFocus with debouncedTerm >= 2 keeps dropdown open', async () => {
+    renderWithProviders(<PatientForm mode="create" isPending={false} onSubmit={jest.fn()} />)
+
+    await userEvent.click(screen.getByTestId('patient-form-user-mode-existing'))
+
+    // Type to set debouncedTerm >= 2 chars and open the dropdown
+    fireEvent.change(screen.getByTestId('patient-form-user-search'), { target: { value: 'An' } })
+
+    await waitFor(
+      () => expect(screen.getByTestId('patient-form-user-search-results')).toBeInTheDocument(),
+      { timeout: 2000 },
+    )
+
+    // Fire focus again with debouncedTerm = 'An' (>= 2) — covers the TRUE branch in onFocus
+    fireEvent.focus(screen.getByTestId('patient-form-user-search'))
+
+    expect(screen.getByTestId('patient-form-user-search-results')).toBeInTheDocument()
+  })
+
+  it('shows "Buscando..." in dropdown while user search is fetching', async () => {
+    ;(userService.getAll as jest.Mock).mockReturnValue(new Promise(() => {}))
+
+    renderWithProviders(<PatientForm mode="create" isPending={false} onSubmit={jest.fn()} />)
+
+    await userEvent.click(screen.getByTestId('patient-form-user-mode-existing'))
+    fireEvent.change(screen.getByTestId('patient-form-user-search'), { target: { value: 'An' } })
+
+    await waitFor(
+      () => {
+        expect(screen.getByTestId('patient-form-user-search-results')).toBeInTheDocument()
+        expect(screen.getByText('Buscando...')).toBeInTheDocument()
+      },
+      { timeout: 2000 },
+    )
+  })
 })
 
 describe('PatientForm (integration) — edit mode', () => {
@@ -302,13 +379,15 @@ describe('PatientForm (integration) — edit mode', () => {
     expect(screen.getByTestId('patient-form-submit')).toBeDisabled()
   })
 
-  it('shows validation errors for invalid field values in edit mode', async () => {
+  it('does not submit when fullName is too short in edit mode', async () => {
+    const onSubmit = jest.fn()
+
     renderWithProviders(
       <PatientForm
         mode="edit"
         defaultValues={existingPatient}
         isPending={false}
-        onSubmit={jest.fn()}
+        onSubmit={onSubmit}
       />,
     )
 
@@ -318,23 +397,66 @@ describe('PatientForm (integration) — edit mode', () => {
 
     await userEvent.clear(screen.getByTestId('patient-form-fullname'))
     await userEvent.type(screen.getByTestId('patient-form-fullname'), 'ab')
+    await userEvent.click(screen.getByTestId('patient-form-submit'))
+
+    await act(async () => {})
+
+    expect(onSubmit).not.toHaveBeenCalled()
+  })
+
+  it('shows validation error for invalid email in edit mode', async () => {
+    renderWithProviders(
+      <PatientForm mode="edit" defaultValues={existingPatient} isPending={false} onSubmit={jest.fn()} />,
+    )
+
+    await waitFor(() => {
+      expect(screen.getByTestId('patient-form-email')).toHaveValue('joao@example.com')
+    })
+
     await userEvent.clear(screen.getByTestId('patient-form-email'))
-    await userEvent.type(screen.getByTestId('patient-form-email'), 'not-an-email')
-    await userEvent.clear(screen.getByTestId('patient-form-phone'))
-    await userEvent.type(screen.getByTestId('patient-form-phone'), '123')
-    await userEvent.clear(screen.getByTestId('patient-form-birthdate'))
-    await userEvent.type(screen.getByTestId('patient-form-birthdate'), '2099-01-01')
-    await userEvent.clear(screen.getByTestId('patient-form-document'))
-    await userEvent.type(screen.getByTestId('patient-form-document'), '123')
-    await userEvent.selectOptions(screen.getByTestId('patient-form-gender'), '')
+    await userEvent.type(screen.getByTestId('patient-form-email'), 'invalid-email')
     await userEvent.click(screen.getByTestId('patient-form-submit'))
 
     await waitFor(() => {
-      expect(screen.getByText('Nome deve ter no mínimo 3 caracteres')).toBeInTheDocument()
+      expect(screen.getByText('E-mail inválido')).toBeInTheDocument()
     })
   })
 
-  it('calls onSubmit with undefined for cleared optional fields', async () => {
+  it('shows validation error for invalid phone in edit mode', async () => {
+    renderWithProviders(
+      <PatientForm mode="edit" defaultValues={existingPatient} isPending={false} onSubmit={jest.fn()} />,
+    )
+
+    await waitFor(() => {
+      expect(screen.getByTestId('patient-form-phone')).toHaveValue('(11) 99999-9999')
+    })
+
+    fireEvent.change(screen.getByTestId('patient-form-phone'), { target: { value: '12' } })
+    await userEvent.click(screen.getByTestId('patient-form-submit'))
+
+    await waitFor(() => {
+      expect(screen.getByText(/Telefone inválido/)).toBeInTheDocument()
+    })
+  })
+
+  it('shows validation error for invalid document number in edit mode', async () => {
+    renderWithProviders(
+      <PatientForm mode="edit" defaultValues={existingPatient} isPending={false} onSubmit={jest.fn()} />,
+    )
+
+    await waitFor(() => {
+      expect(screen.getByTestId('patient-form-document')).toHaveValue('123.456.789-01')
+    })
+
+    fireEvent.change(screen.getByTestId('patient-form-document'), { target: { value: '123' } })
+    await userEvent.click(screen.getByTestId('patient-form-submit'))
+
+    await waitFor(() => {
+      expect(screen.getByText(/Documento deve ter 11/)).toBeInTheDocument()
+    })
+  })
+
+  it('converts empty optional fields to undefined before calling onSubmit', async () => {
     const onSubmit = jest.fn()
 
     renderWithProviders(
@@ -352,8 +474,9 @@ describe('PatientForm (integration) — edit mode', () => {
 
     await userEvent.clear(screen.getByTestId('patient-form-fullname'))
     await userEvent.clear(screen.getByTestId('patient-form-email'))
-    await userEvent.clear(screen.getByTestId('patient-form-phone'))
-    await userEvent.clear(screen.getByTestId('patient-form-birthdate'))
+    fireEvent.change(screen.getByTestId('patient-form-phone'), { target: { value: '' } })
+    fireEvent.change(screen.getByTestId('patient-form-birthdate'), { target: { value: '' } })
+
     await userEvent.click(screen.getByTestId('patient-form-submit'))
 
     await waitFor(() => {

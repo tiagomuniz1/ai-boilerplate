@@ -1,0 +1,189 @@
+jest.mock('../services/appointments.service')
+jest.mock('@/components/features/patients/services/patients.service')
+jest.mock('@/components/features/doctors/services/doctors.service')
+jest.mock('@/components/features/schedule-exceptions/services/schedule-exceptions.service')
+jest.mock('@/stores/auth.store')
+jest.mock('next/navigation', () => ({ useRouter: jest.fn(() => ({ push: jest.fn() })) }))
+
+import { screen, waitFor } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
+import { UserRole } from '@app/shared'
+import { appointmentsService } from '../services/appointments.service'
+import { patientsService } from '@/components/features/patients/services/patients.service'
+import { doctorsService } from '@/components/features/doctors/services/doctors.service'
+import { scheduleExceptionsService } from '@/components/features/schedule-exceptions/services/schedule-exceptions.service'
+import { useAuthStore } from '@/stores/auth.store'
+import { renderWithProviders } from '@/tests/utils/render-with-providers'
+import { AppointmentAgenda } from './appointment-agenda'
+
+const mockAppointmentsService = appointmentsService as jest.Mocked<typeof appointmentsService>
+const mockPatientsService = patientsService as jest.Mocked<typeof patientsService>
+const mockDoctorsService = doctorsService as jest.Mocked<typeof doctorsService>
+const mockScheduleExceptionsService = scheduleExceptionsService as jest.Mocked<typeof scheduleExceptionsService>
+const mockUseAuthStore = useAuthStore as unknown as jest.Mock
+
+function mockAuth(role: UserRole, userId = 'user-uuid') {
+  mockUseAuthStore.mockImplementation((selector: (s: { user: object }) => unknown) =>
+    selector({ user: { id: userId, fullName: 'Test User', email: 'test@test.com', role, clinicId: 'clinic-uuid' } }),
+  )
+}
+
+const makeDoctorsResponse = (doctors: { id: string; fullName: string }[] = []) => ({
+  data: doctors.map((d) => ({
+    id: d.id,
+    user: { id: 'user-uuid', fullName: d.fullName, email: `${d.id}@test.com`, isActive: true },
+    crmNumber: '123456',
+    specialties: [],
+    bio: null,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  })),
+  total: doctors.length,
+  page: 1,
+  limit: 200,
+})
+
+const emptyAvailability = { doctorId: 'doctor-uuid', date: '2025-07-01', slots: [] }
+const emptyAppointments = { data: [], total: 0, page: 1, limit: 100 }
+
+describe('AppointmentAgenda (integration)', () => {
+  beforeEach(() => {
+    jest.clearAllMocks()
+    mockPatientsService.getAll.mockResolvedValue({ data: [], total: 0, page: 1, limit: 200 })
+    mockAppointmentsService.getAvailability.mockResolvedValue(emptyAvailability)
+    mockAppointmentsService.getAll.mockResolvedValue(emptyAppointments)
+    mockScheduleExceptionsService.getAll.mockResolvedValue({ data: [], total: 0, page: 1, limit: 20 })
+  })
+
+  it('renders the agenda toolbar', () => {
+    mockAuth(UserRole.ADMIN)
+    mockDoctorsService.getAll.mockResolvedValue(makeDoctorsResponse([]))
+    renderWithProviders(<AppointmentAgenda />)
+    expect(screen.getByTestId('agenda-toolbar')).toBeInTheDocument()
+  })
+
+  it('ADMIN sees doctor selector in toolbar', () => {
+    mockAuth(UserRole.ADMIN)
+    mockDoctorsService.getAll.mockResolvedValue(makeDoctorsResponse([{ id: 'd1', fullName: 'Dr. A' }]))
+    renderWithProviders(<AppointmentAgenda />)
+    expect(screen.getByTestId('toolbar-doctor-selector')).toBeInTheDocument()
+  })
+
+  it('USER sees doctor selector in toolbar', () => {
+    mockAuth(UserRole.USER)
+    mockDoctorsService.getAll.mockResolvedValue(makeDoctorsResponse([{ id: 'd1', fullName: 'Dr. A' }]))
+    renderWithProviders(<AppointmentAgenda />)
+    expect(screen.getByTestId('toolbar-doctor-selector')).toBeInTheDocument()
+  })
+
+  it('DOCTOR does not see doctor selector in toolbar', () => {
+    mockAuth(UserRole.DOCTOR)
+    mockDoctorsService.getAll.mockResolvedValue(
+      makeDoctorsResponse([{ id: 'my-doctor', fullName: 'Dr. Me' }]),
+    )
+    renderWithProviders(<AppointmentAgenda />)
+    expect(screen.queryByTestId('toolbar-doctor-selector')).not.toBeInTheDocument()
+  })
+
+  it('ADMIN sees empty state until doctor is selected', () => {
+    mockAuth(UserRole.ADMIN)
+    mockDoctorsService.getAll.mockResolvedValue(makeDoctorsResponse([{ id: 'd1', fullName: 'Dr. A' }]))
+    renderWithProviders(<AppointmentAgenda />)
+    expect(screen.getByTestId('agenda-empty-doctor')).toBeInTheDocument()
+  })
+
+  it('defaults to week view on load', () => {
+    mockAuth(UserRole.DOCTOR)
+    mockDoctorsService.getAll.mockResolvedValue(
+      makeDoctorsResponse([{ id: 'my-doctor', fullName: 'Dr. Me' }]),
+    )
+
+    renderWithProviders(<AppointmentAgenda />)
+
+    expect(screen.getByTestId('agenda-week-grid')).toBeInTheDocument()
+  })
+
+  it('switches to day view when clicking day button', async () => {
+    mockAuth(UserRole.DOCTOR)
+    mockDoctorsService.getAll.mockResolvedValue(
+      makeDoctorsResponse([{ id: 'my-doctor', fullName: 'Dr. Me' }]),
+    )
+
+    renderWithProviders(<AppointmentAgenda />)
+
+    await userEvent.click(screen.getByTestId('toolbar-view-day'))
+
+    await waitFor(() => {
+      expect(screen.queryByTestId('agenda-week-grid')).not.toBeInTheDocument()
+    })
+  })
+
+  it('navigates forward when clicking next', async () => {
+    mockAuth(UserRole.DOCTOR)
+    mockDoctorsService.getAll.mockResolvedValue(
+      makeDoctorsResponse([{ id: 'my-doctor', fullName: 'Dr. Me' }]),
+    )
+
+    renderWithProviders(<AppointmentAgenda />)
+
+    const initialLabel = screen.getByTestId('toolbar-date-label').textContent
+
+    await userEvent.click(screen.getByTestId('toolbar-next'))
+
+    const newLabel = screen.getByTestId('toolbar-date-label').textContent
+    expect(newLabel).not.toBe(initialLabel)
+  })
+
+  it('DOCTOR sees "Bloquear horário" button', () => {
+    mockAuth(UserRole.DOCTOR)
+    mockDoctorsService.getAll.mockResolvedValue(
+      makeDoctorsResponse([{ id: 'my-doctor', fullName: 'Dr. Me' }]),
+    )
+    renderWithProviders(<AppointmentAgenda />)
+    expect(screen.getByTestId('toolbar-block-time')).toBeInTheDocument()
+  })
+
+  it('ADMIN sees "Bloquear horário" button', () => {
+    mockAuth(UserRole.ADMIN)
+    mockDoctorsService.getAll.mockResolvedValue(makeDoctorsResponse([{ id: 'd1', fullName: 'Dr. A' }]))
+    renderWithProviders(<AppointmentAgenda />)
+    expect(screen.getByTestId('toolbar-block-time')).toBeInTheDocument()
+  })
+
+  it('USER does not see "Bloquear horário" button', () => {
+    mockAuth(UserRole.USER)
+    mockDoctorsService.getAll.mockResolvedValue(makeDoctorsResponse([{ id: 'd1', fullName: 'Dr. A' }]))
+    renderWithProviders(<AppointmentAgenda />)
+    expect(screen.queryByTestId('toolbar-block-time')).not.toBeInTheDocument()
+  })
+
+  it('ADMIN "Bloquear horário" button is disabled when no doctor selected', () => {
+    mockAuth(UserRole.ADMIN)
+    mockDoctorsService.getAll.mockResolvedValue(makeDoctorsResponse([{ id: 'd1', fullName: 'Dr. A' }]))
+    renderWithProviders(<AppointmentAgenda />)
+    expect(screen.getByTestId('toolbar-block-time')).toBeDisabled()
+  })
+
+  it('DOCTOR "Bloquear horário" button opens BlockTimeDialog', async () => {
+    mockAuth(UserRole.DOCTOR)
+    mockDoctorsService.getAll.mockResolvedValue(
+      makeDoctorsResponse([{ id: 'my-doctor', fullName: 'Dr. Me' }]),
+    )
+    renderWithProviders(<AppointmentAgenda />)
+
+    await userEvent.click(screen.getByTestId('toolbar-block-time'))
+
+    expect(screen.getByTestId('block-time-dialog')).toBeInTheDocument()
+  })
+
+  it('defaults role to USER when user is null', () => {
+    mockUseAuthStore.mockImplementation((selector: (s: { user: null }) => unknown) =>
+      selector({ user: null }),
+    )
+    mockDoctorsService.getAll.mockResolvedValue(makeDoctorsResponse([]))
+    renderWithProviders(<AppointmentAgenda />)
+    // USER role: doctor selector shown, no block time button
+    expect(screen.getByTestId('toolbar-doctor-selector')).toBeInTheDocument()
+    expect(screen.queryByTestId('toolbar-block-time')).not.toBeInTheDocument()
+  })
+})

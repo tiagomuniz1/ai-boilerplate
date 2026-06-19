@@ -248,6 +248,23 @@ describe('ClinicList (integration)', () => {
     expect(screen.getByTestId('clinic-theme-uuid-1')).toHaveTextContent('Azul Clínico')
   })
 
+  it('renders correctly when themes data is undefined (no theme service data)', async () => {
+    ;(clinicsService.getAll as jest.Mock).mockResolvedValue(makePaginated())
+    mockUseThemes.mockReturnValue({
+      data: undefined,
+      isPending: false,
+      isError: false,
+    } as ReturnType<typeof useThemes>)
+
+    renderWithProviders(<ClinicList />)
+
+    await waitFor(() => {
+      expect(screen.getByTestId('clinic-list-table')).toBeInTheDocument()
+    })
+
+    expect(screen.getByTestId('clinic-theme-uuid-1')).toHaveTextContent('Padrão')
+  })
+
   it('shows "Padrão" when themeId is set but not found in themes', async () => {
     ;(clinicsService.getAll as jest.Mock).mockResolvedValue(
       makePaginated([makeDto({ themeId: '99999999-9999-4999-8999-999999999999' })]),

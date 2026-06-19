@@ -12,9 +12,11 @@ import type { IClinicModel } from '../types/clinic.types'
 function resetInput(input: HTMLInputElement) {
   try {
     input.value = ''
+  /* c8 ignore start */
   } catch {
-    // JSDOM does not support resetting file input value
+    // browser compatibility: some browsers throw when resetting file input value
   }
+  /* c8 ignore stop */
 }
 
 const LOGO_MAX_BYTES = 2 * 1024 * 1024

@@ -4,6 +4,7 @@ import { Sidebar } from './sidebar'
 import { useSidebarNavigation } from '@/hooks/use-sidebar-navigation.hook'
 import { useAuthStore } from '@/stores/auth.store'
 import { useCurrentClinic } from '@/components/features/clinics/hooks/use-current-clinic.hook'
+import { useThemeStore } from '@/stores/theme.store'
 import type { INavigationItemViewModel } from '@/types/navigation.types'
 
 jest.mock('@/hooks/use-sidebar-navigation.hook')
@@ -193,5 +194,26 @@ describe('Sidebar', () => {
   it('does not mark inactive items with aria-current', () => {
     render(<Sidebar />)
     expect(screen.getByTestId('sidebar-item-users')).not.toHaveAttribute('aria-current')
+  })
+
+  it('treats null pathname as non-backoffice (does not show Backoffice)', () => {
+    ;(usePathname as jest.Mock).mockReturnValue(null)
+    render(<Sidebar />)
+    expect(screen.getByTestId('sidebar-clinic-name')).toHaveTextContent('Clínica')
+  })
+
+  it('shows dark logo image when theme is dark and logoDarkUrl is set', () => {
+    const logoDarkUrl = 'https://s3.amazonaws.com/clinics/uuid-1/logo-dark.jpg'
+    mockUseCurrentClinic.mockReturnValue({
+      data: { id: 'c1', name: 'Clínica do Coração', logoUrl: null, logoDarkUrl },
+    } as any)
+    useThemeStore.setState({ theme: 'dark' })
+
+    render(<Sidebar />)
+
+    const img = screen.getByRole('img')
+    expect(img).toHaveAttribute('src', logoDarkUrl)
+
+    useThemeStore.setState({ theme: 'light' })
   })
 })

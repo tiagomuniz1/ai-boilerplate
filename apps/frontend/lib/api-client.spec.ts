@@ -26,13 +26,14 @@ describe('api-client', () => {
   let axiosInstance: any
   let onFulfilled: (response: any) => any
   let onRejected: (error: unknown) => Promise<any>
+  let requestInterceptor: (config: any) => any
 
   beforeAll(() => {
     axiosInstance = (axios.create as jest.Mock).mock.results[0].value
     const [fulfilled, rejected] = (axiosInstance.interceptors.response.use as jest.Mock).mock.calls[0]
     onFulfilled = fulfilled
     onRejected = rejected
-    // Prevent request interceptor from running on the mock instance
+    requestInterceptor = (axiosInstance.interceptors.request.use as jest.Mock).mock.calls[0][0]
     ;(axiosInstance.interceptors.request.use as jest.Mock).mockClear()
   })
 
@@ -228,6 +229,106 @@ describe('api-client', () => {
       axiosInstance.delete.mockResolvedValue(undefined)
       await apiClient.delete('/users/1')
       expect(axiosInstance.delete).toHaveBeenCalledWith('/users/1')
+    })
+  })
+
+  describe('request interceptor — slug header', () => {
+    it('adds x-clinic-slug header when pathname has a non-backoffice slug', () => {
+      Object.defineProperty(window, 'location', {
+        value: { href: '', pathname: '/test-clinic/dashboard' },
+        configurable: true,
+        writable: true,
+      })
+      const config = { headers: {} as Record<string, string> }
+      const result = requestInterceptor(config)
+      expect(result.headers['x-clinic-slug']).toBe('test-clinic')
+    })
+
+    it('does not add x-clinic-slug header when pathname is /backoffice', () => {
+      Object.defineProperty(window, 'location', {
+        value: { href: '', pathname: '/backoffice/dashboard' },
+        configurable: true,
+        writable: true,
+      })
+      const config = { headers: {} as Record<string, string> }
+      const result = requestInterceptor(config)
+      expect(result.headers['x-clinic-slug']).toBeUndefined()
+    })
+
+    it('does not add x-clinic-slug header when pathname is root /', () => {
+      Object.defineProperty(window, 'location', {
+        value: { href: '', pathname: '/' },
+        configurable: true,
+        writable: true,
+      })
+      const config = { headers: {} as Record<string, string> }
+      const result = requestInterceptor(config)
+      expect(result.headers['x-clinic-slug']).toBeUndefined()
+    })
+  })
+
+  describe('401 retry with clinic slug', () => {
+    it('adds x-clinic-slug to refresh headers when request is from a clinic path', async () => {
+      Object.defineProperty(window, 'location', {
+        value: { href: '', pathname: '/my-clinic/dashboard' },
+        configurable: true,
+        writable: true,
+      })
+      ;(axios.isAxiosError as jest.Mock).mockReturnValue(true)
+      ;(axios.post as jest.Mock).mockResolvedValue({})
+      axiosInstance.mockResolvedValue({ id: 1 })
+
+      const error = {
+        response: { status: 401, data: {} },
+        config: { _retry: false, url: '/protected' },
+        message: 'Unauthorized',
+      }
+
+      await onRejected(error)
+
+      expect(axios.post).toHaveBeenCalledWith(
+        expect.stringContaining('/auth/refresh'),
+        {},
+        expect.objectContaining({ headers: { 'x-clinic-slug': 'my-clinic' } }),
+      )
+    })
+
+    it('redirects using path slug when refresh fails on a clinic path', async () => {
+      Object.defineProperty(window, 'location', {
+        value: { href: '', pathname: '/my-clinic/dashboard' },
+        configurable: true,
+        writable: true,
+      })
+      ;(axios.isAxiosError as jest.Mock).mockReturnValue(true)
+      ;(axios.post as jest.Mock).mockRejectedValue(new Error('Refresh failed'))
+
+      const error = {
+        response: { status: 401, data: {} },
+        config: { _retry: false },
+        message: 'Unauthorized',
+      }
+
+      await expect(onRejected(error)).rejects.toBeDefined()
+      expect(window.location.href).toBe('/my-clinic/login')
+    })
+
+    it('redirects to /backoffice/login when pathname has no segments', async () => {
+      Object.defineProperty(window, 'location', {
+        value: { href: '', pathname: '/' },
+        configurable: true,
+        writable: true,
+      })
+      ;(axios.isAxiosError as jest.Mock).mockReturnValue(true)
+      ;(axios.post as jest.Mock).mockRejectedValue(new Error('Refresh failed'))
+
+      const error = {
+        response: { status: 401, data: {} },
+        config: { _retry: false },
+        message: 'Unauthorized',
+      }
+
+      await expect(onRejected(error)).rejects.toBeDefined()
+      expect(window.location.href).toBe('/backoffice/login')
     })
   })
 })
