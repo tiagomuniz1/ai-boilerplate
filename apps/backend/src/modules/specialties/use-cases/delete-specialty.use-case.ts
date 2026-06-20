@@ -27,6 +27,20 @@ export class DeleteSpecialtyUseCase extends BaseUseCase {
       )
     }
 
+    const linkedClinics = await this.specialtiesRepository.countLinkedClinics(id)
+    if (linkedClinics > 0) {
+      throw new ConflictException(
+        `Specialty is linked to ${linkedClinics} clinic(s) and cannot be deleted`,
+      )
+    }
+
+    const linkedAppointments = await this.specialtiesRepository.countLinkedAppointments(id)
+    if (linkedAppointments > 0) {
+      throw new ConflictException(
+        `Specialty has ${linkedAppointments} appointment(s) and cannot be deleted`,
+      )
+    }
+
     await this.specialtiesRepository.delete(id)
 
     try {

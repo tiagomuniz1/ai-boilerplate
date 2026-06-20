@@ -39,6 +39,6 @@ import { AppointmentsRepository } from './repositories/appointments.repository'
     FindScheduledAppointmentsInWindowUseCase,
     { provide: IAppointmentsRepository, useClass: AppointmentsRepository },
   ],
-  exports: [HasFutureAppointmentsByScheduleUseCase, FindScheduledAppointmentsInWindowUseCase],
+  exports: [HasFutureAppointmentsByScheduleUseCase, FindScheduledAppointmentsInWindowUseCase, IAppointmentsRepository],
 })
 export class AppointmentsModule {}

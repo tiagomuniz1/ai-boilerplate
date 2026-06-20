@@ -6,6 +6,8 @@ export class AppointmentResponseDto {
   doctorName: string
   patientId: string
   patientName: string
+  specialtyId: string | null
+  specialtyName: string | null
   scheduleId: string
   date: string
   startTime: string

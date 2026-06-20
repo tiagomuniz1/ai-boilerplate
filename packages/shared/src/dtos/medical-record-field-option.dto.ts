@@ -1,0 +1,13 @@
+import { IsString, MaxLength, MinLength } from 'class-validator'
+
+export class MedicalRecordFieldOptionDto {
+  @IsString()
+  @MinLength(1)
+  @MaxLength(60)
+  value!: string
+
+  @IsString()
+  @MinLength(1)
+  @MaxLength(120)
+  label!: string
+}

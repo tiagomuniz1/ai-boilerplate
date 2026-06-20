@@ -5,6 +5,10 @@ export class CreateAppointmentDto {
   @IsUUID()
   doctorId?: string
 
+  @IsOptional()
+  @IsUUID()
+  specialtyId?: string
+
   @IsUUID()
   patientId: string
 

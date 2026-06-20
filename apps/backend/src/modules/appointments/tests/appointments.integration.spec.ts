@@ -50,6 +50,8 @@ describe('AppointmentsController (integration)', () => {
   let otherDoctorId: string
   let patientId: string
   let scheduleId: string
+  let specialtyId: string
+  let otherSpecialtyId: string
 
   // Friday 2 weeks from now, to ensure we always have a future FRIDAY available
   const futureDate = (() => {
@@ -144,6 +146,11 @@ describe('AppointmentsController (integration)', () => {
     )
 
     const specialty = await specialtyRepository.save(specialtyRepository.create({ name: 'Clínica Geral' }))
+    specialtyId = specialty.id
+    const otherSpecialty = await specialtyRepository.save(
+      specialtyRepository.create({ name: 'Dermatologia' }),
+    )
+    otherSpecialtyId = otherSpecialty.id
 
     const doctorEntity = doctorRepository.create({
       userId: doctorUser.id,
@@ -288,6 +295,55 @@ describe('AppointmentsController (integration)', () => {
       expect(body.endTime).toBe('08:30')
       expect(body.scheduleId).toBe(scheduleId)
       expect(body.status).toBe(AppointmentStatus.SCHEDULED)
+      expect(body.specialtyId).toBe(specialtyId)
+      expect(body.specialtyName).toBe('Clínica Geral')
+    })
+
+    it('auto-resolves the only specialty and returns it in the response', async () => {
+      const { body } = await request(app.getHttpServer())
+        .post('/appointments')
+        .set('Cookie', `access_token=${adminToken}`)
+        .send({ doctorId, patientId, date: futureDate, startTime: '08:00' })
+        .expect(201)
+
+      expect(body.specialtyId).toBe(specialtyId)
+      expect(body.specialtyName).toBe('Clínica Geral')
+    })
+
+    it('accepts an explicit specialtyId that belongs to the doctor', async () => {
+      const { body } = await request(app.getHttpServer())
+        .post('/appointments')
+        .set('Cookie', `access_token=${adminToken}`)
+        .send({ doctorId, patientId, specialtyId, date: futureDate, startTime: '08:00' })
+        .expect(201)
+
+      expect(body.specialtyId).toBe(specialtyId)
+    })
+
+    it('returns 422 when specialtyId does not belong to the doctor', async () => {
+      await request(app.getHttpServer())
+        .post('/appointments')
+        .set('Cookie', `access_token=${adminToken}`)
+        .send({ doctorId, patientId, specialtyId: otherSpecialtyId, date: futureDate, startTime: '08:00' })
+        .expect(422)
+    })
+
+    it('returns 422 when the doctor has multiple specialties and specialtyId is omitted', async () => {
+      const extra = await specialtyRepository.save(
+        specialtyRepository.create({ name: 'Cardiologia' }),
+      )
+      const doctor = await doctorRepository.findOne({
+        where: { id: doctorId },
+        relations: ['specialties'],
+      })
+      doctor!.specialties = [...doctor!.specialties, extra]
+      await doctorRepository.save(doctor!)
+
+      await request(app.getHttpServer())
+        .post('/appointments')
+        .set('Cookie', `access_token=${adminToken}`)
+        .send({ doctorId, patientId, date: futureDate, startTime: '08:00' })
+        .expect(422)
     })
 
     it('returns 201 when ADMIN creates appointment with doctorId', async () => {
@@ -354,6 +410,44 @@ describe('AppointmentsController (integration)', () => {
         .set('Cookie', `access_token=${doctorToken}`)
         .send({ patientId })
         .expect(400)
+    })
+
+    it('blocks deleting a specialty that has appointments attached', async () => {
+      await request(app.getHttpServer())
+        .post('/appointments')
+        .set('Cookie', `access_token=${doctorToken}`)
+        .send({ patientId, date: futureDate, startTime: '08:00' })
+        .expect(201)
+
+      // Remove the doctor links so the appointment is the only blocker.
+      await doctorRepository.query('DELETE FROM test.doctor_specialties WHERE specialty_id = $1', [
+        specialtyId,
+      ])
+
+      const hashed = await bcrypt.hash('Password123!', 1)
+      await userRepository.save(
+        userRepository.create({
+          fullName: 'Platform Admin',
+          email: 'platform@appointments.test',
+          password: hashed,
+          role: UserRole.PLATFORM_ADMIN,
+          clinicId: null,
+        }),
+      )
+      const loginRes = await request(app.getHttpServer())
+        .post('/auth/login')
+        .send({ email: 'platform@appointments.test', password: 'Password123!' })
+      const rawCookies = loginRes.headers['set-cookie']
+      const cookies = Array.isArray(rawCookies) ? rawCookies : [rawCookies as string]
+      const match = cookies.find((c: string) => c?.startsWith('access_token='))
+      const platformAdminToken = match ? match.slice('access_token='.length).split(';')[0] : ''
+
+      const { body } = await request(app.getHttpServer())
+        .delete(`/specialties/${specialtyId}`)
+        .set('Cookie', `access_token=${platformAdminToken}`)
+        .expect(409)
+
+      expect(body.detail).toContain('appointment')
     })
   })
 

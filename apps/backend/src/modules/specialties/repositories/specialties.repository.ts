@@ -60,6 +60,24 @@ export class SpecialtiesRepository implements ISpecialtiesRepository {
       .getCount()
   }
 
+  async countLinkedClinics(id: string): Promise<number> {
+    return this.repository.manager
+      .createQueryBuilder()
+      .select()
+      .from('clinic_specialties', 'cs')
+      .where('cs.specialty_id = :id', { id })
+      .getCount()
+  }
+
+  async countLinkedAppointments(id: string): Promise<number> {
+    return this.repository.manager
+      .createQueryBuilder()
+      .select()
+      .from('appointments', 'appointment')
+      .where('appointment.specialty_id = :id', { id })
+      .getCount()
+  }
+
   async delete(id: string, queryRunner?: QueryRunner): Promise<void> {
     const repo = queryRunner
       ? queryRunner.manager.getRepository(Specialty)

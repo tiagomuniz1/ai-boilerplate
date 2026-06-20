@@ -11,6 +11,8 @@ const mockSpecialtiesRepository: jest.Mocked<ISpecialtiesRepository> = {
   findByIds: jest.fn(),
   findByName: jest.fn(),
   countLinkedDoctors: jest.fn(),
+  countLinkedClinics: jest.fn(),
+  countLinkedAppointments: jest.fn(),
   create: jest.fn(),
   update: jest.fn(),
   delete: jest.fn(),
@@ -48,6 +50,8 @@ describe('DeleteSpecialtyUseCase', () => {
     mockCacheService.del.mockResolvedValue(undefined)
     mockCacheService.delByPattern.mockResolvedValue(undefined)
     mockSpecialtiesRepository.countLinkedDoctors.mockResolvedValue(0)
+    mockSpecialtiesRepository.countLinkedClinics.mockResolvedValue(0)
+    mockSpecialtiesRepository.countLinkedAppointments.mockResolvedValue(0)
   })
 
   it('deletes specialty when no doctors are linked', async () => {
@@ -73,6 +77,25 @@ describe('DeleteSpecialtyUseCase', () => {
     const specialty = makeSpecialty()
     mockSpecialtiesRepository.findById.mockResolvedValue(specialty as any)
     mockSpecialtiesRepository.countLinkedDoctors.mockResolvedValue(3)
+
+    await expect(useCase.execute(specialty.id)).rejects.toThrow(ConflictException)
+    expect(mockSpecialtiesRepository.delete).not.toHaveBeenCalled()
+  })
+
+  it('throws ConflictException when specialty is linked to a clinic', async () => {
+    const specialty = makeSpecialty()
+    mockSpecialtiesRepository.findById.mockResolvedValue(specialty as any)
+    mockSpecialtiesRepository.countLinkedClinics.mockResolvedValue(2)
+
+    await expect(useCase.execute(specialty.id)).rejects.toThrow(ConflictException)
+    expect(mockSpecialtiesRepository.countLinkedAppointments).not.toHaveBeenCalled()
+    expect(mockSpecialtiesRepository.delete).not.toHaveBeenCalled()
+  })
+
+  it('throws ConflictException when specialty has appointments attached', async () => {
+    const specialty = makeSpecialty()
+    mockSpecialtiesRepository.findById.mockResolvedValue(specialty as any)
+    mockSpecialtiesRepository.countLinkedAppointments.mockResolvedValue(1)
 
     await expect(useCase.execute(specialty.id)).rejects.toThrow(ConflictException)
     expect(mockSpecialtiesRepository.delete).not.toHaveBeenCalled()

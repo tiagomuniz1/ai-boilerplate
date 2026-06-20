@@ -219,6 +219,16 @@ describe('ScheduleExceptionsController (integration)', () => {
   })
 
   afterAll(async () => {
+    await scheduleExceptionRepository.query('DELETE FROM test.schedule_exceptions')
+    await appointmentRepository.query('DELETE FROM test.appointments')
+    await scheduleRepository.query('DELETE FROM test.schedules')
+    await patientRepository.query('DELETE FROM test.patients')
+    await doctorRepository.query('DELETE FROM test.doctor_specialties')
+    await doctorRepository.query('DELETE FROM test.doctors')
+    await specialtyRepository.query('DELETE FROM test.specialties')
+    await userRepository.query('DELETE FROM test.refresh_tokens')
+    await userRepository.query('DELETE FROM test.users')
+    await clinicRepository.query('DELETE FROM test.clinics')
     await app.close()
   })
 

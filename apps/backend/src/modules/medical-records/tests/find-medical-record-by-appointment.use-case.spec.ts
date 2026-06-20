@@ -1,0 +1,112 @@
+import { ForbiddenException, NotFoundException } from '@nestjs/common'
+import { DataSource } from 'typeorm'
+import { AppointmentStatus, UserRole } from '@app/shared'
+import { ICurrentUser } from '../../auth/types/current-user.type'
+import { IAppointmentsRepository } from '../../appointments/repositories/appointments.repository.interface'
+import { IDoctorsRepository } from '../../doctors/repositories/doctors.repository.interface'
+import { IMedicalRecordsRepository } from '../repositories/medical-records.repository.interface'
+import { FindMedicalRecordByAppointmentUseCase } from '../use-cases/find-medical-record-by-appointment.use-case'
+
+const clinicId = 'clinic-uuid'
+const doctorId = 'doctor-uuid'
+const appointmentId = 'appt-uuid'
+
+const adminUser: ICurrentUser = { id: 'admin-id', role: UserRole.ADMIN, clinicId }
+const doctorUser: ICurrentUser = { id: 'doctor-user-id', role: UserRole.DOCTOR, clinicId }
+
+const makeAppointment = (overrides = {}) => ({
+  id: appointmentId,
+  doctorId,
+  status: AppointmentStatus.SCHEDULED,
+  ...overrides,
+})
+
+const makeRecord = () => ({
+  id: 'record-uuid',
+  appointmentId,
+  patientId: 'patient-uuid',
+  doctorId,
+  specialtyId: 'specialty-uuid',
+  templateId: 'template-uuid',
+  templateSchemaSnapshot: [],
+  data: {},
+  notes: null,
+  patient: { user: { fullName: 'Patient Name' } },
+  doctor: { user: { fullName: 'Doctor Name' } },
+  specialty: { name: 'Cardiologia' },
+  createdAt: new Date(),
+  updatedAt: new Date(),
+})
+
+const mockMedicalRecordsRepository: jest.Mocked<IMedicalRecordsRepository> = {
+  findById: jest.fn(),
+  findByAppointment: jest.fn(),
+  findByPatient: jest.fn(),
+  create: jest.fn(),
+  update: jest.fn(),
+  delete: jest.fn(),
+}
+
+const mockAppointmentsRepository: jest.Mocked<IAppointmentsRepository> = {
+  findAll: jest.fn(),
+  findById: jest.fn(),
+  findActiveByDoctorAndDate: jest.fn(),
+  findActiveBySlot: jest.fn(),
+  hasFutureByScheduleId: jest.fn(),
+  create: jest.fn(),
+  update: jest.fn(),
+}
+
+const mockDoctorsRepository: jest.Mocked<IDoctorsRepository> = {
+  findAll: jest.fn(),
+  findById: jest.fn(),
+  findByUserId: jest.fn(),
+  findByCrmNumber: jest.fn(),
+  create: jest.fn(),
+  update: jest.fn(),
+  delete: jest.fn(),
+}
+
+describe('FindMedicalRecordByAppointmentUseCase', () => {
+  let useCase: FindMedicalRecordByAppointmentUseCase
+
+  beforeEach(() => {
+    jest.clearAllMocks()
+    useCase = new FindMedicalRecordByAppointmentUseCase(
+      {} as DataSource,
+      mockMedicalRecordsRepository,
+      mockAppointmentsRepository,
+      mockDoctorsRepository,
+    )
+    mockAppointmentsRepository.findById.mockResolvedValue(makeAppointment() as any)
+    mockMedicalRecordsRepository.findByAppointment.mockResolvedValue(makeRecord() as any)
+  })
+
+  it('returns record for ADMIN', async () => {
+    const result = await useCase.execute(appointmentId, adminUser)
+    expect(result).not.toBeNull()
+    expect(result!.appointmentId).toBe(appointmentId)
+  })
+
+  it('returns record for DOCTOR (own appointment)', async () => {
+    mockDoctorsRepository.findByUserId.mockResolvedValue({ id: doctorId } as any)
+    const result = await useCase.execute(appointmentId, doctorUser)
+    expect(result).not.toBeNull()
+  })
+
+  it('returns null when no record exists for appointment', async () => {
+    mockMedicalRecordsRepository.findByAppointment.mockResolvedValue(null)
+    const result = await useCase.execute(appointmentId, adminUser)
+    expect(result).toBeNull()
+  })
+
+  it('throws NotFoundException when appointment not found', async () => {
+    mockAppointmentsRepository.findById.mockResolvedValue(null)
+    await expect(useCase.execute(appointmentId, adminUser)).rejects.toThrow(NotFoundException)
+  })
+
+  it('throws ForbiddenException when DOCTOR checks another doctor appointment', async () => {
+    mockDoctorsRepository.findByUserId.mockResolvedValue({ id: 'other-doctor' } as any)
+    await expect(useCase.execute(appointmentId, doctorUser)).rejects.toThrow(ForbiddenException)
+  })
+})

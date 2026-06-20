@@ -74,6 +74,8 @@ export class CreateAppointmentUseCase extends BaseUseCase {
     }
     if (!doctor) throw new NotFoundException('Doctor not found')
 
+    const chosenSpecialty = this.resolveSpecialty(doctor.specialties, dto.specialtyId)
+
     const patient = await this.patientsRepository.findById(dto.patientId, clinicId)
     if (!patient) throw new NotFoundException('Patient not found')
 
@@ -122,6 +124,7 @@ export class CreateAppointmentUseCase extends BaseUseCase {
               clinicId,
               doctorId,
               patientId: dto.patientId,
+              specialtyId: chosenSpecialty.id,
               scheduleId,
               date: dateStr,
               startTime: timeStr,
@@ -152,7 +155,30 @@ export class CreateAppointmentUseCase extends BaseUseCase {
       this.fetchPatientName(dto.patientId),
     ])
 
-    return this.toResponse(appointment, doctorName, patientName)
+    return this.toResponse(appointment, doctorName, patientName, chosenSpecialty.name)
+  }
+
+  private resolveSpecialty(
+    specialties: Array<{ id: string; name: string }>,
+    requestedSpecialtyId?: string,
+  ): { id: string; name: string } {
+    if (requestedSpecialtyId) {
+      const matched = specialties.find((specialty) => specialty.id === requestedSpecialtyId)
+      if (!matched) {
+        throw new UnprocessableEntityException('Specialty does not belong to this doctor')
+      }
+      return matched
+    }
+
+    if (specialties.length === 0) {
+      throw new UnprocessableEntityException('Doctor has no active specialty')
+    }
+
+    if (specialties.length > 1) {
+      throw new UnprocessableEntityException('specialtyId is required')
+    }
+
+    return specialties[0]
   }
 
   private async fetchDoctorName(doctorId: string): Promise<string> {
@@ -179,13 +205,20 @@ export class CreateAppointmentUseCase extends BaseUseCase {
     return rows[0]?.fullName ?? ''
   }
 
-  private toResponse(appointment: Appointment, doctorName: string, patientName: string): AppointmentResponseDto {
+  private toResponse(
+    appointment: Appointment,
+    doctorName: string,
+    patientName: string,
+    specialtyName: string | null,
+  ): AppointmentResponseDto {
     return {
       id: appointment.id,
       doctorId: appointment.doctorId,
       doctorName,
       patientId: appointment.patientId,
       patientName,
+      specialtyId: appointment.specialtyId,
+      specialtyName,
       scheduleId: appointment.scheduleId,
       date: appointment.date,
       startTime: appointment.startTime,

@@ -7,6 +7,7 @@ export interface CreateAppointmentData {
   clinicId: string
   doctorId: string
   patientId: string
+  specialtyId: string | null
   scheduleId: string
   date: string
   startTime: string

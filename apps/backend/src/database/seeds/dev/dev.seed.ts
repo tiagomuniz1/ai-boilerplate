@@ -1,9 +1,22 @@
 import * as bcrypt from 'bcrypt'
-import { DataSource } from 'typeorm'
-import { ThemeBorderRadius, UserRole } from '@app/shared'
+import { DataSource, ILike } from 'typeorm'
+import { AppointmentStatus, DayOfWeek, MedicalRecordFieldType, PatientGender, ThemeBorderRadius, UserRole } from '@app/shared'
 import { Theme } from '../../../modules/themes/entities/theme.entity'
 import { Clinic } from '../../../modules/clinics/entities/clinic.entity'
 import { User } from '../../../modules/users/entities/user.entity'
+import { Specialty } from '../../../modules/specialties/entities/specialty.entity'
+import { ClinicSpecialty } from '../../../modules/clinic-specialties/entities/clinic-specialty.entity'
+import { Doctor } from '../../../modules/doctors/entities/doctor.entity'
+import { Patient } from '../../../modules/patients/entities/patient.entity'
+import { Schedule } from '../../../modules/schedules/entities/schedule.entity'
+import { Appointment } from '../../../modules/appointments/entities/appointment.entity'
+import { MedicalRecordCanonicalField } from '../../../modules/medical-record-canonical-fields/entities/medical-record-canonical-field.entity'
+import {
+  MedicalRecordTemplate,
+  MedicalRecordTemplateField,
+} from '../../../modules/medical-record-templates/entities/medical-record-template.entity'
+import { MedicalRecord } from '../../../modules/medical-records/entities/medical-record.entity'
+import { generateFieldKey } from '../../../modules/medical-record-templates/utils/generate-field-key.util'
 
 const SEED_CLINIC_ID = '10000000-0000-4000-8000-000000000000'
 
@@ -110,11 +123,140 @@ const SEED_THEMES = [
   },
 ]
 
+const SEED_GENERAL_CANONICAL_FIELDS: Array<{
+  canonicalKey: string
+  label: string
+  type: MedicalRecordFieldType
+  unit?: string
+}> = [
+  { canonicalKey: 'weight', label: 'Peso', type: MedicalRecordFieldType.NUMBER, unit: 'kg' },
+  { canonicalKey: 'height', label: 'Altura', type: MedicalRecordFieldType.NUMBER, unit: 'cm' },
+  { canonicalKey: 'blood_pressure', label: 'Pressão arterial', type: MedicalRecordFieldType.TEXT, unit: 'mmHg' },
+  { canonicalKey: 'heart_rate', label: 'Frequência cardíaca', type: MedicalRecordFieldType.NUMBER, unit: 'bpm' },
+  { canonicalKey: 'temperature', label: 'Temperatura', type: MedicalRecordFieldType.NUMBER, unit: '°C' },
+  { canonicalKey: 'chief_complaint', label: 'Queixa principal', type: MedicalRecordFieldType.TEXTAREA },
+  { canonicalKey: 'allergies', label: 'Alergias', type: MedicalRecordFieldType.TEXTAREA },
+  { canonicalKey: 'smoker', label: 'Fumante', type: MedicalRecordFieldType.BOOLEAN },
+]
+
 export async function devSeed(dataSource: DataSource): Promise<void> {
   const defaultTheme = await seedThemes(dataSource)
   await seedClinic(dataSource, defaultTheme.id)
   await seedPlatformAdmin(dataSource.getRepository(User))
   await seedClinicAdmin(dataSource.getRepository(User))
+  await seedCanonicalFields(dataSource)
+  await seedMedicalRecordTemplates(dataSource)
+  await seedMedicalRecords(dataSource)
+}
+
+async function seedCanonicalFields(dataSource: DataSource): Promise<void> {
+  const repository = dataSource.getRepository(MedicalRecordCanonicalField)
+
+  for (const data of SEED_GENERAL_CANONICAL_FIELDS) {
+    const existing = await repository.findOneBy({ canonicalKey: data.canonicalKey })
+    if (!existing) {
+      await repository.save(
+        repository.create({
+          canonicalKey: data.canonicalKey,
+          label: data.label,
+          type: data.type,
+          options: null,
+          unit: data.unit ?? null,
+          specialtyId: null,
+          description: null,
+        }),
+      )
+      console.log(`Dev seed: canonical field "${data.canonicalKey}" created.`)
+    }
+  }
+
+  const cardiology = await dataSource
+    .getRepository(Specialty)
+    .findOne({ where: { name: ILike('Cardiologia') } })
+
+  if (cardiology) {
+    const existing = await repository.findOneBy({ canonicalKey: 'risk_level' })
+    if (!existing) {
+      await repository.save(
+        repository.create({
+          canonicalKey: 'risk_level',
+          label: 'Nível de risco',
+          type: MedicalRecordFieldType.SELECT,
+          options: [
+            { value: 'low', label: 'Baixo' },
+            { value: 'moderate', label: 'Moderado' },
+            { value: 'high', label: 'Alto' },
+          ],
+          unit: null,
+          specialtyId: cardiology.id,
+          description: null,
+        }),
+      )
+      console.log('Dev seed: canonical field "risk_level" (cardiology) created.')
+    }
+  }
+}
+
+async function seedMedicalRecordTemplates(dataSource: DataSource): Promise<void> {
+  const templateRepository = dataSource.getRepository(MedicalRecordTemplate)
+  const canonicalRepository = dataSource.getRepository(MedicalRecordCanonicalField)
+  const clinicSpecialties = await dataSource
+    .getRepository(ClinicSpecialty)
+    .find({ where: { clinicId: SEED_CLINIC_ID } })
+
+  for (const clinicSpecialty of clinicSpecialties) {
+    const existing = await templateRepository.findOneBy({
+      clinicId: SEED_CLINIC_ID,
+      specialtyId: clinicSpecialty.specialtyId,
+    })
+    if (existing) continue
+
+    const usedKeys = new Set<string>()
+    const fields: MedicalRecordTemplateField[] = []
+
+    const canonicalKeys = ['weight', 'height']
+    let order = 1
+    for (const canonicalKey of canonicalKeys) {
+      const canonical = await canonicalRepository.findOneBy({ canonicalKey })
+      if (!canonical) continue
+      fields.push({
+        key: generateFieldKey(canonical.label, usedKeys),
+        label: canonical.label,
+        type: canonical.type,
+        required: false,
+        order,
+        options: canonical.options,
+        placeholder: null,
+        helpText: null,
+        canonical: true,
+        canonicalKey: canonical.canonicalKey,
+      })
+      order += 1
+    }
+
+    fields.push({
+      key: generateFieldKey('Observações', usedKeys),
+      label: 'Observações',
+      type: MedicalRecordFieldType.TEXTAREA,
+      required: false,
+      order,
+      options: null,
+      placeholder: null,
+      helpText: null,
+      canonical: false,
+      canonicalKey: null,
+    })
+
+    await templateRepository.save(
+      templateRepository.create({
+        clinicId: SEED_CLINIC_ID,
+        specialtyId: clinicSpecialty.specialtyId,
+        name: 'Prontuário padrão',
+        fields,
+      }),
+    )
+    console.log(`Dev seed: medical record template for specialty ${clinicSpecialty.specialtyId} created.`)
+  }
 }
 
 async function seedThemes(dataSource: DataSource): Promise<Theme> {
@@ -220,4 +362,157 @@ async function seedClinicAdmin(repository: ReturnType<DataSource['getRepository'
   )
 
   console.log('Dev seed: clinic admin created.')
+}
+
+async function seedMedicalRecords(dataSource: DataSource): Promise<void> {
+  const recordRepository = dataSource.getRepository(MedicalRecord)
+  const existing = await recordRepository.count()
+  if (existing > 0) {
+    console.log('Dev seed: medical records already exist, skipping.')
+    return
+  }
+
+  const userRepository = dataSource.getRepository(User)
+  const doctorRepository = dataSource.getRepository(Doctor)
+  const patientRepository = dataSource.getRepository(Patient)
+  const scheduleRepository = dataSource.getRepository(Schedule)
+  const appointmentRepository = dataSource.getRepository(Appointment)
+  const templateRepository = dataSource.getRepository(MedicalRecordTemplate)
+
+  const clinicSpecialties = await dataSource
+    .getRepository(ClinicSpecialty)
+    .find({ where: { clinicId: SEED_CLINIC_ID }, take: 1 })
+
+  if (clinicSpecialties.length === 0) {
+    console.log('Dev seed: no clinic specialties found, skipping medical records.')
+    return
+  }
+
+  const specialtyId = clinicSpecialties[0].specialtyId
+  const template = await templateRepository.findOne({ where: { clinicId: SEED_CLINIC_ID, specialtyId } })
+  if (!template) {
+    console.log('Dev seed: no template found for specialty, skipping medical records.')
+    return
+  }
+
+  const password = await bcrypt.hash('123123123', 10)
+  const adminUser = await userRepository.findOneBy({ email: 'admin@pulso.center' })
+  if (!adminUser) return
+
+  let doctor = await doctorRepository.findOneBy({ clinicId: SEED_CLINIC_ID })
+  if (!doctor) {
+    let doctorUser = await userRepository.findOneBy({ email: 'doctor@pulso.center' })
+    if (!doctorUser) {
+      doctorUser = await userRepository.save(
+        userRepository.create({
+          fullName: 'Dr. João Silva',
+          email: 'doctor@pulso.center',
+          password,
+          role: UserRole.DOCTOR,
+          clinicId: SEED_CLINIC_ID,
+        }),
+      )
+    }
+    const specialty = await dataSource.getRepository(Specialty).findOneBy({ id: specialtyId })
+    const doctorEntity = doctorRepository.create({ userId: doctorUser.id, crmNumber: '12345/SP', clinicId: SEED_CLINIC_ID })
+    doctorEntity.specialties = specialty ? [specialty] : []
+    doctor = await doctorRepository.save(doctorEntity)
+    console.log('Dev seed: seed doctor created.')
+  }
+
+  let patient = await patientRepository.findOneBy({ clinicId: SEED_CLINIC_ID })
+  if (!patient) {
+    let patientUser = await userRepository.findOneBy({ email: 'patient@pulso.center' })
+    if (!patientUser) {
+      patientUser = await userRepository.save(
+        userRepository.create({
+          fullName: 'Maria Fernandes',
+          email: 'patient@pulso.center',
+          password,
+          role: UserRole.USER,
+          clinicId: SEED_CLINIC_ID,
+        }),
+      )
+    }
+    patient = await patientRepository.save(
+      patientRepository.create({
+        userId: patientUser.id,
+        clinicId: SEED_CLINIC_ID,
+        documentNumber: '12345678901',
+        phoneNumber: '11987654321',
+        birthDate: '1985-03-20',
+        gender: PatientGender.FEMALE,
+      }),
+    )
+    console.log('Dev seed: seed patient created.')
+  }
+
+  let schedule = await scheduleRepository.findOneBy({ doctorId: doctor.id })
+  if (!schedule) {
+    schedule = await scheduleRepository.save(
+      scheduleRepository.create({
+        doctorId: doctor.id,
+        clinicId: SEED_CLINIC_ID,
+        dayOfWeek: DayOfWeek.MONDAY,
+        startTime: '08:00',
+        endTime: '12:00',
+        slotDurationInMinutes: 30,
+        validFrom: null,
+        validUntil: null,
+      }),
+    )
+    console.log('Dev seed: seed schedule created.')
+  }
+
+  const appointments = [
+    { date: '2026-01-05', startTime: '08:00', endTime: '08:30' },
+    { date: '2026-01-12', startTime: '08:30', endTime: '09:00' },
+  ]
+
+  for (const apptData of appointments) {
+    const existingAppt = await appointmentRepository.findOneBy({
+      clinicId: SEED_CLINIC_ID,
+      date: apptData.date,
+      startTime: apptData.startTime,
+    })
+    if (existingAppt) continue
+
+    const appointment = await appointmentRepository.save(
+      appointmentRepository.create({
+        clinicId: SEED_CLINIC_ID,
+        doctorId: doctor.id,
+        patientId: patient.id,
+        specialtyId,
+        scheduleId: schedule.id,
+        date: apptData.date,
+        startTime: apptData.startTime,
+        endTime: apptData.endTime,
+        status: AppointmentStatus.COMPLETED,
+        reason: 'Consulta de rotina',
+        cancellationReason: null,
+      }),
+    )
+
+    const data: Record<string, unknown> = {}
+    for (const field of template.fields) {
+      if (field.type === MedicalRecordFieldType.NUMBER) data[field.key] = 70
+      else if (field.type === MedicalRecordFieldType.TEXT || field.type === MedicalRecordFieldType.TEXTAREA) data[field.key] = 'Sem queixas.'
+      else if (field.type === MedicalRecordFieldType.BOOLEAN) data[field.key] = false
+    }
+
+    await recordRepository.save(
+      recordRepository.create({
+        clinicId: SEED_CLINIC_ID,
+        appointmentId: appointment.id,
+        patientId: patient.id,
+        doctorId: doctor.id,
+        specialtyId,
+        templateId: template.id,
+        templateSchemaSnapshot: template.fields,
+        data,
+        notes: 'Paciente em bom estado geral.',
+      }),
+    )
+    console.log(`Dev seed: medical record for appointment ${apptData.date} ${apptData.startTime} created.`)
+  }
 }

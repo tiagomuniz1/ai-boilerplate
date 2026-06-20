@@ -89,6 +89,7 @@ export class AppointmentsRepository implements IAppointmentsRepository {
         clinicId: data.clinicId,
         doctorId: data.doctorId,
         patientId: data.patientId,
+        specialtyId: data.specialtyId,
         scheduleId: data.scheduleId,
         date: data.date,
         startTime: data.startTime,

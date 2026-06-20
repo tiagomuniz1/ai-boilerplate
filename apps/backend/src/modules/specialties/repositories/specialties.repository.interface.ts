@@ -8,6 +8,8 @@ export abstract class ISpecialtiesRepository {
   abstract findByIds(ids: string[]): Promise<Specialty[]>
   abstract findByName(name: string): Promise<Specialty | null>
   abstract countLinkedDoctors(id: string): Promise<number>
+  abstract countLinkedClinics(id: string): Promise<number>
+  abstract countLinkedAppointments(id: string): Promise<number>
   abstract create(data: CreateSpecialtyDto, queryRunner?: QueryRunner): Promise<Specialty>
   abstract update(id: string, data: UpdateSpecialtyDto, queryRunner?: QueryRunner): Promise<Specialty>
   abstract delete(id: string, queryRunner?: QueryRunner): Promise<void>

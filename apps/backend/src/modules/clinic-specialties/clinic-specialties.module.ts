@@ -25,5 +25,6 @@ import { ClinicSpecialtiesRepository } from './repositories/clinic-specialties.r
     FindClinicSpecialtiesUseCase,
     { provide: IClinicSpecialtiesRepository, useClass: ClinicSpecialtiesRepository },
   ],
+  exports: [IClinicSpecialtiesRepository],
 })
 export class ClinicSpecialtiesModule {}

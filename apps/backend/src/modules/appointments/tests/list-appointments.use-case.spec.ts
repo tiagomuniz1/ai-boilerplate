@@ -21,6 +21,7 @@ const makeAppointment = (overrides = {}) => ({
   clinicId: CLINIC_ID,
   doctorId,
   patientId: faker.string.uuid(),
+  specialtyId: null,
   scheduleId: faker.string.uuid(),
   date: '2025-06-20',
   startTime: '08:00',
@@ -138,6 +139,39 @@ describe('ListAppointmentsUseCase', () => {
     const result = await useCase.execute({ page: 1, limit: 20 }, adminUser)
     expect(result.total).toBe(1)
     expect(result.data).toHaveLength(1)
+  })
+
+  it('resolves specialty names only for appointments that have a specialty', async () => {
+    const builder = {
+      select: jest.fn().mockReturnThis(),
+      addSelect: jest.fn().mockReturnThis(),
+      from: jest.fn().mockReturnThis(),
+      innerJoin: jest.fn().mockReturnThis(),
+      where: jest.fn().mockReturnThis(),
+      andWhere: jest.fn().mockReturnThis(),
+      getRawMany: jest.fn().mockResolvedValue([{ specialtyId: 'spec-x', name: 'Cardiologia' }]),
+    }
+    const ds = { createQueryBuilder: jest.fn().mockReturnValue(builder) } as unknown as DataSource
+    const useCaseWithSpecialty = new ListAppointmentsUseCase(
+      ds,
+      mockAppointmentsRepository,
+      mockDoctorsRepository,
+      mockCacheService,
+    )
+
+    const withSpecialty = makeAppointment({ specialtyId: 'spec-x' })
+    const unmappedSpecialty = makeAppointment({ specialtyId: 'spec-y' })
+    const withoutSpecialty = makeAppointment({ specialtyId: null })
+    mockAppointmentsRepository.findAll.mockResolvedValue([
+      [withSpecialty as any, unmappedSpecialty as any, withoutSpecialty as any],
+      3,
+    ])
+
+    const result = await useCaseWithSpecialty.execute({ page: 1, limit: 20 }, adminUser)
+
+    expect(result.data[0].specialtyName).toBe('Cardiologia')
+    expect(result.data[1].specialtyName).toBeNull()
+    expect(result.data[2].specialtyName).toBeNull()
   })
 
   it('continues when cache read fails', async () => {

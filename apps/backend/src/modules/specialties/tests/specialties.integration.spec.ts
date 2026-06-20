@@ -115,6 +115,7 @@ describe('SpecialtiesController (integration)', () => {
     await specialtyRepository.query('DELETE FROM test.doctor_specialties')
     await specialtyRepository.query('DELETE FROM test.doctors')
     await specialtyRepository.query('DELETE FROM test.patients')
+    await specialtyRepository.query('DELETE FROM test.clinic_specialties')
     await specialtyRepository.query('DELETE FROM test.specialties')
     await specialtyRepository.query('DELETE FROM test.refresh_tokens')
     await userRepository.query('DELETE FROM test.users')
@@ -561,6 +562,22 @@ describe('SpecialtiesController (integration)', () => {
         .expect(409)
 
       expect(body.detail).toContain('doctor')
+    })
+
+    it('returns 409 when specialty is linked to a clinic', async () => {
+      const { body: specialty } = await createSpecialty(platformAdminToken, { name: 'Pediatria' }).expect(201)
+
+      await specialtyRepository.query(
+        'INSERT INTO test.clinic_specialties (clinic_id, specialty_id) VALUES ($1, $2)',
+        [SEED_CLINIC_ID, specialty.id],
+      )
+
+      const { body } = await request(app.getHttpServer())
+        .delete(`/specialties/${specialty.id}`)
+        .set('Authorization', `Bearer ${platformAdminToken}`)
+        .expect(409)
+
+      expect(body.detail).toContain('clinic')
     })
 
     it('allows deletion after all linked doctors are removed', async () => {

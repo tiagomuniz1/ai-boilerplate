@@ -14,6 +14,7 @@ import { Clinic } from '../../clinics/entities/clinic.entity'
 import { Doctor } from '../../doctors/entities/doctor.entity'
 import { Patient } from '../../patients/entities/patient.entity'
 import { Schedule } from '../../schedules/entities/schedule.entity'
+import { Specialty } from '../../specialties/entities/specialty.entity'
 
 @Entity('appointments')
 export class Appointment {
@@ -40,6 +41,13 @@ export class Appointment {
 
   @Column({ name: 'patient_id' })
   patientId: string
+
+  @ManyToOne(() => Specialty, { eager: false })
+  @JoinColumn({ name: 'specialty_id' })
+  specialty: Specialty | null
+
+  @Column({ name: 'specialty_id', type: 'uuid', nullable: true })
+  specialtyId: string | null
 
   @ManyToOne(() => Schedule, { eager: false })
   @JoinColumn({ name: 'schedule_id' })

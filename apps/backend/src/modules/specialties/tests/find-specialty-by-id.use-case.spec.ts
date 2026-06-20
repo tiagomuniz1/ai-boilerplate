@@ -11,6 +11,8 @@ const mockSpecialtiesRepository: jest.Mocked<ISpecialtiesRepository> = {
   findByIds: jest.fn(),
   findByName: jest.fn(),
   countLinkedDoctors: jest.fn(),
+  countLinkedClinics: jest.fn(),
+  countLinkedAppointments: jest.fn(),
   create: jest.fn(),
   update: jest.fn(),
   delete: jest.fn(),

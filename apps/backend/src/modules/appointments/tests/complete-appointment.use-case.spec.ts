@@ -29,6 +29,7 @@ const makeAppointment = (overrides = {}) => ({
   clinicId: CLINIC_ID,
   doctorId,
   patientId: faker.string.uuid(),
+  specialtyId: null,
   scheduleId: faker.string.uuid(),
   date: yesterday,
   startTime: '08:00',
@@ -210,7 +211,11 @@ describe('CompleteAppointmentUseCase', () => {
     )
 
     const appointment = makeAppointment({ date: yesterday })
-    const completed = makeAppointment({ date: yesterday, status: AppointmentStatus.COMPLETED })
+    const completed = makeAppointment({
+      date: yesterday,
+      status: AppointmentStatus.COMPLETED,
+      specialtyId: 'spec-x',
+    })
     mockAppointmentsRepository.findById.mockResolvedValue(appointment as any)
     mockAppointmentsRepository.update.mockResolvedValue(completed as any)
 
@@ -218,5 +223,39 @@ describe('CompleteAppointmentUseCase', () => {
 
     expect(result.doctorName).toBe('')
     expect(result.patientName).toBe('')
+    expect(result.specialtyName).toBeNull()
+  })
+
+  it('resolves specialtyName when the completed appointment has a specialty', async () => {
+    const builder = {
+      select: jest.fn().mockReturnThis(),
+      addSelect: jest.fn().mockReturnThis(),
+      from: jest.fn().mockReturnThis(),
+      innerJoin: jest.fn().mockReturnThis(),
+      where: jest.fn().mockReturnThis(),
+      andWhere: jest.fn().mockReturnThis(),
+      getRawMany: jest.fn().mockResolvedValue([{ name: 'Cardiologia' }]),
+    }
+    const ds = { createQueryBuilder: jest.fn().mockReturnValue(builder) } as unknown as DataSource
+    const useCaseWithSpecialty = new CompleteAppointmentUseCase(
+      ds,
+      mockAppointmentsRepository,
+      mockDoctorsRepository,
+      mockCacheService,
+    )
+
+    const appointment = makeAppointment({ date: yesterday })
+    const completed = makeAppointment({
+      date: yesterday,
+      status: AppointmentStatus.COMPLETED,
+      specialtyId: 'spec-x',
+    })
+    mockAppointmentsRepository.findById.mockResolvedValue(appointment as any)
+    mockAppointmentsRepository.update.mockResolvedValue(completed as any)
+
+    const result = await useCaseWithSpecialty.execute(appointment.id, adminUser)
+
+    expect(result.specialtyId).toBe('spec-x')
+    expect(result.specialtyName).toBe('Cardiologia')
   })
 })

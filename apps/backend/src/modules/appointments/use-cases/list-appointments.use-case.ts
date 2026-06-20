@@ -47,15 +47,24 @@ export class ListAppointmentsUseCase extends BaseUseCase {
 
     const doctorIds = [...new Set(appointments.map((a) => a.doctorId))]
     const patientIds = [...new Set(appointments.map((a) => a.patientId))]
+    const specialtyIds = [
+      ...new Set(appointments.map((a) => a.specialtyId).filter((id): id is string => id !== null)),
+    ]
 
-    const [doctorNames, patientNames] = await Promise.all([
+    const [doctorNames, patientNames, specialtyNames] = await Promise.all([
       this.fetchDoctorNames(doctorIds),
       this.fetchPatientNames(patientIds),
+      this.fetchSpecialtyNames(specialtyIds),
     ])
 
     const result: PaginatedAppointmentsResponseDto = {
       data: appointments.map((a) =>
-        this.toResponse(a, doctorNames.get(a.doctorId) ?? '', patientNames.get(a.patientId) ?? ''),
+        this.toResponse(
+          a,
+          doctorNames.get(a.doctorId) ?? '',
+          patientNames.get(a.patientId) ?? '',
+          a.specialtyId ? specialtyNames.get(a.specialtyId) ?? null : null,
+        ),
       ),
       total,
       page,
@@ -99,13 +108,33 @@ export class ListAppointmentsUseCase extends BaseUseCase {
     return new Map(rows.map((r) => [r.patientId, r.fullName]))
   }
 
-  private toResponse(appointment: Appointment, doctorName: string, patientName: string): AppointmentResponseDto {
+  private async fetchSpecialtyNames(specialtyIds: string[]): Promise<Map<string, string>> {
+    if (specialtyIds.length === 0) return new Map()
+    const rows: Array<{ specialtyId: string; name: string }> = await this.dataSource
+      .createQueryBuilder()
+      .select('s.id', 'specialtyId')
+      .addSelect('s.name', 'name')
+      .from('specialties', 's')
+      .where('s.id IN (:...ids)', { ids: specialtyIds })
+      .andWhere('s.deleted_at IS NULL')
+      .getRawMany()
+    return new Map(rows.map((r) => [r.specialtyId, r.name]))
+  }
+
+  private toResponse(
+    appointment: Appointment,
+    doctorName: string,
+    patientName: string,
+    specialtyName: string | null,
+  ): AppointmentResponseDto {
     return {
       id: appointment.id,
       doctorId: appointment.doctorId,
       doctorName,
       patientId: appointment.patientId,
       patientName,
+      specialtyId: appointment.specialtyId,
+      specialtyName,
       scheduleId: appointment.scheduleId,
       date: appointment.date,
       startTime: appointment.startTime,

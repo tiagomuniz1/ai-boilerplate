@@ -269,6 +269,44 @@ describe('SpecialtiesRepository', () => {
     })
   })
 
+  describe('countLinkedClinics', () => {
+    it('counts clinic_specialties rows for the specialty', async () => {
+      const mockQueryBuilder = {
+        select: jest.fn().mockReturnThis(),
+        from: jest.fn().mockReturnThis(),
+        where: jest.fn().mockReturnThis(),
+        getCount: jest.fn().mockResolvedValue(3),
+      }
+      ;(repo.manager as any).createQueryBuilder = jest.fn().mockReturnValue(mockQueryBuilder)
+
+      const result = await repository.countLinkedClinics('uuid-1')
+
+      expect(mockQueryBuilder.from).toHaveBeenCalledWith('clinic_specialties', 'cs')
+      expect(mockQueryBuilder.where).toHaveBeenCalledWith('cs.specialty_id = :id', { id: 'uuid-1' })
+      expect(result).toBe(3)
+    })
+  })
+
+  describe('countLinkedAppointments', () => {
+    it('counts appointments rows for the specialty', async () => {
+      const mockQueryBuilder = {
+        select: jest.fn().mockReturnThis(),
+        from: jest.fn().mockReturnThis(),
+        where: jest.fn().mockReturnThis(),
+        getCount: jest.fn().mockResolvedValue(5),
+      }
+      ;(repo.manager as any).createQueryBuilder = jest.fn().mockReturnValue(mockQueryBuilder)
+
+      const result = await repository.countLinkedAppointments('uuid-1')
+
+      expect(mockQueryBuilder.from).toHaveBeenCalledWith('appointments', 'appointment')
+      expect(mockQueryBuilder.where).toHaveBeenCalledWith('appointment.specialty_id = :id', {
+        id: 'uuid-1',
+      })
+      expect(result).toBe(5)
+    })
+  })
+
   describe('delete', () => {
     it('soft-deletes the specialty', async () => {
       repo.softDelete.mockResolvedValue({ affected: 1 } as any)

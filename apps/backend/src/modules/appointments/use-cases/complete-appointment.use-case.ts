@@ -69,12 +69,25 @@ export class CompleteAppointmentUseCase extends BaseUseCase {
       this.logger.warn('Cache invalidation failed', { context: CompleteAppointmentUseCase.name })
     }
 
-    const [doctorName, patientName] = await Promise.all([
+    const [doctorName, patientName, specialtyName] = await Promise.all([
       this.fetchDoctorName(updated.doctorId),
       this.fetchPatientName(updated.patientId),
+      this.fetchSpecialtyName(updated.specialtyId),
     ])
 
-    return this.toResponse(updated, doctorName, patientName)
+    return this.toResponse(updated, doctorName, patientName, specialtyName)
+  }
+
+  private async fetchSpecialtyName(specialtyId: string | null): Promise<string | null> {
+    if (!specialtyId) return null
+    const rows: Array<{ name: string }> = await this.dataSource
+      .createQueryBuilder()
+      .select('s.name', 'name')
+      .from('specialties', 's')
+      .where('s.id = :specialtyId', { specialtyId })
+      .andWhere('s.deleted_at IS NULL')
+      .getRawMany()
+    return rows[0]?.name ?? null
   }
 
   private async fetchDoctorName(doctorId: string): Promise<string> {
@@ -101,13 +114,20 @@ export class CompleteAppointmentUseCase extends BaseUseCase {
     return rows[0]?.fullName ?? ''
   }
 
-  private toResponse(appointment: Appointment, doctorName: string, patientName: string): AppointmentResponseDto {
+  private toResponse(
+    appointment: Appointment,
+    doctorName: string,
+    patientName: string,
+    specialtyName: string | null,
+  ): AppointmentResponseDto {
     return {
       id: appointment.id,
       doctorId: appointment.doctorId,
       doctorName,
       patientId: appointment.patientId,
       patientName,
+      specialtyId: appointment.specialtyId,
+      specialtyName,
       scheduleId: appointment.scheduleId,
       date: appointment.date,
       startTime: appointment.startTime,
