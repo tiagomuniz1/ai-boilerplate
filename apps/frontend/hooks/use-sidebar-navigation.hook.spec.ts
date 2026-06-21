@@ -80,20 +80,20 @@ describe('useSidebarNavigation', () => {
     })
   })
 
-  it('ADMIN sees 6 items: dashboard, users, patients, doctors, appointments, schedules', () => {
+  it('ADMIN sees 7 items: dashboard, users, patients, doctors, medical-record-templates, appointments, schedules', () => {
     setRole(UserRole.ADMIN)
     const { result } = renderHook(() => useSidebarNavigation())
     const ids = result.current.items.map((i) => i.id)
-    expect(ids).toEqual(expect.arrayContaining(['dashboard', 'users', 'patients', 'doctors', 'appointments', 'schedules']))
-    expect(ids).toHaveLength(6)
+    expect(ids).toEqual(expect.arrayContaining(['dashboard', 'users', 'patients', 'doctors', 'medical-record-templates', 'appointments', 'schedules']))
+    expect(ids).toHaveLength(7)
     expect(ids).not.toContain('specialties')
   })
 
-  it('DOCTOR sees dashboard, doctors, appointments and schedules', () => {
+  it('DOCTOR sees dashboard, doctors, medical-record-templates, appointments and schedules', () => {
     setRole(UserRole.DOCTOR)
     const { result } = renderHook(() => useSidebarNavigation())
     const ids = result.current.items.map((i) => i.id)
-    expect(ids).toEqual(expect.arrayContaining(['dashboard', 'doctors', 'appointments', 'schedules']))
+    expect(ids).toEqual(expect.arrayContaining(['dashboard', 'doctors', 'medical-record-templates', 'appointments', 'schedules']))
     expect(ids).not.toContain('users')
     expect(ids).not.toContain('patients')
     expect(ids).not.toContain('specialties')

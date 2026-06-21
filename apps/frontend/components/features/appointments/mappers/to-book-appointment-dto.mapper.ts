@@ -8,5 +8,6 @@ export function toBookAppointmentDto(input: IBookAppointmentInput): CreateAppoin
     date: input.date,
     startTime: input.startTime,
     reason: input.reason || undefined,
+    specialtyId: input.specialtyId || undefined,
   }
 }

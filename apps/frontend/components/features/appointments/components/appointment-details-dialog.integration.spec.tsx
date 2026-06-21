@@ -1,14 +1,20 @@
 jest.mock('../services/appointments.service')
+jest.mock('@/components/features/medical-records/services/medical-records.service')
+jest.mock('@/components/features/medical-record-templates/services/medical-record-templates.service')
 jest.mock('next/navigation', () => ({ useRouter: jest.fn(() => ({ push: jest.fn() })) }))
 
 import { screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { AppointmentStatus, UserRole } from '@app/shared'
 import { appointmentsService } from '../services/appointments.service'
+import { medicalRecordsService } from '@/components/features/medical-records/services/medical-records.service'
+import { medicalRecordTemplatesService } from '@/components/features/medical-record-templates/services/medical-record-templates.service'
 import { renderWithProviders } from '@/tests/utils/render-with-providers'
 import { AppointmentDetailsDialog } from './appointment-details-dialog'
 
 const mockAppointmentsService = appointmentsService as jest.Mocked<typeof appointmentsService>
+const mockMedicalRecordsService = medicalRecordsService as jest.Mocked<typeof medicalRecordsService>
+const mockTemplatesService = medicalRecordTemplatesService as jest.Mocked<typeof medicalRecordTemplatesService>
 
 const makeAppointmentDto = (overrides: object = {}) => ({
   id: 'appt-uuid',
@@ -16,6 +22,8 @@ const makeAppointmentDto = (overrides: object = {}) => ({
   doctorName: 'Dr. Test',
   patientId: 'patient-uuid',
   patientName: 'Patient One',
+  specialtyId: 'spec-uuid',
+  specialtyName: 'Cardiologia',
   scheduleId: 'schedule-uuid',
   date: '2025-06-10',
   startTime: '09:00',
@@ -39,6 +47,8 @@ const defaultProps = {
 describe('AppointmentDetailsDialog (integration)', () => {
   beforeEach(() => {
     jest.clearAllMocks()
+    mockMedicalRecordsService.getByAppointment.mockResolvedValue(null)
+    mockTemplatesService.getAll.mockResolvedValue({ data: [], total: 0, page: 1, limit: 1 })
   })
 
   it('does not render when closed', () => {
@@ -299,5 +309,55 @@ describe('AppointmentDetailsDialog (integration)', () => {
     })
 
     expect(screen.getByTestId('details-cancellation-reason')).toHaveTextContent('Paciente desmarcou')
+  })
+
+  it('shows fill-medical-record button for ADMIN when no record exists', async () => {
+    mockAppointmentsService.getById.mockResolvedValue(makeAppointmentDto())
+    mockMedicalRecordsService.getByAppointment.mockResolvedValue(null)
+
+    renderWithProviders(<AppointmentDetailsDialog {...defaultProps} />)
+
+    await waitFor(() => {
+      expect(screen.getByTestId('fill-medical-record-button')).toBeInTheDocument()
+    })
+  })
+
+  it('does not show fill-medical-record button for USER role', async () => {
+    mockAppointmentsService.getById.mockResolvedValue(makeAppointmentDto())
+    mockMedicalRecordsService.getByAppointment.mockResolvedValue(null)
+
+    renderWithProviders(<AppointmentDetailsDialog {...defaultProps} role={UserRole.USER} />)
+
+    await waitFor(() => {
+      expect(screen.getByTestId('details-patient')).toBeInTheDocument()
+    })
+
+    expect(screen.queryByTestId('fill-medical-record-button')).not.toBeInTheDocument()
+  })
+
+  it('shows view-medical-record button when record exists', async () => {
+    mockAppointmentsService.getById.mockResolvedValue(makeAppointmentDto())
+    mockMedicalRecordsService.getByAppointment.mockResolvedValue({
+      id: 'record-uuid',
+      appointmentId: 'appt-uuid',
+      patientId: 'patient-uuid',
+      patientName: 'Patient One',
+      doctorId: 'doctor-uuid',
+      doctorName: 'Dr. Test',
+      specialtyId: 'spec-uuid',
+      specialtyName: 'Cardiologia',
+      templateId: 'tpl-uuid',
+      templateSchemaSnapshot: [],
+      data: {},
+      notes: null,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    })
+
+    renderWithProviders(<AppointmentDetailsDialog {...defaultProps} />)
+
+    await waitFor(() => {
+      expect(screen.getByTestId('view-medical-record-button')).toBeInTheDocument()
+    })
   })
 })

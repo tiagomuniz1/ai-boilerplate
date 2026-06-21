@@ -105,6 +105,49 @@ O sistema possui quatro perfis de usuário (`UserRole`). Cada perfil reflete um 
 
 ---
 
+## Catálogo de Campos Canônicos (`/medical-record-canonical-fields`)
+
+> Gerenciado exclusivamente no **backoffice** pelo PLATFORM_ADMIN. ADMIN e DOCTOR podem listar para selecionar campos ao construir templates.
+
+| Ação | PLATFORM_ADMIN | ADMIN | DOCTOR | USER | PATIENT |
+|---|:---:|:---:|:---:|:---:|:---:|
+| Criar campo | ✓ | ✗ | ✗ | ✗ | ✗ |
+| Listar campos | ✓ | ✓ (leitura) | ✓ (leitura) | ✗ | ✗ |
+| Editar / Ativar-Desativar | ✓ | ✗ | ✗ | ✗ | ✗ |
+
+> ADMIN e DOCTOR acessam a listagem apenas para compor templates — sem criar ou editar entradas do catálogo.
+
+---
+
+## Templates de Prontuário (`/medical-record-templates`)
+
+| Ação | ADMIN | DOCTOR | USER | PATIENT |
+|---|:---:|:---:|:---:|:---:|
+| Criar template | ✓ | ✗ | ✗ | ✗ |
+| Listar templates | ✓ | ✓ (leitura) | ✗ | ✗ |
+| Ver por ID | ✓ | ✓ (leitura) | ✗ | ✗ |
+| Editar / Ativar-Desativar | ✓ | ✗ | ✗ | ✗ |
+| Excluir | ✓ | ✗ | ✗ | ✗ |
+
+> Templates são escopados por `clinicId + specialtyId` — cada clínica gerencia os próprios. DOCTOR visualiza para referência ao preencher prontuários.
+
+---
+
+## Prontuários (`/medical-records`)
+
+| Ação | ADMIN | DOCTOR | USER | PATIENT |
+|---|:---:|:---:|:---:|:---:|
+| Criar prontuário | ✓ qualquer | só das próprias consultas | ✗ | ✗ |
+| Listar prontuários (paginado) | ✓ todos | só os próprios | ✗ | ✗ |
+| Ver por consulta (`by-appointment`) | ✓ | só das próprias | ✗ | ✗ |
+| Ver por ID | ✓ | só o próprio | ✗ | ✗ |
+| Editar | ✓ qualquer | só o próprio | ✗ | ✗ |
+| Excluir | ✓ | ✗ | ✗ | ✗ |
+
+> Prontuário é 1:1 com a consulta — não existe sem consulta vinculada. A especialidade é herdada da consulta e não pode ser alterada. Edição é bloqueada pelo backend após a consulta ser concluída (`422`). O histórico do paciente (`GET /medical-records?patientId=`) é acessível apenas por ADMIN e DOCTOR.
+
+---
+
 ## Sidebar — Itens visíveis por role
 
 | Item | ADMIN | DOCTOR | USER |
@@ -114,20 +157,23 @@ O sistema possui quatro perfis de usuário (`UserRole`). Cada perfil reflete um 
 | Pacientes | ✓ | ✗ | ✓ |
 | Médicos | ✓ | ✓ | ✓ |
 | Agendas | ✓ | ✓ | ✗ |
+| Modelos de prontuário | ✓ | ✓ | ✗ |
 | Consultas | ✓ | ✓ | ✓ |
+
+> Prontuários não têm item próprio na sidebar — são acessados a partir do diálogo de detalhes da consulta e do histórico na página do paciente.
 
 ---
 
 ## Resumo por perfil
 
 ### ADMIN
-Acesso irrestrito. Gerencia usuários, médicos, pacientes, agendas e todas as consultas. Único perfil que pode criar usuários, ativar/desativar contas e excluir registros.
+Acesso irrestrito. Gerencia usuários, médicos, pacientes, agendas e todas as consultas. Único perfil que pode criar usuários, ativar/desativar contas e excluir registros. Cria e edita templates de prontuário da clínica. Pode criar, editar e excluir qualquer prontuário.
 
 ### DOCTOR
-Acessa o sistema para gerenciar a própria agenda, criar e acompanhar as próprias consultas. Pode editar os próprios dados de usuário e de médico. Não vê dados de outros médicos, agendas de outros ou consultas de outros médicos.
+Acessa o sistema para gerenciar a própria agenda, criar e acompanhar as próprias consultas. Pode editar os próprios dados de usuário e de médico. Não vê dados de outros médicos, agendas de outros ou consultas de outros médicos. Cria e edita prontuários das próprias consultas (bloqueado após conclusão). Visualiza templates de prontuário para referência.
 
 ### USER (Recepcionista)
-Acessa o sistema para consultar dados operacionais. Pode ver a lista de pacientes, médicos e consultas (somente leitura). Pode ver a disponibilidade de qualquer médico. Pode editar o próprio cadastro de usuário. Não cria, cancela ou conclui consultas.
+Acessa o sistema para consultar dados operacionais. Pode ver a lista de pacientes, médicos e consultas (somente leitura). Pode ver a disponibilidade de qualquer médico. Pode editar o próprio cadastro de usuário. Não cria, cancela ou conclui consultas. Não acessa prontuários nem templates.
 
 ### PATIENT
 Não acessa o sistema. O registro existe no banco para vincular ao módulo de consultas. Tentativas de login são bloqueadas silenciosamente.

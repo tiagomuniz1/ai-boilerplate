@@ -6,6 +6,7 @@ export interface IBookAppointmentInput {
   date: string
   startTime: string
   reason?: string
+  specialtyId?: string
 }
 
 export interface ICancelAppointmentInput {

@@ -1,0 +1,11 @@
+{
+  "newField": {
+    "canonicalKey": "blood_pressure",
+    "label": "Pressão arterial",
+    "type": "number",
+    "unit": "mmHg"
+  },
+  "updatedField": {
+    "label": "Pressão arterial (atualizada)"
+  }
+}

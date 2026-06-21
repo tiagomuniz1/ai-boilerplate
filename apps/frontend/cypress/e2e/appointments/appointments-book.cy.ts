@@ -2,6 +2,8 @@ import { visitClinic } from '../../support/clinic'
 
 const DOC_UUID = '00000000-0000-4000-b000-000000000001'
 const PATIENT_UUID = '00000000-0000-4000-e000-000000000001'
+const SPEC_UUID_1 = '00000000-0000-4000-d000-000000000001'
+const SPEC_UUID_2 = '00000000-0000-4000-d000-000000000002'
 
 const mockDoctorUser = {
   id: 'doctor-user-uuid',
@@ -11,18 +13,18 @@ const mockDoctorUser = {
   clinicId: '10000000-0000-4000-8000-000000000000',
 }
 
+const makeDoctor = (specialties: { id: string; name: string }[]) => ({
+  id: DOC_UUID,
+  user: { id: 'doctor-user-uuid', fullName: 'Dr. Test', email: 'doctor@pulso.center', isActive: true },
+  crmNumber: '12345/SP',
+  specialties,
+  bio: null,
+  createdAt: '2025-01-01T10:00:00.000Z',
+  updatedAt: '2025-01-01T10:00:00.000Z',
+})
+
 const mockDoctorsList = {
-  data: [
-    {
-      id: DOC_UUID,
-      user: { id: 'doctor-user-uuid', fullName: 'Dr. Test', email: 'doctor@pulso.center', isActive: true },
-      crmNumber: '12345/SP',
-      specialties: [],
-      bio: null,
-      createdAt: '2025-01-01T10:00:00.000Z',
-      updatedAt: '2025-01-01T10:00:00.000Z',
-    },
-  ],
+  data: [makeDoctor([{ id: SPEC_UUID_1, name: 'Cardiologia' }])],
   total: 1,
   page: 1,
   limit: 200,
@@ -61,6 +63,8 @@ const mockCreatedAppointment = {
   doctorName: 'Dr. Test',
   patientId: PATIENT_UUID,
   patientName: 'Patient One',
+  specialtyId: SPEC_UUID_1,
+  specialtyName: 'Cardiologia',
   scheduleId: 'sched-uuid',
   date: '2025-07-04',
   startTime: '09:00',
@@ -77,6 +81,7 @@ describe('Appointments — book', () => {
     cy.clearCookies()
     cy.clearLocalStorage()
     cy.intercept('GET', `${Cypress.env('API_URL')}/doctors*`, { statusCode: 200, body: mockDoctorsList }).as('getDoctors')
+    cy.intercept('GET', `${Cypress.env('API_URL')}/doctors/${DOC_UUID}`, { statusCode: 200, body: makeDoctor([{ id: SPEC_UUID_1, name: 'Cardiologia' }]) }).as('getDoctor')
     cy.intercept('GET', `${Cypress.env('API_URL')}/appointments/availability*`, { statusCode: 200, body: mockAvailability }).as('getAvailability')
     cy.intercept('GET', `${Cypress.env('API_URL')}/appointments*`, { statusCode: 200, body: { data: [], total: 0, page: 1, limit: 100 } }).as('getAppointments')
     cy.intercept('GET', `${Cypress.env('API_URL')}/patients*`, { statusCode: 200, body: mockPatientsList }).as('getPatients')
@@ -133,6 +138,54 @@ describe('Appointments — book', () => {
     cy.get('[data-testid="agenda-slot-free"]:not([disabled])', { timeout: 10000 }).first().click()
     cy.get('[data-testid="book-dialog-cancel"]').click()
 
+    cy.get('[data-testid="book-appointment-dialog"]').should('not.exist')
+  })
+
+  it('ADMIN books appointment with single-specialty doctor without choosing specialty', () => {
+    cy.intercept('GET', `${Cypress.env('API_URL')}/doctors/${DOC_UUID}`, {
+      statusCode: 200,
+      body: makeDoctor([{ id: SPEC_UUID_1, name: 'Cardiologia' }]),
+    }).as('getDoctorSingle')
+
+    cy.intercept('POST', `${Cypress.env('API_URL')}/appointments`, {
+      statusCode: 201,
+      body: mockCreatedAppointment,
+    }).as('bookAppointment')
+
+    cy.get('[data-testid="agenda-slot-free"]:not([disabled])', { timeout: 10000 }).first().click()
+
+    cy.get('[data-testid="book-dialog-specialty-readonly"]', { timeout: 5000 }).should('contain.text', 'Cardiologia')
+    cy.get('[data-testid="book-dialog-specialty"]').should('not.exist')
+
+    cy.get('[data-testid="book-dialog-patient"]').select(PATIENT_UUID)
+    cy.get('[data-testid="book-dialog-submit"]').click()
+
+    cy.wait('@bookAppointment').its('request.body').should('include', { specialtyId: SPEC_UUID_1 })
+    cy.get('[data-testid="book-appointment-dialog"]').should('not.exist')
+  })
+
+  it('ADMIN books appointment with multi-specialty doctor by choosing specialty', () => {
+    cy.intercept('GET', `${Cypress.env('API_URL')}/doctors/${DOC_UUID}`, {
+      statusCode: 200,
+      body: makeDoctor([
+        { id: SPEC_UUID_1, name: 'Cardiologia' },
+        { id: SPEC_UUID_2, name: 'Clínica Geral' },
+      ]),
+    }).as('getDoctorMulti')
+
+    cy.intercept('POST', `${Cypress.env('API_URL')}/appointments`, {
+      statusCode: 201,
+      body: { ...mockCreatedAppointment, specialtyId: SPEC_UUID_2, specialtyName: 'Clínica Geral' },
+    }).as('bookAppointment')
+
+    cy.get('[data-testid="agenda-slot-free"]:not([disabled])', { timeout: 10000 }).first().click()
+
+    cy.get('[data-testid="book-dialog-specialty"]', { timeout: 5000 }).should('be.visible')
+    cy.get('[data-testid="book-dialog-specialty"]').select(SPEC_UUID_2)
+    cy.get('[data-testid="book-dialog-patient"]').select(PATIENT_UUID)
+    cy.get('[data-testid="book-dialog-submit"]').click()
+
+    cy.wait('@bookAppointment').its('request.body').should('include', { specialtyId: SPEC_UUID_2 })
     cy.get('[data-testid="book-appointment-dialog"]').should('not.exist')
   })
 })

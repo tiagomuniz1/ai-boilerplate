@@ -7,6 +7,8 @@ const makeDto = (overrides = {}) => ({
   doctorName: 'Dr. João Silva',
   patientId: 'pat-uuid',
   patientName: 'Maria Souza',
+  specialtyId: 'spec-uuid',
+  specialtyName: 'Cardiologia',
   scheduleId: 'sched-uuid',
   date: '2025-06-20',
   startTime: '08:00',
@@ -29,6 +31,8 @@ describe('toAppointmentModel', () => {
     expect(model.doctorName).toBe('Dr. João Silva')
     expect(model.patientId).toBe('pat-uuid')
     expect(model.patientName).toBe('Maria Souza')
+    expect(model.specialtyId).toBe('spec-uuid')
+    expect(model.specialtyName).toBe('Cardiologia')
     expect(model.scheduleId).toBe('sched-uuid')
     expect(model.date).toBe('2025-06-20')
     expect(model.startTime).toBe('08:00')

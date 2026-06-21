@@ -1,0 +1,58 @@
+{
+  "template": {
+    "id": "uuid-template-1",
+    "specialtyId": "uuid-specialty-1",
+    "specialtyName": "Cardiologia",
+    "name": "Anamnese Cardíaca",
+    "fields": [
+      {
+        "key": "field_k1",
+        "label": "Sintoma principal",
+        "type": "text",
+        "required": true,
+        "order": 0,
+        "options": null,
+        "placeholder": null,
+        "helpText": null,
+        "canonical": false,
+        "canonicalKey": null
+      },
+      {
+        "key": "field_k2",
+        "label": "Pressão arterial",
+        "type": "number",
+        "required": true,
+        "order": 1,
+        "options": null,
+        "placeholder": null,
+        "helpText": null,
+        "canonical": true,
+        "canonicalKey": "blood_pressure"
+      }
+    ],
+    "isActive": true,
+    "createdAt": "2024-01-15T10:00:00.000Z",
+    "updatedAt": "2024-01-15T10:00:00.000Z"
+  },
+  "inactiveTemplate": {
+    "id": "uuid-template-2",
+    "specialtyId": "uuid-specialty-1",
+    "specialtyName": "Cardiologia",
+    "name": "Modelo Inativo",
+    "fields": [],
+    "isActive": false,
+    "createdAt": "2024-01-10T10:00:00.000Z",
+    "updatedAt": "2024-01-10T10:00:00.000Z"
+  },
+  "canonicalField": {
+    "id": "uuid-cf-1",
+    "canonicalKey": "blood_pressure",
+    "label": "Pressão arterial",
+    "type": "number",
+    "options": null,
+    "unit": "mmHg",
+    "specialtyId": null,
+    "description": "Pressão arterial sistólica e diastólica",
+    "isActive": true
+  }
+}

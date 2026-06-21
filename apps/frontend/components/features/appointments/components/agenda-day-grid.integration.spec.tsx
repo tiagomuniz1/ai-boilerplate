@@ -45,6 +45,8 @@ const makeAppointmentDto = (overrides: object = {}) => ({
   doctorName: 'Dr. Test',
   patientId: 'patient-uuid',
   patientName: 'Patient One',
+  specialtyId: 'spec-uuid',
+  specialtyName: 'Cardiologia',
   scheduleId: 'schedule-uuid',
   date: FUTURE_DATE,
   startTime: '10:00',

@@ -8,6 +8,8 @@ export function toAppointmentModel(dto: AppointmentResponseDto): IAppointmentMod
     doctorName: dto.doctorName,
     patientId: dto.patientId,
     patientName: dto.patientName,
+    specialtyId: dto.specialtyId,
+    specialtyName: dto.specialtyName,
     scheduleId: dto.scheduleId,
     date: dto.date,
     startTime: dto.startTime,

@@ -7,10 +7,13 @@ import Link from 'next/link'
 import { Skeleton } from '@/components/ui/atoms/skeleton/skeleton'
 import { Alert } from '@/components/ui/molecules/alert/alert'
 import { Button } from '@/components/ui/atoms/button/button'
+import { UserRole } from '@app/shared'
 import { PatientDetails } from '@/components/features/patients/components/patient-details'
 import { PatientDeleteDialog } from '@/components/features/patients/components/patient-delete-dialog'
 import { usePatient } from '@/components/features/patients/hooks/use-patient.hook'
 import { useDeletePatient } from '@/components/features/patients/hooks/use-delete-patient.hook'
+import { PatientMedicalHistory } from '@/components/features/medical-records/components/patient-medical-history'
+import { useAuthStore } from '@/stores/auth.store'
 
 export default function PatientDetailsPage() {
   const { id } = useParams<{ id: string }>()
@@ -19,6 +22,9 @@ export default function PatientDetailsPage() {
   const { data: patient, isPending, isError } = usePatient(id)
   const { mutate: deletePatient, isPending: isDeleting } = useDeletePatient()
   const [showDeleteDialog, setShowDeleteDialog] = useState(false)
+  const currentUser = useAuthStore((s) => s.user)
+  const canSeeMedicalHistory =
+    currentUser?.role === UserRole.ADMIN || currentUser?.role === UserRole.DOCTOR
 
   function handleDeleteConfirm() {
     deletePatient(id, {
@@ -60,7 +66,17 @@ export default function PatientDetailsPage() {
       )}
 
       {!isPending && !isError && patient && (
-        <PatientDetails patient={patient} onDeleteClick={() => setShowDeleteDialog(true)} />
+        <>
+          <PatientDetails patient={patient} onDeleteClick={() => setShowDeleteDialog(true)} />
+          {canSeeMedicalHistory && (
+            <section className="mt-8">
+              <h2 className="text-base font-semibold text-text mb-4" data-testid="patient-history-title">
+                Histórico de Prontuários
+              </h2>
+              <PatientMedicalHistory patientId={id} />
+            </section>
+          )}
+        </>
       )}
 
       <PatientDeleteDialog

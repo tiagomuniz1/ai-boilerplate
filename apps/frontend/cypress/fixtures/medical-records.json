@@ -1,0 +1,118 @@
+{
+  "record": {
+    "id": "record-uuid",
+    "appointmentId": "appt-uuid",
+    "patientId": "patient-uuid",
+    "patientName": "Ana Lima",
+    "doctorId": "doctor-uuid",
+    "doctorName": "Dr. João",
+    "specialtyId": "spec-uuid",
+    "specialtyName": "Cardiologia",
+    "templateId": "tpl-uuid",
+    "templateSchemaSnapshot": [
+      {
+        "key": "symptom",
+        "label": "Sintoma",
+        "type": "text",
+        "required": true,
+        "order": 0,
+        "options": null,
+        "placeholder": "Descreva o sintoma principal",
+        "helpText": null,
+        "canonical": false,
+        "canonicalKey": null
+      },
+      {
+        "key": "duration",
+        "label": "Duração",
+        "type": "number",
+        "required": false,
+        "order": 1,
+        "options": null,
+        "placeholder": null,
+        "helpText": "Em dias",
+        "canonical": false,
+        "canonicalKey": null
+      },
+      {
+        "key": "chronic",
+        "label": "Condição crônica",
+        "type": "boolean",
+        "required": false,
+        "order": 2,
+        "options": null,
+        "placeholder": null,
+        "helpText": null,
+        "canonical": false,
+        "canonicalKey": null
+      }
+    ],
+    "data": {
+      "symptom": "Dor no peito",
+      "duration": 3,
+      "chronic": false
+    },
+    "notes": "Paciente estável",
+    "createdAt": "2024-03-15T10:00:00.000Z",
+    "updatedAt": "2024-03-15T10:00:00.000Z"
+  },
+  "template": {
+    "id": "tpl-uuid",
+    "specialtyId": "spec-uuid",
+    "specialtyName": "Cardiologia",
+    "name": "Consulta Cardiológica",
+    "fields": [
+      {
+        "key": "symptom",
+        "label": "Sintoma",
+        "type": "text",
+        "required": true,
+        "order": 0,
+        "options": null,
+        "placeholder": "Descreva o sintoma principal",
+        "helpText": null,
+        "canonical": false,
+        "canonicalKey": null
+      },
+      {
+        "key": "duration",
+        "label": "Duração",
+        "type": "number",
+        "required": false,
+        "order": 1,
+        "options": null,
+        "placeholder": null,
+        "helpText": "Em dias",
+        "canonical": false,
+        "canonicalKey": null
+      }
+    ],
+    "isActive": true,
+    "createdAt": "2024-01-01T10:00:00.000Z",
+    "updatedAt": "2024-01-01T10:00:00.000Z"
+  },
+  "appointment": {
+    "id": "appt-uuid",
+    "doctorId": "doctor-uuid",
+    "doctorName": "Dr. João",
+    "patientId": "patient-uuid",
+    "patientName": "Ana Lima",
+    "specialtyId": "spec-uuid",
+    "specialtyName": "Cardiologia",
+    "scheduleId": "schedule-uuid",
+    "date": "2025-06-20",
+    "startTime": "09:00",
+    "endTime": "09:30",
+    "status": "scheduled",
+    "reason": null,
+    "cancellationReason": null,
+    "createdAt": "2025-06-10T10:00:00.000Z",
+    "updatedAt": "2025-06-10T10:00:00.000Z"
+  },
+  "paginatedHistory": {
+    "data": [],
+    "total": 0,
+    "page": 1,
+    "limit": 10
+  }
+}

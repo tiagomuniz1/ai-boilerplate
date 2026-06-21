@@ -69,6 +69,8 @@ describe('AppointmentSlotCell', () => {
       doctorName: 'Dr. A',
       patientId: 'pat-1',
       patientName: 'Patient One',
+      specialtyId: null,
+      specialtyName: null,
       scheduleId: 'sched-1',
       date: '2025-06-10',
       startTime: '10:00',

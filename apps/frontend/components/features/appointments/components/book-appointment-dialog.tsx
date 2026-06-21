@@ -8,15 +8,15 @@ import { Modal } from '@/components/ui/organisms/modal/modal'
 import { Button } from '@/components/ui/atoms/button/button'
 import { Alert } from '@/components/ui/molecules/alert/alert'
 import { usePatients } from '@/components/features/patients/hooks/use-patients.hook'
+import { useDoctor } from '@/components/features/doctors/hooks/use-doctor.hook'
 import { useBookAppointment } from '../hooks/use-book-appointment.hook'
 import type { IApiError } from '@/types/api.types'
 
-const bookSchema = z.object({
-  patientId: z.string().uuid('Selecione um paciente'),
-  reason: z.string().max(500).optional().or(z.literal('')),
-})
-
-type BookFormValues = z.infer<typeof bookSchema>
+interface BookFormValues {
+  patientId: string
+  reason?: string
+  specialtyId: string
+}
 
 interface BookAppointmentDialogProps {
   isOpen: boolean
@@ -36,15 +36,33 @@ export function BookAppointmentDialog({
   doctorId,
 }: BookAppointmentDialogProps) {
   const { data: patientsData } = usePatients({ limit: 100 })
+  const { data: doctor, isPending: isDoctorLoading } = useDoctor(doctorId ?? '', {
+    enabled: isOpen && !!doctorId,
+  })
   const { mutate, isPending, isError, error, reset } = useBookAppointment()
+
+  const specialties = doctor?.specialties ?? []
+  const specialtyCount = specialties.length
+  const doctorLoaded = !isDoctorLoading && !!doctorId
+
+  const bookSchema = z.object({
+    patientId: z.string().uuid('Selecione um paciente'),
+    reason: z.string().max(500).optional().or(z.literal('')),
+    specialtyId:
+      specialtyCount > 1
+        ? z.string().uuid('Selecione uma especialidade')
+        : z.string().optional().or(z.literal('')),
+  })
 
   const {
     register,
     handleSubmit,
+    setValue,
     reset: resetForm,
     formState: { errors },
   } = useForm<BookFormValues>({
     resolver: zodResolver(bookSchema),
+    defaultValues: { patientId: '', reason: '', specialtyId: '' },
   })
 
   useEffect(() => {
@@ -54,6 +72,14 @@ export function BookAppointmentDialog({
     }
   }, [isOpen, resetForm, reset])
 
+  useEffect(() => {
+    if (specialties.length === 1) {
+      setValue('specialtyId', specialties[0].id)
+    } else if (specialties.length !== 1) {
+      setValue('specialtyId', '')
+    }
+  }, [specialties, setValue])
+
   function onSubmit(values: BookFormValues) {
     mutate(
       {
@@ -62,6 +88,7 @@ export function BookAppointmentDialog({
         date,
         startTime,
         reason: values.reason || undefined,
+        specialtyId: values.specialtyId || undefined,
       },
       {
         onSuccess: () => {
@@ -74,14 +101,22 @@ export function BookAppointmentDialog({
   const apiError = error as IApiError | null
   const is409 = apiError?.status === 409
   const is422 = apiError?.status === 422
+  const is422Specialty =
+    is422 &&
+    (apiError?.detail?.toLowerCase().includes('especialidade') ||
+      apiError?.detail?.toLowerCase().includes('specialty'))
 
   const errorMessage = is409
     ? 'Este horário acabou de ser reservado. Por favor, escolha outro slot.'
-    : is422
-      ? 'Horário inválido ou no passado. Por favor, selecione outro horário.'
-      : isError
-        ? 'Ocorreu um erro ao agendar. Tente novamente.'
-        : null
+    : is422Specialty
+      ? 'Especialidade inválida ou não pertence ao médico.'
+      : is422
+        ? 'Horário inválido ou no passado. Por favor, selecione outro horário.'
+        : isError
+          ? 'Ocorreu um erro ao agendar. Tente novamente.'
+          : null
+
+  const isSubmitBlocked = isPending || isDoctorLoading || (doctorLoaded && specialtyCount === 0)
 
   return (
     <Modal
@@ -110,6 +145,12 @@ export function BookAppointmentDialog({
           </Alert>
         )}
 
+        {doctorLoaded && specialtyCount === 0 && (
+          <Alert variant="error" data-testid="book-dialog-no-specialty">
+            Este médico não possui especialidade cadastrada.
+          </Alert>
+        )}
+
         <div>
           <label htmlFor="patientId" className="block text-sm font-medium mb-1">
             Paciente <span className="text-danger">*</span>
@@ -135,6 +176,42 @@ export function BookAppointmentDialog({
           )}
         </div>
 
+        {doctorLoaded && specialtyCount === 1 && (
+          <div data-testid="book-dialog-specialty-readonly">
+            <span className="block text-sm font-medium mb-1">Especialidade</span>
+            <p className="text-sm text-text/70 bg-surface-2 rounded-md px-3 py-2">
+              {specialties[0].name}
+            </p>
+          </div>
+        )}
+
+        {doctorLoaded && specialtyCount > 1 && (
+          <div>
+            <label htmlFor="specialtyId" className="block text-sm font-medium mb-1">
+              Especialidade <span className="text-danger">*</span>
+            </label>
+            <select
+              id="specialtyId"
+              data-testid="book-dialog-specialty"
+              {...register('specialtyId')}
+              aria-invalid={!!errors.specialtyId}
+              className="w-full rounded-md border border-line bg-surface-2 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent"
+            >
+              <option value="">Selecione a especialidade</option>
+              {specialties.map((s) => (
+                <option key={s.id} value={s.id}>
+                  {s.name}
+                </option>
+              ))}
+            </select>
+            {errors.specialtyId && (
+              <p className="text-danger text-xs mt-1" data-testid="book-dialog-specialty-error">
+                {errors.specialtyId.message}
+              </p>
+            )}
+          </div>
+        )}
+
         <div>
           <label htmlFor="reason" className="block text-sm font-medium mb-1">
             Motivo (opcional)
@@ -154,7 +231,7 @@ export function BookAppointmentDialog({
           <Button type="button" variant="ghost" onClick={onClose} disabled={isPending} data-testid="book-dialog-cancel">
             Cancelar
           </Button>
-          <Button type="submit" isLoading={isPending} data-testid="book-dialog-submit">
+          <Button type="submit" isLoading={isPending} disabled={isSubmitBlocked} data-testid="book-dialog-submit">
             Agendar
           </Button>
         </div>
