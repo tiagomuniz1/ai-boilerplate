@@ -80,6 +80,17 @@ describe('DoctorForm (integration) — create mode', () => {
     expect(screen.getByTestId('doctor-form-email')).toBeInTheDocument()
   })
 
+  it('switches back to existing user mode when existing radio is selected after switching to new', async () => {
+    renderWithProviders(<DoctorForm mode="create" isPending={false} onSubmit={jest.fn()} />)
+
+    await userEvent.click(screen.getByTestId('doctor-form-user-mode-new'))
+    expect(screen.getByTestId('doctor-form-fullname')).toBeInTheDocument()
+
+    await userEvent.click(screen.getByTestId('doctor-form-user-mode-existing'))
+    expect(screen.queryByTestId('doctor-form-fullname')).not.toBeInTheDocument()
+    expect(screen.getByTestId('doctor-form-user-search')).toBeInTheDocument()
+  })
+
   it('renders specialty checkboxes after loading', async () => {
     renderWithProviders(<DoctorForm mode="create" isPending={false} onSubmit={jest.fn()} />)
 
@@ -323,6 +334,44 @@ describe('DoctorForm (integration) — create mode', () => {
     expect(screen.getByText('Buscando...')).toBeInTheDocument()
 
     jest.useRealTimers()
+  })
+
+  it('clears user selection when typing again after selecting a user', async () => {
+    renderWithProviders(<DoctorForm mode="create" isPending={false} onSubmit={jest.fn()} />)
+
+    await userEvent.type(screen.getByTestId('doctor-form-user-search'), 'João')
+
+    await waitFor(
+      () => expect(screen.getByTestId('doctor-form-user-option')).toBeInTheDocument(),
+      { timeout: 2000 },
+    )
+    await userEvent.click(screen.getByTestId('doctor-form-user-option'))
+
+    await userEvent.type(screen.getByTestId('doctor-form-user-search'), 'x')
+
+    await waitFor(() => {
+      const input = screen.getByTestId('doctor-form-user-search') as HTMLInputElement
+      expect(input.value).toContain('x')
+    })
+  })
+
+  it('re-opens dropdown on focus when debouncedTerm has 2+ chars', async () => {
+    renderWithProviders(<DoctorForm mode="create" isPending={false} onSubmit={jest.fn()} />)
+
+    await userEvent.type(screen.getByTestId('doctor-form-user-search'), 'Jo')
+
+    await waitFor(
+      () => expect(screen.getByTestId('doctor-form-user-search-results')).toBeInTheDocument(),
+      { timeout: 2000 },
+    )
+
+    await userEvent.tab()
+
+    fireEvent.focus(screen.getByTestId('doctor-form-user-search'))
+
+    await waitFor(() =>
+      expect(screen.getByTestId('doctor-form-user-search-results')).toBeInTheDocument(),
+    )
   })
 })
 

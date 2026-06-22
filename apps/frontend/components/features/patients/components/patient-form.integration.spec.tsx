@@ -47,6 +47,19 @@ describe('PatientForm (integration) — create mode', () => {
     expect(screen.getByTestId('patient-form-email')).toBeInTheDocument()
   })
 
+  it('switches back to new user mode and restores fullName/email fields', async () => {
+    renderWithProviders(<PatientForm mode="create" isPending={false} onSubmit={jest.fn()} />)
+
+    await userEvent.click(screen.getByTestId('patient-form-user-mode-existing'))
+    expect(screen.queryByTestId('patient-form-fullname')).not.toBeInTheDocument()
+
+    await userEvent.click(screen.getByTestId('patient-form-user-mode-new'))
+
+    expect(screen.getByTestId('patient-form-fullname')).toBeInTheDocument()
+    expect(screen.getByTestId('patient-form-email')).toBeInTheDocument()
+    expect(screen.queryByTestId('patient-form-user-search')).not.toBeInTheDocument()
+  })
+
   it('shows user search and hides fullName/email when switching to existing mode', async () => {
     renderWithProviders(<PatientForm mode="create" isPending={false} onSubmit={jest.fn()} />)
 
@@ -489,6 +502,64 @@ describe('PatientForm (integration) — edit mode', () => {
         }),
         expect.any(Function),
       )
+    })
+  })
+
+  it('applies phone mask when typing in phone field in edit mode', async () => {
+    renderWithProviders(
+      <PatientForm mode="edit" defaultValues={existingPatient} isPending={false} onSubmit={jest.fn()} />,
+    )
+
+    await waitFor(() => expect(screen.getByTestId('patient-form-phone')).toHaveValue('(11) 99999-9999'))
+
+    fireEvent.change(screen.getByTestId('patient-form-phone'), { target: { value: '11988887777' } })
+
+    await waitFor(() =>
+      expect(screen.getByTestId('patient-form-phone')).toHaveValue('(11) 98888-7777'),
+    )
+  })
+
+  it('applies CPF mask when typing in document field in edit mode', async () => {
+    renderWithProviders(
+      <PatientForm mode="edit" defaultValues={existingPatient} isPending={false} onSubmit={jest.fn()} />,
+    )
+
+    await waitFor(() => expect(screen.getByTestId('patient-form-document')).toHaveValue('123.456.789-01'))
+
+    fireEvent.change(screen.getByTestId('patient-form-document'), { target: { value: '98765432100' } })
+
+    await waitFor(() =>
+      expect(screen.getByTestId('patient-form-document')).toHaveValue('987.654.321-00'),
+    )
+  })
+
+  it('shows validation error for future birthDate in edit mode', async () => {
+    renderWithProviders(
+      <PatientForm mode="edit" defaultValues={existingPatient} isPending={false} onSubmit={jest.fn()} />,
+    )
+
+    await waitFor(() => expect(screen.getByTestId('patient-form-birthdate')).toHaveValue('1990-05-15'))
+
+    fireEvent.change(screen.getByTestId('patient-form-birthdate'), { target: { value: '2099-01-01' } })
+    await userEvent.click(screen.getByTestId('patient-form-submit'))
+
+    await waitFor(() => {
+      expect(screen.getByText(/Data de nascimento não pode ser futura/)).toBeInTheDocument()
+    })
+  })
+
+  it('shows validation error when gender is deselected in edit mode', async () => {
+    renderWithProviders(
+      <PatientForm mode="edit" defaultValues={existingPatient} isPending={false} onSubmit={jest.fn()} />,
+    )
+
+    await waitFor(() => expect(screen.getByTestId('patient-form-gender')).toHaveValue(PatientGender.MALE))
+
+    await userEvent.selectOptions(screen.getByTestId('patient-form-gender'), '')
+    await userEvent.click(screen.getByTestId('patient-form-submit'))
+
+    await waitFor(() => {
+      expect(screen.getByText(/Selecione um gênero válido/)).toBeInTheDocument()
     })
   })
 })

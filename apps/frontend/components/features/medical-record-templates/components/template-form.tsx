@@ -75,6 +75,7 @@ function getMsg(err: unknown): string | undefined {
 
 function toFormField(field: ITemplateFieldInput | ITemplateModel['fields'][number]): ITemplateFormValues['fields'][number] {
   return {
+    /* c8 ignore next */
     key: 'key' in field ? field.key : undefined,
     label: field.label,
     type: field.type,

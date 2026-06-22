@@ -68,7 +68,7 @@ function MedicalRecordSection({
 
   const { data: record, isLoading: isRecordLoading } = useMedicalRecordByAppointment(appointmentId)
   const { data: templateData, isLoading: isTemplateLoading } = useTemplates(
-    specialtyId ? { specialtyId, limit: 1 } : undefined,
+    specialtyId ? { specialtyId, limit: 1 } : null,
   )
   const { mutate: createRecord, isPending: isCreating, error: createError } = useCreateMedicalRecord()
   const { mutate: updateRecord, isPending: isUpdating, error: updateError } = useUpdateMedicalRecord()

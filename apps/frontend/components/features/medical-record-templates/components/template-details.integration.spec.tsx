@@ -132,6 +132,116 @@ describe('TemplateDetails (integration)', () => {
         expect(screen.queryByTestId('template-delete-dialog')).not.toBeInTheDocument()
       })
     })
+
+    it('calls delete service when confirm delete is clicked', async () => {
+      ;(medicalRecordTemplatesService.getById as jest.Mock).mockResolvedValue(makeDto())
+      ;(medicalRecordTemplatesService.remove as jest.Mock).mockResolvedValue(undefined)
+      ;(medicalRecordTemplatesService.getAll as jest.Mock).mockResolvedValue({
+        data: [],
+        total: 0,
+        page: 1,
+        limit: 20,
+      })
+
+      renderWithProviders(<TemplateDetails templateId="uuid-1" />)
+
+      await waitFor(() => expect(screen.getByTestId('template-details')).toBeInTheDocument())
+
+      await userEvent.click(screen.getByTestId('template-details-delete-button'))
+      await userEvent.click(screen.getByTestId('template-delete-dialog-confirm'))
+
+      await waitFor(() => {
+        expect(medicalRecordTemplatesService.remove).toHaveBeenCalledWith('uuid-1')
+      })
+    })
+
+    it('shows delete error when delete fails', async () => {
+      ;(medicalRecordTemplatesService.getById as jest.Mock).mockResolvedValue(makeDto())
+      ;(medicalRecordTemplatesService.remove as jest.Mock).mockRejectedValue({ status: 500 })
+
+      renderWithProviders(<TemplateDetails templateId="uuid-1" />)
+
+      await waitFor(() => expect(screen.getByTestId('template-details')).toBeInTheDocument())
+
+      await userEvent.click(screen.getByTestId('template-details-delete-button'))
+      await userEvent.click(screen.getByTestId('template-delete-dialog-confirm'))
+
+      await waitFor(() => {
+        expect(screen.getByTestId('template-details-delete-error')).toBeInTheDocument()
+      })
+      expect(screen.getByTestId('template-details-delete-error')).toHaveTextContent(
+        'Não foi possível excluir o modelo',
+      )
+    })
+
+    it('shows "Inativo" status for inactive template', async () => {
+      ;(medicalRecordTemplatesService.getById as jest.Mock).mockResolvedValue(makeDto({ isActive: false }))
+
+      renderWithProviders(<TemplateDetails templateId="uuid-1" />)
+
+      await waitFor(() => expect(screen.getByTestId('template-details')).toBeInTheDocument())
+
+      expect(screen.getByTestId('template-details-status')).toHaveTextContent('Inativo')
+    })
+
+    it('shows canonical badge when field is canonical', async () => {
+      ;(medicalRecordTemplatesService.getById as jest.Mock).mockResolvedValue(
+        makeDto({
+          fields: [
+            {
+              key: 'k1',
+              label: 'Sintoma principal',
+              type: MedicalRecordFieldType.TEXT,
+              required: false,
+              order: 0,
+              options: null,
+              placeholder: null,
+              helpText: null,
+              canonical: true,
+              canonicalKey: 'chief_complaint',
+            },
+          ],
+        }),
+      )
+
+      renderWithProviders(<TemplateDetails templateId="uuid-1" />)
+
+      await waitFor(() => expect(screen.getByTestId('template-details')).toBeInTheDocument())
+
+      expect(screen.getByText('Canônico')).toBeInTheDocument()
+      expect(screen.getByText(/chief_complaint/)).toBeInTheDocument()
+    })
+
+    it('shows options chips for SELECT field', async () => {
+      ;(medicalRecordTemplatesService.getById as jest.Mock).mockResolvedValue(
+        makeDto({
+          fields: [
+            {
+              key: 'k1',
+              label: 'Gravidade',
+              type: MedicalRecordFieldType.SELECT,
+              required: false,
+              order: 0,
+              options: [
+                { value: 'low', label: 'Baixo' },
+                { value: 'high', label: 'Alto' },
+              ],
+              placeholder: null,
+              helpText: null,
+              canonical: false,
+              canonicalKey: null,
+            },
+          ],
+        }),
+      )
+
+      renderWithProviders(<TemplateDetails templateId="uuid-1" />)
+
+      await waitFor(() => expect(screen.getByTestId('template-details')).toBeInTheDocument())
+
+      expect(screen.getByText('Baixo')).toBeInTheDocument()
+      expect(screen.getByText('Alto')).toBeInTheDocument()
+    })
   })
 
   describe('as DOCTOR', () => {

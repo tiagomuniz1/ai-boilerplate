@@ -33,6 +33,12 @@ describe('medicalRecordTemplatesService', () => {
       expect(mockApiClient.get).toHaveBeenCalledWith('/medical-record-templates?page=2&limit=10')
     })
 
+    it('calls GET with specialtyId param', async () => {
+      mockApiClient.get.mockResolvedValue({ data: [], total: 0, page: 1, limit: 20 })
+      await medicalRecordTemplatesService.getAll({ specialtyId: 'spec-uuid' })
+      expect(mockApiClient.get).toHaveBeenCalledWith('/medical-record-templates?specialtyId=spec-uuid')
+    })
+
     it('returns API response', async () => {
       const response = { data: [makeDto()], total: 1, page: 1, limit: 20 }
       mockApiClient.get.mockResolvedValue(response)

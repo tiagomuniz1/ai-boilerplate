@@ -82,6 +82,15 @@ describe('MedicalRecordView', () => {
     expect(screen.getByTestId('record-field-diabetic')).toHaveTextContent('Sim')
   })
 
+  it('renders boolean false as Não', () => {
+    const record = makeRecord({
+      schema: [makeField({ key: 'diabetic', label: 'Diabético', type: MedicalRecordFieldType.BOOLEAN })],
+      data: { diabetic: false },
+    })
+    render(<MedicalRecordView record={record} />)
+    expect(screen.getByTestId('record-field-diabetic')).toHaveTextContent('Não')
+  })
+
   it('renders multiselect as comma-separated string', () => {
     const record = makeRecord({
       schema: [makeField({ key: 'allergies', label: 'Alergias', type: MedicalRecordFieldType.MULTISELECT })],
@@ -89,6 +98,15 @@ describe('MedicalRecordView', () => {
     })
     render(<MedicalRecordView record={record} />)
     expect(screen.getByTestId('record-field-allergies')).toHaveTextContent('penicilina, dipirona')
+  })
+
+  it('renders multiselect non-array value as string', () => {
+    const record = makeRecord({
+      schema: [makeField({ key: 'allergies', label: 'Alergias', type: MedicalRecordFieldType.MULTISELECT })],
+      data: { allergies: 'penicilina' },
+    })
+    render(<MedicalRecordView record={record} />)
+    expect(screen.getByTestId('record-field-allergies')).toHaveTextContent('penicilina')
   })
 
   it('renders notes when present', () => {

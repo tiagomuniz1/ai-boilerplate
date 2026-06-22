@@ -136,6 +136,14 @@ describe('ClinicUploadSection', () => {
         'Não foi possível enviar o arquivo. Tente novamente.',
       )
     })
+
+    it('does nothing when no file is selected', () => {
+      renderWithProviders(<ClinicUploadSection clinic={makeClinic()} />)
+      const input = screen.getByTestId('logo-file-input')
+      Object.defineProperty(input, 'files', { value: [], configurable: true })
+      fireEvent.change(input)
+      expect(mockLogoMutate).not.toHaveBeenCalled()
+    })
   })
 
   describe('logo dark upload', () => {
@@ -217,6 +225,14 @@ describe('ClinicUploadSection', () => {
       expect(await screen.findByTestId('logo-dark-upload-error')).toHaveTextContent(
         'Não foi possível enviar o arquivo. Tente novamente.',
       )
+    })
+
+    it('does nothing when no file is selected', () => {
+      renderWithProviders(<ClinicUploadSection clinic={makeClinic()} />)
+      const input = screen.getByTestId('logo-dark-file-input')
+      Object.defineProperty(input, 'files', { value: [], configurable: true })
+      fireEvent.change(input)
+      expect(mockLogoDarkMutate).not.toHaveBeenCalled()
     })
   })
 
@@ -302,6 +318,14 @@ describe('ClinicUploadSection', () => {
       expect(await screen.findByTestId('favicon-upload-error')).toHaveTextContent(
         'Não foi possível enviar o arquivo. Tente novamente.',
       )
+    })
+
+    it('does nothing when no file is selected', () => {
+      renderWithProviders(<ClinicUploadSection clinic={makeClinic()} />)
+      const input = screen.getByTestId('favicon-file-input')
+      Object.defineProperty(input, 'files', { value: [], configurable: true })
+      fireEvent.change(input)
+      expect(mockFaviconMutate).not.toHaveBeenCalled()
     })
   })
 })

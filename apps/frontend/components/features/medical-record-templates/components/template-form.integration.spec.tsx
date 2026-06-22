@@ -133,6 +133,41 @@ describe('TemplateForm (integration)', () => {
       })
     })
 
+    it('removes an option when remove button is clicked', async () => {
+      renderCreate()
+      await userEvent.click(screen.getByTestId('template-form-add-field'))
+      await userEvent.selectOptions(screen.getByTestId('field-editor-type-0'), MedicalRecordFieldType.SELECT)
+
+      await waitFor(() => expect(screen.getByTestId('field-editor-options-0')).toBeInTheDocument())
+
+      await userEvent.click(screen.getByTestId('field-editor-option-add-0'))
+
+      await waitFor(() => expect(screen.getByTestId('field-editor-option-value-0-0')).toBeInTheDocument())
+
+      await userEvent.click(screen.getByTestId('field-editor-option-remove-0-0'))
+
+      await waitFor(() =>
+        expect(screen.queryByTestId('field-editor-option-value-0-0')).not.toBeInTheDocument(),
+      )
+    })
+
+    it('shows per-option validation error for empty option value', async () => {
+      renderCreate()
+      await userEvent.type(screen.getByTestId('template-form-name'), 'Anamnese')
+      await userEvent.click(screen.getByTestId('template-form-add-field'))
+      await userEvent.type(screen.getByTestId('field-editor-label-0'), 'Diagnóstico')
+      await userEvent.selectOptions(screen.getByTestId('field-editor-type-0'), MedicalRecordFieldType.SELECT)
+
+      await waitFor(() => expect(screen.getByTestId('field-editor-options-0')).toBeInTheDocument())
+
+      await userEvent.click(screen.getByTestId('field-editor-option-add-0'))
+      await waitFor(() => expect(screen.getByTestId('field-editor-option-value-0-0')).toBeInTheDocument())
+
+      await userEvent.click(screen.getByTestId('template-form-submit'))
+
+      await waitFor(() => expect(screen.getAllByRole('alert').length).toBeGreaterThan(0))
+    })
+
     it('calls onSubmit with correct data', async () => {
       renderCreate()
       await userEvent.type(screen.getByTestId('template-form-name'), 'Anamnese')
@@ -194,6 +229,233 @@ describe('TemplateForm (integration)', () => {
 
       expect(screen.getByTestId('field-editor-0')).toBeInTheDocument()
       expect(screen.getByTestId('field-editor-label-0')).toHaveValue('Pressão arterial')
+    })
+
+    it('adopts canonical field with options populated', async () => {
+      const canonicalFieldWithOptions = {
+        id: 'cf-uuid-2',
+        canonicalKey: 'severity',
+        label: 'Gravidade',
+        type: MedicalRecordFieldType.SELECT,
+        options: [
+          { value: 'low', label: 'Baixo' },
+          { value: 'high', label: 'Alto' },
+        ],
+        unit: null,
+        specialtyId: null,
+        description: null,
+        isActive: true,
+      }
+      ;(canonicalFieldsService.getAll as jest.Mock).mockResolvedValue([canonicalFieldWithOptions])
+      renderCreate()
+
+      await waitFor(() => {
+        expect(screen.getByTestId('canonical-field-picker-adopt-cf-uuid-2')).toBeInTheDocument()
+      })
+
+      await userEvent.click(screen.getByTestId('canonical-field-picker-adopt-cf-uuid-2'))
+
+      expect(screen.getByTestId('field-editor-0')).toBeInTheDocument()
+      expect(screen.getByTestId('field-editor-options-0')).toBeInTheDocument()
+    })
+
+    it('moves a field up when move-up button is clicked', async () => {
+      renderCreate()
+      await userEvent.click(screen.getByTestId('template-form-add-field'))
+      await userEvent.click(screen.getByTestId('template-form-add-field'))
+
+      await userEvent.type(screen.getByTestId('field-editor-label-0'), 'First')
+      await userEvent.type(screen.getByTestId('field-editor-label-1'), 'Second')
+
+      await userEvent.click(screen.getByTestId('field-editor-move-up-1'))
+
+      await waitFor(() => {
+        expect(screen.getByTestId('field-editor-label-0')).toHaveValue('Second')
+        expect(screen.getByTestId('field-editor-label-1')).toHaveValue('First')
+      })
+    })
+
+    it('moves a field down when move-down button is clicked', async () => {
+      renderCreate()
+      await userEvent.click(screen.getByTestId('template-form-add-field'))
+      await userEvent.click(screen.getByTestId('template-form-add-field'))
+
+      await userEvent.type(screen.getByTestId('field-editor-label-0'), 'First')
+      await userEvent.type(screen.getByTestId('field-editor-label-1'), 'Second')
+
+      await userEvent.click(screen.getByTestId('field-editor-move-down-0'))
+
+      await waitFor(() => {
+        expect(screen.getByTestId('field-editor-label-0')).toHaveValue('Second')
+        expect(screen.getByTestId('field-editor-label-1')).toHaveValue('First')
+      })
+    })
+
+    it('blocks submission when SELECT field has duplicate option values', async () => {
+      renderCreate()
+      await userEvent.type(screen.getByTestId('template-form-name'), 'Anamnese')
+      await userEvent.click(screen.getByTestId('template-form-add-field'))
+      await userEvent.type(screen.getByTestId('field-editor-label-0'), 'Diagnóstico')
+      await userEvent.selectOptions(
+        screen.getByTestId('field-editor-type-0'),
+        MedicalRecordFieldType.SELECT,
+      )
+
+      await waitFor(() => {
+        expect(screen.getByTestId('field-editor-options-0')).toBeInTheDocument()
+      })
+
+      await userEvent.click(screen.getByTestId('field-editor-option-add-0'))
+      await waitFor(() =>
+        expect(screen.getByTestId('field-editor-option-value-0-0')).toBeInTheDocument(),
+      )
+      await userEvent.type(screen.getByTestId('field-editor-option-value-0-0'), 'opt')
+      await userEvent.type(screen.getByTestId('field-editor-option-label-0-0'), 'Opção 1')
+
+      await userEvent.click(screen.getByTestId('field-editor-option-add-0'))
+      await waitFor(() =>
+        expect(screen.getByTestId('field-editor-option-value-0-1')).toBeInTheDocument(),
+      )
+      await userEvent.type(screen.getByTestId('field-editor-option-value-0-1'), 'opt')
+      await userEvent.type(screen.getByTestId('field-editor-option-label-0-1'), 'Opção 2')
+
+      await userEvent.click(screen.getByTestId('template-form-submit'))
+
+      // zod superRefine duplicate check runs and blocks submission
+      await new Promise((r) => setTimeout(r, 0))
+      expect(mockOnSubmit).not.toHaveBeenCalled()
+    })
+  })
+
+  describe('edit mode', () => {
+    const existingTemplate = {
+      id: 'tpl-uuid',
+      specialtyId: 'spec-uuid',
+      specialtyName: 'Cardiologia',
+      name: 'Anamnese Cardíaca',
+      fields: [
+        {
+          key: 'complaint',
+          label: 'Queixa principal',
+          type: MedicalRecordFieldType.TEXT,
+          required: true,
+          order: 0,
+          options: null,
+          placeholder: null,
+          helpText: null,
+          canonical: false,
+          canonicalKey: null,
+        },
+      ],
+      isActive: true,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    }
+
+    function renderEdit(onSubmit = jest.fn()) {
+      return renderWithProviders(
+        <TemplateForm
+          mode="edit"
+          template={existingTemplate}
+          specialtyId="spec-uuid"
+          onSubmit={onSubmit}
+          isPending={false}
+        />,
+      )
+    }
+
+    it('renders with pre-filled name and field from template', async () => {
+      renderEdit()
+
+      expect(screen.getByTestId('template-form-name')).toHaveValue('Anamnese Cardíaca')
+      expect(screen.getByTestId('field-editor-0')).toBeInTheDocument()
+      expect(screen.getByTestId('field-editor-label-0')).toHaveValue('Queixa principal')
+    })
+
+    it('calls onSubmit in edit mode with updated data', async () => {
+      const onSubmit = jest.fn()
+      renderEdit(onSubmit)
+
+      await userEvent.clear(screen.getByTestId('template-form-name'))
+      await userEvent.type(screen.getByTestId('template-form-name'), 'Atualizada')
+      await userEvent.click(screen.getByTestId('template-form-submit'))
+
+      await waitFor(() => {
+        expect(onSubmit).toHaveBeenCalledWith(
+          expect.objectContaining({
+            name: 'Atualizada',
+          }),
+        )
+      })
+    })
+
+    it('pre-fills placeholder and helpText from template field', async () => {
+      const templateWithHints = {
+        ...existingTemplate,
+        fields: [
+          {
+            key: 'complaint',
+            label: 'Queixa principal',
+            type: MedicalRecordFieldType.TEXT,
+            required: false,
+            order: 0,
+            options: null,
+            placeholder: 'Ex: dor de cabeça',
+            helpText: 'Descreva o sintoma principal',
+            canonical: false,
+            canonicalKey: null,
+          },
+        ],
+      }
+
+      renderWithProviders(
+        <TemplateForm
+          mode="edit"
+          template={templateWithHints}
+          specialtyId="spec-uuid"
+          onSubmit={jest.fn()}
+          isPending={false}
+        />,
+      )
+
+      expect(screen.getByTestId('field-editor-placeholder-0')).toHaveValue('Ex: dor de cabeça')
+      expect(screen.getByTestId('field-editor-help-text-0')).toHaveValue('Descreva o sintoma principal')
+    })
+
+    it('pre-fills SELECT field options from template', async () => {
+      const templateWithOptions = {
+        ...existingTemplate,
+        fields: [
+          {
+            key: 'severity',
+            label: 'Gravidade',
+            type: MedicalRecordFieldType.SELECT,
+            required: false,
+            order: 0,
+            options: [
+              { value: 'low', label: 'Baixo' },
+              { value: 'high', label: 'Alto' },
+            ],
+            placeholder: null,
+            helpText: null,
+            canonical: false,
+            canonicalKey: null,
+          },
+        ],
+      }
+
+      renderWithProviders(
+        <TemplateForm
+          mode="edit"
+          template={templateWithOptions}
+          specialtyId="spec-uuid"
+          onSubmit={jest.fn()}
+          isPending={false}
+        />,
+      )
+
+      expect(screen.getByTestId('field-editor-option-value-0-0')).toHaveValue('low')
+      expect(screen.getByTestId('field-editor-option-value-0-1')).toHaveValue('high')
     })
   })
 })

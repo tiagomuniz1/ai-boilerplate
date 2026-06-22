@@ -79,74 +79,101 @@ const mockAppointment = {
 
 describe('Medical Record View', () => {
   beforeEach(() => {
-    visitClinic('/appointments', { user: mockDoctorUser })
+    cy.clearCookies()
+    cy.clearLocalStorage()
+    cy.intercept('GET', `${Cypress.env('API_URL')}/doctors*`, {
+      statusCode: 200,
+      body: {
+        data: [{
+          id: DOCTOR_UUID,
+          user: { id: 'doctor-user-uuid', fullName: 'Dr. João', email: 'doctor@pulso.center', isActive: true },
+          crmNumber: '12345/SP',
+          specialties: [{ id: SPEC_UUID, name: 'Cardiologia' }],
+          bio: null,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        }],
+        total: 1,
+        page: 1,
+        limit: 200,
+      },
+    })
+    cy.intercept('GET', `${Cypress.env('API_URL')}/appointments/availability*`, {
+      statusCode: 200,
+      body: { doctorId: DOCTOR_UUID, date: '2099-12-01', slots: [] },
+    })
+    cy.intercept('GET', `${Cypress.env('API_URL')}/appointments/${APPT_UUID}`, {
+      statusCode: 200,
+      body: mockAppointment,
+    }).as('getAppointment')
+    cy.intercept('GET', `${Cypress.env('API_URL')}/appointments*`, {
+      statusCode: 200,
+      body: { data: [mockAppointment], total: 1, page: 1, limit: 100 },
+    }).as('getAppointments')
+    cy.intercept('GET', `${Cypress.env('API_URL')}/schedule-exceptions*`, {
+      statusCode: 200,
+      body: { data: [], total: 0, page: 1, limit: 20 },
+    })
+    cy.intercept('GET', `${Cypress.env('API_URL')}/patients*`, {
+      statusCode: 200,
+      body: { data: [], total: 0, page: 1, limit: 100 },
+    })
+    cy.intercept('GET', `${Cypress.env('API_URL')}/medical-records/by-appointment/${APPT_UUID}`, {
+      statusCode: 200,
+      body: mockRecord,
+    }).as('getRecord')
+    cy.intercept('GET', `${Cypress.env('API_URL')}/medical-record-templates*`, {
+      statusCode: 200,
+      body: { data: [], total: 0, page: 1, limit: 1 },
+    })
 
-    cy.intercept('GET', `**/appointments/${APPT_UUID}`, { body: mockAppointment }).as('getAppointment')
-    cy.intercept('GET', `**/appointments*`, { body: { data: [mockAppointment], total: 1, page: 1, limit: 100 } }).as('getAppointments')
-    cy.intercept('GET', `**/schedules/availability*`, { body: { doctorId: DOCTOR_UUID, date: '2099-12-01', slots: [] } }).as('getAvailability')
-    cy.intercept('GET', `**/medical-records/by-appointment/${APPT_UUID}`, { body: mockRecord }).as('getRecord')
-    cy.intercept('GET', `**/medical-records/${RECORD_UUID}`, { body: mockRecord }).as('getRecordById')
+    visitClinic('/appointments', mockDoctorUser)
   })
 
   it('shows view-medical-record button when record exists', () => {
-    cy.visit('/pulso/appointments')
-    cy.wait('@getAppointments')
-
-    cy.findByTestId('agenda-slot-booked').first().click()
+    cy.get('[data-testid="agenda-slot-booked"]', { timeout: 10000 }).first().click()
     cy.wait('@getAppointment')
     cy.wait('@getRecord')
 
-    cy.findByTestId('view-medical-record-button').should('be.visible')
+    cy.get('[data-testid="view-medical-record-button"]').should('be.visible')
   })
 
   it('opens medical-record-view modal when view button clicked', () => {
-    cy.visit('/pulso/appointments')
-    cy.wait('@getAppointments')
-
-    cy.findByTestId('agenda-slot-booked').first().click()
+    cy.get('[data-testid="agenda-slot-booked"]', { timeout: 10000 }).first().click()
     cy.wait('@getAppointment')
     cy.wait('@getRecord')
 
-    cy.findByTestId('view-medical-record-button').click()
-    cy.findByTestId('medical-record-view').should('be.visible')
+    cy.get('[data-testid="view-medical-record-button"]').click()
+    cy.get('[data-testid="medical-record-view"]').should('be.visible')
   })
 
   it('displays field values in correct order', () => {
-    cy.visit('/pulso/appointments')
-    cy.wait('@getAppointments')
-
-    cy.findByTestId('agenda-slot-booked').first().click()
+    cy.get('[data-testid="agenda-slot-booked"]', { timeout: 10000 }).first().click()
     cy.wait('@getAppointment')
     cy.wait('@getRecord')
 
-    cy.findByTestId('view-medical-record-button').click()
+    cy.get('[data-testid="view-medical-record-button"]').click()
 
-    cy.findByTestId('medical-record-view-modal').within(() => {
-      cy.findByTestId('record-field-symptom').should('contain.text', 'Dor no peito')
-      cy.findByTestId('record-field-chronic').should('contain.text', 'Não')
+    cy.get('[data-testid="medical-record-view-modal"]').within(() => {
+      cy.get('[data-testid="record-field-symptom"]').should('contain.text', 'Dor no peito')
+      cy.get('[data-testid="record-field-chronic"]').should('contain.text', 'Não')
     })
   })
 
   it('shows notes when present', () => {
-    cy.visit('/pulso/appointments')
-    cy.wait('@getAppointments')
-
-    cy.findByTestId('agenda-slot-booked').first().click()
+    cy.get('[data-testid="agenda-slot-booked"]', { timeout: 10000 }).first().click()
     cy.wait('@getAppointment')
     cy.wait('@getRecord')
 
-    cy.findByTestId('view-medical-record-button').click()
-    cy.findByTestId('record-notes').should('contain.text', 'Paciente estável')
+    cy.get('[data-testid="view-medical-record-button"]').click()
+    cy.get('[data-testid="record-notes"]').should('contain.text', 'Paciente estável')
   })
 
   it('does not show edit-medical-record button for completed appointment', () => {
-    cy.visit('/pulso/appointments')
-    cy.wait('@getAppointments')
-
-    cy.findByTestId('agenda-slot-booked').first().click()
+    cy.get('[data-testid="agenda-slot-booked"]', { timeout: 10000 }).first().click()
     cy.wait('@getAppointment')
     cy.wait('@getRecord')
 
-    cy.findByTestId('edit-medical-record-button').should('not.exist')
+    cy.get('[data-testid="edit-medical-record-button"]').should('not.exist')
   })
 })

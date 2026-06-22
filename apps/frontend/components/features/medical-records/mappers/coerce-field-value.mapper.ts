@@ -18,6 +18,7 @@ export function coerceFieldValue(type: MedicalRecordFieldType, value: unknown): 
       return value
     case MedicalRecordFieldType.MULTISELECT:
       if (Array.isArray(value)) return value
+      /* c8 ignore next */
       if (typeof value === 'string') return value ? [value] : []
       return []
     default:

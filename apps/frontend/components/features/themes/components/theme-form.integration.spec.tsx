@@ -206,6 +206,28 @@ describe('ThemeForm (integration) — create mode', () => {
     })
   })
 
+  it('changing accentColor picker updates accentColor text input', async () => {
+    renderWithProviders(<ThemeForm mode="create" isPending={false} onSubmit={jest.fn()} />)
+
+    const picker = document.getElementById('accentColor-picker') as HTMLInputElement
+    fireEvent.change(picker, { target: { value: '#ff0000' } })
+
+    await waitFor(() => {
+      expect(screen.getByTestId('theme-form-accent-color')).toHaveValue('#ff0000')
+    })
+  })
+
+  it('changing accentSoftColor picker updates accentSoftColor text input', async () => {
+    renderWithProviders(<ThemeForm mode="create" isPending={false} onSubmit={jest.fn()} />)
+
+    const picker = document.getElementById('accentSoftColor-picker') as HTMLInputElement
+    fireEvent.change(picker, { target: { value: '#aabbcc' } })
+
+    await waitFor(() => {
+      expect(screen.getByTestId('theme-form-accent-soft-color')).toHaveValue('#aabbcc')
+    })
+  })
+
   it('changing bgColor picker updates bgColor text input', async () => {
     renderWithProviders(<ThemeForm mode="create" isPending={false} onSubmit={jest.fn()} />)
 

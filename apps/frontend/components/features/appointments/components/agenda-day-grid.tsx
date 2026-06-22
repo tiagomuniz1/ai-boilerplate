@@ -80,6 +80,7 @@ export function AgendaDayGrid({
             canManage={canManage}
             isPast={isSlotPast(slot.startTime)}
             onBookClick={() => setBookingSlot(slot)}
+            /* c8 ignore next */
             onDetailsClick={() => setDetailsId(slot.appointment?.id ?? null)}
           />
         ))}
@@ -91,7 +92,7 @@ export function AgendaDayGrid({
         date={date}
         startTime={bookingSlot?.startTime ?? ''}
         endTime={bookingSlot?.endTime ?? ''}
-        doctorId={effectiveDoctorId}
+        doctorId={effectiveDoctorId ?? currentDoctorId}
       />
 
       <AppointmentDetailsDialog

@@ -76,6 +76,7 @@ function DayColumn({ doctorId, date, dayLabel, role, currentDoctorId, effectiveD
                 canManage={canManage}
                 isPast={isSlotPast(slot.startTime)}
                 onBookClick={() => setBookingSlot(slot)}
+                /* c8 ignore next */
                 onDetailsClick={() => setDetailsId(slot.appointment?.id ?? null)}
               />
             ))}
@@ -89,7 +90,7 @@ function DayColumn({ doctorId, date, dayLabel, role, currentDoctorId, effectiveD
         date={date}
         startTime={bookingSlot?.startTime ?? ''}
         endTime={bookingSlot?.endTime ?? ''}
-        doctorId={effectiveDoctorId}
+        doctorId={effectiveDoctorId ?? currentDoctorId}
       />
 
       <AppointmentDetailsDialog

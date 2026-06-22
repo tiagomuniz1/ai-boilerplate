@@ -1,6 +1,8 @@
 jest.mock('../services/appointments.service')
 jest.mock('@/components/features/patients/services/patients.service')
 jest.mock('@/components/features/schedule-exceptions/services/schedule-exceptions.service')
+jest.mock('@/components/features/medical-records/services/medical-records.service')
+jest.mock('@/components/features/medical-record-templates/services/medical-record-templates.service')
 jest.mock('next/navigation', () => ({ useRouter: jest.fn(() => ({ push: jest.fn() })) }))
 
 import { screen, waitFor } from '@testing-library/react'
@@ -9,12 +11,16 @@ import { AppointmentStatus, UserRole } from '@app/shared'
 import { appointmentsService } from '../services/appointments.service'
 import { patientsService } from '@/components/features/patients/services/patients.service'
 import { scheduleExceptionsService } from '@/components/features/schedule-exceptions/services/schedule-exceptions.service'
+import { medicalRecordsService } from '@/components/features/medical-records/services/medical-records.service'
+import { medicalRecordTemplatesService } from '@/components/features/medical-record-templates/services/medical-record-templates.service'
 import { renderWithProviders } from '@/tests/utils/render-with-providers'
 import { AgendaDayGrid } from './agenda-day-grid'
 
 const mockAppointmentsService = appointmentsService as jest.Mocked<typeof appointmentsService>
 const mockPatientsService = patientsService as jest.Mocked<typeof patientsService>
 const mockScheduleExceptionsService = scheduleExceptionsService as jest.Mocked<typeof scheduleExceptionsService>
+const mockMedicalRecordsService = medicalRecordsService as jest.Mocked<typeof medicalRecordsService>
+const mockMedicalRecordTemplatesService = medicalRecordTemplatesService as jest.Mocked<typeof medicalRecordTemplatesService>
 
 const FUTURE_DATE = '2099-12-31'
 const PAST_DATE = '2020-01-01'
@@ -70,6 +76,8 @@ describe('AgendaDayGrid (integration)', () => {
     jest.clearAllMocks()
     mockPatientsService.getAll.mockResolvedValue({ data: [], total: 0, page: 1, limit: 200 })
     mockScheduleExceptionsService.getAll.mockResolvedValue({ data: [], total: 0, page: 1, limit: 20 })
+    mockMedicalRecordsService.getByAppointment.mockResolvedValue(null)
+    mockMedicalRecordTemplatesService.getAll.mockResolvedValue({ data: [], total: 0, page: 1, limit: 1 })
   })
 
   it('renders empty message when doctorId is null', () => {
@@ -230,5 +238,67 @@ describe('AgendaDayGrid (integration)', () => {
     })
 
     expect(screen.queryByTestId('block-banner')).not.toBeInTheDocument()
+  })
+
+  it('closes BookAppointmentDialog when cancel is clicked', async () => {
+    mockAppointmentsService.getAvailability.mockResolvedValue(
+      makeAvailabilityResponse([{ startTime: '09:00', endTime: '09:30' }]),
+    )
+    mockAppointmentsService.getAll.mockResolvedValue(makePaginatedAppointments())
+
+    renderWithProviders(<AgendaDayGrid {...defaultProps} />)
+
+    await waitFor(() => expect(screen.getByTestId('agenda-slot-free')).toBeInTheDocument())
+    await userEvent.click(screen.getByTestId('agenda-slot-free'))
+    expect(screen.getByTestId('book-appointment-dialog')).toBeInTheDocument()
+
+    await userEvent.click(screen.getByTestId('book-dialog-cancel'))
+
+    await waitFor(() => {
+      expect(screen.queryByTestId('book-appointment-dialog')).not.toBeInTheDocument()
+    })
+  })
+
+  it('opens AppointmentDetailsDialog when clicking booked slot', async () => {
+    const appointment = makeAppointmentDto({ id: 'booked-appt-uuid' })
+    mockAppointmentsService.getAvailability.mockResolvedValue(
+      makeAvailabilityResponse([{ startTime: '10:00', endTime: '10:30' }]),
+    )
+    mockAppointmentsService.getAll.mockResolvedValue(
+      makePaginatedAppointments([{ ...appointment, startTime: '10:00', endTime: '10:30' }]),
+    )
+    mockAppointmentsService.getById.mockResolvedValue(appointment as any)
+
+    renderWithProviders(<AgendaDayGrid {...defaultProps} />)
+
+    await waitFor(() => expect(screen.getByTestId('agenda-slot-booked')).toBeInTheDocument())
+    await userEvent.click(screen.getByTestId('agenda-slot-booked'))
+
+    await waitFor(() => {
+      expect(screen.getByTestId('appointment-details-dialog')).toBeInTheDocument()
+    })
+  })
+
+  it('closes AppointmentDetailsDialog when close is clicked', async () => {
+    const appointment = makeAppointmentDto({ id: 'booked-appt-uuid' })
+    mockAppointmentsService.getAvailability.mockResolvedValue(
+      makeAvailabilityResponse([{ startTime: '10:00', endTime: '10:30' }]),
+    )
+    mockAppointmentsService.getAll.mockResolvedValue(
+      makePaginatedAppointments([{ ...appointment, startTime: '10:00', endTime: '10:30' }]),
+    )
+    mockAppointmentsService.getById.mockResolvedValue(appointment as any)
+
+    renderWithProviders(<AgendaDayGrid {...defaultProps} />)
+
+    await waitFor(() => expect(screen.getByTestId('agenda-slot-booked')).toBeInTheDocument())
+    await userEvent.click(screen.getByTestId('agenda-slot-booked'))
+    await waitFor(() => expect(screen.getByTestId('appointment-details-dialog')).toBeInTheDocument())
+
+    await userEvent.click(screen.getByRole('button', { name: 'Fechar' }))
+
+    await waitFor(() => {
+      expect(screen.queryByTestId('appointment-details-dialog')).not.toBeInTheDocument()
+    })
   })
 })

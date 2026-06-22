@@ -26,6 +26,11 @@ describe('DynamicField', () => {
       expect(screen.getByTestId('dynamic-field-test_key').tagName).toBe('INPUT')
     })
 
+    it('falls back to empty string when value is null', () => {
+      render(<DynamicField field={makeField()} value={null} onChange={jest.fn()} />)
+      expect(screen.getByTestId('dynamic-field-test_key')).toHaveValue('')
+    })
+
     it('shows label', () => {
       render(<DynamicField field={makeField()} value="" onChange={jest.fn()} />)
       expect(screen.getByText('Campo Teste')).toBeInTheDocument()
@@ -64,12 +69,47 @@ describe('DynamicField', () => {
       render(<DynamicField field={makeField({ type: MedicalRecordFieldType.TEXTAREA })} value="" onChange={jest.fn()} />)
       expect(screen.getByTestId('dynamic-field-test_key').tagName).toBe('TEXTAREA')
     })
+
+    it('falls back to empty string when value is null', () => {
+      render(<DynamicField field={makeField({ type: MedicalRecordFieldType.TEXTAREA })} value={null} onChange={jest.fn()} />)
+      expect(screen.getByTestId('dynamic-field-test_key')).toHaveValue('')
+    })
+
+    it('calls onChange with textarea value', async () => {
+      const onChange = jest.fn()
+      render(<DynamicField field={makeField({ type: MedicalRecordFieldType.TEXTAREA })} value="" onChange={onChange} />)
+      await userEvent.type(screen.getByTestId('dynamic-field-test_key'), 'hello')
+      expect(onChange).toHaveBeenCalled()
+    })
+
+    it('shows placeholder for textarea', () => {
+      render(
+        <DynamicField
+          field={makeField({ type: MedicalRecordFieldType.TEXTAREA, placeholder: 'Digite aqui' })}
+          value=""
+          onChange={jest.fn()}
+        />,
+      )
+      expect(screen.getByTestId('dynamic-field-test_key')).toHaveAttribute('placeholder', 'Digite aqui')
+    })
   })
 
   describe('NUMBER', () => {
     it('renders a number input', () => {
       render(<DynamicField field={makeField({ type: MedicalRecordFieldType.NUMBER })} value="" onChange={jest.fn()} />)
       expect(screen.getByTestId('dynamic-field-test_key')).toHaveAttribute('type', 'number')
+    })
+
+    it('falls back to empty string when value is null', () => {
+      render(<DynamicField field={makeField({ type: MedicalRecordFieldType.NUMBER })} value={null} onChange={jest.fn()} />)
+      expect(screen.getByTestId('dynamic-field-test_key')).toHaveValue(null)
+    })
+
+    it('calls onChange with number value', async () => {
+      const onChange = jest.fn()
+      render(<DynamicField field={makeField({ type: MedicalRecordFieldType.NUMBER })} value="" onChange={onChange} />)
+      await userEvent.type(screen.getByTestId('dynamic-field-test_key'), '5')
+      expect(onChange).toHaveBeenCalled()
     })
   })
 
@@ -90,12 +130,37 @@ describe('DynamicField', () => {
       render(<DynamicField field={makeField({ type: MedicalRecordFieldType.BOOLEAN })} value={true} onChange={jest.fn()} />)
       expect(screen.getByTestId('dynamic-field-test_key')).toBeChecked()
     })
+
+    it('shows helpText and error for boolean field', () => {
+      render(
+        <DynamicField
+          field={makeField({ type: MedicalRecordFieldType.BOOLEAN, helpText: 'Marque se aplicável' })}
+          value={false}
+          onChange={jest.fn()}
+          error="Campo obrigatório"
+        />,
+      )
+      expect(screen.getByText('Marque se aplicável')).toBeInTheDocument()
+      expect(screen.getByRole('alert')).toHaveTextContent('Campo obrigatório')
+    })
   })
 
   describe('DATE', () => {
     it('renders a date input', () => {
       render(<DynamicField field={makeField({ type: MedicalRecordFieldType.DATE })} value="" onChange={jest.fn()} />)
       expect(screen.getByTestId('dynamic-field-test_key')).toHaveAttribute('type', 'date')
+    })
+
+    it('falls back to empty string when value is null', () => {
+      render(<DynamicField field={makeField({ type: MedicalRecordFieldType.DATE })} value={null} onChange={jest.fn()} />)
+      expect(screen.getByTestId('dynamic-field-test_key')).toHaveValue('')
+    })
+
+    it('calls onChange with date value', () => {
+      const onChange = jest.fn()
+      render(<DynamicField field={makeField({ type: MedicalRecordFieldType.DATE })} value="" onChange={onChange} />)
+      fireEvent.change(screen.getByTestId('dynamic-field-test_key'), { target: { value: '2024-01-01' } })
+      expect(onChange).toHaveBeenCalledWith('2024-01-01')
     })
   })
 
@@ -106,6 +171,11 @@ describe('DynamicField', () => {
         { value: 'opt1', label: 'Opção 1' },
         { value: 'opt2', label: 'Opção 2' },
       ],
+    })
+
+    it('falls back to empty string when value is null', () => {
+      render(<DynamicField field={selectField} value={null} onChange={jest.fn()} />)
+      expect(screen.getByTestId('dynamic-field-test_key')).toHaveValue('')
     })
 
     it('renders a select with options', () => {
@@ -120,6 +190,12 @@ describe('DynamicField', () => {
       render(<DynamicField field={selectField} value="" onChange={onChange} />)
       await userEvent.selectOptions(screen.getByTestId('dynamic-field-test_key'), 'opt1')
       expect(onChange).toHaveBeenCalledWith('opt1')
+    })
+
+    it('renders select without options when options is null', () => {
+      render(<DynamicField field={makeField({ type: MedicalRecordFieldType.SELECT, options: null })} value="" onChange={jest.fn()} />)
+      expect(screen.getByTestId('dynamic-field-test_key').tagName).toBe('SELECT')
+      expect(screen.getByText('Selecione...')).toBeInTheDocument()
     })
   })
 
@@ -150,6 +226,25 @@ describe('DynamicField', () => {
       render(<DynamicField field={multiselectField} value={['a', 'b']} onChange={onChange} />)
       await userEvent.click(screen.getByTestId('dynamic-field-test_key-option-a'))
       expect(onChange).toHaveBeenCalledWith(['b'])
+    })
+
+    it('treats non-array value as empty selection', () => {
+      render(<DynamicField field={multiselectField} value="not_an_array" onChange={jest.fn()} />)
+      expect(screen.getByTestId('dynamic-field-test_key-option-a')).not.toBeChecked()
+      expect(screen.getByTestId('dynamic-field-test_key-option-b')).not.toBeChecked()
+    })
+  })
+
+  describe('unknown type', () => {
+    it('renders nothing for unknown field type', () => {
+      render(
+        <DynamicField
+          field={makeField({ type: 'unknown_type' as MedicalRecordFieldType })}
+          value=""
+          onChange={jest.fn()}
+        />,
+      )
+      expect(screen.queryByTestId('dynamic-field-test_key')).not.toBeInTheDocument()
     })
   })
 })

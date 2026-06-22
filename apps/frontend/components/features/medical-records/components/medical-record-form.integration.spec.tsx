@@ -102,6 +102,50 @@ describe('MedicalRecordForm', () => {
     expect(onSubmit).not.toHaveBeenCalled()
   })
 
+  it('validates required DATE field on submit', async () => {
+    const onSubmit = jest.fn()
+    renderWithProviders(
+      <MedicalRecordForm
+        {...defaultProps}
+        schema={[makeField({ key: 'birthday', label: 'Nascimento', type: MedicalRecordFieldType.DATE, required: true })]}
+        onSubmit={onSubmit}
+      />,
+    )
+
+    await userEvent.click(screen.getByTestId('medical-record-form-submit'))
+
+    await waitFor(() => {
+      expect(screen.getByRole('alert')).toBeInTheDocument()
+    })
+    expect(onSubmit).not.toHaveBeenCalled()
+  })
+
+  it('validates required MULTISELECT field on submit', async () => {
+    const onSubmit = jest.fn()
+    renderWithProviders(
+      <MedicalRecordForm
+        {...defaultProps}
+        schema={[
+          makeField({
+            key: 'tags',
+            label: 'Tags',
+            type: MedicalRecordFieldType.MULTISELECT,
+            required: true,
+            options: [{ value: 'a', label: 'A' }],
+          }),
+        ]}
+        onSubmit={onSubmit}
+      />,
+    )
+
+    await userEvent.click(screen.getByTestId('medical-record-form-submit'))
+
+    await waitFor(() => {
+      expect(screen.getByRole('alert')).toBeInTheDocument()
+    })
+    expect(onSubmit).not.toHaveBeenCalled()
+  })
+
   it('calls onSubmit with coerced data when form is valid', async () => {
     const onSubmit = jest.fn()
     renderWithProviders(

@@ -3,9 +3,9 @@ jest.mock('@/components/features/medical-records/services/medical-records.servic
 jest.mock('@/components/features/medical-record-templates/services/medical-record-templates.service')
 jest.mock('next/navigation', () => ({ useRouter: jest.fn(() => ({ push: jest.fn() })) }))
 
-import { screen, waitFor } from '@testing-library/react'
+import { screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { AppointmentStatus, UserRole } from '@app/shared'
+import { AppointmentStatus, MedicalRecordFieldType, UserRole } from '@app/shared'
 import { appointmentsService } from '../services/appointments.service'
 import { medicalRecordsService } from '@/components/features/medical-records/services/medical-records.service'
 import { medicalRecordTemplatesService } from '@/components/features/medical-record-templates/services/medical-record-templates.service'
@@ -33,6 +33,73 @@ const makeAppointmentDto = (overrides: object = {}) => ({
   cancellationReason: null,
   createdAt: new Date(),
   updatedAt: new Date(),
+  ...overrides,
+})
+
+const makeTemplateDto = (overrides: object = {}) => ({
+  id: 'tpl-uuid',
+  specialtyId: 'spec-uuid',
+  specialtyName: 'Cardiologia',
+  name: 'Anamnese',
+  fields: [
+    {
+      key: 'complaint',
+      label: 'Queixa',
+      type: MedicalRecordFieldType.TEXT,
+      required: false,
+      order: 0,
+      options: null,
+      placeholder: null,
+      helpText: null,
+      canonical: false,
+      canonicalKey: null,
+    },
+    {
+      label: 'Notas extras',
+      type: MedicalRecordFieldType.TEXTAREA,
+      required: false,
+      order: 1,
+      options: null,
+      placeholder: null,
+      helpText: null,
+      canonical: false,
+      canonicalKey: null,
+    },
+  ],
+  isActive: true,
+  createdAt: new Date().toISOString(),
+  updatedAt: new Date().toISOString(),
+  ...overrides,
+})
+
+const makeRecordDto = (overrides: object = {}) => ({
+  id: 'record-uuid',
+  appointmentId: 'appt-uuid',
+  patientId: 'patient-uuid',
+  patientName: 'Patient One',
+  doctorId: 'doctor-uuid',
+  doctorName: 'Dr. Test',
+  specialtyId: 'spec-uuid',
+  specialtyName: 'Cardiologia',
+  templateId: 'tpl-uuid',
+  templateSchemaSnapshot: [
+    {
+      key: 'complaint',
+      label: 'Queixa',
+      type: MedicalRecordFieldType.TEXT,
+      required: false,
+      order: 0,
+      options: null,
+      placeholder: null,
+      helpText: null,
+      canonical: false,
+      canonicalKey: null,
+    },
+  ],
+  data: { complaint: 'Dor de cabeça' },
+  notes: null,
+  createdAt: new Date().toISOString(),
+  updatedAt: new Date().toISOString(),
   ...overrides,
 })
 
@@ -358,6 +425,271 @@ describe('AppointmentDetailsDialog (integration)', () => {
 
     await waitFor(() => {
       expect(screen.getByTestId('view-medical-record-button')).toBeInTheDocument()
+    })
+  })
+
+  it('opens fill modal with form derived from template fields', async () => {
+    mockAppointmentsService.getById.mockResolvedValue(makeAppointmentDto())
+    mockMedicalRecordsService.getByAppointment.mockResolvedValue(null)
+    mockTemplatesService.getAll.mockResolvedValue({
+      data: [makeTemplateDto()],
+      total: 1,
+      page: 1,
+      limit: 1,
+    })
+
+    renderWithProviders(<AppointmentDetailsDialog {...defaultProps} />)
+
+    await waitFor(() => {
+      expect(screen.getByTestId('fill-medical-record-button')).toBeInTheDocument()
+    })
+
+    await userEvent.click(screen.getByTestId('fill-medical-record-button'))
+
+    await waitFor(() => {
+      expect(screen.getByTestId('medical-record-form')).toBeInTheDocument()
+    })
+  })
+
+  it('submitting fill form calls create medical record service', async () => {
+    mockAppointmentsService.getById.mockResolvedValue(makeAppointmentDto())
+    mockMedicalRecordsService.getByAppointment.mockResolvedValue(null)
+    mockMedicalRecordsService.create.mockResolvedValue(makeRecordDto() as any)
+    mockTemplatesService.getAll.mockResolvedValue({
+      data: [makeTemplateDto()],
+      total: 1,
+      page: 1,
+      limit: 1,
+    })
+
+    renderWithProviders(<AppointmentDetailsDialog {...defaultProps} />)
+
+    await waitFor(() => expect(screen.getByTestId('fill-medical-record-button')).toBeInTheDocument())
+    await userEvent.click(screen.getByTestId('fill-medical-record-button'))
+    await waitFor(() => expect(screen.getByTestId('medical-record-form')).toBeInTheDocument())
+
+    await userEvent.click(screen.getByTestId('medical-record-form-submit'))
+
+    await waitFor(() => {
+      expect(mockMedicalRecordsService.create).toHaveBeenCalled()
+    })
+  })
+
+  it('shows 409 conflict error message when create record fails with 409', async () => {
+    mockAppointmentsService.getById.mockResolvedValue(makeAppointmentDto())
+    mockMedicalRecordsService.getByAppointment.mockResolvedValue(null)
+    mockMedicalRecordsService.create.mockRejectedValue({ status: 409 })
+    mockTemplatesService.getAll.mockResolvedValue({
+      data: [makeTemplateDto()],
+      total: 1,
+      page: 1,
+      limit: 1,
+    })
+
+    renderWithProviders(<AppointmentDetailsDialog {...defaultProps} />)
+
+    await waitFor(() => expect(screen.getByTestId('fill-medical-record-button')).toBeInTheDocument())
+    await userEvent.click(screen.getByTestId('fill-medical-record-button'))
+    await waitFor(() => expect(screen.getByTestId('medical-record-form')).toBeInTheDocument())
+
+    await userEvent.click(screen.getByTestId('medical-record-form-submit'))
+
+    await waitFor(() => {
+      expect(screen.getByTestId('medical-record-form-error')).toBeInTheDocument()
+    })
+    expect(screen.getByTestId('medical-record-form-error')).toHaveTextContent(
+      'Esta consulta já possui prontuário.',
+    )
+  })
+
+  it('shows 422 error message when create record fails with 422', async () => {
+    mockAppointmentsService.getById.mockResolvedValue(makeAppointmentDto())
+    mockMedicalRecordsService.getByAppointment.mockResolvedValue(null)
+    mockMedicalRecordsService.create.mockRejectedValue({ status: 422 })
+    mockTemplatesService.getAll.mockResolvedValue({
+      data: [makeTemplateDto()],
+      total: 1,
+      page: 1,
+      limit: 1,
+    })
+
+    renderWithProviders(<AppointmentDetailsDialog {...defaultProps} />)
+
+    await waitFor(() => expect(screen.getByTestId('fill-medical-record-button')).toBeInTheDocument())
+    await userEvent.click(screen.getByTestId('fill-medical-record-button'))
+    await waitFor(() => expect(screen.getByTestId('medical-record-form')).toBeInTheDocument())
+
+    await userEvent.click(screen.getByTestId('medical-record-form-submit'))
+
+    await waitFor(() => {
+      expect(screen.getByTestId('medical-record-form-error')).toBeInTheDocument()
+    })
+    expect(screen.getByTestId('medical-record-form-error')).toHaveTextContent(
+      'Prontuário não pode ser editado após a conclusão da consulta.',
+    )
+  })
+
+  it('shows generic error message when create record fails with unexpected error', async () => {
+    mockAppointmentsService.getById.mockResolvedValue(makeAppointmentDto())
+    mockMedicalRecordsService.getByAppointment.mockResolvedValue(null)
+    mockMedicalRecordsService.create.mockRejectedValue({ status: 500 })
+    mockTemplatesService.getAll.mockResolvedValue({
+      data: [makeTemplateDto()],
+      total: 1,
+      page: 1,
+      limit: 1,
+    })
+
+    renderWithProviders(<AppointmentDetailsDialog {...defaultProps} />)
+
+    await waitFor(() => expect(screen.getByTestId('fill-medical-record-button')).toBeInTheDocument())
+    await userEvent.click(screen.getByTestId('fill-medical-record-button'))
+    await waitFor(() => expect(screen.getByTestId('medical-record-form')).toBeInTheDocument())
+
+    await userEvent.click(screen.getByTestId('medical-record-form-submit'))
+
+    await waitFor(() => {
+      expect(screen.getByTestId('medical-record-form-error')).toBeInTheDocument()
+    })
+    expect(screen.getByTestId('medical-record-form-error')).toHaveTextContent(
+      'Ocorreu um erro ao salvar o prontuário.',
+    )
+  })
+
+  it('submitting edit form calls update medical record service', async () => {
+    mockAppointmentsService.getById.mockResolvedValue(makeAppointmentDto())
+    mockMedicalRecordsService.getByAppointment.mockResolvedValue(makeRecordDto() as any)
+    mockMedicalRecordsService.update.mockResolvedValue(makeRecordDto() as any)
+    mockTemplatesService.getAll.mockResolvedValue({ data: [], total: 0, page: 1, limit: 1 })
+
+    renderWithProviders(<AppointmentDetailsDialog {...defaultProps} />)
+
+    await waitFor(() => expect(screen.getByTestId('edit-medical-record-button')).toBeInTheDocument())
+    await userEvent.click(screen.getByTestId('edit-medical-record-button'))
+    await waitFor(() => expect(screen.getByTestId('medical-record-form')).toBeInTheDocument())
+
+    await userEvent.click(screen.getByTestId('medical-record-form-submit'))
+
+    await waitFor(() => {
+      expect(mockMedicalRecordsService.update).toHaveBeenCalled()
+    })
+  })
+
+  it('shows no-template alert when fill modal opened and no template exists', async () => {
+    mockAppointmentsService.getById.mockResolvedValue(makeAppointmentDto())
+    mockMedicalRecordsService.getByAppointment.mockResolvedValue(null)
+    // default beforeEach already mocks getAll to return empty data
+
+    renderWithProviders(<AppointmentDetailsDialog {...defaultProps} />)
+
+    await waitFor(() => expect(screen.getByTestId('fill-medical-record-button')).toBeInTheDocument())
+    await userEvent.click(screen.getByTestId('fill-medical-record-button'))
+
+    await waitFor(() => {
+      expect(screen.getByTestId('no-template-alert')).toBeInTheDocument()
+    })
+  })
+
+  it('shows 422 error when update record fails with 422', async () => {
+    mockAppointmentsService.getById.mockResolvedValue(makeAppointmentDto())
+    mockMedicalRecordsService.getByAppointment.mockResolvedValue(makeRecordDto() as any)
+    mockMedicalRecordsService.update.mockRejectedValue({ status: 422 })
+    mockTemplatesService.getAll.mockResolvedValue({ data: [], total: 0, page: 1, limit: 1 })
+
+    renderWithProviders(<AppointmentDetailsDialog {...defaultProps} />)
+
+    await waitFor(() => expect(screen.getByTestId('edit-medical-record-button')).toBeInTheDocument())
+    await userEvent.click(screen.getByTestId('edit-medical-record-button'))
+    await waitFor(() => expect(screen.getByTestId('medical-record-form')).toBeInTheDocument())
+
+    await userEvent.click(screen.getByTestId('medical-record-form-submit'))
+
+    await waitFor(() => {
+      expect(screen.getByTestId('medical-record-form-error')).toBeInTheDocument()
+    })
+    expect(screen.getByTestId('medical-record-form-error')).toHaveTextContent(
+      'Prontuário não pode ser editado após a conclusão da consulta.',
+    )
+  })
+
+  it('does not fetch templates when appointment has no specialtyId', async () => {
+    mockAppointmentsService.getById.mockResolvedValue(makeAppointmentDto({ specialtyId: null }))
+    mockMedicalRecordsService.getByAppointment.mockResolvedValue(null)
+
+    renderWithProviders(<AppointmentDetailsDialog {...defaultProps} />)
+
+    await waitFor(() => expect(screen.getByTestId('fill-medical-record-button')).toBeInTheDocument())
+  })
+
+  it('shows skeleton while templates are loading in fill modal', async () => {
+    mockAppointmentsService.getById.mockResolvedValue(makeAppointmentDto())
+    mockMedicalRecordsService.getByAppointment.mockResolvedValue(null)
+    // never-resolving template query so modal opens while loading
+    mockTemplatesService.getAll.mockReturnValue(new Promise(() => {}))
+
+    renderWithProviders(<AppointmentDetailsDialog {...defaultProps} />)
+
+    await waitFor(() => expect(screen.getByTestId('fill-medical-record-button')).toBeInTheDocument())
+    await userEvent.click(screen.getByTestId('fill-medical-record-button'))
+
+    await waitFor(() => {
+      expect(screen.getByTestId('medical-record-form-skeleton')).toBeInTheDocument()
+    })
+  })
+
+  it('clicking view-medical-record button opens view modal', async () => {
+    mockAppointmentsService.getById.mockResolvedValue(makeAppointmentDto())
+    mockMedicalRecordsService.getByAppointment.mockResolvedValue(makeRecordDto() as any)
+
+    renderWithProviders(<AppointmentDetailsDialog {...defaultProps} />)
+
+    await waitFor(() => expect(screen.getByTestId('view-medical-record-button')).toBeInTheDocument())
+    await userEvent.click(screen.getByTestId('view-medical-record-button'))
+
+    await waitFor(() => {
+      expect(screen.getByTestId('medical-record-view-modal')).toBeInTheDocument()
+    })
+  })
+
+  it('closing view modal resets mode', async () => {
+    mockAppointmentsService.getById.mockResolvedValue(makeAppointmentDto())
+    mockMedicalRecordsService.getByAppointment.mockResolvedValue(makeRecordDto() as any)
+
+    renderWithProviders(<AppointmentDetailsDialog {...defaultProps} onClose={jest.fn()} />)
+
+    await waitFor(() => expect(screen.getByTestId('view-medical-record-button')).toBeInTheDocument())
+    await userEvent.click(screen.getByTestId('view-medical-record-button'))
+    await waitFor(() => expect(screen.getByTestId('medical-record-view-modal')).toBeInTheDocument())
+
+    const viewModal = screen.getByTestId('medical-record-view-modal')
+    await userEvent.click(within(viewModal).getByRole('button', { name: 'Fechar' }))
+
+    await waitFor(() => {
+      expect(screen.queryByTestId('medical-record-view-modal')).not.toBeInTheDocument()
+    })
+  })
+
+  it('closing fill modal resets mode', async () => {
+    mockAppointmentsService.getById.mockResolvedValue(makeAppointmentDto())
+    mockMedicalRecordsService.getByAppointment.mockResolvedValue(null)
+    mockTemplatesService.getAll.mockResolvedValue({
+      data: [makeTemplateDto()],
+      total: 1,
+      page: 1,
+      limit: 1,
+    })
+
+    renderWithProviders(<AppointmentDetailsDialog {...defaultProps} onClose={jest.fn()} />)
+
+    await waitFor(() => expect(screen.getByTestId('fill-medical-record-button')).toBeInTheDocument())
+    await userEvent.click(screen.getByTestId('fill-medical-record-button'))
+    await waitFor(() => expect(screen.getByTestId('medical-record-form-modal')).toBeInTheDocument())
+
+    const fillModal = screen.getByTestId('medical-record-form-modal')
+    await userEvent.click(within(fillModal).getByRole('button', { name: 'Fechar' }))
+
+    await waitFor(() => {
+      expect(screen.queryByTestId('medical-record-form-modal')).not.toBeInTheDocument()
     })
   })
 })

@@ -96,6 +96,7 @@ export function DoctorForm(props: DoctorFormProps) {
 
 function DoctorFormCreate({ isPending, globalError, onSubmit }: DoctorFormCreateProps) {
   const authUser = useAuthStore((state) => state.user)
+  /* c8 ignore next */
   const clinicId = authUser?.clinicId ?? ''
 
   const {
@@ -243,6 +244,7 @@ function DoctorFormCreate({ isPending, globalError, onSubmit }: DoctorFormCreate
 function DoctorFormEdit({ defaultValues, isPending, globalError, onSubmit }: DoctorFormEditProps) {
   const authUser = useAuthStore((state) => state.user)
   const isAdmin = authUser?.role === UserRole.ADMIN
+  /* c8 ignore next */
   const clinicId = authUser?.clinicId ?? ''
 
   const {

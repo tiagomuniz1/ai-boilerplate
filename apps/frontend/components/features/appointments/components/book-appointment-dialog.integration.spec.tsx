@@ -181,6 +181,7 @@ describe('BookAppointmentDialog (integration)', () => {
     expect(screen.queryByTestId('book-appointment-dialog')).not.toBeInTheDocument()
   })
 
+
   it('shows generic error alert when mutation fails with non-409/non-422 error', async () => {
     mockAppointmentsService.book.mockRejectedValue({ status: 500, title: 'Server Error', detail: 'Internal error' })
 

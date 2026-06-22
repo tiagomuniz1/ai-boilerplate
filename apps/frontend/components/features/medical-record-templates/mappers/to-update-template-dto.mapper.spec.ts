@@ -54,4 +54,21 @@ describe('toUpdateTemplateDto', () => {
     expect(dto.fields).toBeUndefined()
     expect(dto.isActive).toBeUndefined()
   })
+
+  it('includes placeholder when non-empty', () => {
+    const dto = toUpdateTemplateDto({ fields: [makeField({ placeholder: 'Ex: dor' })] })
+    expect(dto.fields![0].placeholder).toBe('Ex: dor')
+  })
+
+  it('includes helpText when non-empty', () => {
+    const dto = toUpdateTemplateDto({ fields: [makeField({ helpText: 'Descreva' })] })
+    expect(dto.fields![0].helpText).toBe('Descreva')
+  })
+
+  it('includes canonicalKey when canonical is true and key provided', () => {
+    const dto = toUpdateTemplateDto({
+      fields: [makeField({ canonical: true, canonicalKey: 'chief_complaint' })],
+    })
+    expect(dto.fields![0].canonicalKey).toBe('chief_complaint')
+  })
 })

@@ -3,6 +3,8 @@ jest.mock('next/navigation', () => ({ useRouter: jest.fn() }))
 import { screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { useForm } from 'react-hook-form'
+import { zodResolver } from '@hookform/resolvers/zod'
+import { z } from 'zod'
 import { renderWithProviders } from '@/tests/utils/render-with-providers'
 import { CanonicalFieldOptionsEditor } from './canonical-field-options-editor'
 
@@ -11,6 +13,36 @@ function OptionsEditorWrapper({ defaultOptions = [] }: { defaultOptions?: { valu
     defaultValues: { options: defaultOptions },
   })
   return <CanonicalFieldOptionsEditor control={control} errors={errors} />
+}
+
+const validatedOptionsSchema = z.object({
+  options: z
+    .array(
+      z.object({
+        value: z.string().min(1, 'Valor obrigatório'),
+        label: z.string().min(1, 'Rótulo obrigatório'),
+      }),
+    )
+    .min(1, 'Adicione ao menos uma opção'),
+})
+
+function OptionsEditorWrapperWithValidation() {
+  const {
+    control,
+    handleSubmit,
+    formState: { errors },
+  } = useForm({
+    resolver: zodResolver(validatedOptionsSchema),
+    defaultValues: { options: [] },
+  })
+  return (
+    <form onSubmit={handleSubmit(() => {})} data-testid="test-form">
+      <CanonicalFieldOptionsEditor control={control} errors={errors} />
+      <button type="submit" data-testid="test-submit">
+        Submit
+      </button>
+    </form>
+  )
 }
 
 describe('CanonicalFieldOptionsEditor (integration)', () => {
@@ -62,5 +94,50 @@ describe('CanonicalFieldOptionsEditor (integration)', () => {
   it('renders add option button', () => {
     renderWithProviders(<OptionsEditorWrapper />)
     expect(screen.getByTestId('canonical-field-options-add')).toBeInTheDocument()
+  })
+
+  it('shows global options error when submitted with no options', async () => {
+    renderWithProviders(<OptionsEditorWrapperWithValidation />)
+
+    await userEvent.click(screen.getByTestId('test-submit'))
+
+    await waitFor(() => {
+      expect(screen.getByTestId('canonical-field-options-error')).toBeInTheDocument()
+    })
+    expect(screen.getByTestId('canonical-field-options-error')).toHaveTextContent(
+      'Adicione ao menos uma opção',
+    )
+  })
+
+  it('shows per-field value error when option value is empty', async () => {
+    renderWithProviders(<OptionsEditorWrapperWithValidation />)
+
+    await userEvent.click(screen.getByTestId('canonical-field-options-add'))
+    await waitFor(() => {
+      expect(screen.getByTestId('canonical-field-option-row-0')).toBeInTheDocument()
+    })
+
+    await userEvent.type(screen.getByTestId('canonical-field-option-label-0'), 'Opção A')
+    await userEvent.click(screen.getByTestId('test-submit'))
+
+    await waitFor(() => {
+      expect(screen.getByText('Valor obrigatório')).toBeInTheDocument()
+    })
+  })
+
+  it('shows per-field label error when option label is empty', async () => {
+    renderWithProviders(<OptionsEditorWrapperWithValidation />)
+
+    await userEvent.click(screen.getByTestId('canonical-field-options-add'))
+    await waitFor(() => {
+      expect(screen.getByTestId('canonical-field-option-row-0')).toBeInTheDocument()
+    })
+
+    await userEvent.type(screen.getByTestId('canonical-field-option-value-0'), 'opt_a')
+    await userEvent.click(screen.getByTestId('test-submit'))
+
+    await waitFor(() => {
+      expect(screen.getByText('Rótulo obrigatório')).toBeInTheDocument()
+    })
   })
 })

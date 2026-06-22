@@ -152,6 +152,143 @@ describe('CanonicalFieldForm (integration) — create mode', () => {
 
     expect(screen.getByRole('option', { name: 'Cardiologia' })).toBeInTheDocument()
   })
+
+  it('shows options error when SELECT type submitted with no options', async () => {
+    renderWithProviders(
+      <CanonicalFieldForm mode="create" specialties={[]} isPending={false} onSubmit={jest.fn()} />,
+    )
+
+    await userEvent.type(screen.getByTestId('canonical-field-form-canonical-key'), 'severity')
+    await userEvent.type(screen.getByTestId('canonical-field-form-label'), 'Gravidade')
+    await userEvent.selectOptions(
+      screen.getByTestId('canonical-field-form-type'),
+      MedicalRecordFieldType.SELECT,
+    )
+    await userEvent.click(screen.getByTestId('canonical-field-form-submit'))
+
+    await waitFor(() => {
+      expect(
+        screen.getByText('Adicione ao menos uma opção para este tipo de campo.'),
+      ).toBeInTheDocument()
+    })
+  })
+
+  it('shows type error when form submitted without selecting a type', async () => {
+    const onSubmit = jest.fn()
+    renderWithProviders(
+      <CanonicalFieldForm mode="create" specialties={[]} isPending={false} onSubmit={onSubmit} />,
+    )
+
+    await userEvent.type(screen.getByTestId('canonical-field-form-canonical-key'), 'weight')
+    await userEvent.type(screen.getByTestId('canonical-field-form-label'), 'Peso')
+    await userEvent.click(screen.getByTestId('canonical-field-form-submit'))
+
+    await waitFor(() => {
+      expect(screen.getAllByRole('alert').length).toBeGreaterThan(0)
+    })
+    expect(onSubmit).not.toHaveBeenCalled()
+  })
+
+  it('shows description error when description exceeds maximum length', async () => {
+    renderWithProviders(
+      <CanonicalFieldForm mode="create" specialties={[]} isPending={false} onSubmit={jest.fn()} />,
+    )
+
+    await userEvent.type(screen.getByTestId('canonical-field-form-canonical-key'), 'weight')
+    await userEvent.type(screen.getByTestId('canonical-field-form-label'), 'Peso')
+    await userEvent.selectOptions(screen.getByTestId('canonical-field-form-type'), MedicalRecordFieldType.NUMBER)
+    await userEvent.type(screen.getByTestId('canonical-field-form-description'), 'a'.repeat(501))
+    await userEvent.click(screen.getByTestId('canonical-field-form-submit'))
+
+    await waitFor(() => {
+      expect(screen.getByText(/máximo/i)).toBeInTheDocument()
+    })
+  })
+
+  it('includes optional fields in onSubmit when provided', async () => {
+    const onSubmit = jest.fn()
+
+    renderWithProviders(
+      <CanonicalFieldForm mode="create" specialties={specialties} isPending={false} onSubmit={onSubmit} />,
+    )
+
+    await userEvent.type(screen.getByTestId('canonical-field-form-canonical-key'), 'weight')
+    await userEvent.type(screen.getByTestId('canonical-field-form-label'), 'Peso')
+    await userEvent.selectOptions(screen.getByTestId('canonical-field-form-type'), MedicalRecordFieldType.NUMBER)
+    await userEvent.type(screen.getByTestId('canonical-field-form-unit'), 'kg')
+    await userEvent.selectOptions(screen.getByTestId('canonical-field-form-specialty'), 'spec-uuid')
+    await userEvent.type(screen.getByTestId('canonical-field-form-description'), 'Peso corporal do paciente')
+    await userEvent.click(screen.getByTestId('canonical-field-form-submit'))
+
+    await waitFor(() => {
+      expect(onSubmit).toHaveBeenCalledWith(
+        expect.objectContaining({
+          unit: 'kg',
+          specialtyId: 'spec-uuid',
+          description: 'Peso corporal do paciente',
+        }),
+        expect.any(Function),
+      )
+    })
+  })
+
+  it('includes options in onSubmit for SELECT type with options', async () => {
+    const onSubmit = jest.fn()
+
+    renderWithProviders(
+      <CanonicalFieldForm mode="create" specialties={[]} isPending={false} onSubmit={onSubmit} />,
+    )
+
+    await userEvent.type(screen.getByTestId('canonical-field-form-canonical-key'), 'severity')
+    await userEvent.type(screen.getByTestId('canonical-field-form-label'), 'Gravidade')
+    await userEvent.selectOptions(screen.getByTestId('canonical-field-form-type'), MedicalRecordFieldType.SELECT)
+
+    await userEvent.click(screen.getByTestId('canonical-field-options-add'))
+    await waitFor(() => expect(screen.getByTestId('canonical-field-option-row-0')).toBeInTheDocument())
+    await userEvent.type(screen.getByTestId('canonical-field-option-value-0'), 'low')
+    await userEvent.type(screen.getByTestId('canonical-field-option-label-0'), 'Baixo')
+
+    await userEvent.click(screen.getByTestId('canonical-field-form-submit'))
+
+    await waitFor(() => {
+      expect(onSubmit).toHaveBeenCalledWith(
+        expect.objectContaining({
+          options: [{ value: 'low', label: 'Baixo' }],
+        }),
+        expect.any(Function),
+      )
+    })
+  })
+
+  it('blocks submission when SELECT type has duplicate option values', async () => {
+    const onSubmit = jest.fn()
+    renderWithProviders(
+      <CanonicalFieldForm mode="create" specialties={[]} isPending={false} onSubmit={onSubmit} />,
+    )
+
+    await userEvent.type(screen.getByTestId('canonical-field-form-canonical-key'), 'severity')
+    await userEvent.type(screen.getByTestId('canonical-field-form-label'), 'Gravidade')
+    await userEvent.selectOptions(
+      screen.getByTestId('canonical-field-form-type'),
+      MedicalRecordFieldType.SELECT,
+    )
+
+    await userEvent.click(screen.getByTestId('canonical-field-options-add'))
+    await waitFor(() => expect(screen.getByTestId('canonical-field-option-row-0')).toBeInTheDocument())
+    await userEvent.type(screen.getByTestId('canonical-field-option-value-0'), 'low')
+    await userEvent.type(screen.getByTestId('canonical-field-option-label-0'), 'Baixo')
+
+    await userEvent.click(screen.getByTestId('canonical-field-options-add'))
+    await waitFor(() => expect(screen.getByTestId('canonical-field-option-row-1')).toBeInTheDocument())
+    await userEvent.type(screen.getByTestId('canonical-field-option-value-1'), 'low')
+    await userEvent.type(screen.getByTestId('canonical-field-option-label-1'), 'Baixo 2')
+
+    await userEvent.click(screen.getByTestId('canonical-field-form-submit'))
+
+    // zod superRefine duplicate check runs and blocks submission
+    await new Promise((r) => setTimeout(r, 0))
+    expect(onSubmit).not.toHaveBeenCalled()
+  })
 })
 
 describe('CanonicalFieldForm (integration) — edit mode', () => {
@@ -223,6 +360,87 @@ describe('CanonicalFieldForm (integration) — edit mode', () => {
     })
   })
 
+  it('resets unit and description to empty string when they are null in defaultValues', async () => {
+    const fieldWithNulls: ICanonicalFieldModel = {
+      ...existingField,
+      unit: null,
+      specialtyId: 'spec-uuid',
+      description: null,
+    }
+
+    renderWithProviders(
+      <CanonicalFieldForm
+        mode="edit"
+        defaultValues={fieldWithNulls}
+        specialties={specialties}
+        isPending={false}
+        onSubmit={jest.fn()}
+      />,
+    )
+
+    await waitFor(() => {
+      expect(screen.getByTestId('canonical-field-form-unit')).toHaveValue('')
+    })
+
+    expect(screen.getByTestId('canonical-field-form-description')).toHaveValue('')
+  })
+
+  it('includes unit and description in onSubmit when they have values', async () => {
+    const onSubmit = jest.fn()
+
+    renderWithProviders(
+      <CanonicalFieldForm
+        mode="edit"
+        defaultValues={existingField}
+        specialties={[]}
+        isPending={false}
+        onSubmit={onSubmit}
+      />,
+    )
+
+    await waitFor(() => {
+      expect(screen.getByTestId('canonical-field-form-label')).toHaveValue('Pressão arterial')
+    })
+
+    await userEvent.click(screen.getByTestId('canonical-field-form-submit'))
+
+    await waitFor(() => {
+      expect(onSubmit).toHaveBeenCalledWith(
+        expect.objectContaining({ unit: 'mmHg', description: 'Desc existente' }),
+        expect.any(Function),
+      )
+    })
+  })
+
+  it('omits unit and description from onSubmit when cleared', async () => {
+    const onSubmit = jest.fn()
+
+    renderWithProviders(
+      <CanonicalFieldForm
+        mode="edit"
+        defaultValues={existingField}
+        specialties={[]}
+        isPending={false}
+        onSubmit={onSubmit}
+      />,
+    )
+
+    await waitFor(() => {
+      expect(screen.getByTestId('canonical-field-form-unit')).toHaveValue('mmHg')
+    })
+
+    await userEvent.clear(screen.getByTestId('canonical-field-form-unit'))
+    await userEvent.clear(screen.getByTestId('canonical-field-form-description'))
+    await userEvent.click(screen.getByTestId('canonical-field-form-submit'))
+
+    await waitFor(() => {
+      expect(onSubmit).toHaveBeenCalledWith(
+        expect.not.objectContaining({ unit: expect.anything() }),
+        expect.any(Function),
+      )
+    })
+  })
+
   it('shows options editor when type is SELECT with prefilled options', async () => {
     const fieldWithOptions: ICanonicalFieldModel = {
       ...existingField,
@@ -245,6 +463,36 @@ describe('CanonicalFieldForm (integration) — edit mode', () => {
     })
 
     expect(screen.getByTestId('canonical-field-option-value-0')).toHaveValue('low')
+  })
+
+  it('includes options in onSubmit when editing SELECT field with options', async () => {
+    const onSubmit = jest.fn()
+    const fieldWithOptions: ICanonicalFieldModel = {
+      ...existingField,
+      type: MedicalRecordFieldType.SELECT,
+      options: [{ value: 'low', label: 'Baixo' }],
+    }
+
+    renderWithProviders(
+      <CanonicalFieldForm
+        mode="edit"
+        defaultValues={fieldWithOptions}
+        specialties={[]}
+        isPending={false}
+        onSubmit={onSubmit}
+      />,
+    )
+
+    await waitFor(() => expect(screen.getByTestId('canonical-field-option-value-0')).toBeInTheDocument())
+
+    await userEvent.click(screen.getByTestId('canonical-field-form-submit'))
+
+    await waitFor(() => {
+      expect(onSubmit).toHaveBeenCalledWith(
+        expect.objectContaining({ options: [{ value: 'low', label: 'Baixo' }] }),
+        expect.any(Function),
+      )
+    })
   })
 
   it('shows global error in edit mode when provided', async () => {

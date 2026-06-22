@@ -49,4 +49,11 @@ describe('useTemplates', () => {
 
     await waitFor(() => expect(result.current.isError).toBe(true))
   })
+
+  it('does not fetch when params is null', () => {
+    const { result } = renderHook(() => useTemplates(null), { wrapper })
+
+    expect(result.current.fetchStatus).toBe('idle')
+    expect(listTemplatesUseCase).not.toHaveBeenCalled()
+  })
 })

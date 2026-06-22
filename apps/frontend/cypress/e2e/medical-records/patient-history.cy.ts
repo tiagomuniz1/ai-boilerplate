@@ -45,11 +45,18 @@ const mockPaginatedPatients = { data: [mockPatient], total: 1, page: 1, limit: 2
 
 describe('Patient Medical History', () => {
   beforeEach(() => {
-    visitClinic('/patients', { user: mockAdminUser })
-
-    cy.intercept('GET', `**/patients*`, { body: mockPaginatedPatients }).as('getPatients')
-    cy.intercept('GET', `**/patients/${PATIENT_UUID}`, { body: mockPatient }).as('getPatient')
-    cy.intercept('GET', `**/medical-records/patient/${PATIENT_UUID}*`, {
+    cy.clearCookies()
+    cy.clearLocalStorage()
+    cy.intercept('GET', `${Cypress.env('API_URL')}/patients/${PATIENT_UUID}`, {
+      statusCode: 200,
+      body: mockPatient,
+    }).as('getPatient')
+    cy.intercept('GET', `${Cypress.env('API_URL')}/patients*`, {
+      statusCode: 200,
+      body: mockPaginatedPatients,
+    }).as('getPatients')
+    cy.intercept('GET', `${Cypress.env('API_URL')}/medical-records/patient/${PATIENT_UUID}*`, {
+      statusCode: 200,
       body: {
         data: [makeRecord('r1', '2024-03-15'), makeRecord('r2', '2024-02-10')],
         total: 2,
@@ -57,17 +64,20 @@ describe('Patient Medical History', () => {
         limit: 10,
       },
     }).as('getHistory')
+
+    visitClinic('/patients', mockAdminUser)
   })
 
   it('shows empty state when no medical records exist', () => {
-    cy.intercept('GET', `**/medical-records/patient/${PATIENT_UUID}*`, {
+    cy.intercept('GET', `${Cypress.env('API_URL')}/medical-records/patient/${PATIENT_UUID}*`, {
+      statusCode: 200,
       body: { data: [], total: 0, page: 1, limit: 10 },
     }).as('emptyHistory')
 
     cy.visit(`/pulso/patients/${PATIENT_UUID}`)
     cy.wait('@getPatient')
 
-    cy.findByTestId('patient-history-empty').should('be.visible')
+    cy.get('[data-testid="patient-history-empty"]').should('be.visible')
   })
 
   it('lists medical records in the patient history', () => {
@@ -75,7 +85,7 @@ describe('Patient Medical History', () => {
     cy.wait('@getPatient')
     cy.wait('@getHistory')
 
-    cy.findAllByTestId('history-card').should('have.length', 2)
+    cy.get('[data-testid="history-card"]').should('have.length', 2)
   })
 
   it('shows specialty and doctor name on each history card', () => {
@@ -83,7 +93,7 @@ describe('Patient Medical History', () => {
     cy.wait('@getPatient')
     cy.wait('@getHistory')
 
-    cy.findAllByTestId('history-card-specialty').first().should('contain.text', 'Cardiologia')
-    cy.findAllByTestId('history-card-doctor').first().should('contain.text', 'Dr. João')
+    cy.get('[data-testid="history-card-specialty"]').first().should('contain.text', 'Cardiologia')
+    cy.get('[data-testid="history-card-doctor"]').first().should('contain.text', 'Dr. João')
   })
 })

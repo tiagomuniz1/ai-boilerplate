@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react'
+import { render, screen, fireEvent } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { UserRole } from '@app/shared'
 import { AgendaToolbar } from './agenda-toolbar'
@@ -44,6 +44,28 @@ describe('AgendaToolbar', () => {
     const newDate = defaultProps.onDateChange.mock.calls[0][0] as Date
     const expectedDate = new Date(fixedDate)
     expectedDate.setDate(expectedDate.getDate() - 7)
+    expect(newDate.getDate()).toBe(expectedDate.getDate())
+  })
+
+  it('goForward moves date forward by 1 day in day view', async () => {
+    render(<AgendaToolbar {...defaultProps} view="day" />)
+
+    await userEvent.click(screen.getByTestId('toolbar-next'))
+
+    expect(defaultProps.onDateChange).toHaveBeenCalledTimes(1)
+    const newDate = defaultProps.onDateChange.mock.calls[0][0] as Date
+    expect(newDate.getDate()).toBe(fixedDate.getDate() + 1)
+  })
+
+  it('goForward moves date forward by 7 days in week view', async () => {
+    render(<AgendaToolbar {...defaultProps} view="week" />)
+
+    await userEvent.click(screen.getByTestId('toolbar-next'))
+
+    expect(defaultProps.onDateChange).toHaveBeenCalledTimes(1)
+    const newDate = defaultProps.onDateChange.mock.calls[0][0] as Date
+    const expectedDate = new Date(fixedDate)
+    expectedDate.setDate(expectedDate.getDate() + 7)
     expect(newDate.getDate()).toBe(expectedDate.getDate())
   })
 
@@ -109,5 +131,46 @@ describe('AgendaToolbar', () => {
     render(<AgendaToolbar {...defaultProps} view="day" />)
     const label = screen.getByTestId('toolbar-date-label').textContent
     expect(label).toBeTruthy()
+  })
+
+  it('calls onViewChange with "day" when day button is clicked', async () => {
+    render(<AgendaToolbar {...defaultProps} view="week" />)
+    await userEvent.click(screen.getByTestId('toolbar-view-day'))
+    expect(defaultProps.onViewChange).toHaveBeenCalledWith('day')
+  })
+
+  it('calls onViewChange with "week" when week button is clicked', async () => {
+    render(<AgendaToolbar {...defaultProps} view="day" />)
+    await userEvent.click(screen.getByTestId('toolbar-view-week'))
+    expect(defaultProps.onViewChange).toHaveBeenCalledWith('week')
+  })
+
+  it('calls onDoctorChange with doctor id when doctor select changes', () => {
+    render(
+      <AgendaToolbar
+        {...defaultProps}
+        role={UserRole.ADMIN}
+        doctors={[
+          { id: 'd1', user: { id: 'u1', fullName: 'Dr. A', email: 'a@a.com' }, crmNumber: '123', specialties: [], bio: null, createdAt: new Date(), updatedAt: new Date() },
+        ]}
+      />,
+    )
+    fireEvent.change(screen.getByTestId('toolbar-doctor-select'), { target: { value: 'd1' } })
+    expect(defaultProps.onDoctorChange).toHaveBeenCalledWith('d1')
+  })
+
+  it('calls onDoctorChange with null when empty option is selected', () => {
+    render(
+      <AgendaToolbar
+        {...defaultProps}
+        role={UserRole.ADMIN}
+        selectedDoctorId="d1"
+        doctors={[
+          { id: 'd1', user: { id: 'u1', fullName: 'Dr. A', email: 'a@a.com' }, crmNumber: '123', specialties: [], bio: null, createdAt: new Date(), updatedAt: new Date() },
+        ]}
+      />,
+    )
+    fireEvent.change(screen.getByTestId('toolbar-doctor-select'), { target: { value: '' } })
+    expect(defaultProps.onDoctorChange).toHaveBeenCalledWith(null)
   })
 })

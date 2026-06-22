@@ -83,47 +83,85 @@ const mockCreatedRecord = {
 
 describe('Medical Record Fill', () => {
   beforeEach(() => {
-    visitClinic('/appointments', { user: mockDoctorUser })
+    cy.clearCookies()
+    cy.clearLocalStorage()
+    cy.intercept('GET', `${Cypress.env('API_URL')}/doctors*`, {
+      statusCode: 200,
+      body: {
+        data: [{
+          id: DOCTOR_UUID,
+          user: { id: 'doctor-user-uuid', fullName: 'Dr. João', email: 'doctor@pulso.center', isActive: true },
+          crmNumber: '12345/SP',
+          specialties: [{ id: SPEC_UUID, name: 'Cardiologia' }],
+          bio: null,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        }],
+        total: 1,
+        page: 1,
+        limit: 200,
+      },
+    })
+    cy.intercept('GET', `${Cypress.env('API_URL')}/appointments/availability*`, {
+      statusCode: 200,
+      body: { doctorId: DOCTOR_UUID, date: '2099-12-01', slots: [] },
+    })
+    cy.intercept('GET', `${Cypress.env('API_URL')}/appointments/${APPT_UUID}`, {
+      statusCode: 200,
+      body: mockAppointment,
+    }).as('getAppointment')
+    cy.intercept('GET', `${Cypress.env('API_URL')}/appointments*`, {
+      statusCode: 200,
+      body: { data: [mockAppointment], total: 1, page: 1, limit: 100 },
+    }).as('getAppointments')
+    cy.intercept('GET', `${Cypress.env('API_URL')}/schedule-exceptions*`, {
+      statusCode: 200,
+      body: { data: [], total: 0, page: 1, limit: 20 },
+    })
+    cy.intercept('GET', `${Cypress.env('API_URL')}/patients*`, {
+      statusCode: 200,
+      body: { data: [], total: 0, page: 1, limit: 100 },
+    })
+    cy.intercept('GET', `${Cypress.env('API_URL')}/medical-records/by-appointment/${APPT_UUID}`, {
+      statusCode: 200,
+      body: null,
+    }).as('getRecord')
+    cy.intercept('GET', `${Cypress.env('API_URL')}/medical-record-templates*`, {
+      statusCode: 200,
+      body: mockTemplate,
+    }).as('getTemplate')
+    cy.intercept('POST', `${Cypress.env('API_URL')}/medical-records`, {
+      statusCode: 201,
+      body: mockCreatedRecord,
+    }).as('createRecord')
 
-    cy.intercept('GET', `**/appointments/${APPT_UUID}`, { body: mockAppointment }).as('getAppointment')
-    cy.intercept('GET', `**/appointments*`, { body: { data: [mockAppointment], total: 1, page: 1, limit: 100 } }).as('getAppointments')
-    cy.intercept('GET', `**/schedules/availability*`, { body: { doctorId: DOCTOR_UUID, date: '2099-12-01', slots: [] } }).as('getAvailability')
-    cy.intercept('GET', `**/medical-records/by-appointment/${APPT_UUID}`, { body: null }).as('getRecord')
-    cy.intercept('GET', `**/medical-record-templates*specialtyId=${SPEC_UUID}*`, { body: mockTemplate }).as('getTemplate')
-    cy.intercept('POST', '**/medical-records', { statusCode: 201, body: mockCreatedRecord }).as('createRecord')
+    visitClinic('/appointments', mockDoctorUser)
   })
 
   it('DOCTOR sees fill-medical-record button for own scheduled appointment without record', () => {
-    cy.visit(`/pulso/appointments`)
-    cy.wait('@getAppointments')
-
-    cy.intercept('GET', `**/doctors*`, {
-      body: { data: [{ id: DOCTOR_UUID, user: { id: 'doctor-user-uuid', fullName: 'Dr. João', email: 'doctor@pulso.center', isActive: true }, crmNumber: '12345/SP', specialties: [], bio: null, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() }], total: 1, page: 1, limit: 200 },
-    })
-
-    cy.findByTestId('agenda-slot-booked').first().click()
+    cy.get('[data-testid="agenda-slot-booked"]', { timeout: 10000 }).first().click()
     cy.wait('@getAppointment')
     cy.wait('@getRecord')
 
-    cy.findByTestId('fill-medical-record-button').should('be.visible')
+    cy.get('[data-testid="fill-medical-record-button"]').should('be.visible')
   })
 
   it('DOCTOR fills medical record form and creates record', () => {
-    cy.intercept('GET', `**/medical-records/by-appointment/${APPT_UUID}`, { body: null }).as('noRecord')
+    cy.intercept('GET', `${Cypress.env('API_URL')}/medical-records/by-appointment/${APPT_UUID}`, {
+      statusCode: 200,
+      body: null,
+    }).as('noRecord')
 
-    cy.visit(`/pulso/appointments`)
-    cy.wait('@getAppointments')
-
-    cy.findByTestId('agenda-slot-booked').first().click()
+    cy.get('[data-testid="agenda-slot-booked"]', { timeout: 10000 }).first().click()
     cy.wait('@getAppointment')
     cy.wait('@noRecord')
     cy.wait('@getTemplate')
 
-    cy.findByTestId('fill-medical-record-button').click()
-    cy.findByTestId('medical-record-form').should('be.visible')
+    cy.get('[data-testid="fill-medical-record-button"]').click()
+    cy.get('[data-testid="medical-record-form"]').should('be.visible')
 
-    cy.findByTestId('dynamic-field-symptom').type('Dor no peito')
-    cy.findByTestId('medical-record-form-submit').click()
+    cy.get('[data-testid="dynamic-field-symptom"]').type('Dor no peito')
+    cy.get('[data-testid="medical-record-form-submit"]').click()
     cy.wait('@createRecord')
   })
 })

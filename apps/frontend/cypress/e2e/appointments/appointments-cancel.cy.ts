@@ -83,6 +83,10 @@ describe('Appointments — cancel', () => {
       statusCode: 200,
       body: { data: [], total: 0, page: 1, limit: 20 },
     })
+    cy.intercept('GET', `${Cypress.env('API_URL')}/medical-records/by-appointment/${APPT_UUID}`, {
+      statusCode: 200,
+      body: null,
+    })
   })
 
   it('DOCTOR clicks booked slot and sees details with cancel button', () => {

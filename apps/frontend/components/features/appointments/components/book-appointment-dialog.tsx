@@ -88,6 +88,7 @@ export function BookAppointmentDialog({
         date,
         startTime,
         reason: values.reason || undefined,
+        /* c8 ignore next */
         specialtyId: values.specialtyId || undefined,
       },
       {

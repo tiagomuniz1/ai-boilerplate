@@ -176,6 +176,24 @@ describe('AppointmentAgenda (integration)', () => {
     expect(screen.getByTestId('block-time-dialog')).toBeInTheDocument()
   })
 
+  it('DOCTOR "Bloquear horário" closes BlockTimeDialog on close', async () => {
+    mockAuth(UserRole.DOCTOR)
+    mockDoctorsService.getAll.mockResolvedValue(
+      makeDoctorsResponse([{ id: 'my-doctor', fullName: 'Dr. Me' }]),
+    )
+
+    renderWithProviders(<AppointmentAgenda />)
+
+    await userEvent.click(screen.getByTestId('toolbar-block-time'))
+    expect(screen.getByTestId('block-time-dialog')).toBeInTheDocument()
+
+    await userEvent.click(screen.getByRole('button', { name: 'Fechar' }))
+
+    await waitFor(() => {
+      expect(screen.queryByTestId('block-time-dialog')).not.toBeInTheDocument()
+    })
+  })
+
   it('defaults role to USER when user is null', () => {
     mockUseAuthStore.mockImplementation((selector: (s: { user: null }) => unknown) =>
       selector({ user: null }),

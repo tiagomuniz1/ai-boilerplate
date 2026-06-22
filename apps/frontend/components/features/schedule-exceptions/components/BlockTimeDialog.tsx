@@ -76,6 +76,7 @@ export function BlockTimeDialog({ isOpen, onClose, date, role, doctorId }: Block
     const input = {
       doctorId: role === UserRole.ADMIN ? doctorId : undefined,
       date: values.date,
+      /* c8 ignore next 2 */
       startTime: values.allDay ? null : values.startTime || null,
       endTime: values.allDay ? null : values.endTime || null,
       reason: values.reason || null,

@@ -123,4 +123,51 @@ describe('PatientMedicalHistory', () => {
     renderWithProviders(<PatientMedicalHistory patientId="patient-uuid" />)
     expect(screen.queryByTestId('history-page-info')).not.toBeInTheDocument()
   })
+
+  it('navigates to next page when next button is clicked', async () => {
+    mockUseHistory.mockReturnValue({
+      data: { data: [makeRecord('r1')], total: 25, page: 1, limit: 10 },
+      isLoading: false,
+      isError: false,
+    })
+    renderWithProviders(<PatientMedicalHistory patientId="patient-uuid" />)
+    await userEvent.click(screen.getByTestId('history-next-page'))
+    expect(screen.getByTestId('history-page-info')).toHaveTextContent('2 / 3')
+  })
+
+  it('navigates back when prev button is clicked after going forward', async () => {
+    mockUseHistory.mockReturnValue({
+      data: { data: [makeRecord('r1')], total: 25, page: 1, limit: 10 },
+      isLoading: false,
+      isError: false,
+    })
+    renderWithProviders(<PatientMedicalHistory patientId="patient-uuid" />)
+    await userEvent.click(screen.getByTestId('history-next-page'))
+    expect(screen.getByTestId('history-page-info')).toHaveTextContent('2 / 3')
+    await userEvent.click(screen.getByTestId('history-prev-page'))
+    expect(screen.getByTestId('history-page-info')).toHaveTextContent('1 / 3')
+  })
+
+  it('closes record detail modal when close button is clicked', async () => {
+    const record = makeRecord('r1')
+    mockUseHistory.mockReturnValue({
+      data: { data: [record], total: 1, page: 1, limit: 10 },
+      isLoading: false,
+      isError: false,
+    })
+    mockUseRecord.mockReturnValue({ data: record, isLoading: false, isError: false })
+
+    renderWithProviders(<PatientMedicalHistory patientId="patient-uuid" />)
+    await userEvent.click(screen.getByTestId('history-card'))
+
+    await waitFor(() => {
+      expect(screen.getByTestId('medical-record-view')).toBeInTheDocument()
+    })
+
+    await userEvent.click(screen.getByRole('button', { name: 'Fechar' }))
+
+    await waitFor(() => {
+      expect(screen.queryByTestId('medical-record-view')).not.toBeInTheDocument()
+    })
+  })
 })

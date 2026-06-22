@@ -79,6 +79,10 @@ describe('coerceFieldValue', () => {
     it('returns empty array for empty array input', () => {
       expect(coerceFieldValue(MedicalRecordFieldType.MULTISELECT, [])).toEqual([])
     })
+
+    it('returns empty array for non-string non-array value', () => {
+      expect(coerceFieldValue(MedicalRecordFieldType.MULTISELECT, 42)).toEqual([])
+    })
   })
 
   describe('null/undefined/empty', () => {
