@@ -23,6 +23,11 @@ function getMsg(err: unknown): string | undefined {
   return (err as { message?: string } | undefined)?.message
 }
 
+export interface MoveToContainer {
+  id: string
+  label: string
+}
+
 interface FieldEditorProps {
   index: number
   total: number
@@ -32,6 +37,12 @@ interface FieldEditorProps {
   watchedType: MedicalRecordFieldType
   /** The react-hook-form array path this editor belongs to. Defaults to 'fields'. */
   fieldPath?: string
+  /** Props from useSortable to attach to the drag handle. */
+  dragHandleProps?: React.HTMLAttributes<HTMLElement>
+  /** Containers this field can be moved to. When provided, shows a "Mover para..." select. */
+  moveToContainers?: MoveToContainer[]
+  /** Called when the user picks a destination container from the select. */
+  onMoveToContainer?: (targetContainerId: string) => void
   onMoveUp: () => void
   onMoveDown: () => void
   onRemove: () => void
@@ -45,6 +56,9 @@ export function FieldEditor({
   errors,
   watchedType,
   fieldPath = 'fields',
+  dragHandleProps,
+  moveToContainers,
+  onMoveToContainer,
   onMoveUp,
   onMoveDown,
   onRemove,
@@ -75,10 +89,36 @@ export function FieldEditor({
       data-testid={`field-editor-${index}`}
     >
       <div className="flex items-center justify-between">
-        <span className="text-xs font-medium text-text-mute uppercase tracking-wide">
-          Campo {index + 1}
-        </span>
         <div className="flex items-center gap-2">
+          <span
+            {...dragHandleProps}
+            className="cursor-grab active:cursor-grabbing text-text-mute hover:text-text px-1 touch-none"
+            data-testid={`field-editor-drag-handle-${index}`}
+            aria-label="Arrastar campo"
+          >
+            ⠿
+          </span>
+          <span className="text-xs font-medium text-text-mute uppercase tracking-wide">
+            Campo {index + 1}
+          </span>
+        </div>
+        <div className="flex items-center gap-2">
+          {moveToContainers && moveToContainers.length > 0 && onMoveToContainer && (
+            <select
+              defaultValue=""
+              onChange={(e) => {
+                if (e.target.value) onMoveToContainer(e.target.value)
+              }}
+              className="h-7 rounded border border-line bg-surface px-2 text-xs text-text-mute cursor-pointer focus:outline-none focus:ring-1 focus:ring-accent"
+              data-testid={`field-editor-move-to-${index}`}
+              aria-label="Mover campo para outra seção"
+            >
+              <option value="" disabled>Mover para...</option>
+              {moveToContainers.map((c) => (
+                <option key={c.id} value={c.id}>{c.label}</option>
+              ))}
+            </select>
+          )}
           <Button
             type="button"
             variant="ghost"

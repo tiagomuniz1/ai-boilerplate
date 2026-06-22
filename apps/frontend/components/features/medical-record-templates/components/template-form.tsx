@@ -11,6 +11,7 @@ import { Alert } from '@/components/ui/molecules/alert/alert'
 import { FieldEditor } from './field-editor'
 import { SectionEditor } from './section-editor'
 import { CanonicalFieldPicker } from './canonical-field-picker'
+import { SortableList, SortableItem } from '@/components/ui/molecules/sortable-list/sortable-list'
 import { useSpecialties } from '@/components/features/specialties/hooks/use-specialties.hook'
 import type { ITemplateModel } from '../types/template-model.types'
 import type { ICreateTemplateInput, IUpdateTemplateInput, ITemplateFieldInput, ITemplateSectionInput } from '../types/template-input.types'
@@ -186,6 +187,7 @@ export function TemplateForm(props: Props) {
     control,
     handleSubmit,
     setValue,
+    getValues,
     watch,
     formState: { errors },
   } = useForm<ITemplateFormValues>({
@@ -306,6 +308,55 @@ export function TemplateForm(props: Props) {
     })
   }
 
+  const watchedSections = watch('sections')
+
+  function getSectionLabel(index: number): string {
+    return watchedSections?.[index]?.title?.trim() || `Seção ${index + 1}`
+  }
+
+  // Containers that a flat field can be moved to: all sections
+  const flatFieldMoveToContainers = sections.map((_, i) => ({
+    id: `section-${i}`,
+    label: getSectionLabel(i),
+  }))
+
+  // Containers that a field inside section N can be moved to: flat + all other sections
+  function getSectionFieldMoveToContainers(sectionIndex: number) {
+    return [
+      { id: 'flat', label: 'Campos gerais' },
+      ...sections
+        .map((_, i) => ({ id: `section-${i}`, label: getSectionLabel(i) }))
+        .filter((_, i) => i !== sectionIndex),
+    ]
+  }
+
+  function handleMoveField(
+    sourceContainerId: string,
+    fieldIndex: number,
+    targetContainerId: string,
+  ) {
+    const values = getValues()
+
+    // Pull the field out of the source array
+    let fieldData: ITemplateFormValues['fields'][number]
+    if (sourceContainerId === 'flat') {
+      fieldData = values.fields[fieldIndex]
+      setValue('fields', values.fields.filter((_, i) => i !== fieldIndex))
+    } else {
+      const si = parseInt(sourceContainerId.replace('section-', ''), 10)
+      fieldData = values.sections[si].fields[fieldIndex]
+      setValue(`sections.${si}.fields` as any, values.sections[si].fields.filter((_, i) => i !== fieldIndex))
+    }
+
+    // Append the field to the target array
+    if (targetContainerId === 'flat') {
+      setValue('fields', [...values.fields, fieldData])
+    } else {
+      const ti = parseInt(targetContainerId.replace('section-', ''), 10)
+      setValue(`sections.${ti}.fields` as any, [...values.sections[ti].fields, fieldData])
+    }
+  }
+
   const hasTotalFieldsError =
     getMsg(errors.fields) === 'Adicione ao menos um campo' ||
     (errors.fields as any)?.message === 'Adicione ao menos um campo'
@@ -385,20 +436,28 @@ export function TemplateForm(props: Props) {
           </div>
         )}
 
-        {fields.map((field, index) => (
-          <FieldEditor
-            key={field.id}
-            index={index}
-            total={fields.length}
-            control={control}
-            register={register}
-            errors={errors}
-            watchedType={(watchedFields?.[index]?.type as MedicalRecordFieldType) ?? field.type}
-            onMoveUp={() => move(index, index - 1)}
-            onMoveDown={() => move(index, index + 1)}
-            onRemove={() => remove(index)}
-          />
-        ))}
+        <SortableList ids={fields.map((f) => f.id)} onReorder={(from, to) => move(from, to)}>
+          {fields.map((field, index) => (
+            <SortableItem key={field.id} id={field.id}>
+              {(handleProps) => (
+                <FieldEditor
+                  index={index}
+                  total={fields.length}
+                  control={control}
+                  register={register}
+                  errors={errors}
+                  watchedType={(watchedFields?.[index]?.type as MedicalRecordFieldType) ?? field.type}
+                  dragHandleProps={handleProps}
+                  moveToContainers={flatFieldMoveToContainers}
+                  onMoveToContainer={(targetId) => handleMoveField('flat', index, targetId)}
+                  onMoveUp={() => move(index, index - 1)}
+                  onMoveDown={() => move(index, index + 1)}
+                  onRemove={() => remove(index)}
+                />
+              )}
+            </SortableItem>
+          ))}
+        </SortableList>
       </div>
 
       {/* Sections */}
@@ -416,21 +475,31 @@ export function TemplateForm(props: Props) {
           </Button>
         </div>
 
-        {sections.map((section, sectionIndex) => (
-          <SectionEditor
-            key={section.id}
-            sectionIndex={sectionIndex}
-            totalSections={sections.length}
-            control={control}
-            register={register}
-            errors={errors}
-            watch={watch}
-            specialtyId={canonicalPickerSpecialtyId}
-            onMoveUp={() => moveSection(sectionIndex, sectionIndex - 1)}
-            onMoveDown={() => moveSection(sectionIndex, sectionIndex + 1)}
-            onRemove={() => removeSection(sectionIndex)}
-          />
-        ))}
+        <SortableList ids={sections.map((s) => s.id)} onReorder={(from, to) => moveSection(from, to)}>
+          {sections.map((section, sectionIndex) => (
+            <SortableItem key={section.id} id={section.id}>
+              {(handleProps) => (
+                <SectionEditor
+                  sectionIndex={sectionIndex}
+                  totalSections={sections.length}
+                  control={control}
+                  register={register}
+                  errors={errors}
+                  watch={watch}
+                  specialtyId={canonicalPickerSpecialtyId}
+                  dragHandleProps={handleProps}
+                  fieldMoveToContainers={getSectionFieldMoveToContainers(sectionIndex)}
+                  onMoveFieldToContainer={(fieldIndex, targetId) =>
+                    handleMoveField(`section-${sectionIndex}`, fieldIndex, targetId)
+                  }
+                  onMoveUp={() => moveSection(sectionIndex, sectionIndex - 1)}
+                  onMoveDown={() => moveSection(sectionIndex, sectionIndex + 1)}
+                  onRemove={() => removeSection(sectionIndex)}
+                />
+              )}
+            </SortableItem>
+          ))}
+        </SortableList>
       </div>
 
       {/* Canonical fields */}

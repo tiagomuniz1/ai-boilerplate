@@ -6,9 +6,11 @@ import { Input } from '@/components/ui/atoms/input/input'
 import { Button } from '@/components/ui/atoms/button/button'
 import { FieldEditor } from './field-editor'
 import { CanonicalFieldPicker } from './canonical-field-picker'
+import { SortableList, SortableItem } from '@/components/ui/molecules/sortable-list/sortable-list'
 import type { Control, UseFormRegister, FieldErrors, UseFormWatch } from 'react-hook-form'
 import type { ITemplateFormValues } from './template-form'
 import type { ICanonicalFieldModel } from '../types/canonical-field-model.types'
+import type { MoveToContainer } from './field-editor'
 
 interface SectionEditorProps {
   sectionIndex: number
@@ -18,6 +20,12 @@ interface SectionEditorProps {
   errors: FieldErrors<ITemplateFormValues>
   watch: UseFormWatch<ITemplateFormValues>
   specialtyId?: string
+  /** Props from useSortable to attach to the section drag handle. */
+  dragHandleProps?: React.HTMLAttributes<HTMLElement>
+  /** Containers that each field in this section can be moved to. */
+  fieldMoveToContainers?: MoveToContainer[]
+  /** Called when a field is moved out of this section. */
+  onMoveFieldToContainer?: (fieldIndex: number, targetContainerId: string) => void
   onMoveUp: () => void
   onMoveDown: () => void
   onRemove: () => void
@@ -31,6 +39,9 @@ export function SectionEditor({
   errors,
   watch,
   specialtyId,
+  dragHandleProps,
+  fieldMoveToContainers,
+  onMoveFieldToContainer,
   onMoveUp,
   onMoveDown,
   onRemove,
@@ -83,6 +94,14 @@ export function SectionEditor({
       data-testid={`section-editor-${sectionIndex}`}
     >
       <div className="flex items-center gap-3">
+        <span
+          {...dragHandleProps}
+          className="cursor-grab active:cursor-grabbing text-text-mute hover:text-text px-1 touch-none flex-shrink-0"
+          data-testid={`section-editor-drag-handle-${sectionIndex}`}
+          aria-label="Arrastar seção"
+        >
+          ⠿
+        </span>
         <Input
           {...register(`sections.${sectionIndex}.title`)}
           placeholder="Título da seção"
@@ -136,23 +155,35 @@ export function SectionEditor({
         </div>
       )}
 
-      {fields.map((field, fieldIndex) => (
-        <FieldEditor
-          key={field.id}
-          index={fieldIndex}
-          total={fields.length}
-          control={control as any}
-          register={register as any}
-          errors={errors}
-          watchedType={
-            (watchedFields?.[fieldIndex]?.type as MedicalRecordFieldType) ?? field.type
-          }
-          fieldPath={`sections.${sectionIndex}.fields`}
-          onMoveUp={() => move(fieldIndex, fieldIndex - 1)}
-          onMoveDown={() => move(fieldIndex, fieldIndex + 1)}
-          onRemove={() => remove(fieldIndex)}
-        />
-      ))}
+      <SortableList ids={fields.map((f) => f.id)} onReorder={(from, to) => move(from, to)}>
+        {fields.map((field, fieldIndex) => (
+          <SortableItem key={field.id} id={field.id}>
+            {(handleProps) => (
+              <FieldEditor
+                index={fieldIndex}
+                total={fields.length}
+                control={control as any}
+                register={register as any}
+                errors={errors}
+                watchedType={
+                  (watchedFields?.[fieldIndex]?.type as MedicalRecordFieldType) ?? field.type
+                }
+                fieldPath={`sections.${sectionIndex}.fields`}
+                dragHandleProps={handleProps}
+                moveToContainers={fieldMoveToContainers}
+                onMoveToContainer={
+                  onMoveFieldToContainer
+                    ? (targetId) => onMoveFieldToContainer(fieldIndex, targetId)
+                    : undefined
+                }
+                onMoveUp={() => move(fieldIndex, fieldIndex - 1)}
+                onMoveDown={() => move(fieldIndex, fieldIndex + 1)}
+                onRemove={() => remove(fieldIndex)}
+              />
+            )}
+          </SortableItem>
+        ))}
+      </SortableList>
 
       <div className="flex items-center gap-3">
         <Button

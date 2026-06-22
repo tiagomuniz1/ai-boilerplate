@@ -232,6 +232,97 @@ describe('Medical Record Templates — Sections', () => {
     })
   })
 
+  describe('moving fields between containers', () => {
+    it('moves a flat field into a section', () => {
+      visitClinic('/medical-record-templates/new', mockAdmin)
+
+      // Add a flat field
+      cy.get('[data-testid="template-form-add-field"]').click()
+      cy.get('[data-testid="field-editor-label-0"]').type('Peso')
+
+      // Add a section
+      cy.get('[data-testid="template-form-add-section"]').click()
+      cy.get('[data-testid="section-editor-title-0"]').type('Dados vitais')
+
+      // Move the flat field into the section
+      cy.get('[data-testid="field-editor-move-to-0"]').select('section-0')
+
+      // Field should now be inside the section
+      cy.get('[data-testid="section-editor-0"]')
+        .find('[data-testid="field-editor-0"]')
+        .should('be.visible')
+      cy.get('[data-testid="section-editor-0"]')
+        .find('[data-testid="field-editor-label-0"]')
+        .should('have.value', 'Peso')
+
+      // The section should show the field and not the empty placeholder
+      cy.get('[data-testid="section-editor-fields-empty-0"]').should('not.exist')
+
+      // Only one field-editor total (inside the section)
+      cy.get('[data-testid="field-editor-0"]').should('have.length', 1)
+    })
+
+    it('moves a field from a section to general (flat)', () => {
+      visitClinic('/medical-record-templates/new', mockAdmin)
+
+      // Add a section with a field inside it
+      cy.get('[data-testid="template-form-add-section"]').click()
+      cy.get('[data-testid="section-editor-add-field-0"]').click()
+      cy.get('[data-testid="field-editor-label-0"]').type('Altura')
+
+      // Move the field out to general
+      cy.get('[data-testid="field-editor-move-to-0"]').select('flat')
+
+      // Section should be empty
+      cy.get('[data-testid="section-editor-fields-empty-0"]').should('be.visible')
+
+      // Flat area should now have the field
+      cy.get('[data-testid="section-editor-0"]')
+        .should('not.contain.text', 'Altura')
+      cy.get('[data-testid="template-form-add-section"]')
+        .closest('div')
+        .parent()
+        .find('[data-testid="field-editor-0"]')
+        .should('not.exist')
+
+      // The flat fields section should contain the field editor
+      cy.get('[data-testid="template-form-add-field"]')
+        .closest('div')
+        .parent()
+        .find('[data-testid="field-editor-0"]')
+        .should('be.visible')
+      cy.get('[data-testid="field-editor-label-0"]').should('have.value', 'Altura')
+    })
+
+    it('moves a field between two sections', () => {
+      visitClinic('/medical-record-templates/new', mockAdmin)
+
+      // Add two sections
+      cy.get('[data-testid="template-form-add-section"]').click()
+      cy.get('[data-testid="section-editor-title-0"]').type('Seção A')
+      cy.get('[data-testid="template-form-add-section"]').click()
+      cy.get('[data-testid="section-editor-title-1"]').type('Seção B')
+
+      // Add a field to section 0
+      cy.get('[data-testid="section-editor-add-field-0"]').click()
+      cy.get('[data-testid="field-editor-label-0"]').type('Glicemia')
+
+      // Move from section 0 to section 1
+      cy.get('[data-testid="section-editor-0"]')
+        .find('[data-testid="field-editor-move-to-0"]')
+        .select('section-1')
+
+      // Section 0 should now be empty
+      cy.get('[data-testid="section-editor-fields-empty-0"]').should('be.visible')
+
+      // Section 1 should have the field
+      cy.get('[data-testid="section-editor-1"]')
+        .find('[data-testid="field-editor-0"]')
+        .should('be.visible')
+      cy.get('[data-testid="field-editor-label-0"]').should('have.value', 'Glicemia')
+    })
+  })
+
   describe('details view', () => {
     beforeEach(() => {
       cy.intercept(
