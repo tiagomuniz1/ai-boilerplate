@@ -48,6 +48,7 @@ const makeTemplate = (overrides = {}) => ({
   specialtyId: 'spec-1',
   name: 'Template',
   fields: [],
+  sections: [],
   isActive: true,
   version: 1,
   createdAt: new Date(),
@@ -267,5 +268,84 @@ describe('CreateMedicalRecordTemplateUseCase', () => {
     const result = await useCase.execute(baseDto, currentUser)
 
     expect(result.id).toBeDefined()
+  })
+
+  describe('resolveSections', () => {
+    it('preserves a client-provided section key', async () => {
+      mockTemplatesRepository.create.mockImplementation((data: any) =>
+        Promise.resolve(makeTemplate({ sections: data.sections, fields: data.fields }) as any),
+      )
+
+      const result = await useCase.execute(
+        { ...baseDto, sections: [{ key: 's_abc123', title: 'Anamnese', order: 0 }] },
+        currentUser,
+      )
+
+      expect(result.sections[0].key).toBe('s_abc123')
+      expect(result.sections[0].title).toBe('Anamnese')
+    })
+
+    it('generates a key when no key is provided', async () => {
+      mockTemplatesRepository.create.mockImplementation((data: any) =>
+        Promise.resolve(makeTemplate({ sections: data.sections, fields: data.fields }) as any),
+      )
+
+      const result = await useCase.execute(
+        { ...baseDto, sections: [{ title: 'Exame Físico', order: 0 }] },
+        currentUser,
+      )
+
+      expect(result.sections[0].key).toMatch(/^exame_fisico_[a-z0-9]{4}$/)
+    })
+
+    it('generates a fallback key when a duplicate key is submitted', async () => {
+      mockTemplatesRepository.create.mockImplementation((data: any) =>
+        Promise.resolve(makeTemplate({ sections: data.sections, fields: data.fields }) as any),
+      )
+
+      const result = await useCase.execute(
+        {
+          ...baseDto,
+          sections: [
+            { key: 'dup', title: 'A', order: 0 },
+            { key: 'dup', title: 'B', order: 1 },
+          ],
+        },
+        currentUser,
+      )
+
+      expect(result.sections[0].key).toBe('dup')
+      expect(result.sections[1].key).not.toBe('dup')
+      expect(result.sections[1].key).toMatch(/^b_[a-z0-9]{4}$/)
+    })
+
+    it('accepts a field whose sectionKey matches a provided section', async () => {
+      mockTemplatesRepository.create.mockImplementation((data: any) =>
+        Promise.resolve(makeTemplate({ sections: data.sections, fields: data.fields }) as any),
+      )
+
+      const result = await useCase.execute(
+        {
+          ...baseDto,
+          sections: [{ key: 's_abc123', title: 'Anamnese', order: 0 }],
+          fields: [{ ...freeField, sectionKey: 's_abc123' }],
+        },
+        currentUser,
+      )
+
+      expect(result.fields[0].sectionKey).toBe('s_abc123')
+    })
+  })
+
+  describe('validateSectionKey', () => {
+    it('throws when a field references a sectionKey that has no matching section', async () => {
+      await expect(
+        useCase.execute(
+          { ...baseDto, fields: [{ ...freeField, sectionKey: 'nonexistent_key' }] },
+          currentUser,
+        ),
+      ).rejects.toThrow(UnprocessableEntityException)
+      expect(mockTemplatesRepository.create).not.toHaveBeenCalled()
+    })
   })
 })

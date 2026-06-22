@@ -71,4 +71,31 @@ describe('toUpdateTemplateDto', () => {
     })
     expect(dto.fields![0].canonicalKey).toBe('chief_complaint')
   })
+
+  it('includes sectionKey when field belongs to a section', () => {
+    const dto = toUpdateTemplateDto({
+      fields: [makeField({ sectionKey: 'anamnese_xyz9' })],
+    })
+    expect(dto.fields![0].sectionKey).toBe('anamnese_xyz9')
+  })
+
+  it('maps sections when provided', () => {
+    const dto = toUpdateTemplateDto({ sections: [{ title: 'Anamnese', order: 0 }] })
+    expect(dto.sections).toHaveLength(1)
+    expect(dto.sections![0].title).toBe('Anamnese')
+    expect(dto.sections![0].order).toBe(0)
+    expect(dto.sections![0].key).toBeUndefined()
+  })
+
+  it('preserves section key when provided', () => {
+    const dto = toUpdateTemplateDto({
+      sections: [{ key: 'anamnese_xyz9', title: 'Anamnese', order: 0 }],
+    })
+    expect(dto.sections![0].key).toBe('anamnese_xyz9')
+  })
+
+  it('omits sections key from dto when not provided', () => {
+    const dto = toUpdateTemplateDto({ name: 'Nome' })
+    expect(dto.sections).toBeUndefined()
+  })
 })

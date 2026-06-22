@@ -242,6 +242,103 @@ describe('TemplateDetails (integration)', () => {
       expect(screen.getByText('Baixo')).toBeInTheDocument()
       expect(screen.getByText('Alto')).toBeInTheDocument()
     })
+
+    it('renders flat field without key using index as fallback', async () => {
+      ;(medicalRecordTemplatesService.getById as jest.Mock).mockResolvedValue(
+        makeDto({
+          fields: [
+            {
+              label: 'Sintoma principal',
+              type: MedicalRecordFieldType.TEXT,
+              required: true,
+              order: 0,
+              options: null,
+              placeholder: null,
+              helpText: null,
+              canonical: false,
+              canonicalKey: null,
+            },
+          ],
+        }),
+      )
+
+      renderWithProviders(<TemplateDetails templateId="uuid-1" />)
+      await waitFor(() => expect(screen.getByTestId('template-details')).toBeInTheDocument())
+      expect(screen.getByTestId('template-details-field-0')).toBeInTheDocument()
+    })
+
+    it('renders section field without key using index as fallback', async () => {
+      ;(medicalRecordTemplatesService.getById as jest.Mock).mockResolvedValue(
+        makeDto({
+          sections: [{ key: 's_abc1', title: 'Anamnese', order: 0 }],
+          fields: [
+            {
+              label: 'Queixa principal',
+              type: MedicalRecordFieldType.TEXT,
+              required: false,
+              order: 0,
+              options: null,
+              placeholder: null,
+              helpText: null,
+              canonical: false,
+              canonicalKey: null,
+              sectionKey: 's_abc1',
+            },
+          ],
+        }),
+      )
+
+      renderWithProviders(<TemplateDetails templateId="uuid-1" />)
+      await waitFor(() => expect(screen.getByTestId('template-details')).toBeInTheDocument())
+      expect(screen.getByTestId('template-details-section-0')).toBeInTheDocument()
+      expect(screen.getByTestId('template-details-field-0')).toBeInTheDocument()
+    })
+
+    it('renders section block with title and fields', async () => {
+      ;(medicalRecordTemplatesService.getById as jest.Mock).mockResolvedValue(
+        makeDto({
+          sections: [{ key: 's_abc1', title: 'Anamnese', order: 0 }],
+          fields: [
+            {
+              key: 'k1',
+              label: 'Sintoma principal',
+              type: MedicalRecordFieldType.TEXT,
+              required: true,
+              order: 0,
+              options: null,
+              placeholder: null,
+              helpText: null,
+              canonical: false,
+              canonicalKey: null,
+              sectionKey: 's_abc1',
+            },
+          ],
+        }),
+      )
+
+      renderWithProviders(<TemplateDetails templateId="uuid-1" />)
+      await waitFor(() => expect(screen.getByTestId('template-details')).toBeInTheDocument())
+
+      expect(screen.getByTestId('template-details-section-0')).toBeInTheDocument()
+      expect(screen.getByTestId('template-details-section-title-0')).toHaveTextContent('Anamnese')
+      expect(screen.getByTestId('template-details-field-0')).toBeInTheDocument()
+      expect(screen.getByText('Sintoma principal')).toBeInTheDocument()
+    })
+
+    it('renders empty message when section has no fields', async () => {
+      ;(medicalRecordTemplatesService.getById as jest.Mock).mockResolvedValue(
+        makeDto({
+          sections: [{ key: 's_empty', title: 'Seção Vazia', order: 0 }],
+          fields: [],
+        }),
+      )
+
+      renderWithProviders(<TemplateDetails templateId="uuid-1" />)
+      await waitFor(() => expect(screen.getByTestId('template-details')).toBeInTheDocument())
+
+      expect(screen.getByTestId('template-details-section-0')).toBeInTheDocument()
+      expect(screen.getByTestId('template-details-section-empty-0')).toBeInTheDocument()
+    })
   })
 
   describe('as DOCTOR', () => {

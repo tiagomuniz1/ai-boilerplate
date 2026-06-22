@@ -96,6 +96,21 @@ describe('toTemplateModel', () => {
     expect(model.fields[0].helpText).toBeNull()
     expect(model.fields[0].canonicalKey).toBeNull()
   })
+
+  it('maps sections when present', () => {
+    const model = toTemplateModel(
+      makeDto({ sections: [{ key: 's_abc1', title: 'Anamnese', order: 0 }] }) as any,
+    )
+    expect(model.sections).toHaveLength(1)
+    expect(model.sections[0].key).toBe('s_abc1')
+    expect(model.sections[0].title).toBe('Anamnese')
+    expect(model.sections[0].order).toBe(0)
+  })
+
+  it('maps sections as empty array when property is absent', () => {
+    const model = toTemplateModel(makeDto({ sections: undefined }) as any)
+    expect(model.sections).toEqual([])
+  })
 })
 
 describe('toPaginatedTemplatesModel', () => {

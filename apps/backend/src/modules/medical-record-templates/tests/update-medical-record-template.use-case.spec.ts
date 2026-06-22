@@ -367,4 +367,147 @@ describe('UpdateMedicalRecordTemplateUseCase', () => {
 
     expect(result.id).toBe(template.id)
   })
+
+  describe('resolveSections', () => {
+    it('preserves a provided unique section key', async () => {
+      const template = makeTemplate()
+      mockTemplatesRepository.findById.mockResolvedValue(template as any)
+      mockTemplatesRepository.update.mockImplementation((_id: string, data: any) =>
+        Promise.resolve(makeTemplate({ id: template.id, sections: data.sections, fields: data.fields ?? template.fields }) as any),
+      )
+
+      const result = await useCase.execute(
+        template.id,
+        { sections: [{ key: 'anamnese_xyz9', title: 'Anamnese', order: 0 }] },
+        currentUser,
+      )
+
+      expect(result.sections[0].key).toBe('anamnese_xyz9')
+      expect(result.sections[0].title).toBe('Anamnese')
+    })
+
+    it('generates a key when none is provided', async () => {
+      const template = makeTemplate()
+      mockTemplatesRepository.findById.mockResolvedValue(template as any)
+      mockTemplatesRepository.update.mockImplementation((_id: string, data: any) =>
+        Promise.resolve(makeTemplate({ id: template.id, sections: data.sections, fields: data.fields ?? template.fields }) as any),
+      )
+
+      const result = await useCase.execute(
+        template.id,
+        { sections: [{ title: 'Exame Físico', order: 0 }] },
+        currentUser,
+      )
+
+      expect(result.sections[0].key).toMatch(/^exame_fisico_[a-z0-9]{4}$/)
+    })
+
+    it('generates a fallback key when a duplicate key is submitted', async () => {
+      const template = makeTemplate()
+      mockTemplatesRepository.findById.mockResolvedValue(template as any)
+      mockTemplatesRepository.update.mockImplementation((_id: string, data: any) =>
+        Promise.resolve(makeTemplate({ id: template.id, sections: data.sections, fields: data.fields ?? template.fields }) as any),
+      )
+
+      const result = await useCase.execute(
+        template.id,
+        {
+          sections: [
+            { key: 'dup_key', title: 'A', order: 0 },
+            { key: 'dup_key', title: 'B', order: 1 },
+          ],
+        },
+        currentUser,
+      )
+
+      expect(result.sections[0].key).toBe('dup_key')
+      expect(result.sections[1].key).not.toBe('dup_key')
+      expect(result.sections[1].key).toMatch(/^b_[a-z0-9]{4}$/)
+    })
+
+    it('uses the resolved sections as validSectionKeys when both sections and fields are provided', async () => {
+      const template = makeTemplate()
+      mockTemplatesRepository.findById.mockResolvedValue(template as any)
+      mockTemplatesRepository.update.mockImplementation((_id: string, data: any) =>
+        Promise.resolve(makeTemplate({ id: template.id, sections: data.sections, fields: data.fields }) as any),
+      )
+
+      const result = await useCase.execute(
+        template.id,
+        {
+          sections: [{ key: 'hx_sec', title: 'Histórico', order: 0 }],
+          fields: [
+            {
+              label: 'Queixa',
+              type: MedicalRecordFieldType.TEXT,
+              required: false,
+              order: 0,
+              canonical: false,
+              sectionKey: 'hx_sec',
+            },
+          ],
+        },
+        currentUser,
+      )
+
+      expect(result.sections[0].key).toBe('hx_sec')
+      expect(result.fields[0].sectionKey).toBe('hx_sec')
+    })
+  })
+
+  describe('validateSectionKey', () => {
+    it('throws UnprocessableEntityException when a field references an unknown sectionKey', async () => {
+      const template = makeTemplate()
+      mockTemplatesRepository.findById.mockResolvedValue(template as any)
+
+      await expect(
+        useCase.execute(
+          template.id,
+          {
+            fields: [
+              {
+                label: 'Queixa',
+                type: MedicalRecordFieldType.TEXT,
+                required: false,
+                order: 0,
+                canonical: false,
+                sectionKey: 'nonexistent_key',
+              },
+            ],
+          },
+          currentUser,
+        ),
+      ).rejects.toThrow(UnprocessableEntityException)
+      expect(mockTemplatesRepository.update).not.toHaveBeenCalled()
+    })
+
+    it('accepts a field with a sectionKey that matches a key in template.sections', async () => {
+      const template = makeTemplate({
+        sections: [{ key: 'existing_sec', title: 'Existente', order: 0 }],
+      })
+      mockTemplatesRepository.findById.mockResolvedValue(template as any)
+      mockTemplatesRepository.update.mockImplementation((_id: string, data: any) =>
+        Promise.resolve(makeTemplate({ id: template.id, fields: data.fields, sections: template.sections }) as any),
+      )
+
+      const result = await useCase.execute(
+        template.id,
+        {
+          fields: [
+            {
+              label: 'Queixa',
+              type: MedicalRecordFieldType.TEXT,
+              required: false,
+              order: 0,
+              canonical: false,
+              sectionKey: 'existing_sec',
+            },
+          ],
+        },
+        currentUser,
+      )
+
+      expect(result.fields[0].sectionKey).toBe('existing_sec')
+    })
+  })
 })

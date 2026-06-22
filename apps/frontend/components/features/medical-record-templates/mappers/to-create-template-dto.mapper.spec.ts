@@ -113,4 +113,13 @@ describe('toCreateTemplateDto', () => {
     const dto = toCreateTemplateDto({ ...baseInput, fields: [makeField()] })
     expect(dto.sections).toEqual([])
   })
+
+  it('includes section key when provided', () => {
+    const dto = toCreateTemplateDto({
+      ...baseInput,
+      sections: [{ key: 's_abc123', title: 'Anamnese', order: 0 }],
+      fields: [makeField()],
+    })
+    expect(dto.sections![0].key).toBe('s_abc123')
+  })
 })
