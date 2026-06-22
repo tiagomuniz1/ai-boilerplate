@@ -1,5 +1,6 @@
 'use client'
 
+import { useEffect } from 'react'
 import { useFieldArray, useForm, useWatch } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
@@ -9,6 +10,7 @@ import { Button } from '@/components/ui/atoms/button/button'
 import { Alert } from '@/components/ui/molecules/alert/alert'
 import { FieldEditor } from './field-editor'
 import { CanonicalFieldPicker } from './canonical-field-picker'
+import { useSpecialties } from '@/components/features/specialties/hooks/use-specialties.hook'
 import type { ITemplateModel } from '../types/template-model.types'
 import type { ICreateTemplateInput, IUpdateTemplateInput, ITemplateFieldInput } from '../types/template-input.types'
 import type { ICanonicalFieldModel } from '../types/canonical-field-model.types'
@@ -62,12 +64,19 @@ function addFieldsRefinement<T extends z.ZodObject<any>>(schema: T) {
 
 const baseObjectSchema = z.object({
   name: z.string().min(2, 'Mínimo 2 caracteres').max(120, 'Máx. 120 caracteres'),
+  specialtyId: z.string().optional(),
   fields: z.array(fieldSchema).min(1, 'Adicione ao menos um campo'),
 })
 
-const formSchema = addFieldsRefinement(baseObjectSchema)
-
 export type ITemplateFormValues = z.infer<typeof baseObjectSchema>
+
+const formSchemaCreate = addFieldsRefinement(
+  baseObjectSchema.extend({
+    specialtyId: z.string().min(1, 'Selecione uma especialidade'),
+  }),
+)
+
+const formSchemaEdit = addFieldsRefinement(baseObjectSchema)
 
 function getMsg(err: unknown): string | undefined {
   return (err as { message?: string } | undefined)?.message
@@ -91,7 +100,7 @@ function toFormField(field: ITemplateFieldInput | ITemplateModel['fields'][numbe
 
 interface TemplateFormProps {
   mode: 'create'
-  specialtyId: string
+  specialtyId?: string
   onSubmit: (data: ICreateTemplateInput) => void
   isPending: boolean
   error?: IApiError | null
@@ -114,6 +123,9 @@ export function TemplateForm(props: Props) {
   const isEdit = props.mode === 'edit'
   const template = isEdit ? (props as TemplateFormEditProps).template : undefined
 
+  const { data: specialtiesPaginated } = useSpecialties({ limit: 100 })
+  const specialties = specialtiesPaginated?.data ?? []
+
   const defaultFields = template
     ? template.fields
         .slice()
@@ -125,18 +137,29 @@ export function TemplateForm(props: Props) {
     register,
     control,
     handleSubmit,
-    watch,
+    setValue,
     formState: { errors },
   } = useForm<ITemplateFormValues>({
-    resolver: zodResolver(formSchema),
+    resolver: zodResolver(isEdit ? formSchemaEdit : formSchemaCreate),
     defaultValues: {
       name: template?.name ?? '',
+      specialtyId: props.specialtyId ?? '',
       fields: defaultFields,
     },
   })
 
   const { fields, append, remove, move } = useFieldArray({ control, name: 'fields' })
   const watchedFields = useWatch({ control, name: 'fields' })
+  const watchedSpecialtyId = useWatch({ control, name: 'specialtyId' })
+
+  // When specialties load and a pre-selected id is provided (from URL param), apply it to the select
+  useEffect(() => {
+    if (!isEdit && props.specialtyId && specialties.some((s) => s.id === props.specialtyId)) {
+      setValue('specialtyId', props.specialtyId)
+    }
+  }, [specialties, isEdit, props.specialtyId, setValue])
+
+  const canonicalPickerSpecialtyId = isEdit ? props.specialtyId : (watchedSpecialtyId || undefined)
 
   function onSubmit(values: ITemplateFormValues) {
     const fieldInputs: ITemplateFieldInput[] = values.fields.map((f, i) => ({
@@ -156,7 +179,7 @@ export function TemplateForm(props: Props) {
       ;(props as TemplateFormEditProps).onSubmit({ name: values.name, fields: fieldInputs })
     } else {
       ;(props as TemplateFormProps).onSubmit({
-        specialtyId: props.specialtyId,
+        specialtyId: values.specialtyId!,
         name: values.name,
         fields: fieldInputs,
       })
@@ -216,6 +239,33 @@ export function TemplateForm(props: Props) {
         />
       </div>
 
+      {!isEdit && (
+        <div className="flex flex-col gap-1">
+          <label className="text-sm font-medium text-text" htmlFor="template-specialty">
+            Especialidade <span className="text-error">*</span>
+          </label>
+          <select
+            id="template-specialty"
+            {...register('specialtyId')}
+            aria-invalid={!!errors.specialtyId}
+            data-testid="template-form-specialty"
+            className="h-10 w-full rounded-md px-3 text-base bg-surface border border-line text-text transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-bg aria-[invalid=true]:border-danger"
+          >
+            <option value="">Selecione uma especialidade</option>
+            {specialties.map((s) => (
+              <option key={s.id} value={s.id}>
+                {s.name}
+              </option>
+            ))}
+          </select>
+          {errors.specialtyId && (
+            <span role="alert" className="text-xs text-danger" data-testid="template-form-specialty-error">
+              {errors.specialtyId.message}
+            </span>
+          )}
+        </div>
+      )}
+
       <div className="flex flex-col gap-4">
         <div className="flex items-center justify-between">
           <h2 className="text-base font-semibold text-text">Campos</h2>
@@ -264,7 +314,7 @@ export function TemplateForm(props: Props) {
           Adote campos padronizados da plataforma para garantir consistência entre modelos.
         </p>
         <CanonicalFieldPicker
-          specialtyId={props.specialtyId}
+          specialtyId={canonicalPickerSpecialtyId}
           onAdopt={handleAdoptCanonicalField}
         />
       </div>

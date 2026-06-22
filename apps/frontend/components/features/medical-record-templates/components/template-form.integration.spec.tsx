@@ -1,16 +1,25 @@
 jest.mock('next/navigation', () => ({ useRouter: jest.fn() }))
 jest.mock('@/lib/slug-context', () => ({ useSlug: jest.fn(() => 'clinic-slug') }))
 jest.mock('../services/canonical-fields.service')
+jest.mock('../../specialties/services/specialties.service')
 
 import { screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { useRouter } from 'next/navigation'
 import { MedicalRecordFieldType } from '@app/shared'
 import { canonicalFieldsService } from '../services/canonical-fields.service'
+import { specialtiesService } from '../../specialties/services/specialties.service'
 import { renderWithProviders } from '@/tests/utils/render-with-providers'
 import { TemplateForm } from './template-form'
 
 ;(useRouter as jest.Mock).mockReturnValue({ push: jest.fn() })
+
+const emptySpecialtiesResponse = { data: [], total: 0, page: 1, limit: 100 }
+
+const mockSpecialties = [
+  { id: 'spec-uuid', name: 'Cardiologia', description: null, createdAt: new Date(), updatedAt: new Date() },
+  { id: 'spec-uuid-2', name: 'Neurologia', description: null, createdAt: new Date(), updatedAt: new Date() },
+]
 
 const mockCanonicalFields = [
   {
@@ -30,6 +39,7 @@ describe('TemplateForm (integration)', () => {
   beforeEach(() => {
     jest.clearAllMocks()
     ;(canonicalFieldsService.getAll as jest.Mock).mockResolvedValue([])
+    ;(specialtiesService.getAll as jest.Mock).mockResolvedValue(emptySpecialtiesResponse)
   })
 
   describe('create mode', () => {
@@ -46,10 +56,56 @@ describe('TemplateForm (integration)', () => {
       )
     }
 
-    it('renders name field and add field button', () => {
+    it('renders name field, specialty select and add field button', () => {
       renderCreate()
       expect(screen.getByTestId('template-form-name')).toBeInTheDocument()
+      expect(screen.getByTestId('template-form-specialty')).toBeInTheDocument()
       expect(screen.getByTestId('template-form-add-field')).toBeInTheDocument()
+    })
+
+    it('populates specialty select with available specialties', async () => {
+      ;(specialtiesService.getAll as jest.Mock).mockResolvedValue({
+        data: mockSpecialties,
+        total: 2,
+        page: 1,
+        limit: 100,
+      })
+      renderCreate()
+
+      await waitFor(() => {
+        expect(screen.getByRole('option', { name: 'Cardiologia' })).toBeInTheDocument()
+        expect(screen.getByRole('option', { name: 'Neurologia' })).toBeInTheDocument()
+      })
+    })
+
+    it('shows validation error when no specialty selected', async () => {
+      renderWithProviders(
+        <TemplateForm mode="create" specialtyId="" onSubmit={jest.fn()} isPending={false} />,
+      )
+      await userEvent.type(screen.getByTestId('template-form-name'), 'Anamnese')
+      await userEvent.click(screen.getByTestId('template-form-add-field'))
+      await userEvent.type(screen.getByTestId('field-editor-label-0'), 'Sintoma')
+      await userEvent.click(screen.getByTestId('template-form-submit'))
+
+      await waitFor(() => {
+        expect(screen.getByTestId('template-form-specialty-error')).toBeInTheDocument()
+      })
+    })
+
+    it('pre-selects specialty when specialtyId prop provided and options load', async () => {
+      ;(specialtiesService.getAll as jest.Mock).mockResolvedValue({
+        data: mockSpecialties,
+        total: 2,
+        page: 1,
+        limit: 100,
+      })
+      renderCreate()
+
+      await waitFor(() => {
+        expect(screen.getByRole('option', { name: 'Cardiologia' })).toBeInTheDocument()
+      })
+
+      expect(screen.getByTestId('template-form-specialty')).toHaveValue('spec-uuid')
     })
 
     it('shows empty state when no fields added', () => {

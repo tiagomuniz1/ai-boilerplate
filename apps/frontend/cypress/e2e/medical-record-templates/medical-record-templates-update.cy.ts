@@ -42,6 +42,10 @@ describe('Medical Record Templates Update', () => {
       statusCode: 200,
       body: [],
     }).as('getCanonicalFields')
+    cy.intercept('GET', `${Cypress.env('API_URL')}/specialties*`, {
+      statusCode: 200,
+      body: { data: [], total: 0, page: 1, limit: 100 },
+    }).as('getSpecialties')
   })
 
   it('shows skeleton during template load', () => {

@@ -33,6 +33,13 @@ const mockCanonicalFields = [
   },
 ]
 
+const mockSpecialties = {
+  data: [{ id: 'uuid-spec-1', name: 'Cardiologia', description: null, createdAt: '2024-01-01T00:00:00.000Z', updatedAt: '2024-01-01T00:00:00.000Z' }],
+  total: 1,
+  page: 1,
+  limit: 100,
+}
+
 describe('Medical Record Templates Create', () => {
   beforeEach(() => {
     cy.clearCookies()
@@ -41,6 +48,10 @@ describe('Medical Record Templates Create', () => {
       statusCode: 200,
       body: [],
     }).as('getCanonicalFields')
+    cy.intercept('GET', `${Cypress.env('API_URL')}/specialties*`, {
+      statusCode: 200,
+      body: mockSpecialties,
+    }).as('getSpecialties')
   })
 
   it('back button navigates to list', () => {
@@ -68,7 +79,9 @@ describe('Medical Record Templates Create', () => {
     }).as('createTemplate')
 
     visitClinic('/medical-record-templates/new', mockAdmin)
+    cy.wait('@getSpecialties')
     cy.get('[data-testid="template-form-name"]').type('Nova Anamnese')
+    cy.get('[data-testid="template-form-specialty"]').select('uuid-spec-1')
     cy.get('[data-testid="template-form-add-field"]').click()
     cy.get('[data-testid="field-editor-label-0"]').type('Sintoma')
     cy.get('[data-testid="template-form-submit"]').click()
@@ -112,7 +125,9 @@ describe('Medical Record Templates Create', () => {
     }).as('createTemplate')
 
     visitClinic('/medical-record-templates/new', mockAdmin)
+    cy.wait('@getSpecialties')
     cy.get('[data-testid="template-form-name"]').type('Anamnese')
+    cy.get('[data-testid="template-form-specialty"]').select('uuid-spec-1')
     cy.get('[data-testid="template-form-add-field"]').click()
     cy.get('[data-testid="field-editor-label-0"]').type('Sintoma')
     cy.get('[data-testid="template-form-submit"]').click()
@@ -132,7 +147,9 @@ describe('Medical Record Templates Create', () => {
     }).as('getTemplates')
 
     visitClinic('/medical-record-templates/new', mockAdmin)
+    cy.wait('@getSpecialties')
     cy.get('[data-testid="template-form-name"]').type('Nova Anamnese')
+    cy.get('[data-testid="template-form-specialty"]').select('uuid-spec-1')
     cy.get('[data-testid="template-form-add-field"]').click()
     cy.get('[data-testid="field-editor-label-0"]').type('Sintoma')
     cy.get('[data-testid="template-form-submit"]').click()
