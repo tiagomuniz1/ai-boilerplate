@@ -10,6 +10,7 @@ import {
   ValidateNested,
 } from 'class-validator'
 import { MedicalRecordTemplateFieldDto } from './medical-record-template-field.dto'
+import { MedicalRecordTemplateSectionDto } from './medical-record-template-section.dto'
 
 export class UpdateMedicalRecordTemplateDto {
   @IsOptional()
@@ -24,6 +25,12 @@ export class UpdateMedicalRecordTemplateDto {
   @ValidateNested({ each: true })
   @Type(() => MedicalRecordTemplateFieldDto)
   fields?: MedicalRecordTemplateFieldDto[]
+
+  @IsOptional()
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => MedicalRecordTemplateSectionDto)
+  sections?: MedicalRecordTemplateSectionDto[]
 
   @IsOptional()
   @IsBoolean()

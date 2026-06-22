@@ -9,10 +9,11 @@ import { Input } from '@/components/ui/atoms/input/input'
 import { Button } from '@/components/ui/atoms/button/button'
 import { Alert } from '@/components/ui/molecules/alert/alert'
 import { FieldEditor } from './field-editor'
+import { SectionEditor } from './section-editor'
 import { CanonicalFieldPicker } from './canonical-field-picker'
 import { useSpecialties } from '@/components/features/specialties/hooks/use-specialties.hook'
 import type { ITemplateModel } from '../types/template-model.types'
-import type { ICreateTemplateInput, IUpdateTemplateInput, ITemplateFieldInput } from '../types/template-input.types'
+import type { ICreateTemplateInput, IUpdateTemplateInput, ITemplateFieldInput, ITemplateSectionInput } from '../types/template-input.types'
 import type { ICanonicalFieldModel } from '../types/canonical-field-model.types'
 import type { IApiError } from '@/types/api.types'
 
@@ -34,55 +35,84 @@ const fieldSchema = z.object({
   helpText: z.string(),
   canonical: z.boolean(),
   canonicalKey: z.string(),
+  sectionKey: z.string(),
 })
 
-function addFieldsRefinement<T extends z.ZodObject<any>>(schema: T) {
-  return schema.superRefine((data, ctx) => {
-    const fields = data.fields as z.infer<typeof fieldSchema>[]
-    fields.forEach((field, index) => {
-      if (SELECT_TYPES.includes(field.type)) {
-        if (!field.options || field.options.length === 0) {
+const sectionSchema = z.object({
+  key: z.string().optional(),
+  title: z.string().min(1, 'Título da seção obrigatório').max(80, 'Máx. 80 caracteres'),
+  order: z.number(),
+  fields: z.array(fieldSchema),
+})
+
+function validateFieldOptions(
+  fields: z.infer<typeof fieldSchema>[],
+  ctx: z.RefinementCtx,
+  basePath: (string | number)[],
+) {
+  fields.forEach((field, index) => {
+    if (SELECT_TYPES.includes(field.type)) {
+      if (!field.options || field.options.length === 0) {
+        ctx.addIssue({
+          code: 'custom',
+          path: [...basePath, index, 'options'],
+          message: 'Adicione ao menos uma opção para este tipo de campo.',
+        })
+      } else {
+        const values = field.options.map((o) => o.value)
+        if (new Set(values).size !== values.length) {
           ctx.addIssue({
             code: 'custom',
-            path: ['fields', index, 'options'],
-            message: 'Adicione ao menos uma opção para este tipo de campo.',
+            path: [...basePath, index, 'options'],
+            message: 'Os valores das opções devem ser únicos.',
           })
-        } else {
-          const values = field.options.map((o) => o.value)
-          if (new Set(values).size !== values.length) {
-            ctx.addIssue({
-              code: 'custom',
-              path: ['fields', index, 'options'],
-              message: 'Os valores das opções devem ser únicos.',
-            })
-          }
         }
       }
-    })
+    }
   })
 }
 
 const baseObjectSchema = z.object({
   name: z.string().min(2, 'Mínimo 2 caracteres').max(120, 'Máx. 120 caracteres'),
   specialtyId: z.string().optional(),
-  fields: z.array(fieldSchema).min(1, 'Adicione ao menos um campo'),
+  fields: z.array(fieldSchema),
+  sections: z.array(sectionSchema),
 })
 
 export type ITemplateFormValues = z.infer<typeof baseObjectSchema>
 
-const formSchemaCreate = addFieldsRefinement(
+function addRefinements<T extends z.ZodObject<any>>(schema: T) {
+  return schema.superRefine((data, ctx) => {
+    const flatFields = data.fields as z.infer<typeof fieldSchema>[]
+    const sections = data.sections as z.infer<typeof sectionSchema>[]
+
+    const totalFields = flatFields.length + sections.reduce((acc, s) => acc + s.fields.length, 0)
+    if (totalFields === 0) {
+      ctx.addIssue({ code: 'custom', path: ['fields'], message: 'Adicione ao menos um campo' })
+    }
+
+    validateFieldOptions(flatFields, ctx, ['fields'])
+    sections.forEach((section, si) => {
+      validateFieldOptions(section.fields, ctx, ['sections', si, 'fields'])
+    })
+  })
+}
+
+const formSchemaCreate = addRefinements(
   baseObjectSchema.extend({
     specialtyId: z.string().min(1, 'Selecione uma especialidade'),
   }),
 )
 
-const formSchemaEdit = addFieldsRefinement(baseObjectSchema)
+const formSchemaEdit = addRefinements(baseObjectSchema)
 
 function getMsg(err: unknown): string | undefined {
   return (err as { message?: string } | undefined)?.message
 }
 
-function toFormField(field: ITemplateFieldInput | ITemplateModel['fields'][number]): ITemplateFormValues['fields'][number] {
+function toFormField(
+  field: ITemplateFieldInput | ITemplateModel['fields'][number],
+): ITemplateFormValues['fields'][number] {
   return {
     /* c8 ignore next */
     key: 'key' in field ? field.key : undefined,
@@ -95,6 +125,7 @@ function toFormField(field: ITemplateFieldInput | ITemplateModel['fields'][numbe
     helpText: field.helpText ?? '',
     canonical: field.canonical,
     canonicalKey: field.canonicalKey ?? '',
+    sectionKey: field.sectionKey ?? '',
   }
 }
 
@@ -126,11 +157,28 @@ export function TemplateForm(props: Props) {
   const { data: specialtiesPaginated } = useSpecialties({ limit: 100 })
   const specialties = specialtiesPaginated?.data ?? []
 
-  const defaultFields = template
+  const defaultFlatFields = template
     ? template.fields
+        .filter((f) => !f.sectionKey)
         .slice()
         .sort((a, b) => a.order - b.order)
         .map((f) => toFormField(f))
+    : []
+
+  const defaultSections = template
+    ? template.sections
+        .slice()
+        .sort((a, b) => a.order - b.order)
+        .map((s) => ({
+          key: s.key,
+          title: s.title,
+          order: s.order,
+          fields: template.fields
+            .filter((f) => f.sectionKey === s.key)
+            .slice()
+            .sort((a, b) => a.order - b.order)
+            .map((f) => toFormField(f)),
+        }))
     : []
 
   const {
@@ -138,21 +186,24 @@ export function TemplateForm(props: Props) {
     control,
     handleSubmit,
     setValue,
+    watch,
     formState: { errors },
   } = useForm<ITemplateFormValues>({
     resolver: zodResolver(isEdit ? formSchemaEdit : formSchemaCreate),
     defaultValues: {
       name: template?.name ?? '',
       specialtyId: props.specialtyId ?? '',
-      fields: defaultFields,
+      fields: defaultFlatFields,
+      sections: defaultSections,
     },
   })
 
   const { fields, append, remove, move } = useFieldArray({ control, name: 'fields' })
+  const { fields: sections, append: appendSection, remove: removeSection, move: moveSection } = useFieldArray({ control, name: 'sections' })
+
   const watchedFields = useWatch({ control, name: 'fields' })
   const watchedSpecialtyId = useWatch({ control, name: 'specialtyId' })
 
-  // When specialties load and a pre-selected id is provided (from URL param), apply it to the select
   useEffect(() => {
     if (!isEdit && props.specialtyId && specialties.some((s) => s.id === props.specialtyId)) {
       setValue('specialtyId', props.specialtyId)
@@ -161,8 +212,11 @@ export function TemplateForm(props: Props) {
 
   const canonicalPickerSpecialtyId = isEdit ? props.specialtyId : (watchedSpecialtyId || undefined)
 
-  function onSubmit(values: ITemplateFormValues) {
-    const fieldInputs: ITemplateFieldInput[] = values.fields.map((f, i) => ({
+  function buildFieldInputs(
+    formFields: ITemplateFormValues['fields'],
+    sectionKey: string,
+  ): ITemplateFieldInput[] {
+    return formFields.map((f, i) => ({
       key: f.key,
       label: f.label,
       type: f.type,
@@ -173,20 +227,42 @@ export function TemplateForm(props: Props) {
       helpText: f.helpText,
       canonical: f.canonical,
       canonicalKey: f.canonicalKey,
+      sectionKey,
+    }))
+  }
+
+  function onSubmit(values: ITemplateFormValues) {
+    const flatFieldInputs = buildFieldInputs(values.fields, '')
+
+    const sectionInputs: ITemplateSectionInput[] = values.sections.map((s, i) => ({
+      key: s.key,
+      title: s.title,
+      order: i,
     }))
 
+    const sectionFieldInputs: ITemplateFieldInput[] = values.sections.flatMap((s) =>
+      buildFieldInputs(s.fields, s.key!),
+    )
+
+    const allFields = [...flatFieldInputs, ...sectionFieldInputs]
+
     if (isEdit) {
-      ;(props as TemplateFormEditProps).onSubmit({ name: values.name, fields: fieldInputs })
+      ;(props as TemplateFormEditProps).onSubmit({
+        name: values.name,
+        fields: allFields,
+        sections: sectionInputs,
+      })
     } else {
       ;(props as TemplateFormProps).onSubmit({
         specialtyId: values.specialtyId!,
         name: values.name,
-        fields: fieldInputs,
+        fields: allFields,
+        sections: sectionInputs,
       })
     }
   }
 
-  function handleAddField() {
+  function handleAddFlatField() {
     append({
       key: undefined,
       label: '',
@@ -198,6 +274,17 @@ export function TemplateForm(props: Props) {
       helpText: '',
       canonical: false,
       canonicalKey: '',
+      sectionKey: '',
+    })
+  }
+
+  function handleAddSection() {
+    const clientKey = `s_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 6)}`
+    appendSection({
+      key: clientKey,
+      title: '',
+      order: sections.length,
+      fields: [],
     })
   }
 
@@ -215,8 +302,13 @@ export function TemplateForm(props: Props) {
       helpText: '',
       canonical: true,
       canonicalKey: canonicalField.canonicalKey,
+      sectionKey: '',
     })
   }
+
+  const hasTotalFieldsError =
+    getMsg(errors.fields) === 'Adicione ao menos um campo' ||
+    (errors.fields as any)?.message === 'Adicione ao menos um campo'
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-6" data-testid="template-form">
@@ -266,6 +358,7 @@ export function TemplateForm(props: Props) {
         </div>
       )}
 
+      {/* Flat fields (no section) */}
       <div className="flex flex-col gap-4">
         <div className="flex items-center justify-between">
           <h2 className="text-base font-semibold text-text">Campos</h2>
@@ -273,22 +366,22 @@ export function TemplateForm(props: Props) {
             type="button"
             variant="ghost"
             size="sm"
-            onClick={handleAddField}
+            onClick={handleAddFlatField}
             data-testid="template-form-add-field"
           >
             + Adicionar campo
           </Button>
         </div>
 
-        {getMsg(errors.fields) && typeof errors.fields?.message === 'string' && (
+        {hasTotalFieldsError && (
           <Alert variant="error" data-testid="template-form-fields-error">
-            {errors.fields.message}
+            Adicione ao menos um campo
           </Alert>
         )}
 
-        {fields.length === 0 && (
+        {fields.length === 0 && sections.length === 0 && (
           <div className="py-8 text-center rounded-lg border border-dashed border-line" data-testid="template-form-fields-empty">
-            <p className="text-sm text-text-mute">Nenhum campo adicionado. Use os botões acima para adicionar campos.</p>
+            <p className="text-sm text-text-mute">Nenhum campo adicionado. Use os botões acima para adicionar campos ou seções.</p>
           </div>
         )}
 
@@ -308,6 +401,39 @@ export function TemplateForm(props: Props) {
         ))}
       </div>
 
+      {/* Sections */}
+      <div className="flex flex-col gap-4">
+        <div className="flex items-center justify-between">
+          <h2 className="text-base font-semibold text-text">Seções</h2>
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            onClick={handleAddSection}
+            data-testid="template-form-add-section"
+          >
+            + Adicionar seção
+          </Button>
+        </div>
+
+        {sections.map((section, sectionIndex) => (
+          <SectionEditor
+            key={section.id}
+            sectionIndex={sectionIndex}
+            totalSections={sections.length}
+            control={control}
+            register={register}
+            errors={errors}
+            watch={watch}
+            specialtyId={canonicalPickerSpecialtyId}
+            onMoveUp={() => moveSection(sectionIndex, sectionIndex - 1)}
+            onMoveDown={() => moveSection(sectionIndex, sectionIndex + 1)}
+            onRemove={() => removeSection(sectionIndex)}
+          />
+        ))}
+      </div>
+
+      {/* Canonical fields */}
       <div className="flex flex-col gap-3">
         <h2 className="text-base font-semibold text-text">Campos canônicos</h2>
         <p className="text-sm text-text-dim">

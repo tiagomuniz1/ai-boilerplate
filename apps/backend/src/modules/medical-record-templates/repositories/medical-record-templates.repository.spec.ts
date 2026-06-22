@@ -34,6 +34,7 @@ function makeTemplate(overrides = {}): MedicalRecordTemplate {
     specialtyId: 'spec-1',
     name: 'Template',
     fields: [],
+    sections: [],
     isActive: true,
     version: 1,
     createdAt: new Date(),

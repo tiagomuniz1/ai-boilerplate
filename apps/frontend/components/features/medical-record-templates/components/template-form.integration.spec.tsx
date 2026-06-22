@@ -401,8 +401,10 @@ describe('TemplateForm (integration)', () => {
           helpText: null,
           canonical: false,
           canonicalKey: null,
+          sectionKey: null,
         },
       ],
+      sections: [],
       isActive: true,
       createdAt: new Date(),
       updatedAt: new Date(),
@@ -460,6 +462,7 @@ describe('TemplateForm (integration)', () => {
             helpText: 'Descreva o sintoma principal',
             canonical: false,
             canonicalKey: null,
+            sectionKey: null,
           },
         ],
       }
@@ -496,6 +499,7 @@ describe('TemplateForm (integration)', () => {
             helpText: null,
             canonical: false,
             canonicalKey: null,
+            sectionKey: null,
           },
         ],
       }

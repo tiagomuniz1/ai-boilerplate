@@ -9,6 +9,12 @@ import {
 } from 'typeorm'
 import { MedicalRecordFieldOptionDto, MedicalRecordFieldType } from '@app/shared'
 
+export interface MedicalRecordTemplateSection {
+  key: string
+  title: string
+  order: number
+}
+
 export interface MedicalRecordTemplateField {
   key: string
   label: string
@@ -20,6 +26,7 @@ export interface MedicalRecordTemplateField {
   helpText: string | null
   canonical: boolean
   canonicalKey: string | null
+  sectionKey: string | null
 }
 
 @Entity('medical_record_templates')
@@ -38,6 +45,9 @@ export class MedicalRecordTemplate {
 
   @Column({ type: 'jsonb', default: () => "'[]'" })
   fields: MedicalRecordTemplateField[]
+
+  @Column({ type: 'jsonb', default: () => "'[]'" })
+  sections: MedicalRecordTemplateSection[]
 
   @Column({ name: 'is_active', default: true })
   isActive: boolean

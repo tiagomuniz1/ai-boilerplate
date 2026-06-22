@@ -8,6 +8,7 @@ import {
 import { DataSource, OptimisticLockVersionMismatchError } from 'typeorm'
 import {
   MedicalRecordFieldType,
+  MedicalRecordTemplateSectionDto,
   MedicalRecordTemplateFieldDto,
   MedicalRecordTemplateResponseDto,
   UpdateMedicalRecordTemplateDto,
@@ -20,6 +21,7 @@ import { IMedicalRecordCanonicalFieldsRepository } from '../../medical-record-ca
 import {
   MedicalRecordTemplate,
   MedicalRecordTemplateField,
+  MedicalRecordTemplateSection,
 } from '../entities/medical-record-template.entity'
 import { IMedicalRecordTemplatesRepository } from '../repositories/medical-record-templates.repository.interface'
 import { generateFieldKey } from '../utils/generate-field-key.util'
@@ -51,8 +53,14 @@ export class UpdateMedicalRecordTemplateUseCase extends BaseUseCase {
     const updateData: Partial<MedicalRecordTemplate> = {}
     if (dto.name !== undefined) updateData.name = dto.name
     if (dto.isActive !== undefined) updateData.isActive = dto.isActive
+    if (dto.sections !== undefined) {
+      updateData.sections = this.resolveSections(dto.sections)
+    }
     if (dto.fields !== undefined) {
-      updateData.fields = await this.resolveFields(dto.fields, template.fields)
+      const validSectionKeys = new Set(
+        (updateData.sections ?? template.sections).map((s) => s.key),
+      )
+      updateData.fields = await this.resolveFields(dto.fields, template.fields, validSectionKeys)
     }
 
     let updated: MedicalRecordTemplate
@@ -78,9 +86,25 @@ export class UpdateMedicalRecordTemplateUseCase extends BaseUseCase {
     return this.toResponse(updated, specialty?.name ?? '')
   }
 
+  private resolveSections(
+    inputSections: MedicalRecordTemplateSectionDto[],
+  ): MedicalRecordTemplateSection[] {
+    const usedKeys = new Set<string>()
+    return inputSections.map((section) => {
+      // Use any provided key (existing or client-generated) as long as it is unique.
+      if (section.key && !usedKeys.has(section.key)) {
+        usedKeys.add(section.key)
+        return { key: section.key, title: section.title, order: section.order }
+      }
+      const key = generateFieldKey(section.title, usedKeys)
+      return { key, title: section.title, order: section.order }
+    })
+  }
+
   private async resolveFields(
     inputFields: MedicalRecordTemplateFieldDto[],
     existingFields: MedicalRecordTemplateField[],
+    validSectionKeys: Set<string>,
   ): Promise<MedicalRecordTemplateField[]> {
     const usedKeys = new Set<string>()
     const existingKeys = new Set(existingFields.map((field) => field.key))
@@ -89,6 +113,7 @@ export class UpdateMedicalRecordTemplateUseCase extends BaseUseCase {
     for (const field of inputFields) {
       this.validateFieldOptions(field)
       await this.validateCanonical(field)
+      this.validateSectionKey(field, validSectionKeys)
 
       let key: string
       if (field.key && existingKeys.has(field.key) && !usedKeys.has(field.key)) {
@@ -109,10 +134,22 @@ export class UpdateMedicalRecordTemplateUseCase extends BaseUseCase {
         helpText: field.helpText ?? null,
         canonical: field.canonical,
         canonicalKey: field.canonical ? field.canonicalKey! : null,
+        sectionKey: field.sectionKey ?? null,
       })
     }
 
     return resolved
+  }
+
+  private validateSectionKey(
+    field: MedicalRecordTemplateFieldDto,
+    validSectionKeys: Set<string>,
+  ): void {
+    if (field.sectionKey && !validSectionKeys.has(field.sectionKey)) {
+      throw new UnprocessableEntityException(
+        `Field "${field.label}" references unknown section key "${field.sectionKey}"`,
+      )
+    }
   }
 
   private validateFieldOptions(field: MedicalRecordTemplateFieldDto): void {
@@ -169,6 +206,7 @@ export class UpdateMedicalRecordTemplateUseCase extends BaseUseCase {
       specialtyName,
       name: template.name,
       fields: template.fields,
+      sections: template.sections,
       isActive: template.isActive,
       createdAt: template.createdAt,
       updatedAt: template.updatedAt,

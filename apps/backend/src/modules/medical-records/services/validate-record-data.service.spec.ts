@@ -14,6 +14,7 @@ const makeField = (overrides: Partial<MedicalRecordTemplateField>): MedicalRecor
   helpText: null,
   canonical: false,
   canonicalKey: null,
+  sectionKey: null,
   ...overrides,
 })
 

@@ -230,6 +230,7 @@ async function seedMedicalRecordTemplates(dataSource: DataSource): Promise<void>
         helpText: null,
         canonical: true,
         canonicalKey: canonical.canonicalKey,
+        sectionKey: null,
       })
       order += 1
     }
@@ -245,6 +246,7 @@ async function seedMedicalRecordTemplates(dataSource: DataSource): Promise<void>
       helpText: null,
       canonical: false,
       canonicalKey: null,
+      sectionKey: null,
     })
 
     await templateRepository.save(

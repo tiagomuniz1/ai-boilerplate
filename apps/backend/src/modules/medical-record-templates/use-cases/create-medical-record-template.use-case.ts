@@ -8,6 +8,7 @@ import { DataSource } from 'typeorm'
 import {
   CreateMedicalRecordTemplateDto,
   MedicalRecordFieldType,
+  MedicalRecordTemplateSectionDto,
   MedicalRecordTemplateFieldDto,
   MedicalRecordTemplateResponseDto,
 } from '@app/shared'
@@ -20,6 +21,7 @@ import { IMedicalRecordCanonicalFieldsRepository } from '../../medical-record-ca
 import {
   MedicalRecordTemplate,
   MedicalRecordTemplateField,
+  MedicalRecordTemplateSection,
 } from '../entities/medical-record-template.entity'
 import { IMedicalRecordTemplatesRepository } from '../repositories/medical-record-templates.repository.interface'
 import { generateFieldKey } from '../utils/generate-field-key.util'
@@ -57,10 +59,12 @@ export class CreateMedicalRecordTemplateUseCase extends BaseUseCase {
     )
     if (existing) throw new ConflictException('A template already exists for this specialty')
 
-    const fields = await this.resolveFields(dto.fields)
+    const sections = this.resolveSections(dto.sections ?? [])
+    const validSectionKeys = new Set(sections.map((s) => s.key))
+    const fields = await this.resolveFields(dto.fields, validSectionKeys)
 
     const created = await this.templatesRepository.create(
-      { specialtyId: dto.specialtyId, name: dto.name, fields },
+      { specialtyId: dto.specialtyId, name: dto.name, fields, sections },
       clinicId,
     )
 
@@ -76,8 +80,25 @@ export class CreateMedicalRecordTemplateUseCase extends BaseUseCase {
     return this.toResponse(created, specialty?.name ?? '')
   }
 
+  private resolveSections(
+    inputSections: MedicalRecordTemplateSectionDto[],
+  ): MedicalRecordTemplateSection[] {
+    const usedKeys = new Set<string>()
+    return inputSections.map((section) => {
+      // Use the client-provided key when present (allows frontend to link fields to sections).
+      // Fall back to generation only when key is absent or already taken (duplicate guard).
+      if (section.key && !usedKeys.has(section.key)) {
+        usedKeys.add(section.key)
+        return { key: section.key, title: section.title, order: section.order }
+      }
+      const key = generateFieldKey(section.title, usedKeys)
+      return { key, title: section.title, order: section.order }
+    })
+  }
+
   private async resolveFields(
     inputFields: MedicalRecordTemplateFieldDto[],
+    validSectionKeys: Set<string>,
   ): Promise<MedicalRecordTemplateField[]> {
     const usedKeys = new Set<string>()
     const resolved: MedicalRecordTemplateField[] = []
@@ -85,6 +106,7 @@ export class CreateMedicalRecordTemplateUseCase extends BaseUseCase {
     for (const field of inputFields) {
       this.validateFieldOptions(field)
       await this.validateCanonical(field)
+      this.validateSectionKey(field, validSectionKeys)
 
       // The client never sets the key on create — it is always generated.
       const key = generateFieldKey(field.label, usedKeys)
@@ -100,10 +122,22 @@ export class CreateMedicalRecordTemplateUseCase extends BaseUseCase {
         helpText: field.helpText ?? null,
         canonical: field.canonical,
         canonicalKey: field.canonical ? field.canonicalKey! : null,
+        sectionKey: field.sectionKey ?? null,
       })
     }
 
     return resolved
+  }
+
+  private validateSectionKey(
+    field: MedicalRecordTemplateFieldDto,
+    validSectionKeys: Set<string>,
+  ): void {
+    if (field.sectionKey && !validSectionKeys.has(field.sectionKey)) {
+      throw new UnprocessableEntityException(
+        `Field "${field.label}" references unknown section key "${field.sectionKey}"`,
+      )
+    }
   }
 
   private validateFieldOptions(field: MedicalRecordTemplateFieldDto): void {
@@ -160,6 +194,7 @@ export class CreateMedicalRecordTemplateUseCase extends BaseUseCase {
       specialtyName,
       name: template.name,
       fields: template.fields,
+      sections: template.sections,
       isActive: template.isActive,
       createdAt: template.createdAt,
       updatedAt: template.updatedAt,

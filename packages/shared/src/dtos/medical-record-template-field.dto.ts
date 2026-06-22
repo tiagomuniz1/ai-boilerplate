@@ -61,4 +61,9 @@ export class MedicalRecordTemplateFieldDto {
   @IsString()
   @MaxLength(60)
   canonicalKey?: string | null
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(60)
+  sectionKey?: string | null
 }

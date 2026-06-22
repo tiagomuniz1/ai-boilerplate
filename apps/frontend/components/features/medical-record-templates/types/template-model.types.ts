@@ -1,5 +1,11 @@
 import type { MedicalRecordFieldType } from '@app/shared'
 
+export interface ITemplateSectionModel {
+  key: string
+  title: string
+  order: number
+}
+
 export interface ITemplateFieldModel {
   key?: string
   label: string
@@ -11,6 +17,7 @@ export interface ITemplateFieldModel {
   helpText: string | null
   canonical: boolean
   canonicalKey: string | null
+  sectionKey: string | null
 }
 
 export interface ITemplateModel {
@@ -19,6 +26,7 @@ export interface ITemplateModel {
   specialtyName: string
   name: string
   fields: ITemplateFieldModel[]
+  sections: ITemplateSectionModel[]
   isActive: boolean
   createdAt: Date
   updatedAt: Date

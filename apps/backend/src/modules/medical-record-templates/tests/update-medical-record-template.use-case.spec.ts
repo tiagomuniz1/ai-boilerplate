@@ -45,6 +45,7 @@ const existingField = {
   helpText: null,
   canonical: false,
   canonicalKey: null,
+  sectionKey: null,
 }
 
 const makeTemplate = (overrides = {}) => ({
@@ -53,6 +54,7 @@ const makeTemplate = (overrides = {}) => ({
   specialtyId: 'spec-1',
   name: 'Template',
   fields: [existingField],
+  sections: [],
   isActive: true,
   version: 1,
   createdAt: new Date(),

@@ -84,6 +84,7 @@ export class FindAllMedicalRecordTemplatesUseCase extends BaseUseCase {
       specialtyName,
       name: template.name,
       fields: template.fields,
+      sections: template.sections,
       isActive: template.isActive,
       createdAt: template.createdAt,
       updatedAt: template.updatedAt,

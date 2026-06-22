@@ -1,9 +1,19 @@
 import type {
   MedicalRecordTemplateResponseDto,
+  MedicalRecordTemplateSectionDto,
   PaginatedMedicalRecordTemplatesResponseDto,
   MedicalRecordTemplateFieldDto,
 } from '@app/shared'
-import type { ITemplateModel, ITemplateFieldModel, IPaginatedTemplatesModel } from '../types/template-model.types'
+import type {
+  ITemplateModel,
+  ITemplateFieldModel,
+  ITemplateSectionModel,
+  IPaginatedTemplatesModel,
+} from '../types/template-model.types'
+
+function toTemplateSectionModel(section: MedicalRecordTemplateSectionDto): ITemplateSectionModel {
+  return { key: section.key!, title: section.title, order: section.order }
+}
 
 function toTemplateFieldModel(field: MedicalRecordTemplateFieldDto): ITemplateFieldModel {
   return {
@@ -19,6 +29,7 @@ function toTemplateFieldModel(field: MedicalRecordTemplateFieldDto): ITemplateFi
     helpText: field.helpText ?? null,
     canonical: field.canonical,
     canonicalKey: field.canonicalKey ?? null,
+    sectionKey: field.sectionKey ?? null,
   }
 }
 
@@ -29,6 +40,7 @@ export function toTemplateModel(dto: MedicalRecordTemplateResponseDto): ITemplat
     specialtyName: dto.specialtyName,
     name: dto.name,
     fields: dto.fields.map((f) => toTemplateFieldModel(f)),
+    sections: (dto.sections ?? []).map((s) => toTemplateSectionModel(s)),
     isActive: dto.isActive,
     createdAt: new Date(dto.createdAt),
     updatedAt: new Date(dto.updatedAt),
