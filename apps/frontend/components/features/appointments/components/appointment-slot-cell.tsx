@@ -26,8 +26,10 @@ export function AppointmentSlotCell({
 
   const statusColor: Record<AppointmentStatus, string> = {
     [AppointmentStatus.SCHEDULED]: 'bg-accent/10 border-accent text-accent',
+    [AppointmentStatus.CONFIRMED]: 'bg-accent/20 border-accent text-accent',
     [AppointmentStatus.CANCELLED]: 'bg-danger/10 border-danger text-danger',
     [AppointmentStatus.COMPLETED]: 'bg-good/10 border-good text-good',
+    [AppointmentStatus.NO_SHOW]: 'bg-warn/10 border-warn text-warn',
   }
 
   if (isFree) {

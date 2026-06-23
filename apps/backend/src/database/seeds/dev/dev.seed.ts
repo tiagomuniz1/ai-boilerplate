@@ -1,6 +1,6 @@
 import * as bcrypt from 'bcrypt'
 import { DataSource, ILike } from 'typeorm'
-import { AppointmentStatus, DayOfWeek, MedicalRecordFieldType, PatientGender, ThemeBorderRadius, UserRole } from '@app/shared'
+import { AppointmentInsuranceType, AppointmentStatus, DayOfWeek, MedicalRecordFieldType, PatientGender, ThemeBorderRadius, UserRole } from '@app/shared'
 import { Theme } from '../../../modules/themes/entities/theme.entity'
 import { Clinic } from '../../../modules/clinics/entities/clinic.entity'
 import { User } from '../../../modules/users/entities/user.entity'
@@ -466,16 +466,41 @@ async function seedMedicalRecords(dataSource: DataSource): Promise<void> {
     console.log('Dev seed: seed schedule created.')
   }
 
-  const appointments = [
-    { date: '2026-01-05', startTime: '08:00', endTime: '08:30' },
-    { date: '2026-01-12', startTime: '08:30', endTime: '09:00' },
+  // Appointments over the last 30 days with a mix of statuses and insurance types
+  const today = new Date()
+  const appointmentDefs: Array<{
+    daysAgo: number
+    startTime: string
+    endTime: string
+    status: AppointmentStatus
+    insuranceType: AppointmentInsuranceType | null
+    withRecord: boolean
+  }> = [
+    { daysAgo: 29, startTime: '08:00', endTime: '08:30', status: AppointmentStatus.COMPLETED, insuranceType: AppointmentInsuranceType.PARTICULAR, withRecord: true },
+    { daysAgo: 27, startTime: '08:30', endTime: '09:00', status: AppointmentStatus.COMPLETED, insuranceType: AppointmentInsuranceType.CONVENIO, withRecord: true },
+    { daysAgo: 25, startTime: '09:00', endTime: '09:30', status: AppointmentStatus.COMPLETED, insuranceType: AppointmentInsuranceType.PARTICULAR, withRecord: true },
+    { daysAgo: 22, startTime: '08:00', endTime: '08:30', status: AppointmentStatus.COMPLETED, insuranceType: AppointmentInsuranceType.CONVENIO, withRecord: true },
+    { daysAgo: 20, startTime: '08:30', endTime: '09:00', status: AppointmentStatus.NO_SHOW, insuranceType: AppointmentInsuranceType.PARTICULAR, withRecord: false },
+    { daysAgo: 18, startTime: '09:00', endTime: '09:30', status: AppointmentStatus.COMPLETED, insuranceType: null, withRecord: true },
+    { daysAgo: 15, startTime: '08:00', endTime: '08:30', status: AppointmentStatus.COMPLETED, insuranceType: AppointmentInsuranceType.PARTICULAR, withRecord: true },
+    { daysAgo: 13, startTime: '08:30', endTime: '09:00', status: AppointmentStatus.CANCELLED, insuranceType: AppointmentInsuranceType.CONVENIO, withRecord: false },
+    { daysAgo: 11, startTime: '09:00', endTime: '09:30', status: AppointmentStatus.COMPLETED, insuranceType: AppointmentInsuranceType.PARTICULAR, withRecord: true },
+    { daysAgo: 8, startTime: '08:00', endTime: '08:30', status: AppointmentStatus.COMPLETED, insuranceType: AppointmentInsuranceType.CONVENIO, withRecord: true },
+    { daysAgo: 6, startTime: '08:30', endTime: '09:00', status: AppointmentStatus.NO_SHOW, insuranceType: AppointmentInsuranceType.PARTICULAR, withRecord: false },
+    { daysAgo: 4, startTime: '09:00', endTime: '09:30', status: AppointmentStatus.COMPLETED, insuranceType: AppointmentInsuranceType.PARTICULAR, withRecord: true },
+    { daysAgo: 2, startTime: '08:00', endTime: '08:30', status: AppointmentStatus.CONFIRMED, insuranceType: AppointmentInsuranceType.CONVENIO, withRecord: false },
+    { daysAgo: 1, startTime: '08:30', endTime: '09:00', status: AppointmentStatus.COMPLETED, insuranceType: AppointmentInsuranceType.PARTICULAR, withRecord: true },
   ]
 
-  for (const apptData of appointments) {
+  for (const def of appointmentDefs) {
+    const apptDate = new Date(today)
+    apptDate.setUTCDate(apptDate.getUTCDate() - def.daysAgo)
+    const dateStr = apptDate.toISOString().split('T')[0]
+
     const existingAppt = await appointmentRepository.findOneBy({
       clinicId: SEED_CLINIC_ID,
-      date: apptData.date,
-      startTime: apptData.startTime,
+      date: dateStr,
+      startTime: def.startTime,
     })
     if (existingAppt) continue
 
@@ -486,14 +511,20 @@ async function seedMedicalRecords(dataSource: DataSource): Promise<void> {
         patientId: patient.id,
         specialtyId,
         scheduleId: schedule.id,
-        date: apptData.date,
-        startTime: apptData.startTime,
-        endTime: apptData.endTime,
-        status: AppointmentStatus.COMPLETED,
+        date: dateStr,
+        startTime: def.startTime,
+        endTime: def.endTime,
+        status: def.status,
+        insuranceType: def.insuranceType,
         reason: 'Consulta de rotina',
-        cancellationReason: null,
+        cancellationReason: def.status === AppointmentStatus.CANCELLED ? 'Paciente remarcou' : null,
       }),
     )
+
+    if (!def.withRecord || def.status !== AppointmentStatus.COMPLETED) {
+      console.log(`Dev seed: appointment ${dateStr} ${def.startTime} (${def.status}) created.`)
+      continue
+    }
 
     const data: Record<string, unknown> = {}
     for (const field of template.fields) {
@@ -515,6 +546,6 @@ async function seedMedicalRecords(dataSource: DataSource): Promise<void> {
         notes: 'Paciente em bom estado geral.',
       }),
     )
-    console.log(`Dev seed: medical record for appointment ${apptData.date} ${apptData.startTime} created.`)
+    console.log(`Dev seed: medical record for appointment ${dateStr} ${def.startTime} created.`)
   }
 }

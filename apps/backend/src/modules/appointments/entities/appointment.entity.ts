@@ -9,7 +9,7 @@ import {
   UpdateDateColumn,
   VersionColumn,
 } from 'typeorm'
-import { AppointmentStatus } from '@app/shared'
+import { AppointmentInsuranceType, AppointmentStatus } from '@app/shared'
 import { Clinic } from '../../clinics/entities/clinic.entity'
 import { Doctor } from '../../doctors/entities/doctor.entity'
 import { Patient } from '../../patients/entities/patient.entity'
@@ -67,6 +67,9 @@ export class Appointment {
 
   @Column({ type: 'varchar', default: AppointmentStatus.SCHEDULED })
   status: AppointmentStatus
+
+  @Column({ name: 'insurance_type', type: 'varchar', nullable: true, default: null })
+  insuranceType: AppointmentInsuranceType | null
 
   @Column({ type: 'text', nullable: true })
   reason: string | null

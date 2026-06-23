@@ -119,6 +119,22 @@ describe('CompleteAppointmentUseCase', () => {
     await expect(useCase.execute(appointment.id, adminUser)).rejects.toThrow(UnprocessableEntityException)
   })
 
+  it('throws UnprocessableEntityException when appointment is NO_SHOW', async () => {
+    const appointment = makeAppointment({ status: AppointmentStatus.NO_SHOW })
+    mockAppointmentsRepository.findById.mockResolvedValue(appointment as any)
+    await expect(useCase.execute(appointment.id, adminUser)).rejects.toThrow(UnprocessableEntityException)
+  })
+
+  it('completes CONFIRMED appointment (regression: new allowed transition)', async () => {
+    const appointment = makeAppointment({ date: yesterday, status: AppointmentStatus.CONFIRMED })
+    const completed = makeAppointment({ date: yesterday, status: AppointmentStatus.COMPLETED })
+    mockAppointmentsRepository.findById.mockResolvedValue(appointment as any)
+    mockAppointmentsRepository.update.mockResolvedValue(completed as any)
+
+    const result = await useCase.execute(appointment.id, adminUser)
+    expect(result.status).toBe(AppointmentStatus.COMPLETED)
+  })
+
   it('throws UnprocessableEntityException when appointment is in the future', async () => {
     const appointment = makeAppointment({ date: tomorrow })
     mockAppointmentsRepository.findById.mockResolvedValue(appointment as any)

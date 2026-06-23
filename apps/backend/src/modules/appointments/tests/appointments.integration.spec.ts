@@ -678,5 +678,301 @@ describe('AppointmentsController (integration)', () => {
         .set('Cookie', `access_token=${userToken}`)
         .expect(403)
     })
+
+    it('returns 200 when completing a CONFIRMED past appointment', async () => {
+      const yesterday = new Date()
+      yesterday.setUTCDate(yesterday.getUTCDate() - 1)
+      const pastDate = yesterday.toISOString().split('T')[0]
+
+      const pastSchedule = await scheduleRepository.save(
+        scheduleRepository.create({
+          doctorId,
+          clinicId: SEED_CLINIC_ID,
+          dayOfWeek: [DayOfWeek.SUNDAY, DayOfWeek.MONDAY, DayOfWeek.TUESDAY, DayOfWeek.WEDNESDAY, DayOfWeek.THURSDAY, DayOfWeek.FRIDAY, DayOfWeek.SATURDAY][yesterday.getUTCDay()],
+          startTime: '08:00',
+          endTime: '10:00',
+          slotDurationInMinutes: 30,
+          validFrom: null,
+          validUntil: null,
+        }),
+      )
+
+      const appointment = await appointmentRepository.save(
+        appointmentRepository.create({
+          clinicId: SEED_CLINIC_ID,
+          doctorId,
+          patientId,
+          scheduleId: pastSchedule.id,
+          date: pastDate,
+          startTime: '08:00',
+          endTime: '08:30',
+          status: AppointmentStatus.CONFIRMED,
+          reason: null,
+          cancellationReason: null,
+        }),
+      )
+
+      const { body } = await request(app.getHttpServer())
+        .patch(`/appointments/${appointment.id}/complete`)
+        .set('Cookie', `access_token=${adminToken}`)
+        .expect(200)
+
+      expect(body.status).toBe(AppointmentStatus.COMPLETED)
+    })
+  })
+
+  describe('PATCH /appointments/:id/confirm', () => {
+    it('returns 200 when ADMIN confirms a scheduled appointment', async () => {
+      const { body: created } = await request(app.getHttpServer())
+        .post('/appointments')
+        .set('Cookie', `access_token=${doctorToken}`)
+        .send({ patientId, date: futureDate, startTime: '08:00' })
+        .expect(201)
+
+      const { body } = await request(app.getHttpServer())
+        .patch(`/appointments/${created.id}/confirm`)
+        .set('Cookie', `access_token=${adminToken}`)
+        .expect(200)
+
+      expect(body.status).toBe(AppointmentStatus.CONFIRMED)
+      expect(body.insuranceType).toBeNull()
+    })
+
+    it('returns 200 when DOCTOR confirms own appointment', async () => {
+      const { body: created } = await request(app.getHttpServer())
+        .post('/appointments')
+        .set('Cookie', `access_token=${doctorToken}`)
+        .send({ patientId, date: futureDate, startTime: '08:00' })
+        .expect(201)
+
+      const { body } = await request(app.getHttpServer())
+        .patch(`/appointments/${created.id}/confirm`)
+        .set('Cookie', `access_token=${doctorToken}`)
+        .expect(200)
+
+      expect(body.status).toBe(AppointmentStatus.CONFIRMED)
+    })
+
+    it('returns 403 when DOCTOR confirms another doctor appointment', async () => {
+      const { body: created } = await request(app.getHttpServer())
+        .post('/appointments')
+        .set('Cookie', `access_token=${doctorToken}`)
+        .send({ patientId, date: futureDate, startTime: '08:00' })
+        .expect(201)
+
+      await request(app.getHttpServer())
+        .patch(`/appointments/${created.id}/confirm`)
+        .set('Cookie', `access_token=${otherDoctorToken}`)
+        .expect(403)
+    })
+
+    it('returns 422 when confirming an already confirmed appointment', async () => {
+      const { body: created } = await request(app.getHttpServer())
+        .post('/appointments')
+        .set('Cookie', `access_token=${doctorToken}`)
+        .send({ patientId, date: futureDate, startTime: '08:00' })
+        .expect(201)
+
+      await request(app.getHttpServer())
+        .patch(`/appointments/${created.id}/confirm`)
+        .set('Cookie', `access_token=${adminToken}`)
+        .expect(200)
+
+      await request(app.getHttpServer())
+        .patch(`/appointments/${created.id}/confirm`)
+        .set('Cookie', `access_token=${adminToken}`)
+        .expect(422)
+    })
+
+    it('returns 403 for USER role', async () => {
+      const { body: created } = await request(app.getHttpServer())
+        .post('/appointments')
+        .set('Cookie', `access_token=${doctorToken}`)
+        .send({ patientId, date: futureDate, startTime: '08:00' })
+        .expect(201)
+
+      await request(app.getHttpServer())
+        .patch(`/appointments/${created.id}/confirm`)
+        .set('Cookie', `access_token=${userToken}`)
+        .expect(403)
+    })
+  })
+
+  describe('PATCH /appointments/:id/no-show', () => {
+    it('returns 200 when ADMIN marks a past SCHEDULED appointment as no-show', async () => {
+      const yesterday = new Date()
+      yesterday.setUTCDate(yesterday.getUTCDate() - 1)
+      const pastDate = yesterday.toISOString().split('T')[0]
+
+      const pastSchedule = await scheduleRepository.save(
+        scheduleRepository.create({
+          doctorId,
+          clinicId: SEED_CLINIC_ID,
+          dayOfWeek: [DayOfWeek.SUNDAY, DayOfWeek.MONDAY, DayOfWeek.TUESDAY, DayOfWeek.WEDNESDAY, DayOfWeek.THURSDAY, DayOfWeek.FRIDAY, DayOfWeek.SATURDAY][yesterday.getUTCDay()],
+          startTime: '08:00',
+          endTime: '10:00',
+          slotDurationInMinutes: 30,
+          validFrom: null,
+          validUntil: null,
+        }),
+      )
+
+      const appointment = await appointmentRepository.save(
+        appointmentRepository.create({
+          clinicId: SEED_CLINIC_ID,
+          doctorId,
+          patientId,
+          scheduleId: pastSchedule.id,
+          date: pastDate,
+          startTime: '08:00',
+          endTime: '08:30',
+          status: AppointmentStatus.SCHEDULED,
+          reason: null,
+          cancellationReason: null,
+        }),
+      )
+
+      const { body } = await request(app.getHttpServer())
+        .patch(`/appointments/${appointment.id}/no-show`)
+        .set('Cookie', `access_token=${adminToken}`)
+        .expect(200)
+
+      expect(body.status).toBe(AppointmentStatus.NO_SHOW)
+    })
+
+    it('returns 200 when marking a past CONFIRMED appointment as no-show', async () => {
+      const yesterday = new Date()
+      yesterday.setUTCDate(yesterday.getUTCDate() - 1)
+      const pastDate = yesterday.toISOString().split('T')[0]
+
+      const pastSchedule = await scheduleRepository.save(
+        scheduleRepository.create({
+          doctorId,
+          clinicId: SEED_CLINIC_ID,
+          dayOfWeek: [DayOfWeek.SUNDAY, DayOfWeek.MONDAY, DayOfWeek.TUESDAY, DayOfWeek.WEDNESDAY, DayOfWeek.THURSDAY, DayOfWeek.FRIDAY, DayOfWeek.SATURDAY][yesterday.getUTCDay()],
+          startTime: '08:00',
+          endTime: '10:00',
+          slotDurationInMinutes: 30,
+          validFrom: null,
+          validUntil: null,
+        }),
+      )
+
+      const appointment = await appointmentRepository.save(
+        appointmentRepository.create({
+          clinicId: SEED_CLINIC_ID,
+          doctorId,
+          patientId,
+          scheduleId: pastSchedule.id,
+          date: pastDate,
+          startTime: '08:00',
+          endTime: '08:30',
+          status: AppointmentStatus.CONFIRMED,
+          reason: null,
+          cancellationReason: null,
+        }),
+      )
+
+      const { body } = await request(app.getHttpServer())
+        .patch(`/appointments/${appointment.id}/no-show`)
+        .set('Cookie', `access_token=${adminToken}`)
+        .expect(200)
+
+      expect(body.status).toBe(AppointmentStatus.NO_SHOW)
+    })
+
+    it('returns 422 when marking a future appointment as no-show', async () => {
+      const { body: created } = await request(app.getHttpServer())
+        .post('/appointments')
+        .set('Cookie', `access_token=${doctorToken}`)
+        .send({ patientId, date: futureDate, startTime: '08:00' })
+        .expect(201)
+
+      await request(app.getHttpServer())
+        .patch(`/appointments/${created.id}/no-show`)
+        .set('Cookie', `access_token=${adminToken}`)
+        .expect(422)
+    })
+
+    it('returns 403 for USER role', async () => {
+      const { body: created } = await request(app.getHttpServer())
+        .post('/appointments')
+        .set('Cookie', `access_token=${doctorToken}`)
+        .send({ patientId, date: futureDate, startTime: '08:00' })
+        .expect(201)
+
+      await request(app.getHttpServer())
+        .patch(`/appointments/${created.id}/no-show`)
+        .set('Cookie', `access_token=${userToken}`)
+        .expect(403)
+    })
+  })
+
+  describe('POST /appointments with insuranceType', () => {
+    it('persists insuranceType=particular and returns it in the response', async () => {
+      const { body } = await request(app.getHttpServer())
+        .post('/appointments')
+        .set('Cookie', `access_token=${doctorToken}`)
+        .send({ patientId, date: futureDate, startTime: '08:00', insuranceType: 'particular' })
+        .expect(201)
+
+      expect(body.insuranceType).toBe('particular')
+    })
+
+    it('persists insuranceType=convenio and returns it in the response', async () => {
+      const { body } = await request(app.getHttpServer())
+        .post('/appointments')
+        .set('Cookie', `access_token=${doctorToken}`)
+        .send({ patientId, date: futureDate, startTime: '08:00', insuranceType: 'convenio' })
+        .expect(201)
+
+      expect(body.insuranceType).toBe('convenio')
+
+      const { body: fetched } = await request(app.getHttpServer())
+        .get(`/appointments/${body.id}`)
+        .set('Cookie', `access_token=${adminToken}`)
+        .expect(200)
+
+      expect(fetched.insuranceType).toBe('convenio')
+    })
+
+    it('returns null when insuranceType is omitted', async () => {
+      const { body } = await request(app.getHttpServer())
+        .post('/appointments')
+        .set('Cookie', `access_token=${doctorToken}`)
+        .send({ patientId, date: futureDate, startTime: '08:00' })
+        .expect(201)
+
+      expect(body.insuranceType).toBeNull()
+    })
+
+    it('returns 400 when insuranceType has invalid value', async () => {
+      await request(app.getHttpServer())
+        .post('/appointments')
+        .set('Cookie', `access_token=${doctorToken}`)
+        .send({ patientId, date: futureDate, startTime: '08:00', insuranceType: 'plano_de_saude' })
+        .expect(400)
+    })
+
+    it('GET /appointments?status=confirmed filters correctly', async () => {
+      const { body: created } = await request(app.getHttpServer())
+        .post('/appointments')
+        .set('Cookie', `access_token=${doctorToken}`)
+        .send({ patientId, date: futureDate, startTime: '08:00' })
+        .expect(201)
+
+      await request(app.getHttpServer())
+        .patch(`/appointments/${created.id}/confirm`)
+        .set('Cookie', `access_token=${adminToken}`)
+        .expect(200)
+
+      const { body } = await request(app.getHttpServer())
+        .get('/appointments')
+        .set('Cookie', `access_token=${adminToken}`)
+        .query({ status: 'confirmed' })
+        .expect(200)
+
+      expect(body.data.every((a: any) => a.status === AppointmentStatus.CONFIRMED)).toBe(true)
+    })
   })
 })

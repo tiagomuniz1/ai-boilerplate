@@ -5,14 +5,18 @@ import { ICurrentUser } from '../../auth/types/current-user.type'
 import { AppointmentsController } from './appointments.controller'
 import { CancelAppointmentUseCase } from '../use-cases/cancel-appointment.use-case'
 import { CompleteAppointmentUseCase } from '../use-cases/complete-appointment.use-case'
+import { ConfirmAppointmentUseCase } from '../use-cases/confirm-appointment.use-case'
 import { CreateAppointmentUseCase } from '../use-cases/create-appointment.use-case'
 import { FindAppointmentByIdUseCase } from '../use-cases/find-appointment-by-id.use-case'
 import { GetAvailabilityUseCase } from '../use-cases/get-availability.use-case'
 import { ListAppointmentsUseCase } from '../use-cases/list-appointments.use-case'
+import { MarkAppointmentNoShowUseCase } from '../use-cases/mark-appointment-no-show.use-case'
 
 const mockCreate = { execute: jest.fn() } as unknown as jest.Mocked<CreateAppointmentUseCase>
 const mockCancel = { execute: jest.fn() } as unknown as jest.Mocked<CancelAppointmentUseCase>
 const mockComplete = { execute: jest.fn() } as unknown as jest.Mocked<CompleteAppointmentUseCase>
+const mockConfirm = { execute: jest.fn() } as unknown as jest.Mocked<ConfirmAppointmentUseCase>
+const mockNoShow = { execute: jest.fn() } as unknown as jest.Mocked<MarkAppointmentNoShowUseCase>
 const mockFindById = { execute: jest.fn() } as unknown as jest.Mocked<FindAppointmentByIdUseCase>
 const mockList = { execute: jest.fn() } as unknown as jest.Mocked<ListAppointmentsUseCase>
 const mockGetAvailability = { execute: jest.fn() } as unknown as jest.Mocked<GetAvailabilityUseCase>
@@ -49,6 +53,8 @@ describe('AppointmentsController', () => {
       mockCreate,
       mockCancel,
       mockComplete,
+      mockConfirm,
+      mockNoShow,
       mockFindById,
       mockList,
       mockGetAvailability,
@@ -130,6 +136,28 @@ describe('AppointmentsController', () => {
     const result = await controller.complete(id, adminUser)
 
     expect(mockComplete.execute).toHaveBeenCalledWith(id, adminUser)
+    expect(result).toBe(response)
+  })
+
+  it('confirm delegates to ConfirmAppointmentUseCase', async () => {
+    const id = faker.string.uuid()
+    const response = makeAppointmentResponse({ id, status: AppointmentStatus.CONFIRMED })
+    mockConfirm.execute.mockResolvedValue(response as any)
+
+    const result = await controller.confirm(id, adminUser)
+
+    expect(mockConfirm.execute).toHaveBeenCalledWith(id, adminUser)
+    expect(result).toBe(response)
+  })
+
+  it('noShow delegates to MarkAppointmentNoShowUseCase', async () => {
+    const id = faker.string.uuid()
+    const response = makeAppointmentResponse({ id, status: AppointmentStatus.NO_SHOW })
+    mockNoShow.execute.mockResolvedValue(response as any)
+
+    const result = await controller.noShow(id, adminUser)
+
+    expect(mockNoShow.execute).toHaveBeenCalledWith(id, adminUser)
     expect(result).toBe(response)
   })
 })

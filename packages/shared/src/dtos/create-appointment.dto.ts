@@ -1,4 +1,5 @@
-import { IsOptional, IsString, IsUUID, Matches, MaxLength } from 'class-validator'
+import { IsEnum, IsOptional, IsString, IsUUID, Matches, MaxLength } from 'class-validator'
+import { AppointmentInsuranceType } from '../enums/appointment-insurance-type.enum'
 
 export class CreateAppointmentDto {
   @IsOptional()
@@ -22,4 +23,8 @@ export class CreateAppointmentDto {
   @IsString()
   @MaxLength(500)
   reason?: string
+
+  @IsOptional()
+  @IsEnum(AppointmentInsuranceType)
+  insuranceType?: AppointmentInsuranceType
 }

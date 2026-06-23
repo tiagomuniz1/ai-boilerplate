@@ -15,7 +15,10 @@
     "migration:run": "yarn typeorm migration:run",
     "migration:generate": "yarn typeorm migration:generate",
     "migration:revert": "yarn typeorm migration:revert",
-    "seed:run": "ts-node -r tsconfig-paths/register src/database/seeds/run-seed.ts"
+    "migration:run:carga": "DB_SCHEMA=carga yarn typeorm migration:run",
+    "seed:run": "ts-node -r tsconfig-paths/register src/database/seeds/run-seed.ts",
+    "seed:carga": "ts-node -r tsconfig-paths/register src/database/seeds/run-carga-seed.ts",
+    "dev:carga": "node scripts/load-env.js && yarn workspace @app/shared build && DB_SCHEMA=carga nest start --watch"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1068.0",

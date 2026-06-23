@@ -1,5 +1,5 @@
 import { QueryRunner } from 'typeorm'
-import { AppointmentStatus } from '@app/shared'
+import { AppointmentInsuranceType, AppointmentStatus } from '@app/shared'
 import { ListAppointmentsQueryDto } from '../dto/list-appointments-query.dto'
 import { Appointment } from '../entities/appointment.entity'
 
@@ -13,6 +13,7 @@ export interface CreateAppointmentData {
   startTime: string
   endTime: string
   reason: string | null
+  insuranceType?: AppointmentInsuranceType | null
 }
 
 export interface UpdateAppointmentData {

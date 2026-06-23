@@ -10,6 +10,8 @@ import { AppointmentsController } from './controllers/appointments.controller'
 import { CreateAppointmentUseCase } from './use-cases/create-appointment.use-case'
 import { CancelAppointmentUseCase } from './use-cases/cancel-appointment.use-case'
 import { CompleteAppointmentUseCase } from './use-cases/complete-appointment.use-case'
+import { ConfirmAppointmentUseCase } from './use-cases/confirm-appointment.use-case'
+import { MarkAppointmentNoShowUseCase } from './use-cases/mark-appointment-no-show.use-case'
 import { FindAppointmentByIdUseCase } from './use-cases/find-appointment-by-id.use-case'
 import { ListAppointmentsUseCase } from './use-cases/list-appointments.use-case'
 import { GetAvailabilityUseCase } from './use-cases/get-availability.use-case'
@@ -32,6 +34,8 @@ import { AppointmentsRepository } from './repositories/appointments.repository'
     CreateAppointmentUseCase,
     CancelAppointmentUseCase,
     CompleteAppointmentUseCase,
+    ConfirmAppointmentUseCase,
+    MarkAppointmentNoShowUseCase,
     FindAppointmentByIdUseCase,
     ListAppointmentsUseCase,
     GetAvailabilityUseCase,

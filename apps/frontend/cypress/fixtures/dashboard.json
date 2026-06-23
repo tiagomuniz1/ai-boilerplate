@@ -1,0 +1,37 @@
+{
+  "period": { "from": "2026-01-01", "to": "2026-01-30" },
+  "kpi": { "scheduled": 15, "confirmed": 6, "completed": 10, "noShow": 3 },
+  "patients": {
+    "total": 25,
+    "newPatients": 14,
+    "returningPatients": 11,
+    "byGender": { "male": 11, "female": 14 }
+  },
+  "procedures": {
+    "total": 10,
+    "items": [
+      { "label": "Cardiologia", "value": 6 },
+      { "label": "Ortopedia", "value": 4 }
+    ]
+  },
+  "insurance": { "total": 10, "particular": 7, "convenio": 3 },
+  "duration": {
+    "averageMinutes": 45,
+    "byInsuranceType": { "particular": 7, "convenio": 3 }
+  },
+  "appointmentsByDay": [
+    { "date": "2026-01-10", "count": 3 },
+    { "date": "2026-01-11", "count": 5 },
+    { "date": "2026-01-12", "count": 2 }
+  ],
+  "ageDistribution": [
+    { "age": 25, "count": 4 },
+    { "age": 35, "count": 8 },
+    { "age": 45, "count": 6 },
+    { "age": 55, "count": 3 }
+  ],
+  "todayBirthdays": [
+    { "patientId": "p1", "fullName": "Ana Costa", "age": 32 },
+    { "patientId": "p2", "fullName": "João Silva", "age": 45 }
+  ]
+}

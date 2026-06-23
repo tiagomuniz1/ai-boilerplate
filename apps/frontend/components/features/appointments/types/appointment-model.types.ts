@@ -44,6 +44,8 @@ export interface IPaginatedAppointmentsModel {
 
 export const APPOINTMENT_STATUS_LABELS: Record<AppointmentStatus, string> = {
   scheduled: 'Agendada',
+  confirmed: 'Confirmada',
   cancelled: 'Cancelada',
   completed: 'Concluída',
+  no_show: 'Faltou',
 }

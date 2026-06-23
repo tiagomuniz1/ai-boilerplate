@@ -14,10 +14,12 @@ import { AvailabilityQueryDto } from '../dto/availability-query.dto'
 import { ListAppointmentsQueryDto } from '../dto/list-appointments-query.dto'
 import { CancelAppointmentUseCase } from '../use-cases/cancel-appointment.use-case'
 import { CompleteAppointmentUseCase } from '../use-cases/complete-appointment.use-case'
+import { ConfirmAppointmentUseCase } from '../use-cases/confirm-appointment.use-case'
 import { CreateAppointmentUseCase } from '../use-cases/create-appointment.use-case'
 import { FindAppointmentByIdUseCase } from '../use-cases/find-appointment-by-id.use-case'
 import { GetAvailabilityUseCase } from '../use-cases/get-availability.use-case'
 import { ListAppointmentsUseCase } from '../use-cases/list-appointments.use-case'
+import { MarkAppointmentNoShowUseCase } from '../use-cases/mark-appointment-no-show.use-case'
 
 @Controller('appointments')
 export class AppointmentsController {
@@ -25,6 +27,8 @@ export class AppointmentsController {
     private readonly createAppointmentUseCase: CreateAppointmentUseCase,
     private readonly cancelAppointmentUseCase: CancelAppointmentUseCase,
     private readonly completeAppointmentUseCase: CompleteAppointmentUseCase,
+    private readonly confirmAppointmentUseCase: ConfirmAppointmentUseCase,
+    private readonly markAppointmentNoShowUseCase: MarkAppointmentNoShowUseCase,
     private readonly findAppointmentByIdUseCase: FindAppointmentByIdUseCase,
     private readonly listAppointmentsUseCase: ListAppointmentsUseCase,
     private readonly getAvailabilityUseCase: GetAvailabilityUseCase,
@@ -65,6 +69,24 @@ export class AppointmentsController {
     @CurrentUser() currentUser: ICurrentUser,
   ): Promise<AppointmentResponseDto> {
     return this.findAppointmentByIdUseCase.execute(id, currentUser)
+  }
+
+  @Patch(':id/confirm')
+  @Roles(UserRole.ADMIN, UserRole.DOCTOR)
+  confirm(
+    @Param('id') id: string,
+    @CurrentUser() currentUser: ICurrentUser,
+  ): Promise<AppointmentResponseDto> {
+    return this.confirmAppointmentUseCase.execute(id, currentUser)
+  }
+
+  @Patch(':id/no-show')
+  @Roles(UserRole.ADMIN, UserRole.DOCTOR)
+  noShow(
+    @Param('id') id: string,
+    @CurrentUser() currentUser: ICurrentUser,
+  ): Promise<AppointmentResponseDto> {
+    return this.markAppointmentNoShowUseCase.execute(id, currentUser)
   }
 
   @Patch(':id/cancel')

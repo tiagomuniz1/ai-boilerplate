@@ -1,3 +1,4 @@
+import { AppointmentInsuranceType } from '../enums/appointment-insurance-type.enum'
 import { AppointmentStatus } from '../enums/appointment-status.enum'
 
 export class AppointmentResponseDto {
@@ -13,6 +14,7 @@ export class AppointmentResponseDto {
   startTime: string
   endTime: string
   status: AppointmentStatus
+  insuranceType: AppointmentInsuranceType | null
   reason: string | null
   cancellationReason: string | null
   createdAt: Date

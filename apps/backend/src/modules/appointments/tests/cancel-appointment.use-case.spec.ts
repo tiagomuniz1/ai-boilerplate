@@ -115,6 +115,22 @@ describe('CancelAppointmentUseCase', () => {
     await expect(useCase.execute(appointment.id, {}, adminUser)).rejects.toThrow(UnprocessableEntityException)
   })
 
+  it('throws UnprocessableEntityException when appointment is NO_SHOW', async () => {
+    const appointment = makeAppointment({ status: AppointmentStatus.NO_SHOW })
+    mockAppointmentsRepository.findById.mockResolvedValue(appointment as any)
+    await expect(useCase.execute(appointment.id, {}, adminUser)).rejects.toThrow(UnprocessableEntityException)
+  })
+
+  it('cancels CONFIRMED appointment', async () => {
+    const appointment = makeAppointment({ status: AppointmentStatus.CONFIRMED })
+    const cancelled = makeAppointment({ status: AppointmentStatus.CANCELLED })
+    mockAppointmentsRepository.findById.mockResolvedValue(appointment as any)
+    mockAppointmentsRepository.update.mockResolvedValue(cancelled as any)
+
+    const result = await useCase.execute(appointment.id, {}, adminUser)
+    expect(result.status).toBe(AppointmentStatus.CANCELLED)
+  })
+
   it('cancels appointment and returns dto with cancellationReason', async () => {
     const appointment = makeAppointment()
     const cancelled = makeAppointment({ status: AppointmentStatus.CANCELLED, cancellationReason: 'Patient unavailable' })

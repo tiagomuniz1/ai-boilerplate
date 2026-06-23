@@ -140,6 +140,7 @@ export class ListAppointmentsUseCase extends BaseUseCase {
       startTime: appointment.startTime,
       endTime: appointment.endTime,
       status: appointment.status,
+      insuranceType: appointment.insuranceType,
       reason: appointment.reason,
       cancellationReason: appointment.cancellationReason,
       createdAt: appointment.createdAt,

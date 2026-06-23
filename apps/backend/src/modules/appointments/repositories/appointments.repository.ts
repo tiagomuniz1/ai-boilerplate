@@ -95,6 +95,7 @@ export class AppointmentsRepository implements IAppointmentsRepository {
         startTime: data.startTime,
         endTime: data.endTime,
         reason: data.reason,
+        insuranceType: data.insuranceType ?? null,
         status: AppointmentStatus.SCHEDULED,
       }),
     )

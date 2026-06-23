@@ -41,8 +41,11 @@ export class CompleteAppointmentUseCase extends BaseUseCase {
       }
     }
 
-    if (appointment.status !== AppointmentStatus.SCHEDULED) {
-      throw new UnprocessableEntityException('Only scheduled appointments can be completed')
+    if (
+      appointment.status !== AppointmentStatus.SCHEDULED &&
+      appointment.status !== AppointmentStatus.CONFIRMED
+    ) {
+      throw new UnprocessableEntityException('Only scheduled or confirmed appointments can be completed')
     }
 
     const today = new Date().toISOString().split('T')[0]
@@ -133,6 +136,7 @@ export class CompleteAppointmentUseCase extends BaseUseCase {
       startTime: appointment.startTime,
       endTime: appointment.endTime,
       status: appointment.status,
+      insuranceType: appointment.insuranceType,
       reason: appointment.reason,
       cancellationReason: appointment.cancellationReason,
       createdAt: appointment.createdAt,

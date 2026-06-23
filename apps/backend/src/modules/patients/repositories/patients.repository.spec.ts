@@ -5,16 +5,19 @@ import { Patient } from '../entities/patient.entity'
 
 const CLINIC_ID = 'fixed-clinic-uuid'
 
-function makeQueryBuilderMock(overrides: { result?: any; getOne?: any } = {}) {
+function makeQueryBuilderMock(overrides: { result?: any; getOne?: any; getMany?: any; getCount?: number } = {}) {
   return {
     innerJoinAndSelect: jest.fn().mockReturnThis(),
     innerJoin: jest.fn().mockReturnThis(),
+    select: jest.fn().mockReturnThis(),
     where: jest.fn().mockReturnThis(),
     andWhere: jest.fn().mockReturnThis(),
     orderBy: jest.fn().mockReturnThis(),
     skip: jest.fn().mockReturnThis(),
     take: jest.fn().mockReturnThis(),
     getManyAndCount: jest.fn().mockResolvedValue(overrides.result ?? [[], 0]),
+    getMany: jest.fn().mockResolvedValue(overrides.getMany ?? []),
+    getCount: jest.fn().mockResolvedValue(overrides.getCount ?? 0),
     getOne: jest.fn().mockResolvedValue(overrides.getOne ?? null),
   }
 }
@@ -27,6 +30,9 @@ function makeRepo(): jest.Mocked<Repository<Patient>> {
     save: jest.fn(),
     softDelete: jest.fn(),
     createQueryBuilder: jest.fn(),
+    manager: {
+      connection: { options: {} },
+    },
   } as unknown as jest.Mocked<Repository<Patient>>
 }
 
@@ -73,43 +79,96 @@ describe('PatientsRepository', () => {
   })
 
   describe('findAll', () => {
-    it('uses QueryBuilder with clinicId where clause and no andWhere when no search', async () => {
-      const patients = [makePatient()]
-      const qb = makeQueryBuilderMock({ result: [patients, 1] })
-      repo.createQueryBuilder.mockReturnValue(qb as any)
+    it('uses split query (no join) to paginate IDs when no search is provided', async () => {
+      const patient = makePatient()
+      // idsQb returns list of patients with id; countQb returns count; entityQb returns full patients
+      const idsQb = makeQueryBuilderMock({ getMany: [{ id: patient.id }] })
+      const countQb = makeQueryBuilderMock({ getCount: 1 })
+      const entityQb = makeQueryBuilderMock({ getMany: [patient] })
+
+      let callCount = 0
+      repo.createQueryBuilder.mockImplementation(() => {
+        callCount++
+        if (callCount === 1) return idsQb as any
+        if (callCount === 2) return countQb as any
+        return entityQb as any
+      })
 
       const result = await repository.findAll(2, 10, CLINIC_ID)
 
-      expect(repo.createQueryBuilder).toHaveBeenCalledWith('patient')
-      expect(qb.innerJoinAndSelect).toHaveBeenCalledWith('patient.user', 'user')
-      expect(qb.where).toHaveBeenCalledWith('user.clinicId = :clinicId', { clinicId: CLINIC_ID })
-      expect(qb.skip).toHaveBeenCalledWith(10)
-      expect(qb.take).toHaveBeenCalledWith(10)
-      expect(qb.andWhere).not.toHaveBeenCalled()
-      expect(result).toEqual([patients, 1])
+      expect(idsQb.where).toHaveBeenCalledWith('patient.clinic_id = :clinicId', { clinicId: CLINIC_ID })
+      expect(idsQb.skip).toHaveBeenCalledWith(10)
+      expect(idsQb.take).toHaveBeenCalledWith(10)
+      expect(idsQb.innerJoinAndSelect).not.toHaveBeenCalled()
+      expect(entityQb.innerJoinAndSelect).toHaveBeenCalledWith('patient.user', 'user')
+      expect(result).toEqual([[patient], 1])
     })
 
-    it('adds andWhere with search when search is provided', async () => {
+    it('returns empty array without loading entities when no IDs found', async () => {
+      const idsQb = makeQueryBuilderMock({ getMany: [] })
+      const countQb = makeQueryBuilderMock({ getCount: 0 })
+
+      let callCount = 0
+      repo.createQueryBuilder.mockImplementation(() => {
+        callCount++
+        return callCount === 1 ? (idsQb as any) : (countQb as any)
+      })
+
+      const result = await repository.findAll(5, 10, CLINIC_ID)
+
+      expect(result).toEqual([[], 0])
+      expect(callCount).toBe(2)
+    })
+
+    it('uses trigram subquery path when search is a name (text)', async () => {
+      const patient = makePatient()
+      const idsQb = makeQueryBuilderMock({ getMany: [{ id: patient.id }] })
+      const countQb = makeQueryBuilderMock({ getCount: 1 })
+      const entityQb = makeQueryBuilderMock({ getMany: [patient] })
+
+      let callCount = 0
+      repo.createQueryBuilder.mockImplementation(() => {
+        callCount++
+        if (callCount === 1) return idsQb as any
+        if (callCount === 2) return countQb as any
+        return entityQb as any
+      })
+
+      const result = await repository.findAll(1, 20, CLINIC_ID, 'alice')
+
+      const expectedSql = 'patient.user_id IN (SELECT u.id FROM users u WHERE u.clinic_id = :clinicId AND u.full_name ILIKE :search AND u.deleted_at IS NULL)'
+      expect(idsQb.where).toHaveBeenCalledWith(expectedSql, { clinicId: CLINIC_ID, search: '%alice%' })
+      expect(countQb.where).toHaveBeenCalledWith(expectedSql, { clinicId: CLINIC_ID, search: '%alice%' })
+      expect(entityQb.innerJoinAndSelect).toHaveBeenCalledWith('patient.user', 'user')
+      expect(result).toEqual([[patient], 1])
+    })
+
+    it('uses exact document_number match when search is all digits', async () => {
       const qb = makeQueryBuilderMock({ result: [[], 0] })
       repo.createQueryBuilder.mockReturnValue(qb as any)
 
-      await repository.findAll(1, 20, CLINIC_ID, 'alice')
+      await repository.findAll(1, 20, CLINIC_ID, '12345678901')
 
-      expect(qb.where).toHaveBeenCalledWith('user.clinicId = :clinicId', { clinicId: CLINIC_ID })
-      expect(qb.andWhere).toHaveBeenCalledWith(
-        '(user.full_name ILIKE :search OR patient.document_number = :exactSearch)',
-        { search: '%alice%', exactSearch: 'alice' },
-      )
+      expect(qb.innerJoinAndSelect).toHaveBeenCalledWith('patient.user', 'user')
+      expect(qb.where).toHaveBeenCalledWith('patient.clinic_id = :clinicId', { clinicId: CLINIC_ID })
+      expect(qb.andWhere).toHaveBeenCalledWith('patient.document_number = :doc', { doc: '12345678901' })
+      expect(qb.getManyAndCount).toHaveBeenCalled()
     })
 
     it('calculates correct skip for pagination', async () => {
-      const qb = makeQueryBuilderMock({ result: [[], 0] })
-      repo.createQueryBuilder.mockReturnValue(qb as any)
+      const idsQb = makeQueryBuilderMock({ getMany: [] })
+      const countQb = makeQueryBuilderMock({ getCount: 0 })
+
+      let callCount = 0
+      repo.createQueryBuilder.mockImplementation(() => {
+        callCount++
+        return callCount === 1 ? (idsQb as any) : (countQb as any)
+      })
 
       await repository.findAll(3, 10, CLINIC_ID)
 
-      expect(qb.skip).toHaveBeenCalledWith(20)
-      expect(qb.take).toHaveBeenCalledWith(10)
+      expect(idsQb.skip).toHaveBeenCalledWith(20)
+      expect(idsQb.take).toHaveBeenCalledWith(10)
     })
   })
 
@@ -155,22 +214,18 @@ describe('PatientsRepository', () => {
   })
 
   describe('findByDocumentNumber', () => {
-    it('uses QueryBuilder with documentNumber and clinicId filters', async () => {
+    it('uses findOneBy with documentNumber and clinicId', async () => {
       const patient = makePatient()
-      const qb = makeQueryBuilderMock({ getOne: patient })
-      repo.createQueryBuilder.mockReturnValue(qb as any)
+      repo.findOneBy.mockResolvedValue(patient)
 
       const result = await repository.findByDocumentNumber('12345678901', CLINIC_ID)
 
-      expect(repo.createQueryBuilder).toHaveBeenCalledWith('patient')
-      expect(qb.where).toHaveBeenCalledWith('patient.document_number = :documentNumber', { documentNumber: '12345678901' })
-      expect(qb.andWhere).toHaveBeenCalledWith('user.clinicId = :clinicId', { clinicId: CLINIC_ID })
+      expect(repo.findOneBy).toHaveBeenCalledWith({ documentNumber: '12345678901', clinicId: CLINIC_ID })
       expect(result).toBe(patient)
     })
 
     it('returns null when not found', async () => {
-      const qb = makeQueryBuilderMock({ getOne: null })
-      repo.createQueryBuilder.mockReturnValue(qb as any)
+      repo.findOneBy.mockResolvedValue(null)
 
       expect(await repository.findByDocumentNumber('00000000000', CLINIC_ID)).toBeNull()
     })
