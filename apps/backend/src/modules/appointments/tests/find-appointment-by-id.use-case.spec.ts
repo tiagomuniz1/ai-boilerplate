@@ -1,7 +1,7 @@
 import { ForbiddenException, NotFoundException } from '@nestjs/common'
 import { DataSource } from 'typeorm'
 import { faker } from '@faker-js/faker'
-import { AppointmentStatus, UserRole } from '@app/shared'
+import { AppointmentStatus, PatientGender, UserRole } from '@app/shared'
 import { ICurrentUser } from '../../auth/types/current-user.type'
 import { IDoctorsRepository } from '../../doctors/repositories/doctors.repository.interface'
 import { IAppointmentsRepository } from '../repositories/appointments.repository.interface'
@@ -27,6 +27,7 @@ const makeAppointment = (overrides = {}) => ({
   startTime: '08:00',
   endTime: '08:30',
   status: AppointmentStatus.SCHEDULED,
+  insuranceType: null,
   reason: null,
   cancellationReason: null,
   version: 1,
@@ -35,6 +36,15 @@ const makeAppointment = (overrides = {}) => ({
   deletedAt: null,
   ...overrides,
 })
+
+const mockPatientRow = {
+  fullName: 'Test Patient',
+  email: 'patient@test.com',
+  phoneNumber: '11999990000',
+  birthDate: '1990-01-01',
+  documentNumber: '12345678901',
+  gender: PatientGender.MALE,
+}
 
 const mockAppointmentsRepository: jest.Mocked<IAppointmentsRepository> = {
   findAll: jest.fn(),
@@ -56,7 +66,7 @@ const mockDoctorsRepository: jest.Mocked<IDoctorsRepository> = {
   delete: jest.fn(),
 }
 
-function makeMockDataSource(): DataSource {
+function makeMockDataSource(patientRows: object[] = [mockPatientRow]): DataSource {
   const builder = {
     select: jest.fn().mockReturnThis(),
     addSelect: jest.fn().mockReturnThis(),
@@ -64,7 +74,7 @@ function makeMockDataSource(): DataSource {
     innerJoin: jest.fn().mockReturnThis(),
     where: jest.fn().mockReturnThis(),
     andWhere: jest.fn().mockReturnThis(),
-    getRawMany: jest.fn().mockResolvedValue([{ fullName: 'Test' }]),
+    getRawMany: jest.fn().mockResolvedValue(patientRows),
   }
   return { createQueryBuilder: jest.fn().mockReturnValue(builder) } as unknown as DataSource
 }
@@ -114,23 +124,61 @@ describe('FindAppointmentByIdUseCase', () => {
     await expect(useCase.execute(appointment.id, doctorUser)).rejects.toThrow(ForbiddenException)
   })
 
-  it('returns empty string for doctorName and patientName when no rows found in DB', async () => {
+  it('returns full patient block with all fields', async () => {
+    const appointment = makeAppointment()
+    mockAppointmentsRepository.findById.mockResolvedValue(appointment as any)
+    const result = await useCase.execute(appointment.id, adminUser)
+
+    expect(result.patient).toMatchObject({
+      fullName: mockPatientRow.fullName,
+      email: mockPatientRow.email,
+      phoneNumber: mockPatientRow.phoneNumber,
+      birthDate: mockPatientRow.birthDate,
+      documentNumber: mockPatientRow.documentNumber,
+      gender: mockPatientRow.gender,
+    })
+  })
+
+  it('propagates patientName from patient.fullName', async () => {
+    const appointment = makeAppointment()
+    mockAppointmentsRepository.findById.mockResolvedValue(appointment as any)
+    const result = await useCase.execute(appointment.id, adminUser)
+    expect(result.patientName).toBe(mockPatientRow.fullName)
+  })
+
+  it('propagates birthDate as YYYY-MM-DD string', async () => {
+    const appointment = makeAppointment()
+    mockAppointmentsRepository.findById.mockResolvedValue(appointment as any)
+    const result = await useCase.execute(appointment.id, adminUser)
+    expect(result.patient.birthDate).toBe('1990-01-01')
+  })
+
+  it('returns patient with empty defaults when fetchPatientDetails returns no rows', async () => {
+    const appointment = makeAppointment()
+    mockAppointmentsRepository.findById.mockResolvedValue(appointment as any)
+
+    const useCaseWithEmpty = new FindAppointmentByIdUseCase(
+      makeMockDataSource([]),
+      mockAppointmentsRepository,
+      mockDoctorsRepository,
+    )
+
+    const result = await useCaseWithEmpty.execute(appointment.id, adminUser)
+
+    expect(result.patient.fullName).toBe('')
+    expect(result.patient.email).toBe('')
+    expect(result.patient.phoneNumber).toBe('')
+    expect(result.patient.birthDate).toBe('')
+    expect(result.patient.documentNumber).toBe('')
+    expect(result.patientName).toBe('')
+  })
+
+  it('returns empty string for doctorName and null specialtyName when no rows found in DB', async () => {
     const appointment = makeAppointment({ specialtyId: 'spec-x' })
     mockAppointmentsRepository.findById.mockResolvedValue(appointment as any)
 
-    const builder = {
-      select: jest.fn().mockReturnThis(),
-      addSelect: jest.fn().mockReturnThis(),
-      from: jest.fn().mockReturnThis(),
-      innerJoin: jest.fn().mockReturnThis(),
-      where: jest.fn().mockReturnThis(),
-      andWhere: jest.fn().mockReturnThis(),
-      getRawMany: jest.fn().mockResolvedValue([]),
-    }
-    const emptyDataSource = { createQueryBuilder: jest.fn().mockReturnValue(builder) } as unknown as DataSource
-
     const useCaseWithEmpty = new FindAppointmentByIdUseCase(
-      emptyDataSource,
+      makeMockDataSource([]),
       mockAppointmentsRepository,
       mockDoctorsRepository,
     )
@@ -138,7 +186,6 @@ describe('FindAppointmentByIdUseCase', () => {
     const result = await useCaseWithEmpty.execute(appointment.id, adminUser)
 
     expect(result.doctorName).toBe('')
-    expect(result.patientName).toBe('')
     expect(result.specialtyName).toBeNull()
   })
 

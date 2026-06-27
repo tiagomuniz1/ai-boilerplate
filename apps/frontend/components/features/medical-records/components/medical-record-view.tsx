@@ -52,7 +52,7 @@ export function MedicalRecordView({ record }: MedicalRecordViewProps) {
 
       {record.notes && (
         <div data-testid="record-notes">
-          <p className="text-xs font-medium uppercase tracking-wide text-text/50">Observações</p>
+          <p className="text-xs font-medium uppercase tracking-wide text-text/50">Notas do médico</p>
           <p className="mt-0.5 text-sm text-text">{record.notes}</p>
         </div>
       )}

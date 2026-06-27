@@ -1,6 +1,7 @@
 import { apiClient } from '@/lib/api-client'
 import type {
   AppointmentResponseDto,
+  AppointmentDetailResponseDto,
   PaginatedAppointmentsResponseDto,
   CreateAppointmentDto,
   CancelAppointmentDto,
@@ -21,8 +22,8 @@ export const appointmentsService = {
     const q = sp.toString()
     return apiClient.get<PaginatedAppointmentsResponseDto>(`/appointments${q ? `?${q}` : ''}`)
   },
-  getById: (id: string): Promise<AppointmentResponseDto> =>
-    apiClient.get<AppointmentResponseDto>(`/appointments/${id}`),
+  getById: (id: string): Promise<AppointmentDetailResponseDto> =>
+    apiClient.get<AppointmentDetailResponseDto>(`/appointments/${id}`),
   getAvailability: (params: IAvailabilityParams): Promise<AvailabilityResponseDto> => {
     const sp = new URLSearchParams()
     if (params.doctorId) sp.set('doctorId', params.doctorId)

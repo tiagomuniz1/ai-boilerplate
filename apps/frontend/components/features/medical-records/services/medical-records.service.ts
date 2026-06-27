@@ -20,11 +20,11 @@ export const medicalRecordsService = {
 
   listByPatient: (patientId: string, params?: IPatientHistoryParams) => {
     const searchParams = new URLSearchParams()
+    searchParams.set('patientId', patientId)
     if (params?.page) searchParams.set('page', String(params.page))
     if (params?.limit) searchParams.set('limit', String(params.limit))
-    const query = searchParams.toString()
     return apiClient.get<PaginatedMedicalRecordsResponseDto>(
-      `/medical-records/patient/${patientId}${query ? `?${query}` : ''}`,
+      `/medical-records?${searchParams.toString()}`,
     )
   },
 

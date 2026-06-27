@@ -3,11 +3,15 @@ jest.mock('@/components/features/patients/services/patients.service')
 jest.mock('@/components/features/doctors/services/doctors.service')
 jest.mock('@/components/features/schedule-exceptions/services/schedule-exceptions.service')
 jest.mock('@/stores/auth.store')
-jest.mock('next/navigation', () => ({ useRouter: jest.fn(() => ({ push: jest.fn() })) }))
+jest.mock('next/navigation', () => ({
+  useRouter: jest.fn(() => ({ push: jest.fn(), replace: jest.fn() })),
+  useSearchParams: jest.fn(() => new URLSearchParams()),
+}))
 
-import { screen, waitFor } from '@testing-library/react'
+import { screen, waitFor, fireEvent } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { UserRole } from '@app/shared'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { appointmentsService } from '../services/appointments.service'
 import { patientsService } from '@/components/features/patients/services/patients.service'
 import { doctorsService } from '@/components/features/doctors/services/doctors.service'
@@ -21,6 +25,8 @@ const mockPatientsService = patientsService as jest.Mocked<typeof patientsServic
 const mockDoctorsService = doctorsService as jest.Mocked<typeof doctorsService>
 const mockScheduleExceptionsService = scheduleExceptionsService as jest.Mocked<typeof scheduleExceptionsService>
 const mockUseAuthStore = useAuthStore as unknown as jest.Mock
+const mockUseSearchParams = useSearchParams as jest.Mock
+const mockUseRouter = useRouter as jest.Mock
 
 function mockAuth(role: UserRole, userId = 'user-uuid') {
   mockUseAuthStore.mockImplementation((selector: (s: { user: object }) => unknown) =>
@@ -203,5 +209,38 @@ describe('AppointmentAgenda (integration)', () => {
     // USER role: doctor selector shown, no block time button
     expect(screen.getByTestId('toolbar-doctor-selector')).toBeInTheDocument()
     expect(screen.queryByTestId('toolbar-block-time')).not.toBeInTheDocument()
+  })
+
+  it('restores doctor from URL search param', () => {
+    mockAuth(UserRole.ADMIN)
+    mockUseSearchParams.mockReturnValue(new URLSearchParams('doctor=doc-from-url&date=2025-06-20&view=week'))
+    mockDoctorsService.getAll.mockResolvedValue(makeDoctorsResponse([{ id: 'doc-from-url', fullName: 'Dr. URL' }]))
+    renderWithProviders(<AppointmentAgenda />)
+    expect(screen.queryByTestId('agenda-empty-doctor')).not.toBeInTheDocument()
+  })
+
+  it('restores day view from URL search param', () => {
+    mockAuth(UserRole.DOCTOR)
+    mockUseSearchParams.mockReturnValue(new URLSearchParams('view=day'))
+    mockDoctorsService.getAll.mockResolvedValue(
+      makeDoctorsResponse([{ id: 'my-doctor', fullName: 'Dr. Me' }]),
+    )
+    renderWithProviders(<AppointmentAgenda />)
+    expect(screen.queryByTestId('agenda-week-grid')).not.toBeInTheDocument()
+  })
+
+  it('syncs view to URL when view changes', async () => {
+    mockAuth(UserRole.DOCTOR)
+    const replaceMock = jest.fn()
+    mockUseRouter.mockReturnValue({ push: jest.fn(), replace: replaceMock })
+    mockDoctorsService.getAll.mockResolvedValue(
+      makeDoctorsResponse([{ id: 'my-doctor', fullName: 'Dr. Me' }]),
+    )
+    renderWithProviders(<AppointmentAgenda />)
+    await userEvent.click(screen.getByTestId('toolbar-view-day'))
+    expect(replaceMock).toHaveBeenCalledWith(
+      expect.stringContaining('view=day'),
+      expect.objectContaining({ scroll: false }),
+    )
   })
 })

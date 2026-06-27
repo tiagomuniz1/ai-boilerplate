@@ -1,4 +1,17 @@
-import type { AppointmentStatus } from '@app/shared'
+import type { AppointmentStatus, PatientGender } from '@app/shared'
+
+export interface IAppointmentPatientModel {
+  fullName: string
+  email: string
+  phoneNumber: string
+  birthDate: Date
+  documentNumber: string
+  gender: PatientGender
+}
+
+export interface IAppointmentDetailModel extends IAppointmentModel {
+  patient: IAppointmentPatientModel
+}
 
 export interface IAppointmentModel {
   id: string

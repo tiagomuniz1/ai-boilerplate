@@ -1,6 +1,6 @@
 import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/common'
 import { DataSource } from 'typeorm'
-import { AppointmentResponseDto, UserRole } from '@app/shared'
+import { AppointmentDetailResponseDto, AppointmentPatientDto, UserRole } from '@app/shared'
 import { BaseUseCase } from '../../../common/base.use-case'
 import { ICurrentUser } from '../../auth/types/current-user.type'
 import { IDoctorsRepository } from '../../doctors/repositories/doctors.repository.interface'
@@ -17,7 +17,7 @@ export class FindAppointmentByIdUseCase extends BaseUseCase {
     super(dataSource)
   }
 
-  async execute(id: string, currentUser: ICurrentUser): Promise<AppointmentResponseDto> {
+  async execute(id: string, currentUser: ICurrentUser): Promise<AppointmentDetailResponseDto> {
     const clinicId = currentUser.clinicId!
 
     const appointment = await this.appointmentsRepository.findById(id, clinicId)
@@ -30,13 +30,13 @@ export class FindAppointmentByIdUseCase extends BaseUseCase {
       }
     }
 
-    const [doctorName, patientName, specialtyName] = await Promise.all([
+    const [doctorName, patientDetails, specialtyName] = await Promise.all([
       this.fetchDoctorName(appointment.doctorId),
-      this.fetchPatientName(appointment.patientId),
+      this.fetchPatientDetails(appointment.patientId),
       this.fetchSpecialtyName(appointment.specialtyId),
     ])
 
-    return this.toResponse(appointment, doctorName, patientName, specialtyName)
+    return this.toResponse(appointment, doctorName, patientDetails, specialtyName)
   }
 
   private async fetchSpecialtyName(specialtyId: string | null): Promise<string | null> {
@@ -63,30 +63,62 @@ export class FindAppointmentByIdUseCase extends BaseUseCase {
     return rows[0]?.fullName ?? ''
   }
 
-  private async fetchPatientName(patientId: string): Promise<string> {
-    const rows: Array<{ fullName: string }> = await this.dataSource
+  private async fetchPatientDetails(patientId: string): Promise<AppointmentPatientDto | null> {
+    const rows: Array<{
+      fullName: string
+      email: string
+      phoneNumber: string
+      birthDate: string
+      documentNumber: string
+      gender: string
+    }> = await this.dataSource
       .createQueryBuilder()
       .select('u.full_name', 'fullName')
+      .addSelect('u.email', 'email')
+      .addSelect('p.phone_number', 'phoneNumber')
+      .addSelect("TO_CHAR(p.birth_date, 'YYYY-MM-DD')", 'birthDate')
+      .addSelect('p.document_number', 'documentNumber')
+      .addSelect('p.gender', 'gender')
       .from('patients', 'p')
       .innerJoin('users', 'u', 'u.id = p.user_id AND u.deleted_at IS NULL')
       .where('p.id = :patientId', { patientId })
       .andWhere('p.deleted_at IS NULL')
       .getRawMany()
-    return rows[0]?.fullName ?? ''
+
+    if (!rows[0]) return null
+
+    const row = rows[0]
+    return {
+      fullName: row.fullName,
+      email: row.email,
+      phoneNumber: row.phoneNumber,
+      birthDate: row.birthDate,
+      documentNumber: row.documentNumber,
+      gender: row.gender as AppointmentPatientDto['gender'],
+    }
   }
 
   private toResponse(
     appointment: Appointment,
     doctorName: string,
-    patientName: string,
+    patientDetails: AppointmentPatientDto | null,
     specialtyName: string | null,
-  ): AppointmentResponseDto {
+  ): AppointmentDetailResponseDto {
+    const patient: AppointmentPatientDto = patientDetails ?? {
+      fullName: '',
+      email: '',
+      phoneNumber: '',
+      birthDate: '',
+      documentNumber: '',
+      gender: '' as AppointmentPatientDto['gender'],
+    }
+
     return {
       id: appointment.id,
       doctorId: appointment.doctorId,
       doctorName,
       patientId: appointment.patientId,
-      patientName,
+      patientName: patient.fullName,
       specialtyId: appointment.specialtyId,
       specialtyName,
       scheduleId: appointment.scheduleId,
@@ -99,6 +131,7 @@ export class FindAppointmentByIdUseCase extends BaseUseCase {
       cancellationReason: appointment.cancellationReason,
       createdAt: appointment.createdAt,
       updatedAt: appointment.updatedAt,
+      patient,
     }
   }
 }

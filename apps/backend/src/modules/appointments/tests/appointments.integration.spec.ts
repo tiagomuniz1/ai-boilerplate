@@ -507,6 +507,58 @@ describe('AppointmentsController (integration)', () => {
       expect(body.id).toBe(created.id)
     })
 
+    it('returns patient block with all fields in the detail response', async () => {
+      const { body: created } = await request(app.getHttpServer())
+        .post('/appointments')
+        .set('Cookie', `access_token=${doctorToken}`)
+        .send({ patientId, date: futureDate, startTime: '08:00' })
+        .expect(201)
+
+      const { body } = await request(app.getHttpServer())
+        .get(`/appointments/${created.id}`)
+        .set('Cookie', `access_token=${adminToken}`)
+        .expect(200)
+
+      expect(body.patient).toBeDefined()
+      expect(body.patient.fullName).toBe('Test Patient')
+      expect(body.patient.email).toBe('patient-user@appointments.test')
+      expect(body.patient.phoneNumber).toBeDefined()
+      expect(body.patient.birthDate).toBe('1990-01-01')
+      expect(body.patient.documentNumber).toBeDefined()
+      expect(body.patient.gender).toBe(PatientGender.MALE)
+    })
+
+    it('GET /appointments list does not return patient block', async () => {
+      await request(app.getHttpServer())
+        .post('/appointments')
+        .set('Cookie', `access_token=${doctorToken}`)
+        .send({ patientId, date: futureDate, startTime: '08:00' })
+        .expect(201)
+
+      const { body } = await request(app.getHttpServer())
+        .get('/appointments')
+        .set('Cookie', `access_token=${adminToken}`)
+        .expect(200)
+
+      expect(body.data[0]).not.toHaveProperty('patient')
+    })
+
+    it('DOCTOR can view detail of own appointment including patient block', async () => {
+      const { body: created } = await request(app.getHttpServer())
+        .post('/appointments')
+        .set('Cookie', `access_token=${doctorToken}`)
+        .send({ patientId, date: futureDate, startTime: '08:00' })
+        .expect(201)
+
+      const { body } = await request(app.getHttpServer())
+        .get(`/appointments/${created.id}`)
+        .set('Cookie', `access_token=${doctorToken}`)
+        .expect(200)
+
+      expect(body.patient).toBeDefined()
+      expect(body.patient.fullName).toBe('Test Patient')
+    })
+
     it('returns 403 when DOCTOR views another doctor appointment', async () => {
       const { body: created } = await request(app.getHttpServer())
         .post('/appointments')
@@ -518,6 +570,22 @@ describe('AppointmentsController (integration)', () => {
         .get(`/appointments/${created.id}`)
         .set('Cookie', `access_token=${otherDoctorToken}`)
         .expect(403)
+    })
+
+    it('USER can view detail with patient block (read-only)', async () => {
+      const { body: created } = await request(app.getHttpServer())
+        .post('/appointments')
+        .set('Cookie', `access_token=${doctorToken}`)
+        .send({ patientId, date: futureDate, startTime: '08:00' })
+        .expect(201)
+
+      const { body } = await request(app.getHttpServer())
+        .get(`/appointments/${created.id}`)
+        .set('Cookie', `access_token=${userToken}`)
+        .expect(200)
+
+      expect(body.patient).toBeDefined()
+      expect(body.patient.fullName).toBe('Test Patient')
     })
 
     it('returns 404 for non-existent appointment', async () => {

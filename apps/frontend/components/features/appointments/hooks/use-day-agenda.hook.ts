@@ -1,4 +1,3 @@
-import { AppointmentStatus } from '@app/shared'
 import { useAppointments } from './use-appointments.hook'
 import { useAvailability } from './use-availability.hook'
 import type { IAgendaSlot } from '../types/appointment-model.types'
@@ -23,7 +22,6 @@ export function useDayAgenda(
         doctorId: isSelf ? undefined : (doctorId ?? /* c8 ignore next */ undefined),
         from: date,
         to: date,
-        status: AppointmentStatus.SCHEDULED,
         limit: 100,
       }
     : undefined

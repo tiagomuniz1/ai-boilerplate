@@ -46,16 +46,18 @@ describe('medicalRecordsService', () => {
   })
 
   describe('listByPatient', () => {
-    it('calls GET /medical-records/patient/:patientId without params', async () => {
+    it('calls GET /medical-records?patientId= without extra params', async () => {
       mockApiClient.get.mockResolvedValue({ data: [], total: 0, page: 1, limit: 20 })
       await medicalRecordsService.listByPatient('patient-uuid')
-      expect(mockApiClient.get).toHaveBeenCalledWith('/medical-records/patient/patient-uuid')
+      expect(mockApiClient.get).toHaveBeenCalledWith('/medical-records?patientId=patient-uuid')
     })
 
     it('calls GET with page and limit params', async () => {
       mockApiClient.get.mockResolvedValue({ data: [], total: 0, page: 2, limit: 10 })
       await medicalRecordsService.listByPatient('patient-uuid', { page: 2, limit: 10 })
-      expect(mockApiClient.get).toHaveBeenCalledWith('/medical-records/patient/patient-uuid?page=2&limit=10')
+      expect(mockApiClient.get).toHaveBeenCalledWith(
+        '/medical-records?patientId=patient-uuid&page=2&limit=10',
+      )
     })
   })
 

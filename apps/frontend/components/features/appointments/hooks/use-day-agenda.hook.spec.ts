@@ -110,4 +110,26 @@ describe('useDayAgenda', () => {
 
     expect(result.current.isError).toBe(true)
   })
+
+  it('does not filter by status so all appointment statuses appear', () => {
+    ;(useAvailability as jest.Mock).mockReturnValue(makeQueryResult([]))
+    ;(useAppointments as jest.Mock).mockReturnValue(makeQueryResult({ data: [] }))
+
+    renderHook(() => useDayAgenda('doc-uuid', '2025-06-20'))
+
+    const apptCall = (useAppointments as jest.Mock).mock.calls[0][0]
+    expect(apptCall).not.toHaveProperty('status')
+  })
+
+  it('shows completed appointment as booked slot', () => {
+    const completed = { ...makeAppointment('09:00'), status: AppointmentStatus.COMPLETED }
+    ;(useAvailability as jest.Mock).mockReturnValue(makeQueryResult([]))
+    ;(useAppointments as jest.Mock).mockReturnValue(makeQueryResult({ data: [completed] }))
+
+    const { result } = renderHook(() => useDayAgenda('doc-uuid', '2025-06-20'))
+
+    expect(result.current.slots).toHaveLength(1)
+    expect(result.current.slots[0].status).toBe('booked')
+    expect(result.current.slots[0].appointment?.status).toBe(AppointmentStatus.COMPLETED)
+  })
 })

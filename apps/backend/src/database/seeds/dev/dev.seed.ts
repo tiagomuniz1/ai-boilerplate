@@ -235,20 +235,6 @@ async function seedMedicalRecordTemplates(dataSource: DataSource): Promise<void>
       order += 1
     }
 
-    fields.push({
-      key: generateFieldKey('Observações', usedKeys),
-      label: 'Observações',
-      type: MedicalRecordFieldType.TEXTAREA,
-      required: false,
-      order,
-      options: null,
-      placeholder: null,
-      helpText: null,
-      canonical: false,
-      canonicalKey: null,
-      sectionKey: null,
-    })
-
     await templateRepository.save(
       templateRepository.create({
         clinicId: SEED_CLINIC_ID,

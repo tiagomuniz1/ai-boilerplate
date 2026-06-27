@@ -1,6 +1,7 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useCallback } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { UserRole } from '@app/shared'
 import { useAuthStore } from '@/stores/auth.store'
 import { useDoctors } from '@/components/features/doctors/hooks/use-doctors.hook'
@@ -22,13 +23,26 @@ function getWeekStart(date: Date): Date {
   return d
 }
 
+function parseDate(str: string | null): Date {
+  if (!str) return new Date()
+  const d = new Date(`${str}T00:00:00`)
+  return isNaN(d.getTime()) ? new Date() : d
+}
+
 export function AppointmentAgenda() {
   const user = useAuthStore((s) => s.user)
   const role = user?.role ?? UserRole.USER
+  const router = useRouter()
+  const searchParams = useSearchParams()
 
-  const [currentDate, setCurrentDate] = useState<Date>(new Date())
-  const [view, setView] = useState<AgendaView>('week')
-  const [selectedDoctorId, setSelectedDoctorId] = useState<string | null>(null)
+  const [currentDate, setCurrentDate] = useState<Date>(() => parseDate(searchParams.get('date')))
+  const [view, setView] = useState<AgendaView>(() => {
+    const v = searchParams.get('view')
+    return v === 'day' ? 'day' : 'week'
+  })
+  const [selectedDoctorId, setSelectedDoctorId] = useState<string | null>(
+    () => searchParams.get('doctor'),
+  )
   const [isBlockDialogOpen, setIsBlockDialogOpen] = useState(false)
 
   const isDoctor = role === UserRole.DOCTOR
@@ -38,9 +52,7 @@ export function AppointmentAgenda() {
 
   const currentDoctorId = isDoctor ? doctors?.[0]?.id : undefined
 
-  const doctorIdForGrid: string | null = isDoctor
-    ? 'self'
-    : selectedDoctorId
+  const doctorIdForGrid: string | null = isDoctor ? 'self' : selectedDoctorId
 
   const effectiveDoctorId: string | undefined = isDoctor
     ? undefined
@@ -49,17 +61,43 @@ export function AppointmentAgenda() {
   const dateString = toDateString(currentDate)
   const weekStart = toDateString(getWeekStart(currentDate))
 
+  const syncUrl = useCallback(
+    (date: Date, v: AgendaView, doctorId: string | null) => {
+      const params = new URLSearchParams()
+      params.set('date', toDateString(date))
+      params.set('view', v)
+      if (doctorId) params.set('doctor', doctorId)
+      router.replace(`?${params.toString()}`, { scroll: false })
+    },
+    [router],
+  )
+
+  function handleDateChange(date: Date) {
+    setCurrentDate(date)
+    syncUrl(date, view, selectedDoctorId)
+  }
+
+  function handleViewChange(v: AgendaView) {
+    setView(v)
+    syncUrl(currentDate, v, selectedDoctorId)
+  }
+
+  function handleDoctorChange(doctorId: string | null) {
+    setSelectedDoctorId(doctorId)
+    syncUrl(currentDate, view, doctorId)
+  }
+
   return (
     <div data-testid="appointment-agenda">
       <AgendaToolbar
         currentDate={currentDate}
         view={view}
-        onDateChange={setCurrentDate}
-        onViewChange={setView}
+        onDateChange={handleDateChange}
+        onViewChange={handleViewChange}
         role={role}
         doctors={showDoctorSelector ? (doctors ?? []) : undefined}
         selectedDoctorId={selectedDoctorId}
-        onDoctorChange={setSelectedDoctorId}
+        onDoctorChange={handleDoctorChange}
         onBlockTime={() => setIsBlockDialogOpen(true)}
       />
 

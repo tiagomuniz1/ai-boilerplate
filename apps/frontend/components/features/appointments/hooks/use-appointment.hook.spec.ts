@@ -3,11 +3,11 @@ jest.mock('../use-cases/get-appointment.use-case')
 import React from 'react'
 import { renderHook, waitFor } from '@testing-library/react'
 import { QueryClientProvider } from '@tanstack/react-query'
-import { AppointmentStatus } from '@app/shared'
+import { AppointmentStatus, PatientGender } from '@app/shared'
 import { createQueryClient } from '@/lib/react-query.config'
 import { getAppointmentUseCase } from '../use-cases/get-appointment.use-case'
 import { useAppointment } from './use-appointment.hook'
-import type { IAppointmentModel } from '../types/appointment-model.types'
+import type { IAppointmentDetailModel } from '../types/appointment-model.types'
 
 function wrapper({ children }: { children: React.ReactNode }) {
   const client = createQueryClient()
@@ -15,12 +15,14 @@ function wrapper({ children }: { children: React.ReactNode }) {
   return React.createElement(QueryClientProvider, { client }, children)
 }
 
-const makeModel = (): IAppointmentModel => ({
+const makeModel = (): IAppointmentDetailModel => ({
   id: 'uuid-1',
   doctorId: 'doc-uuid',
   doctorName: 'Dr. Test',
   patientId: 'pat-uuid',
   patientName: 'Patient',
+  specialtyId: null,
+  specialtyName: null,
   scheduleId: 'sched-uuid',
   date: '2025-06-20',
   startTime: '08:00',
@@ -30,6 +32,14 @@ const makeModel = (): IAppointmentModel => ({
   cancellationReason: null,
   createdAt: new Date(),
   updatedAt: new Date(),
+  patient: {
+    fullName: 'Patient',
+    email: 'patient@test.com',
+    phoneNumber: '11999990000',
+    birthDate: new Date('1990-01-01T00:00:00'),
+    documentNumber: '12345678901',
+    gender: PatientGender.MALE,
+  },
 })
 
 describe('useAppointment', () => {
