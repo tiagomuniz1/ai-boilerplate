@@ -217,7 +217,7 @@ export function MedicationList() {
                       <span
                         data-testid={`medication-status-${medication.id}`}
                         className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${
-                          medication.isActive ? 'bg-success/10 text-success' : 'bg-line text-text-mute'
+                          medication.isActive ? 'bg-good-soft text-good' : 'bg-line text-text-mute'
                         }`}
                       >
                         {medication.isActive ? 'Ativo' : 'Inativo'}
