@@ -18,6 +18,7 @@
     "migration:run:carga": "DB_SCHEMA=carga yarn typeorm migration:run",
     "seed:run": "ts-node -r tsconfig-paths/register src/database/seeds/run-seed.ts",
     "seed:carga": "ts-node -r tsconfig-paths/register src/database/seeds/run-carga-seed.ts",
+    "import:medications": "ts-node -r tsconfig-paths/register src/database/seeds/run-import-medications.ts",
     "dev:carga": "node scripts/load-env.js && yarn workspace @app/shared build && DB_SCHEMA=carga nest start --watch"
   },
   "dependencies": {
@@ -38,7 +39,9 @@
     "class-transformer": "^0.5.1",
     "class-validator": "^0.14.1",
     "cookie-parser": "^1.4.7",
+    "csv-parse": "^7.0.0",
     "helmet": "^7.1.0",
+    "iconv-lite": "^0.7.2",
     "ioredis": "^5.4.1",
     "nest-winston": "^1.9.7",
     "opossum": "^8.1.4",

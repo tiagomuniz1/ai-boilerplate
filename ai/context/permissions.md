@@ -119,6 +119,22 @@ O sistema possui quatro perfis de usuário (`UserRole`). Cada perfil reflete um 
 
 ---
 
+## Medicamentos (`/medications`)
+
+> Base canônica da plataforma (sem `clinicId`), origem das futuras receitas médicas. Gerenciada exclusivamente no **backoffice** pelo PLATFORM_ADMIN — a maior parte dos registros vem da importação da base de Dados Abertos da ANVISA. ADMIN e DOCTOR podem listar/ver para prescrever.
+
+| Ação | PLATFORM_ADMIN | ADMIN | DOCTOR | USER | PATIENT |
+|---|:---:|:---:|:---:|:---:|:---:|
+| Listar (paginado + busca) | ✓ | ✓ (leitura) | ✓ (leitura) | ✗ | ✗ |
+| Ver por ID | ✓ | ✓ (leitura) | ✓ (leitura) | ✗ | ✗ |
+| Criar | ✓ | ✗ | ✗ | ✗ | ✗ |
+| Editar / Ativar-Desativar | ✓ | ✗ | ✗ | ✗ | ✗ |
+| Excluir | ✓ | ✗ | ✗ | ✗ | ✗ |
+
+> Entradas criadas manualmente têm `source = manual`; as importadas, `source = anvisa`. "Desativar" (`isActive=false`) some das listas de leitura; "Excluir" é soft delete. ADMIN e DOCTOR acessam a base apenas para selecionar medicamentos ao prescrever.
+
+---
+
 ## Templates de Prontuário (`/medical-record-templates`)
 
 | Ação | ADMIN | DOCTOR | USER | PATIENT |

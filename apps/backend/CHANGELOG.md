@@ -1,5 +1,24 @@
 # Changelog — Backend
 
+## [Unreleased]
+
+### Added
+
+#### Módulo de Medicamentos (`/medications`)
+- Entidade `Medication` — base canônica de plataforma (sem `clinicId`), origem das futuras receitas médicas; soft delete + flag `isActive`
+- CRUD completo: listar (paginado + busca por nome/princípio ativo), ver por ID, criar (`source = manual`), editar/ativar-desativar, excluir (soft)
+- Roles: escrita restrita a PLATFORM_ADMIN; leitura para ADMIN e DOCTOR (futuras prescrições)
+- Cache de leitura (`medication:{id}` 300s, `medications:list*` 60s) com invalidação após mutations
+- Importação idempotente da base de Dados Abertos da ANVISA (`yarn import:medications`): download, conversão Windows-1252→UTF-8, decodificação de entidades HTML (`&#193;`→`Á`), parse de CSV, dedup por `import_hash` (sha256) e upsert em lote (`ON CONFLICT`), com suporte a `--file`
+- DTOs/enum compartilhados: `MedicationSource`, `CreateMedicationDto`, `UpdateMedicationDto`, `MedicationResponseDto`, `PaginatedMedicationsResponseDto`
+- Migration `create_medications_table` com índice único parcial em `import_hash` e índices de busca
+
+### Performance
+
+#### Medicamentos — índices de busca
+- Migration `add_medications_trigram_indexes`: índices GIN `gin_trgm_ops` em `name` e `active_ingredient` (parciais, `WHERE deleted_at IS NULL`) para acelerar a busca `ILIKE '%termo%'` — elimina o Seq Scan na listagem e no `COUNT` (medido: count ~16ms→1ms, página de termo raro ~31ms→2ms na base com ~36k registros)
+- Removido o btree `IDX_medications_active_ingredient` (não utilizável por `ILIKE` nem ordenação)
+
 ## [1.1.0] - 2026-06-20
 
 ### Added

@@ -200,6 +200,29 @@ export const NAVIGATION_ITEMS: INavigationItem[] = [
     ),
   },
   {
+    id: 'medications',
+    label: 'Medicamentos',
+    href: '/medications',
+    requiredRoles: [UserRole.PLATFORM_ADMIN],
+    icon: (
+      <svg
+        xmlns="http://www.w3.org/2000/svg"
+        width={18}
+        height={18}
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth={2}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        aria-hidden="true"
+      >
+        <path d="M10.5 20.5 20 11a4.95 4.95 0 1 0-7-7l-9.5 9.5a4.95 4.95 0 1 0 7 7Z" />
+        <path d="m8.5 8.5 7 7" />
+      </svg>
+    ),
+  },
+  {
     id: 'medical-record-templates',
     label: 'Modelos de prontuário',
     href: '/medical-record-templates',

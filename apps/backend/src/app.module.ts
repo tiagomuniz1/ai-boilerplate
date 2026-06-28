@@ -18,6 +18,7 @@ import { ScheduleExceptionsModule } from './modules/schedule-exceptions/schedule
 import { MedicalRecordCanonicalFieldsModule } from './modules/medical-record-canonical-fields/medical-record-canonical-fields.module'
 import { MedicalRecordTemplatesModule } from './modules/medical-record-templates/medical-record-templates.module'
 import { MedicalRecordsModule } from './modules/medical-records/medical-records.module'
+import { MedicationsModule } from './modules/medications/medications.module'
 import { DashboardModule } from './modules/dashboard/dashboard.module'
 import { HttpExceptionFilter } from './common/filters/http-exception.filter'
 import { RequestIdInterceptor } from './common/interceptors/request-id.interceptor'
@@ -46,6 +47,7 @@ import { RolesGuard } from './modules/auth/guards/roles.guard'
     MedicalRecordCanonicalFieldsModule,
     MedicalRecordTemplatesModule,
     MedicalRecordsModule,
+    MedicationsModule,
     DashboardModule,
   ],
   providers: [

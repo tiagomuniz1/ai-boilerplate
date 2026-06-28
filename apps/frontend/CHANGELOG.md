@@ -1,5 +1,18 @@
 # Changelog — Frontend
 
+## [Unreleased]
+
+### Added
+
+#### Telas de Gestão de Medicamentos (Backoffice / PLATFORM_ADMIN)
+- Listagem com busca (debounced) por nome/princípio ativo, paginação server-side, filtro "incluir inativos" e exibição da origem (ANVISA/Manual)
+- Criação, edição, ativar/desativar (com confirmação) e exclusão (soft delete, com confirmação)
+- `MedicationForm` com validação Zod; `source` exibido como readonly na edição
+- Estados loading/error/empty/success com skeletons
+- Item "Medicamentos" na navegação do backoffice (restrito a PLATFORM_ADMIN)
+- Camadas service/mappers/use-cases/hooks (dados via React Query); testes unitários e de integração com 100% de cobertura
+- Testes E2E Cypress: listagem, criação, edição e exclusão
+
 ## [1.1.0] - 2026-06-20
 
 ### Added
