@@ -31,8 +31,11 @@ export class FindAllSpecialtiesUseCase extends BaseUseCase {
     }
 
     const [specialties, total] = await this.specialtiesRepository.findAll(page, limit, search)
+    const clinicCounts = await this.specialtiesRepository.countLinkedClinicsForAll(
+      specialties.map((s) => s.id),
+    )
     const result: PaginatedSpecialtiesResponseDto = {
-      data: specialties.map((s) => this.toResponse(s)),
+      data: specialties.map((s) => this.toResponse(s, clinicCounts[s.id] ?? 0)),
       total,
       page,
       limit,
@@ -47,11 +50,12 @@ export class FindAllSpecialtiesUseCase extends BaseUseCase {
     return result
   }
 
-  private toResponse(specialty: Specialty): SpecialtyResponseDto {
+  private toResponse(specialty: Specialty, clinicCount: number): SpecialtyResponseDto {
     return {
       id: specialty.id,
       name: specialty.name,
       description: specialty.description,
+      clinicCount,
       createdAt: specialty.createdAt,
       updatedAt: specialty.updatedAt,
     }

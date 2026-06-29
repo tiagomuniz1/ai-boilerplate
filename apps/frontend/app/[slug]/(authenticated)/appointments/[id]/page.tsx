@@ -15,6 +15,7 @@ import { useCancelAppointment } from '@/components/features/appointments/hooks/u
 import { useDoctors } from '@/components/features/doctors/hooks/use-doctors.hook'
 import { PatientInfoCard } from '@/components/features/appointments/components/patient-info-card'
 import { MedicalRecordSection } from '@/components/features/appointments/components/medical-record-section'
+import { PrescriptionSection } from '@/components/features/prescriptions/components/prescription-section'
 import { CancelAppointmentDialog } from '@/components/features/appointments/components/cancel-appointment-dialog'
 import {
   APPOINTMENT_STATUS_LABELS,
@@ -223,6 +224,17 @@ export default function AppointmentDetailPage() {
                   specialtyId={appointment.specialtyId}
                   appointmentStatus={appointment.status}
                   canManage={canManage}
+                />
+              </section>
+            )}
+
+            {canManage && (
+              <section data-testid="prescription-section-wrapper">
+                <h2 className="text-base font-semibold text-text mb-4">Receitas</h2>
+                <PrescriptionSection
+                  appointmentId={id}
+                  canManage={canManage}
+                  userRole={role}
                 />
               </section>
             )}

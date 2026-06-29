@@ -55,7 +55,7 @@ describe('Patient Medical History', () => {
       statusCode: 200,
       body: mockPaginatedPatients,
     }).as('getPatients')
-    cy.intercept('GET', `${Cypress.env('API_URL')}/medical-records/patient/${PATIENT_UUID}*`, {
+    cy.intercept('GET', `${Cypress.env('API_URL')}/medical-records*`, {
       statusCode: 200,
       body: {
         data: [makeRecord('r1', '2024-03-15'), makeRecord('r2', '2024-02-10')],
@@ -69,7 +69,7 @@ describe('Patient Medical History', () => {
   })
 
   it('shows empty state when no medical records exist', () => {
-    cy.intercept('GET', `${Cypress.env('API_URL')}/medical-records/patient/${PATIENT_UUID}*`, {
+    cy.intercept('GET', `${Cypress.env('API_URL')}/medical-records*`, {
       statusCode: 200,
       body: { data: [], total: 0, page: 1, limit: 10 },
     }).as('emptyHistory')

@@ -15,3 +15,9 @@ variable "ecs_task_role_name" {
   type        = string
   default     = ""
 }
+
+variable "ses_from_email" {
+  description = "Sender e-mail address to verify in SES for staging (email identity)."
+  type        = string
+  default     = "noreply@pulso.center"
+}

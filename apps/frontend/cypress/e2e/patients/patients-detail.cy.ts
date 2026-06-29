@@ -24,6 +24,10 @@ describe('Patients Detail', () => {
   beforeEach(() => {
     cy.clearCookies()
     cy.clearLocalStorage()
+    cy.intercept('GET', `${Cypress.env('API_URL')}/medical-records*`, {
+      statusCode: 200,
+      body: { data: [], total: 0, page: 1, limit: 10 },
+    })
   })
 
   it('redirects to /login when not authenticated', () => {

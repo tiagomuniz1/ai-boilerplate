@@ -7,14 +7,13 @@ import { CacheService } from '../../../cache/cache.service'
 import { IClinicsRepository } from '../repositories/clinics.repository.interface'
 import { Clinic } from '../entities/clinic.entity'
 
-const ALLOWED_MIME_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/svg+xml']
+const ALLOWED_MIME_TYPES = ['image/jpeg', 'image/png', 'image/webp']
 const MAX_SIZE_BYTES = 2 * 1024 * 1024
 
 const MIME_TO_EXT: Record<string, string> = {
   'image/jpeg': 'jpg',
   'image/png': 'png',
   'image/webp': 'webp',
-  'image/svg+xml': 'svg',
 }
 
 @Injectable()
@@ -32,7 +31,7 @@ export class UploadClinicLogoUseCase extends BaseUseCase {
 
   async execute(clinicId: string, file: Express.Multer.File): Promise<ClinicResponseDto> {
     if (!ALLOWED_MIME_TYPES.includes(file.mimetype)) {
-      throw new UnprocessableEntityException('Invalid file type. Accepted: jpeg, png, webp, svg')
+      throw new UnprocessableEntityException('Invalid file type. Accepted: jpeg, png, webp')
     }
 
     if (file.size > MAX_SIZE_BYTES) {

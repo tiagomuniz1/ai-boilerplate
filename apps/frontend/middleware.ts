@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 
-const PUBLIC_SEGMENTS = ['/login', '/register']
+const PUBLIC_SEGMENTS = ['/login', '/register', '/set-password']
 const BASE_DOMAIN = process.env.NEXT_PUBLIC_BASE_DOMAIN // ex: 'umi.com' em prod, vazio em dev
 
 function extractSlugFromSubdomain(hostname: string): string | null {

@@ -122,6 +122,10 @@ describe('Patients Delete', () => {
   })
 
   it('delete from details page navigates back to list', () => {
+    cy.intercept('GET', `${Cypress.env('API_URL')}/medical-records*`, {
+      statusCode: 200,
+      body: { data: [], total: 0, page: 1, limit: 10 },
+    })
     cy.intercept('GET', `${Cypress.env('API_URL')}/patients/${MOCK_PATIENT_ID}`, {
       statusCode: 200,
       body: mockPatient,

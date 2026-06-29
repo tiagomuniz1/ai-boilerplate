@@ -229,6 +229,16 @@ describe('DashboardRepository', () => {
       expect(sql).toContain('a.doctor_id = $2')
       expect(params).toEqual([CLINIC_ID, 'doc-id'])
     })
+
+    it('maps rows correctly when doctorId is provided and rows are returned', async () => {
+      const patientId = faker.string.uuid()
+      const qb = makeQb([])
+      const repo = makeRepo(qb, [{ patientId, fullName: 'Maria Costa', age: '28' }])
+
+      const result = await new DashboardRepository(repo).getTodayBirthdays(CLINIC_ID, 'doc-id')
+
+      expect(result).toEqual([{ patientId, fullName: 'Maria Costa', age: 28 }])
+    })
   })
 
   describe('getProceduresBySpecialty', () => {
@@ -334,6 +344,58 @@ describe('DashboardRepository', () => {
       const [sql, params] = dataCalls[0]
       expect(sql).not.toContain('doctor_id')
       expect(params).toHaveLength(3)
+    })
+
+    it('falls back to public schema when options.schema is not set (getPatientStats)', async () => {
+      const qb = makeQb([])
+      const qrQuery = makeQrQuery([])
+      const repoWithoutSchema = {
+        createQueryBuilder: jest.fn().mockReturnValue(qb),
+        query: jest.fn().mockResolvedValue([]),
+        manager: {
+          connection: {
+            options: {},
+            createQueryRunner: jest.fn().mockReturnValue({
+              connect: jest.fn().mockResolvedValue(undefined),
+              query: qrQuery,
+              release: jest.fn().mockResolvedValue(undefined),
+            }),
+          },
+        },
+        _qrQuery: qrQuery,
+      } as unknown as Repository<Appointment>
+
+      await new DashboardRepository(repoWithoutSchema).getPatientStats(CLINIC_ID, FROM, TO)
+
+      const setPaths = qrQuery.mock.calls.filter(([sql]: [string]) => sql.startsWith('SET search_path'))
+      expect(setPaths[0][0]).toContain('"public"')
+    })
+  })
+
+  describe('getTodayBirthdays — schema fallback', () => {
+    it('falls back to public schema when options.schema is not set', async () => {
+      const qb = makeQb([])
+      const qrQuery = makeQrQuery([])
+      const repoWithoutSchema = {
+        createQueryBuilder: jest.fn().mockReturnValue(qb),
+        query: jest.fn().mockResolvedValue([]),
+        manager: {
+          connection: {
+            options: {},
+            createQueryRunner: jest.fn().mockReturnValue({
+              connect: jest.fn().mockResolvedValue(undefined),
+              query: qrQuery,
+              release: jest.fn().mockResolvedValue(undefined),
+            }),
+          },
+        },
+        _qrQuery: qrQuery,
+      } as unknown as Repository<Appointment>
+
+      await new DashboardRepository(repoWithoutSchema).getTodayBirthdays(CLINIC_ID)
+
+      const setPaths = qrQuery.mock.calls.filter(([sql]: [string]) => sql.startsWith('SET search_path'))
+      expect(setPaths[0][0]).toContain('"public"')
     })
   })
 })

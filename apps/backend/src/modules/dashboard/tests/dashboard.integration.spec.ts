@@ -8,6 +8,7 @@ import * as request from 'supertest'
 import { Repository } from 'typeorm'
 import { AppointmentInsuranceType, AppointmentStatus, DayOfWeek, PatientGender, UserRole } from '@app/shared'
 import { AppModule } from '../../../app.module'
+import { CacheService } from '../../../cache/cache.service'
 import { Clinic } from '../../clinics/entities/clinic.entity'
 import { User } from '../../users/entities/user.entity'
 import { Doctor } from '../../doctors/entities/doctor.entity'
@@ -35,6 +36,7 @@ process.env.JWT_REFRESH_EXPIRATION = '7d'
 
 describe('DashboardController (integration)', () => {
   let app: INestApplication
+  let cacheService: CacheService
   let userRepository: Repository<User>
   let clinicRepository: Repository<Clinic>
   let doctorRepository: Repository<Doctor>
@@ -95,6 +97,7 @@ describe('DashboardController (integration)', () => {
     )
     await app.listen(0)
 
+    cacheService = module.get(CacheService)
     userRepository = module.get(getRepositoryToken(User))
     clinicRepository = module.get(getRepositoryToken(Clinic))
     doctorRepository = module.get(getRepositoryToken(Doctor))
@@ -105,6 +108,12 @@ describe('DashboardController (integration)', () => {
   })
 
   beforeEach(async () => {
+    try {
+      await cacheService.delByPattern('dashboard:*')
+    } catch {
+      // Ignore cache errors in test setup
+    }
+
     await appointmentRepository.query('DELETE FROM test.appointments')
     await scheduleRepository.query('DELETE FROM test.schedule_exceptions')
     await scheduleRepository.query('DELETE FROM test.schedules')

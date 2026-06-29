@@ -12,6 +12,7 @@ const mockSpecialtiesRepository: jest.Mocked<ISpecialtiesRepository> = {
   findByName: jest.fn(),
   countLinkedDoctors: jest.fn(),
   countLinkedClinics: jest.fn(),
+  countLinkedClinicsForAll: jest.fn(),
   countLinkedAppointments: jest.fn(),
   create: jest.fn(),
   update: jest.fn(),
@@ -62,6 +63,7 @@ describe('CreateSpecialtyUseCase', () => {
     expect(result.id).toBe(created.id)
     expect(result.name).toBe(created.name)
     expect(result.description).toBeNull()
+    expect(result.clinicCount).toBe(0)
     expect(result.createdAt).toBe(created.createdAt)
     expect(result.updatedAt).toBe(created.updatedAt)
   })

@@ -26,6 +26,7 @@ const makeDto = (overrides = {}) => ({
   id: 'uuid-1',
   name: 'Cardiologia',
   description: 'Especialidade do coração',
+  clinicCount: 0,
   createdAt: '2024-01-15T10:00:00.000Z',
   updatedAt: '2024-01-16T10:00:00.000Z',
   ...overrides,
@@ -80,6 +81,20 @@ describe('SpecialtyList (integration)', () => {
       })
 
       expect(screen.getByTestId('specialty-description-uuid-1')).toHaveTextContent('—')
+    })
+
+    it('shows clinic count for each specialty', async () => {
+      ;(specialtiesService.getAll as jest.Mock).mockResolvedValue(
+        makePaginatedResponse([makeDto({ clinicCount: 5 })]),
+      )
+
+      renderWithProviders(<SpecialtyList />)
+
+      await waitFor(() => {
+        expect(screen.getByTestId('specialty-list-table')).toBeInTheDocument()
+      })
+
+      expect(screen.getByTestId('specialty-clinic-count-uuid-1')).toHaveTextContent('5')
     })
 
     it('renders empty state when no specialties', async () => {

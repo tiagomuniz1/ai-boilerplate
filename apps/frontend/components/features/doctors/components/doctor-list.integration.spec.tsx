@@ -5,10 +5,20 @@ jest.mock('../use-cases/delete-doctor.use-case')
 import { screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { useRouter } from 'next/navigation'
+import { UserRole } from '@app/shared'
+import { useAuthStore } from '@/stores/auth.store'
 import { doctorsService } from '../services/doctors.service'
 import { deleteDoctorUseCase } from '../use-cases/delete-doctor.use-case'
 import { renderWithProviders } from '@/tests/utils/render-with-providers'
 import { DoctorList } from './doctor-list'
+
+const makeUser = (role: UserRole) => ({
+  id: 'user-uuid',
+  fullName: 'Test User',
+  email: 'test@example.com',
+  role,
+  clinicId: 'clinic-uuid',
+})
 
 const mockPush = jest.fn()
 
@@ -27,6 +37,7 @@ describe('DoctorList (integration)', () => {
   beforeEach(() => {
     jest.clearAllMocks()
     ;(useRouter as jest.Mock).mockReturnValue({ push: mockPush })
+    useAuthStore.setState({ user: makeUser(UserRole.ADMIN) })
   })
 
   it('renders skeleton while loading', () => {
@@ -145,12 +156,31 @@ describe('DoctorList (integration)', () => {
     })
   })
 
-  it('renders "Novo médico" button', async () => {
+  it('renders "Novo médico" button when user is ADMIN', () => {
+    useAuthStore.setState({ user: makeUser(UserRole.ADMIN) })
     ;(doctorsService.getAll as jest.Mock).mockResolvedValue({ data: [], total: 0, page: 1, limit: 20 })
 
     renderWithProviders(<DoctorList />)
 
     expect(screen.getByTestId('doctor-list-new-button')).toBeInTheDocument()
+  })
+
+  it('hides "Novo médico" button when user is DOCTOR', () => {
+    useAuthStore.setState({ user: makeUser(UserRole.DOCTOR) })
+    ;(doctorsService.getAll as jest.Mock).mockResolvedValue({ data: [], total: 0, page: 1, limit: 20 })
+
+    renderWithProviders(<DoctorList />)
+
+    expect(screen.queryByTestId('doctor-list-new-button')).not.toBeInTheDocument()
+  })
+
+  it('hides "Novo médico" button when user is USER', () => {
+    useAuthStore.setState({ user: makeUser(UserRole.USER) })
+    ;(doctorsService.getAll as jest.Mock).mockResolvedValue({ data: [], total: 0, page: 1, limit: 20 })
+
+    renderWithProviders(<DoctorList />)
+
+    expect(screen.queryByTestId('doctor-list-new-button')).not.toBeInTheDocument()
   })
 
   it('renders search input', async () => {

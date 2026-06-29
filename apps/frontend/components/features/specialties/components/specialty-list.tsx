@@ -144,6 +144,9 @@ export function SpecialtyList() {
                     Descrição
                   </th>
                   <th className="px-6 py-3 text-xs font-medium uppercase tracking-wider text-text-mute">
+                    Clínicas
+                  </th>
+                  <th className="px-6 py-3 text-xs font-medium uppercase tracking-wider text-text-mute">
                     Cadastrado em
                   </th>
                   <th className="px-6 py-3 text-xs font-medium uppercase tracking-wider text-text-mute">
@@ -169,6 +172,12 @@ export function SpecialtyList() {
                       data-testid={`specialty-description-${specialty.id}`}
                     >
                       {specialty.description ?? '—'}
+                    </td>
+                    <td
+                      className="px-6 py-4 text-sm text-text-dim"
+                      data-testid={`specialty-clinic-count-${specialty.id}`}
+                    >
+                      {specialty.clinicCount}
                     </td>
                     <td
                       className="px-6 py-4 text-sm text-text-dim whitespace-nowrap"

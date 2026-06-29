@@ -143,6 +143,44 @@ describe('PatientsRepository', () => {
       expect(result).toEqual([[patient], 1])
     })
 
+    it('returns empty list immediately when trigram search finds no matching patient ids', async () => {
+      const idsQb = makeQueryBuilderMock({ getMany: [] })
+      const countQb = makeQueryBuilderMock({ getCount: 0 })
+
+      let callCount = 0
+      repo.createQueryBuilder.mockImplementation(() => {
+        callCount++
+        if (callCount === 1) return idsQb as any
+        return countQb as any
+      })
+
+      const result = await repository.findAll(1, 20, CLINIC_ID, 'nobody')
+
+      expect(result).toEqual([[], 0])
+    })
+
+    it('uses schema-qualified table reference when schema is set in connection options', async () => {
+      const patient = makePatient()
+      const idsQb = makeQueryBuilderMock({ getMany: [{ id: patient.id }] })
+      const countQb = makeQueryBuilderMock({ getCount: 1 })
+      const entityQb = makeQueryBuilderMock({ getMany: [patient] })
+
+      let callCount = 0
+      repo.createQueryBuilder.mockImplementation(() => {
+        callCount++
+        if (callCount === 1) return idsQb as any
+        if (callCount === 2) return countQb as any
+        return entityQb as any
+      })
+      ;(repo as any).manager.connection.options.schema = 'tenant'
+
+      await repository.findAll(1, 20, CLINIC_ID, 'alice')
+
+      const expectedSql = 'patient.user_id IN (SELECT u.id FROM "tenant"."users" u WHERE u.clinic_id = :clinicId AND u.full_name ILIKE :search AND u.deleted_at IS NULL)'
+      expect(idsQb.where).toHaveBeenCalledWith(expectedSql, { clinicId: CLINIC_ID, search: '%alice%' })
+      expect(countQb.where).toHaveBeenCalledWith(expectedSql, { clinicId: CLINIC_ID, search: '%alice%' })
+    })
+
     it('uses exact document_number match when search is all digits', async () => {
       const qb = makeQueryBuilderMock({ result: [[], 0] })
       repo.createQueryBuilder.mockReturnValue(qb as any)

@@ -5,6 +5,7 @@ import { UserRole } from '@app/shared'
 import { DB_UNIQUE_CONSTRAINTS } from '../../../common/utils/db-constraint.utils'
 import { CacheService } from '../../../cache/cache.service'
 import { ICurrentUser } from '../../auth/types/current-user.type'
+import { SendSetPasswordEmailUseCase } from '../../auth/use-cases/send-set-password-email.use-case'
 import { IUsersRepository } from '../../users/repositories/users.repository.interface'
 import { ISpecialtiesRepository } from '../../specialties/repositories/specialties.repository.interface'
 import { IDoctorsRepository } from '../repositories/doctors.repository.interface'
@@ -46,8 +47,13 @@ const mockUsersRepository: jest.Mocked<IUsersRepository> = {
   findByEmail: jest.fn(),
   create: jest.fn(),
   update: jest.fn(),
+  updatePassword: jest.fn(),
   delete: jest.fn(),
 }
+
+const mockSendSetPasswordEmailUseCase = {
+  execute: jest.fn().mockResolvedValue(undefined),
+} as unknown as jest.Mocked<SendSetPasswordEmailUseCase>
 
 const mockSpecialtiesRepository: jest.Mocked<ISpecialtiesRepository> = {
   findAll: jest.fn(),
@@ -56,6 +62,7 @@ const mockSpecialtiesRepository: jest.Mocked<ISpecialtiesRepository> = {
   findByName: jest.fn(),
   countLinkedDoctors: jest.fn(),
   countLinkedClinics: jest.fn(),
+  countLinkedClinicsForAll: jest.fn(),
   countLinkedAppointments: jest.fn(),
   create: jest.fn(),
   update: jest.fn(),
@@ -136,6 +143,7 @@ describe('CreateDoctorUseCase', () => {
       mockUsersRepository,
       mockSpecialtiesRepository,
       mockCacheService,
+      mockSendSetPasswordEmailUseCase,
     )
   })
 
@@ -498,6 +506,45 @@ describe('CreateDoctorUseCase', () => {
       mockDoctorsRepository.create.mockRejectedValue(new Error('Unexpected DB error'))
 
       await expect(useCase.execute(dto, adminCurrentUser)).rejects.toThrow('Unexpected DB error')
+    })
+
+    it('sends set-password email after creating new user', async () => {
+      const specialty = makeSpecialty()
+      const dto = makeNewUserDto([specialty.id])
+      const newUser = makeUser()
+      const created = makeDoctor({ userId: newUser.id, user: newUser, specialties: [specialty] })
+
+      mockDoctorsRepository.findByCrmNumber.mockResolvedValue(null)
+      mockSpecialtiesRepository.findByIds.mockResolvedValue([specialty] as any)
+      mockUsersRepository.findByEmail.mockResolvedValue(null)
+      mockUsersRepository.create.mockResolvedValue(newUser)
+      mockDoctorsRepository.create.mockResolvedValue(created as any)
+      mockCacheService.delByPattern.mockResolvedValue(undefined)
+
+      await useCase.execute(dto, adminCurrentUser)
+
+      expect(mockSendSetPasswordEmailUseCase.execute).toHaveBeenCalledWith(
+        created.user.id,
+        CLINIC_ID,
+      )
+    })
+
+    it('does not send set-password email when linking existing userId', async () => {
+      const user = makeUser()
+      const specialty = makeSpecialty()
+      const dto = makeDto(user.id, [specialty.id])
+      const created = makeDoctor({ userId: user.id, user })
+
+      mockUsersRepository.findById.mockResolvedValue(user)
+      mockDoctorsRepository.findByUserId.mockResolvedValue(null)
+      mockDoctorsRepository.findByCrmNumber.mockResolvedValue(null)
+      mockSpecialtiesRepository.findByIds.mockResolvedValue([specialty] as any)
+      mockDoctorsRepository.create.mockResolvedValue(created as any)
+      mockCacheService.delByPattern.mockResolvedValue(undefined)
+
+      await useCase.execute(dto, adminCurrentUser)
+
+      expect(mockSendSetPasswordEmailUseCase.execute).not.toHaveBeenCalled()
     })
   })
 })

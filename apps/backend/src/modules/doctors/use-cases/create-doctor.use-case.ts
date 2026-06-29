@@ -7,6 +7,7 @@ import { BaseUseCase } from '../../../common/base.use-case'
 import { CacheService } from '../../../cache/cache.service'
 import { DB_UNIQUE_CONSTRAINTS, isUniqueConstraintViolation } from '../../../common/utils/db-constraint.utils'
 import { ICurrentUser } from '../../auth/types/current-user.type'
+import { SendSetPasswordEmailUseCase } from '../../auth/use-cases/send-set-password-email.use-case'
 import { IUsersRepository } from '../../users/repositories/users.repository.interface'
 import { ISpecialtiesRepository } from '../../specialties/repositories/specialties.repository.interface'
 import { IDoctorsRepository } from '../repositories/doctors.repository.interface'
@@ -22,6 +23,7 @@ export class CreateDoctorUseCase extends BaseUseCase {
     private readonly usersRepository: IUsersRepository,
     private readonly specialtiesRepository: ISpecialtiesRepository,
     private readonly cacheService: CacheService,
+    private readonly sendSetPasswordEmailUseCase: SendSetPasswordEmailUseCase,
   ) {
     super(dataSource)
   }
@@ -112,6 +114,10 @@ export class CreateDoctorUseCase extends BaseUseCase {
       }
     } catch {
       this.logger.warn('Cache invalidation failed', { context: CreateDoctorUseCase.name })
+    }
+
+    if (isNewUser) {
+      await this.sendSetPasswordEmailUseCase.execute(doctor.user.id, clinicId)
     }
 
     return this.toResponse(doctor)

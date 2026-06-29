@@ -287,6 +287,52 @@ describe('SpecialtiesRepository', () => {
     })
   })
 
+  describe('countLinkedClinicsForAll', () => {
+    it('returns empty record when ids is empty without querying the database', async () => {
+      const result = await repository.countLinkedClinicsForAll([])
+
+      expect(result).toEqual({})
+    })
+
+    it('returns map of specialty_id to clinic count', async () => {
+      const mockQueryBuilder = {
+        select: jest.fn().mockReturnThis(),
+        addSelect: jest.fn().mockReturnThis(),
+        from: jest.fn().mockReturnThis(),
+        where: jest.fn().mockReturnThis(),
+        groupBy: jest.fn().mockReturnThis(),
+        getRawMany: jest.fn().mockResolvedValue([
+          { specialty_id: 'uuid-1', count: '3' },
+          { specialty_id: 'uuid-2', count: '1' },
+        ]),
+      }
+      ;(repo.manager as any).createQueryBuilder = jest.fn().mockReturnValue(mockQueryBuilder)
+
+      const result = await repository.countLinkedClinicsForAll(['uuid-1', 'uuid-2'])
+
+      expect(mockQueryBuilder.from).toHaveBeenCalledWith('clinic_specialties', 'cs')
+      expect(mockQueryBuilder.where).toHaveBeenCalledWith('cs.specialty_id IN (:...ids)', { ids: ['uuid-1', 'uuid-2'] })
+      expect(mockQueryBuilder.groupBy).toHaveBeenCalledWith('cs.specialty_id')
+      expect(result).toEqual({ 'uuid-1': 3, 'uuid-2': 1 })
+    })
+
+    it('returns 0 for specialties without linked clinics (absent from result)', async () => {
+      const mockQueryBuilder = {
+        select: jest.fn().mockReturnThis(),
+        addSelect: jest.fn().mockReturnThis(),
+        from: jest.fn().mockReturnThis(),
+        where: jest.fn().mockReturnThis(),
+        groupBy: jest.fn().mockReturnThis(),
+        getRawMany: jest.fn().mockResolvedValue([]),
+      }
+      ;(repo.manager as any).createQueryBuilder = jest.fn().mockReturnValue(mockQueryBuilder)
+
+      const result = await repository.countLinkedClinicsForAll(['uuid-no-clinics'])
+
+      expect(result).toEqual({})
+    })
+  })
+
   describe('countLinkedAppointments', () => {
     it('counts appointments rows for the specialty', async () => {
       const mockQueryBuilder = {

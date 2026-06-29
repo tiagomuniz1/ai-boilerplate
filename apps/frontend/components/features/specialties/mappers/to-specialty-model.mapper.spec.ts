@@ -4,6 +4,7 @@ const makeDto = () => ({
   id: 'uuid-1',
   name: 'Cardiologia',
   description: 'Especialidade do coração',
+  clinicCount: 2,
   createdAt: '2024-01-15T10:00:00.000Z' as unknown as Date,
   updatedAt: '2024-01-16T10:00:00.000Z' as unknown as Date,
 })
@@ -15,6 +16,7 @@ describe('toSpecialtyModel', () => {
     expect(model.id).toBe('uuid-1')
     expect(model.name).toBe('Cardiologia')
     expect(model.description).toBe('Especialidade do coração')
+    expect(model.clinicCount).toBe(2)
   })
 
   it('converts createdAt string to Date instance', () => {

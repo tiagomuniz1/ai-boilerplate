@@ -233,6 +233,26 @@ describe('CreateAppointmentUseCase', () => {
     ).rejects.toThrow(UnprocessableEntityException)
   })
 
+  it('allows booking a same-day slot that is in the future in Brazil local time (UTC-3)', async () => {
+    // Regression: startTime was parsed as UTC (Z suffix), causing slots at e.g. 11:00 Brazil
+    // to be rejected as "past" at 10:55 Brazil (because 11:00 UTC < 13:55 UTC at that moment).
+    const twoHoursLater = new Date(Date.now() + 2 * 60 * 60 * 1000)
+    const brazilLocal = new Date(twoHoursLater.getTime() - 3 * 60 * 60 * 1000)
+    const dateStr = brazilLocal.toISOString().split('T')[0]
+    const hour = brazilLocal.getUTCHours()
+    const timeStr = `${String(hour).padStart(2, '0')}:00`
+    const endHour = hour === 23 ? 24 : hour + 1
+    const endTimeStr = `${String(endHour).padStart(2, '0')}:00`
+
+    mockGetActiveSchedules.execute.mockResolvedValue([
+      makeSchedule({ startTime: timeStr, endTime: endTimeStr, slotDurationInMinutes: 60 }) as any,
+    ])
+
+    await expect(
+      useCase.execute({ patientId: faker.string.uuid(), date: dateStr, startTime: timeStr }, doctorUser),
+    ).resolves.toBeDefined()
+  })
+
   it('throws UnprocessableEntityException when slot not in schedule', async () => {
     await expect(
       useCase.execute({ patientId: faker.string.uuid(), date: tomorrowStr, startTime: '15:00' }, doctorUser),

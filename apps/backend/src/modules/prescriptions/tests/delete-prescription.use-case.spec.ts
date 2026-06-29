@@ -1,0 +1,131 @@
+import { ForbiddenException, NotFoundException } from '@nestjs/common'
+import { DataSource } from 'typeorm'
+import { UserRole } from '@app/shared'
+import { ICurrentUser } from '../../auth/types/current-user.type'
+import { IDoctorsRepository } from '../../doctors/repositories/doctors.repository.interface'
+import { IPrescriptionsRepository } from '../repositories/prescriptions.repository.interface'
+import { DeletePrescriptionUseCase } from '../use-cases/delete-prescription.use-case'
+import { CacheService } from '../../../cache/cache.service'
+
+const clinicId = 'clinic-uuid'
+const doctorId = 'doctor-uuid'
+const prescriptionId = 'rx-uuid'
+const appointmentId = 'appt-uuid'
+
+const adminUser: ICurrentUser = { id: 'admin-id', role: UserRole.ADMIN, clinicId }
+const doctorUser: ICurrentUser = { id: 'doctor-user-id', role: UserRole.DOCTOR, clinicId }
+
+const makePrescription = (overrides = {}) => ({
+  id: prescriptionId,
+  clinicId,
+  appointmentId,
+  patientId: 'patient-uuid',
+  doctorId,
+  issuedAt: new Date(),
+  snapshot: {
+    issuedAt: new Date().toISOString(),
+    clinic: { name: 'Clinic', address: null, logoUrl: null },
+    doctor: { name: 'Doctor', crmNumber: '12345/SP', specialtyName: null },
+    patient: { name: 'Patient', documentNumber: '12345678900' },
+    items: [],
+    notes: null,
+  },
+  createdAt: new Date(),
+  updatedAt: new Date(),
+  deletedAt: null,
+  ...overrides,
+})
+
+const mockPrescriptionsRepository: jest.Mocked<IPrescriptionsRepository> = {
+  findByAppointment: jest.fn(),
+  findById: jest.fn(),
+  create: jest.fn(),
+  delete: jest.fn(),
+}
+
+const mockDoctorsRepository: jest.Mocked<IDoctorsRepository> = {
+  findAll: jest.fn(),
+  findById: jest.fn(),
+  findByUserId: jest.fn(),
+  findByCrmNumber: jest.fn(),
+  create: jest.fn(),
+  update: jest.fn(),
+  delete: jest.fn(),
+}
+
+const mockCacheService = {
+  get: jest.fn(),
+  set: jest.fn(),
+  del: jest.fn(),
+  delByPattern: jest.fn(),
+  setIfNotExists: jest.fn(),
+} as unknown as jest.Mocked<CacheService>
+
+describe('DeletePrescriptionUseCase', () => {
+  let useCase: DeletePrescriptionUseCase
+
+  beforeEach(() => {
+    jest.clearAllMocks()
+    useCase = new DeletePrescriptionUseCase(
+      {} as DataSource,
+      mockPrescriptionsRepository,
+      mockDoctorsRepository,
+      mockCacheService,
+    )
+    mockPrescriptionsRepository.findById.mockResolvedValue(makePrescription() as any)
+    mockDoctorsRepository.findByUserId.mockResolvedValue({ id: doctorId } as any)
+    mockPrescriptionsRepository.delete.mockResolvedValue(undefined)
+    mockCacheService.del.mockResolvedValue(undefined)
+  })
+
+  it('deletes prescription for ADMIN', async () => {
+    await useCase.execute(prescriptionId, adminUser)
+
+    expect(mockPrescriptionsRepository.delete).toHaveBeenCalledWith(prescriptionId)
+    expect(mockDoctorsRepository.findByUserId).not.toHaveBeenCalled()
+  })
+
+  it('deletes prescription for DOCTOR on own prescription', async () => {
+    await useCase.execute(prescriptionId, doctorUser)
+
+    expect(mockPrescriptionsRepository.delete).toHaveBeenCalledWith(prescriptionId)
+    expect(mockDoctorsRepository.findByUserId).toHaveBeenCalledWith(doctorUser.id, clinicId)
+  })
+
+  it('invalidates appointment cache after delete', async () => {
+    await useCase.execute(prescriptionId, adminUser)
+
+    expect(mockCacheService.del).toHaveBeenCalledWith(`prescriptions:appointment:${appointmentId}`)
+  })
+
+  it('does not throw when cache invalidation fails', async () => {
+    mockCacheService.del.mockRejectedValue(new Error('redis down'))
+
+    await expect(useCase.execute(prescriptionId, adminUser)).resolves.toBeUndefined()
+  })
+
+  it('throws NotFoundException when prescription not found', async () => {
+    mockPrescriptionsRepository.findById.mockResolvedValue(null)
+
+    await expect(useCase.execute(prescriptionId, adminUser)).rejects.toThrow(NotFoundException)
+  })
+
+  it('throws ForbiddenException when DOCTOR deletes another doctor prescription', async () => {
+    mockDoctorsRepository.findByUserId.mockResolvedValue({ id: 'other-doctor' } as any)
+
+    await expect(useCase.execute(prescriptionId, doctorUser)).rejects.toThrow(ForbiddenException)
+  })
+
+  it('throws ForbiddenException when DOCTOR has no doctor profile', async () => {
+    mockDoctorsRepository.findByUserId.mockResolvedValue(null)
+
+    await expect(useCase.execute(prescriptionId, doctorUser)).rejects.toThrow(ForbiddenException)
+  })
+
+  it('does not delete when RBAC fails', async () => {
+    mockDoctorsRepository.findByUserId.mockResolvedValue({ id: 'other-doctor' } as any)
+
+    await expect(useCase.execute(prescriptionId, doctorUser)).rejects.toThrow(ForbiddenException)
+    expect(mockPrescriptionsRepository.delete).not.toHaveBeenCalled()
+  })
+})

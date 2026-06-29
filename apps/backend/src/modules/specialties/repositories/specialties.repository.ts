@@ -69,6 +69,25 @@ export class SpecialtiesRepository implements ISpecialtiesRepository {
       .getCount()
   }
 
+  async countLinkedClinicsForAll(ids: string[]): Promise<Record<string, number>> {
+    if (ids.length === 0) return {}
+
+    const rows: Array<{ specialty_id: string; count: string }> = await this.repository.manager
+      .createQueryBuilder()
+      .select('cs.specialty_id', 'specialty_id')
+      .addSelect('COUNT(*)', 'count')
+      .from('clinic_specialties', 'cs')
+      .where('cs.specialty_id IN (:...ids)', { ids })
+      .groupBy('cs.specialty_id')
+      .getRawMany()
+
+    const result: Record<string, number> = {}
+    for (const row of rows) {
+      result[row.specialty_id] = parseInt(row.count, 10)
+    }
+    return result
+  }
+
   async countLinkedAppointments(id: string): Promise<number> {
     return this.repository.manager
       .createQueryBuilder()

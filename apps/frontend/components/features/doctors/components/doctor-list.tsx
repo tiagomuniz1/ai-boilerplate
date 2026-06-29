@@ -3,6 +3,8 @@
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { useSlug } from '@/lib/slug-context'
+import { useAuthStore } from '@/stores/auth.store'
+import { UserRole } from '@app/shared'
 import { Alert } from '@/components/ui/molecules/alert/alert'
 import { Button } from '@/components/ui/atoms/button/button'
 import { Input } from '@/components/ui/atoms/input/input'
@@ -14,6 +16,8 @@ import type { IDoctorModel } from '../types/doctor-model.types'
 
 export function DoctorList() {
   const slug = useSlug()
+  const role = useAuthStore((s) => s.user?.role)
+  const canCreate = role === UserRole.ADMIN
   const [searchTerm, setSearchTerm] = useState('')
   const [debouncedSearch, setDebouncedSearch] = useState('')
   const [doctorToDelete, setDoctorToDelete] = useState<IDoctorModel | null>(null)
@@ -67,11 +71,13 @@ export function DoctorList() {
             </p>
           )}
         </div>
-        <Link href={`/${slug}/doctors/new`}>
-          <Button variant="primary" data-testid="doctor-list-new-button">
-            + Novo médico
-          </Button>
-        </Link>
+        {canCreate && (
+          <Link href={`/${slug}/doctors/new`}>
+            <Button variant="primary" data-testid="doctor-list-new-button">
+              + Novo médico
+            </Button>
+          </Link>
+        )}
       </div>
 
       <Input

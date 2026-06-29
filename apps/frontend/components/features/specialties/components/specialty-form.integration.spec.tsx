@@ -14,6 +14,7 @@ const existingSpecialty: ISpecialtyModel = {
   id: 'uuid-1',
   name: 'Cardiologia',
   description: 'Especialidade do coração',
+  clinicCount: 0,
   createdAt: new Date('2024-01-15'),
   updatedAt: new Date('2024-01-16'),
 }

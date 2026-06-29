@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { useSearchParams } from 'next/navigation'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
@@ -20,6 +21,8 @@ type FormValues = z.infer<typeof schema>
 export function LoginForm() {
   const { mutate, isPending } = useLogin()
   const [globalError, setGlobalError] = useState<string | null>(null)
+  const searchParams = useSearchParams()
+  const passwordSet = searchParams.get('passwordSet') === 'true'
 
   const {
     register,
@@ -50,6 +53,11 @@ export function LoginForm() {
   return (
     <form onSubmit={handleSubmit(onSubmit)} data-testid="login-form" noValidate>
       <div className="flex flex-col gap-4">
+        {passwordSet && !globalError && (
+          <Alert variant="success" data-testid="login-password-set-success">
+            Senha definida com sucesso. Faça login para continuar.
+          </Alert>
+        )}
         {globalError && (
           <Alert variant="error" data-testid="login-error">
             {globalError}

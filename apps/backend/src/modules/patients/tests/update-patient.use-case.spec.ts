@@ -33,6 +33,7 @@ const mockUsersRepository: jest.Mocked<IUsersRepository> = {
   create: jest.fn(),
   update: jest.fn(),
   delete: jest.fn(),
+  updatePassword: jest.fn(),
 }
 
 const mockCacheService = {

@@ -92,12 +92,20 @@ function stubTemplates() {
   }).as('getTemplates')
 }
 
+function stubPrescriptions() {
+  cy.intercept('GET', `${Cypress.env('API_URL')}/prescriptions*`, {
+    statusCode: 200,
+    body: { data: [], total: 0, page: 1, limit: 20 },
+  }).as('getPrescriptions')
+}
+
 describe('Appointment Detail Page', () => {
   describe('ADMIN', () => {
     beforeEach(() => {
       stubDoctors()
       stubMedicalRecord()
       stubTemplates()
+      stubPrescriptions()
     })
 
     it('renders appointment summary with patient info', () => {
@@ -168,6 +176,7 @@ describe('Appointment Detail Page', () => {
       stubDoctors()
       stubMedicalRecord()
       stubTemplates()
+      stubPrescriptions()
       stubAppointmentDetail({ doctorId: DOCTOR_ID })
       visitClinic(`/appointments/${APPT_ID}`, mockDoctorUser)
 
@@ -181,6 +190,7 @@ describe('Appointment Detail Page', () => {
       stubDoctors()
       stubMedicalRecord()
       stubTemplates()
+      stubPrescriptions()
       stubAppointmentDetail()
 
       const mockUserRole = { ...mockAdminUser, role: 'user' }

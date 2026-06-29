@@ -35,6 +35,8 @@ const mockPastScheduledAppointment = {
   patientId: 'patient-uuid',
   patientName: 'Patient One',
   scheduleId: 'sched-uuid',
+  specialtyId: null,
+  specialtyName: null,
   date: '2025-06-10',
   startTime: '09:00',
   endTime: '09:30',
@@ -43,6 +45,14 @@ const mockPastScheduledAppointment = {
   cancellationReason: null,
   createdAt: '2025-06-01T10:00:00.000Z',
   updatedAt: '2025-06-01T10:00:00.000Z',
+  patient: {
+    fullName: 'Patient One',
+    email: 'patient@test.com',
+    phoneNumber: '11999990001',
+    birthDate: '1990-01-01',
+    documentNumber: '12345678901',
+    gender: 'male',
+  },
 }
 
 const mockCompletedAppointment = {
@@ -50,68 +60,46 @@ const mockCompletedAppointment = {
   status: 'completed',
 }
 
-const mockPaginatedWithBooked = {
-  data: [mockPastScheduledAppointment],
-  total: 1,
-  page: 1,
-  limit: 100,
-}
-
 describe('Appointments — complete', () => {
   beforeEach(() => {
     cy.clearCookies()
     cy.clearLocalStorage()
     cy.intercept('GET', `${Cypress.env('API_URL')}/doctors*`, { statusCode: 200, body: mockDoctorsList })
-    cy.intercept('GET', `${Cypress.env('API_URL')}/appointments/availability*`, {
-      statusCode: 200,
-      body: { doctorId: DOC_UUID, date: '2025-06-10', slots: [] },
-    })
     cy.intercept('GET', `${Cypress.env('API_URL')}/appointments/${APPT_UUID}`, {
       statusCode: 200,
       body: mockPastScheduledAppointment,
     }).as('getAppointment')
-    cy.intercept('GET', `${Cypress.env('API_URL')}/appointments*`, {
-      statusCode: 200,
-      body: mockPaginatedWithBooked,
-    })
-    cy.intercept('GET', `${Cypress.env('API_URL')}/patients*`, {
-      statusCode: 200,
-      body: { data: [], total: 0, page: 1, limit: 200 },
-    })
-    cy.intercept('GET', `${Cypress.env('API_URL')}/schedule-exceptions*`, {
-      statusCode: 200,
-      body: { data: [], total: 0, page: 1, limit: 20 },
-    })
     cy.intercept('GET', `${Cypress.env('API_URL')}/medical-records/by-appointment/${APPT_UUID}`, {
       statusCode: 200,
       body: null,
     })
+    cy.intercept('GET', `${Cypress.env('API_URL')}/medical-record-templates*`, {
+      statusCode: 200,
+      body: { data: [], total: 0, page: 1, limit: 1 },
+    })
+    cy.intercept('GET', `${Cypress.env('API_URL')}/prescriptions*`, {
+      statusCode: 200,
+      body: { data: [], total: 0, page: 1, limit: 20 },
+    })
   })
 
-  it('ADMIN clicks booked slot and sees complete button', () => {
-    visitClinic('/appointments', mockAdminUser)
+  it('ADMIN sees complete button on appointment detail page', () => {
+    visitClinic(`/appointments/${APPT_UUID}`, mockAdminUser)
 
-    cy.get('[data-testid="toolbar-doctor-select"]').select(DOC_UUID)
-    cy.get('[data-testid="agenda-slot-booked"]', { timeout: 10000 }).first().click()
-
-    cy.get('[data-testid="appointment-details-dialog"]').should('be.visible')
-    cy.get('[data-testid="details-complete-button"]').should('be.visible')
+    cy.get('[data-testid="appointment-detail-complete-button"]').should('be.visible')
   })
 
-  it('ADMIN completes appointment and dialog closes', () => {
+  it('ADMIN completes appointment successfully', () => {
     cy.intercept('PATCH', `${Cypress.env('API_URL')}/appointments/${APPT_UUID}/complete`, {
       statusCode: 200,
       body: mockCompletedAppointment,
     }).as('completeAppointment')
 
-    visitClinic('/appointments', mockAdminUser)
+    visitClinic(`/appointments/${APPT_UUID}`, mockAdminUser)
 
-    cy.get('[data-testid="toolbar-doctor-select"]').select(DOC_UUID)
-    cy.get('[data-testid="agenda-slot-booked"]', { timeout: 10000 }).first().click()
-    cy.get('[data-testid="details-complete-button"]').click()
+    cy.get('[data-testid="appointment-detail-complete-button"]').click()
 
-    cy.wait('@completeAppointment')
-    cy.get('[data-testid="appointment-details-dialog"]').should('not.exist')
+    cy.wait('@completeAppointment').its('response.statusCode').should('eq', 200)
   })
 
   it('shows error when trying to complete a future appointment', () => {
@@ -120,14 +108,12 @@ describe('Appointments — complete', () => {
       body: { title: 'Unprocessable', detail: 'Cannot complete a future appointment' },
     }).as('completeFail')
 
-    visitClinic('/appointments', mockAdminUser)
+    visitClinic(`/appointments/${APPT_UUID}`, mockAdminUser)
 
-    cy.get('[data-testid="toolbar-doctor-select"]').select(DOC_UUID)
-    cy.get('[data-testid="agenda-slot-booked"]', { timeout: 10000 }).first().click()
-    cy.get('[data-testid="details-complete-button"]').click()
+    cy.get('[data-testid="appointment-detail-complete-button"]').click()
 
     cy.wait('@completeFail')
-    cy.get('[data-testid="details-complete-error"]').should('contain.text', 'futura')
-    cy.get('[data-testid="appointment-details-dialog"]').should('be.visible')
+    cy.get('[data-testid="appointment-detail-complete-error"]').should('contain.text', 'futura')
+    cy.get('[data-testid="appointment-detail-complete-button"]').should('be.visible')
   })
 })

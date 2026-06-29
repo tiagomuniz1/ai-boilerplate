@@ -1,6 +1,7 @@
-import { Body, Controller, Get, Headers, HttpCode, Post, Req, Res, UnauthorizedException } from '@nestjs/common'
+import { Body, Controller, Get, Headers, HttpCode, Post, Query, Req, Res, UnauthorizedException } from '@nestjs/common'
 import { Throttle } from '@nestjs/throttler'
 import { Request, Response } from 'express'
+import { SetPasswordDto, ValidateSetPasswordTokenQueryDto, ValidateSetPasswordTokenResponseDto } from '@app/shared'
 import { Public } from '../decorators/public.decorator'
 import { CurrentUser } from '../decorators/current-user.decorator'
 import { LoginDto } from '../dto/login.dto'
@@ -10,6 +11,8 @@ import { LoginUseCase } from '../use-cases/login.use-case'
 import { LogoutUseCase } from '../use-cases/logout.use-case'
 import { MeUseCase } from '../use-cases/me.use-case'
 import { RefreshTokenUseCase } from '../use-cases/refresh-token.use-case'
+import { SetPasswordUseCase } from '../use-cases/set-password.use-case'
+import { ValidateSetPasswordTokenUseCase } from '../use-cases/validate-set-password-token.use-case'
 import { ICurrentUser } from '../types/current-user.type'
 
 @Controller('auth')
@@ -19,6 +22,8 @@ export class AuthController {
     private readonly refreshTokenUseCase: RefreshTokenUseCase,
     private readonly logoutUseCase: LogoutUseCase,
     private readonly meUseCase: MeUseCase,
+    private readonly validateSetPasswordTokenUseCase: ValidateSetPasswordTokenUseCase,
+    private readonly setPasswordUseCase: SetPasswordUseCase,
   ) {}
 
   private cookieNames(slug?: string | null): { access: string; refresh: string } {
@@ -101,5 +106,21 @@ export class AuthController {
   @HttpCode(200)
   me(@CurrentUser() authUser: ICurrentUser): Promise<MeResponseDto> {
     return this.meUseCase.execute(authUser.id, authUser.clinicId)
+  }
+
+  @Get('set-password/validate')
+  @Public()
+  @HttpCode(200)
+  validateSetPasswordToken(
+    @Query() query: ValidateSetPasswordTokenQueryDto,
+  ): Promise<ValidateSetPasswordTokenResponseDto> {
+    return this.validateSetPasswordTokenUseCase.execute(query.token)
+  }
+
+  @Post('set-password')
+  @Public()
+  @HttpCode(204)
+  setPassword(@Body() dto: SetPasswordDto): Promise<void> {
+    return this.setPasswordUseCase.execute(dto)
   }
 }

@@ -31,7 +31,8 @@ export class FindSpecialtyByIdUseCase extends BaseUseCase {
     const specialty = await this.specialtiesRepository.findById(id)
     if (!specialty) throw new NotFoundException('Specialty not found')
 
-    const response = this.toResponse(specialty)
+    const clinicCount = await this.specialtiesRepository.countLinkedClinics(id)
+    const response = this.toResponse(specialty, clinicCount)
 
     try {
       await this.cacheService.set(cacheKey, response, 300)
@@ -42,11 +43,12 @@ export class FindSpecialtyByIdUseCase extends BaseUseCase {
     return response
   }
 
-  private toResponse(specialty: Specialty): SpecialtyResponseDto {
+  private toResponse(specialty: Specialty, clinicCount: number): SpecialtyResponseDto {
     return {
       id: specialty.id,
       name: specialty.name,
       description: specialty.description,
+      clinicCount,
       createdAt: specialty.createdAt,
       updatedAt: specialty.updatedAt,
     }

@@ -6,11 +6,15 @@ import { LoginUseCase } from '../use-cases/login.use-case'
 import { RefreshTokenUseCase } from '../use-cases/refresh-token.use-case'
 import { LogoutUseCase } from '../use-cases/logout.use-case'
 import { MeUseCase } from '../use-cases/me.use-case'
+import { ValidateSetPasswordTokenUseCase } from '../use-cases/validate-set-password-token.use-case'
+import { SetPasswordUseCase } from '../use-cases/set-password.use-case'
 
 const mockLoginUseCase = { execute: jest.fn() } as unknown as jest.Mocked<LoginUseCase>
 const mockRefreshTokenUseCase = { execute: jest.fn() } as unknown as jest.Mocked<RefreshTokenUseCase>
 const mockLogoutUseCase = { execute: jest.fn() } as unknown as jest.Mocked<LogoutUseCase>
 const mockMeUseCase = { execute: jest.fn() } as unknown as jest.Mocked<MeUseCase>
+const mockValidateSetPasswordTokenUseCase = { execute: jest.fn() } as unknown as jest.Mocked<ValidateSetPasswordTokenUseCase>
+const mockSetPasswordUseCase = { execute: jest.fn() } as unknown as jest.Mocked<SetPasswordUseCase>
 
 function makeMockResponse(): jest.Mocked<Pick<Response, 'cookie' | 'clearCookie'>> {
   return { cookie: jest.fn(), clearCookie: jest.fn() }
@@ -21,7 +25,7 @@ describe('AuthController', () => {
 
   beforeEach(() => {
     jest.clearAllMocks()
-    controller = new AuthController(mockLoginUseCase, mockRefreshTokenUseCase, mockLogoutUseCase, mockMeUseCase)
+    controller = new AuthController(mockLoginUseCase, mockRefreshTokenUseCase, mockLogoutUseCase, mockMeUseCase, mockValidateSetPasswordTokenUseCase, mockSetPasswordUseCase)
   })
 
   describe('login', () => {
@@ -254,6 +258,29 @@ describe('AuthController', () => {
       expect(mockLogoutUseCase.execute).toHaveBeenCalledWith({ refreshToken: 'rt-clinic' })
       expect(mockRes.clearCookie).toHaveBeenCalledWith('access_token_minha_clinica', expect.any(Object))
       expect(mockRes.clearCookie).toHaveBeenCalledWith('refresh_token_minha_clinica', expect.any(Object))
+    })
+  })
+
+  describe('validateSetPasswordToken', () => {
+    it('delegates to ValidateSetPasswordTokenUseCase and returns result', async () => {
+      const result = { valid: true, email: 'doc@example.com' }
+      mockValidateSetPasswordTokenUseCase.execute.mockResolvedValue(result as any)
+
+      const response = await controller.validateSetPasswordToken({ token: 'tok-abc' })
+
+      expect(mockValidateSetPasswordTokenUseCase.execute).toHaveBeenCalledWith('tok-abc')
+      expect(response).toBe(result)
+    })
+  })
+
+  describe('setPassword', () => {
+    it('delegates to SetPasswordUseCase', async () => {
+      mockSetPasswordUseCase.execute.mockResolvedValue(undefined)
+      const dto = { token: 'tok-abc', password: 'Senha@123' }
+
+      await controller.setPassword(dto as any)
+
+      expect(mockSetPasswordUseCase.execute).toHaveBeenCalledWith(dto)
     })
   })
 

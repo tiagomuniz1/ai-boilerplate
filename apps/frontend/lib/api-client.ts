@@ -84,4 +84,5 @@ export const apiClient = {
   put: <T>(url: string, data?: unknown): Promise<T> => client.put<never, T>(url, data),
   patch: <T>(url: string, data?: unknown): Promise<T> => client.patch<never, T>(url, data),
   delete: <T>(url: string): Promise<T> => client.delete<never, T>(url),
+  getBlob: (url: string): Promise<Blob> => client.get<never, Blob>(url, { responseType: 'blob' }),
 }

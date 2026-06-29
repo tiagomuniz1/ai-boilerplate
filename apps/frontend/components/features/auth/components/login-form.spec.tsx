@@ -1,7 +1,9 @@
 jest.mock('../hooks/use-login.hook')
+jest.mock('next/navigation', () => ({ useSearchParams: jest.fn() }))
 
 import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
+import { useSearchParams } from 'next/navigation'
 import { useLogin } from '../hooks/use-login.hook'
 import { LoginForm } from './login-form'
 
@@ -12,6 +14,7 @@ describe('LoginForm', () => {
 
   beforeEach(() => {
     jest.clearAllMocks()
+    ;(useSearchParams as jest.Mock).mockReturnValue({ get: jest.fn().mockReturnValue(null) })
     mockUseLogin.mockReturnValue({ mutate: mockMutate, isPending: false })
   })
 

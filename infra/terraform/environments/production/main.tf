@@ -10,3 +10,12 @@ module "clinic_assets" {
   allowed_origins    = [var.frontend_url]
   ecs_task_role_name = var.ecs_task_role_name
 }
+
+module "ses_email" {
+  source = "../../modules/ses-email"
+
+  environment   = "production"
+  identity_type = var.ses_identity_type
+  from_email    = var.ses_from_email
+  domain        = var.ses_domain
+}

@@ -12,6 +12,7 @@ const mockSpecialtiesRepository: jest.Mocked<ISpecialtiesRepository> = {
   findByName: jest.fn(),
   countLinkedDoctors: jest.fn(),
   countLinkedClinics: jest.fn(),
+  countLinkedClinicsForAll: jest.fn(),
   countLinkedAppointments: jest.fn(),
   create: jest.fn(),
   update: jest.fn(),
@@ -49,6 +50,7 @@ describe('FindAllSpecialtiesUseCase', () => {
     )
     mockCacheService.get.mockResolvedValue(null)
     mockCacheService.set.mockResolvedValue(undefined)
+    mockSpecialtiesRepository.countLinkedClinicsForAll.mockResolvedValue({})
   })
 
   it('returns paginated response with correct shape', async () => {
@@ -63,6 +65,28 @@ describe('FindAllSpecialtiesUseCase', () => {
     expect(result.limit).toBe(20)
     expect(result.data[0]).not.toHaveProperty('version')
     expect(result.data[0]).not.toHaveProperty('deletedAt')
+    expect(result.data[0].clinicCount).toBe(0)
+  })
+
+  it('includes clinicCount from countLinkedClinicsForAll', async () => {
+    const specialty = makeSpecialty({ id: 'spec-uuid' })
+    mockSpecialtiesRepository.findAll.mockResolvedValue([[specialty as any], 1])
+    mockSpecialtiesRepository.countLinkedClinicsForAll.mockResolvedValue({ 'spec-uuid': 3 })
+
+    const result = await useCase.execute({ page: 1, limit: 20 } as SpecialtyListQueryDto)
+
+    expect(mockSpecialtiesRepository.countLinkedClinicsForAll).toHaveBeenCalledWith(['spec-uuid'])
+    expect(result.data[0].clinicCount).toBe(3)
+  })
+
+  it('uses 0 as clinicCount when specialty has no linked clinics', async () => {
+    const specialty = makeSpecialty({ id: 'spec-uuid' })
+    mockSpecialtiesRepository.findAll.mockResolvedValue([[specialty as any], 1])
+    mockSpecialtiesRepository.countLinkedClinicsForAll.mockResolvedValue({})
+
+    const result = await useCase.execute({ page: 1, limit: 20 } as SpecialtyListQueryDto)
+
+    expect(result.data[0].clinicCount).toBe(0)
   })
 
   it('uses cached result on cache hit', async () => {

@@ -1,6 +1,7 @@
 import { forwardRef, Module } from '@nestjs/common'
 import { TypeOrmModule } from '@nestjs/typeorm'
 import { CacheModule } from '../../cache/cache.module'
+import { AuthModule } from '../auth/auth.module'
 import { UsersModule } from '../users/users.module'
 import { SpecialtiesModule } from '../specialties/specialties.module'
 import { SchedulesModule } from '../schedules/schedules.module'
@@ -18,6 +19,7 @@ import { DoctorsRepository } from './repositories/doctors.repository'
   imports: [
     TypeOrmModule.forFeature([Doctor]),
     CacheModule,
+    forwardRef(() => AuthModule),
     forwardRef(() => UsersModule),
     forwardRef(() => SchedulesModule),
     SpecialtiesModule,

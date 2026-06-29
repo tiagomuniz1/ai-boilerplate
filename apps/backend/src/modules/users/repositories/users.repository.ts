@@ -54,6 +54,11 @@ export class UsersRepository implements IUsersRepository {
     return repo.save(user)
   }
 
+  async updatePassword(id: string, hashedPassword: string, queryRunner?: QueryRunner): Promise<void> {
+    const repo = queryRunner ? queryRunner.manager.getRepository(User) : this.repository
+    await repo.update(id, { password: hashedPassword })
+  }
+
   async delete(id: string, queryRunner?: QueryRunner): Promise<void> {
     const repo = queryRunner ? queryRunner.manager.getRepository(User) : this.repository
     await repo.softDelete(id)

@@ -1,11 +1,11 @@
-jest.mock('next/navigation', () => ({ useRouter: jest.fn() }))
+jest.mock('next/navigation', () => ({ useRouter: jest.fn(), useSearchParams: jest.fn() }))
 jest.mock('@/stores/auth.store')
 jest.mock('../services/auth.service')
 jest.mock('@/lib/slug-context', () => ({ useSlug: () => 'test-clinic' }))
 
 import { screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { useAuthStore } from '@/stores/auth.store'
 import { authService } from '../services/auth.service'
 import { renderWithProviders } from '@/tests/utils/render-with-providers'
@@ -13,11 +13,14 @@ import { LoginForm } from './login-form'
 
 const mockPush = jest.fn()
 const mockSetUser = jest.fn()
+const mockGet = jest.fn().mockReturnValue(null)
 
 describe('LoginForm (integration)', () => {
   beforeEach(() => {
     jest.clearAllMocks()
+    mockGet.mockReturnValue(null)
     ;(useRouter as jest.Mock).mockReturnValue({ push: mockPush })
+    ;(useSearchParams as jest.Mock).mockReturnValue({ get: mockGet })
     ;(useAuthStore as unknown as jest.Mock).mockImplementation((selector: (s: object) => unknown) =>
       selector({ user: null, setUser: mockSetUser }),
     )
@@ -103,5 +106,24 @@ describe('LoginForm (integration)', () => {
         'Não foi possível fazer login. Tente novamente.',
       )
     })
+  })
+
+  it('shows success alert when ?passwordSet=true is in URL', () => {
+    mockGet.mockReturnValue('true')
+
+    renderWithProviders(<LoginForm />)
+
+    expect(screen.getByTestId('login-password-set-success')).toHaveTextContent(
+      'Senha definida com sucesso. Faça login para continuar.',
+    )
+    expect(screen.queryByTestId('login-error')).not.toBeInTheDocument()
+  })
+
+  it('does not show success alert when ?passwordSet is absent', () => {
+    mockGet.mockReturnValue(null)
+
+    renderWithProviders(<LoginForm />)
+
+    expect(screen.queryByTestId('login-password-set-success')).not.toBeInTheDocument()
   })
 })

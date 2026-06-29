@@ -16,5 +16,6 @@ export abstract class IUsersRepository {
   abstract findByEmail(email: string, clinicId?: string | null): Promise<User | null>
   abstract create(data: CreateUserData, clinicId: string | null, queryRunner?: QueryRunner): Promise<User>
   abstract update(id: string, data: UpdateUserDto, queryRunner?: QueryRunner): Promise<User>
+  abstract updatePassword(id: string, hashedPassword: string, queryRunner?: QueryRunner): Promise<void>
   abstract delete(id: string, queryRunner?: QueryRunner): Promise<void>
 }

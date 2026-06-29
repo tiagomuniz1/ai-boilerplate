@@ -25,5 +25,6 @@ import { ThemesRepository } from './repositories/themes.repository'
     FindActiveThemeUseCase,
     { provide: IThemesRepository, useClass: ThemesRepository },
   ],
+  exports: [FindThemeByIdUseCase],
 })
 export class ThemesModule {}

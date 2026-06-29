@@ -20,3 +20,21 @@ variable "frontend_url" {
   description = "Production frontend URL for CORS allowed origins"
   type        = string
 }
+
+variable "ses_identity_type" {
+  description = "SES identity type for production: 'email' or 'domain'. Use 'domain' once pulso.center DNS is under management."
+  type        = string
+  default     = "domain"
+}
+
+variable "ses_from_email" {
+  description = "Sender e-mail address to verify in SES. Used when ses_identity_type = 'email'."
+  type        = string
+  default     = "noreply@pulso.center"
+}
+
+variable "ses_domain" {
+  description = "Domain to verify in SES. Required when ses_identity_type = 'domain'."
+  type        = string
+  default     = "pulso.center"
+}

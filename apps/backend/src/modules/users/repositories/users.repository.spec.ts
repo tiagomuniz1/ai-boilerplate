@@ -196,6 +196,27 @@ describe('UsersRepository', () => {
     })
   })
 
+  describe('updatePassword', () => {
+    it('calls update with id and hashed password', async () => {
+      ;(repo as any).update = jest.fn().mockResolvedValue({ affected: 1 })
+
+      await repository.updatePassword('uuid-1', 'hashed')
+
+      expect((repo as any).update).toHaveBeenCalledWith('uuid-1', { password: 'hashed' })
+    })
+
+    it('uses queryRunner repository when provided', async () => {
+      const qrRepo = { update: jest.fn().mockResolvedValue({ affected: 1 }) }
+      const queryRunner = { manager: { getRepository: jest.fn().mockReturnValue(qrRepo) } } as any
+      ;(repo as any).update = jest.fn()
+
+      await repository.updatePassword('uuid-1', 'hashed', queryRunner)
+
+      expect(qrRepo.update).toHaveBeenCalledWith('uuid-1', { password: 'hashed' })
+      expect((repo as any).update).not.toHaveBeenCalled()
+    })
+  })
+
   describe('delete', () => {
     it('soft deletes the user', async () => {
       repo.softDelete.mockResolvedValue({ affected: 1 } as any)

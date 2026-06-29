@@ -34,6 +34,7 @@ const mockUsersRepository: jest.Mocked<IUsersRepository> = {
   create: jest.fn(),
   update: jest.fn(),
   delete: jest.fn(),
+  updatePassword: jest.fn(),
 }
 
 const mockSpecialtiesRepository: jest.Mocked<ISpecialtiesRepository> = {
@@ -43,6 +44,7 @@ const mockSpecialtiesRepository: jest.Mocked<ISpecialtiesRepository> = {
   findByName: jest.fn(),
   countLinkedDoctors: jest.fn(),
   countLinkedClinics: jest.fn(),
+  countLinkedClinicsForAll: jest.fn(),
   countLinkedAppointments: jest.fn(),
   create: jest.fn(),
   update: jest.fn(),

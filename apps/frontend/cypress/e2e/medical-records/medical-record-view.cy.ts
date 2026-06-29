@@ -75,6 +75,14 @@ const mockAppointment = {
   cancellationReason: null,
   createdAt: new Date().toISOString(),
   updatedAt: new Date().toISOString(),
+  patient: {
+    fullName: 'Ana Lima',
+    email: 'ana@test.com',
+    phoneNumber: '11999990001',
+    birthDate: '1990-01-01',
+    documentNumber: '12345678901',
+    gender: 'female',
+  },
 }
 
 describe('Medical Record View', () => {
@@ -98,26 +106,10 @@ describe('Medical Record View', () => {
         limit: 200,
       },
     })
-    cy.intercept('GET', `${Cypress.env('API_URL')}/appointments/availability*`, {
-      statusCode: 200,
-      body: { doctorId: DOCTOR_UUID, date: '2099-12-01', slots: [] },
-    })
     cy.intercept('GET', `${Cypress.env('API_URL')}/appointments/${APPT_UUID}`, {
       statusCode: 200,
       body: mockAppointment,
     }).as('getAppointment')
-    cy.intercept('GET', `${Cypress.env('API_URL')}/appointments*`, {
-      statusCode: 200,
-      body: { data: [mockAppointment], total: 1, page: 1, limit: 100 },
-    }).as('getAppointments')
-    cy.intercept('GET', `${Cypress.env('API_URL')}/schedule-exceptions*`, {
-      statusCode: 200,
-      body: { data: [], total: 0, page: 1, limit: 20 },
-    })
-    cy.intercept('GET', `${Cypress.env('API_URL')}/patients*`, {
-      statusCode: 200,
-      body: { data: [], total: 0, page: 1, limit: 100 },
-    })
     cy.intercept('GET', `${Cypress.env('API_URL')}/medical-records/by-appointment/${APPT_UUID}`, {
       statusCode: 200,
       body: mockRecord,
@@ -126,12 +118,15 @@ describe('Medical Record View', () => {
       statusCode: 200,
       body: { data: [], total: 0, page: 1, limit: 1 },
     })
+    cy.intercept('GET', `${Cypress.env('API_URL')}/prescriptions*`, {
+      statusCode: 200,
+      body: { data: [], total: 0, page: 1, limit: 20 },
+    })
 
-    visitClinic('/appointments', mockDoctorUser)
+    visitClinic(`/appointments/${APPT_UUID}`, mockDoctorUser)
   })
 
   it('shows view-medical-record button when record exists', () => {
-    cy.get('[data-testid="agenda-slot-booked"]', { timeout: 10000 }).first().click()
     cy.wait('@getAppointment')
     cy.wait('@getRecord')
 
@@ -139,7 +134,6 @@ describe('Medical Record View', () => {
   })
 
   it('opens medical-record-view modal when view button clicked', () => {
-    cy.get('[data-testid="agenda-slot-booked"]', { timeout: 10000 }).first().click()
     cy.wait('@getAppointment')
     cy.wait('@getRecord')
 
@@ -148,7 +142,6 @@ describe('Medical Record View', () => {
   })
 
   it('displays field values in correct order', () => {
-    cy.get('[data-testid="agenda-slot-booked"]', { timeout: 10000 }).first().click()
     cy.wait('@getAppointment')
     cy.wait('@getRecord')
 
@@ -161,7 +154,6 @@ describe('Medical Record View', () => {
   })
 
   it('shows notes when present', () => {
-    cy.get('[data-testid="agenda-slot-booked"]', { timeout: 10000 }).first().click()
     cy.wait('@getAppointment')
     cy.wait('@getRecord')
 
@@ -170,7 +162,6 @@ describe('Medical Record View', () => {
   })
 
   it('does not show edit-medical-record button for completed appointment', () => {
-    cy.get('[data-testid="agenda-slot-booked"]', { timeout: 10000 }).first().click()
     cy.wait('@getAppointment')
     cy.wait('@getRecord')
 

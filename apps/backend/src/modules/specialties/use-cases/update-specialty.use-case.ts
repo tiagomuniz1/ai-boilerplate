@@ -44,14 +44,16 @@ export class UpdateSpecialtyUseCase extends BaseUseCase {
       this.logger.warn('Cache invalidation failed', { context: UpdateSpecialtyUseCase.name })
     }
 
-    return this.toResponse(updated)
+    const clinicCount = await this.specialtiesRepository.countLinkedClinics(id)
+    return this.toResponse(updated, clinicCount)
   }
 
-  private toResponse(specialty: Specialty): SpecialtyResponseDto {
+  private toResponse(specialty: Specialty, clinicCount: number): SpecialtyResponseDto {
     return {
       id: specialty.id,
       name: specialty.name,
       description: specialty.description,
+      clinicCount,
       createdAt: specialty.createdAt,
       updatedAt: specialty.updatedAt,
     }

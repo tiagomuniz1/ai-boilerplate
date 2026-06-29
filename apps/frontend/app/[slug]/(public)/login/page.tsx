@@ -5,6 +5,7 @@ import { LoginForm } from '@/components/features/auth/components/login-form'
 interface ClinicBranding {
   name: string
   logoUrl: string | null
+  logoDarkUrl: string | null
 }
 
 async function getClinicBranding(slug: string): Promise<ClinicBranding | null> {
@@ -15,7 +16,7 @@ async function getClinicBranding(slug: string): Promise<ClinicBranding | null> {
     )
     if (!res.ok) return null
     const data = await res.json()
-    return { name: data.name ?? slug, logoUrl: data.logoUrl ?? null }
+    return { name: data.name ?? slug, logoUrl: data.logoUrl ?? null, logoDarkUrl: data.logoDarkUrl ?? null }
   } catch {
     return null
   }
@@ -33,13 +34,21 @@ export default async function LoginPage({ params }: { params: { slug: string } }
     <main className="flex min-h-screen items-center justify-center bg-bg p-4">
       <div className="w-full max-w-md space-y-6">
         <div className="flex flex-col items-center gap-3">
-          {branding?.logoUrl ? (
+          {branding?.logoUrl && (
             <img
               src={branding.logoUrl}
               alt={branding.name}
-              className="max-h-16 max-w-[200px] object-contain"
+              className={`max-h-16 max-w-[200px] object-contain${branding.logoDarkUrl ? ' dark:hidden' : ''}`}
             />
-          ) : (
+          )}
+          {branding?.logoDarkUrl && (
+            <img
+              src={branding.logoDarkUrl}
+              alt={branding.name}
+              className={`max-h-16 max-w-[200px] object-contain${branding.logoUrl ? ' hidden dark:block' : ''}`}
+            />
+          )}
+          {!branding?.logoUrl && !branding?.logoDarkUrl && (
             <h1 className="text-2xl font-bold text-text">{branding?.name ?? params.slug}</h1>
           )}
           <p className="text-sm text-text-dim">Acesse sua conta para continuar</p>

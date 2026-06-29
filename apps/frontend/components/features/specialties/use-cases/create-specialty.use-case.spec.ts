@@ -13,6 +13,7 @@ const makeDto = () => ({
   id: 'uuid-1',
   name: 'Cardiologia',
   description: null,
+  clinicCount: 0,
   createdAt: new Date(),
   updatedAt: new Date(),
 })

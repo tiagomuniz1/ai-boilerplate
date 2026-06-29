@@ -81,7 +81,8 @@ export class CreateAppointmentUseCase extends BaseUseCase {
 
     const nowUtc = new Date()
     const [dateStr, timeStr] = [dto.date, dto.startTime]
-    const appointmentDateTime = new Date(`${dateStr}T${timeStr}:00Z`)
+    // Brazil is always UTC-3 (DST abolished in 2019). Appointment times are in clinic local time.
+    const appointmentDateTime = new Date(`${dateStr}T${timeStr}:00-03:00`)
     if (appointmentDateTime <= nowUtc) {
       throw new UnprocessableEntityException('Cannot book an appointment in the past')
     }

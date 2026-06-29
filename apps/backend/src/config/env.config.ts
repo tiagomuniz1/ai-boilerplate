@@ -15,6 +15,11 @@ export interface IEnvConfig {
   FRONTEND_URL: string
   AWS_S3_BUCKET: string | undefined
   AWS_REGION: string | undefined
+  SMTP_HOST: string | undefined
+  SMTP_PORT: number
+  SMTP_USER: string | undefined
+  SMTP_PASS: string | undefined
+  SMTP_FROM: string
 }
 
 export function getEnvConfig(): IEnvConfig {
@@ -45,6 +50,11 @@ export function getEnvConfig(): IEnvConfig {
     FRONTEND_URL: process.env.FRONTEND_URL!,
     AWS_S3_BUCKET: process.env.AWS_S3_BUCKET,
     AWS_REGION: process.env.AWS_REGION,
+    SMTP_HOST: process.env.SMTP_HOST,
+    SMTP_PORT: parseInt(process.env.SMTP_PORT ?? '587', 10),
+    SMTP_USER: process.env.SMTP_USER,
+    SMTP_PASS: process.env.SMTP_PASS,
+    SMTP_FROM: process.env.SMTP_FROM ?? 'noreply@pulso.center',
   }
 }
 

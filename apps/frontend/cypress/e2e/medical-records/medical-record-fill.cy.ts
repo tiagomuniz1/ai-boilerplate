@@ -31,6 +31,14 @@ const mockAppointment = {
   cancellationReason: null,
   createdAt: new Date().toISOString(),
   updatedAt: new Date().toISOString(),
+  patient: {
+    fullName: 'Ana Lima',
+    email: 'ana@test.com',
+    phoneNumber: '11999990001',
+    birthDate: '1990-01-01',
+    documentNumber: '12345678901',
+    gender: 'female',
+  },
 }
 
 const mockTemplate = {
@@ -102,26 +110,10 @@ describe('Medical Record Fill', () => {
         limit: 200,
       },
     })
-    cy.intercept('GET', `${Cypress.env('API_URL')}/appointments/availability*`, {
-      statusCode: 200,
-      body: { doctorId: DOCTOR_UUID, date: '2099-12-01', slots: [] },
-    })
     cy.intercept('GET', `${Cypress.env('API_URL')}/appointments/${APPT_UUID}`, {
       statusCode: 200,
       body: mockAppointment,
     }).as('getAppointment')
-    cy.intercept('GET', `${Cypress.env('API_URL')}/appointments*`, {
-      statusCode: 200,
-      body: { data: [mockAppointment], total: 1, page: 1, limit: 100 },
-    }).as('getAppointments')
-    cy.intercept('GET', `${Cypress.env('API_URL')}/schedule-exceptions*`, {
-      statusCode: 200,
-      body: { data: [], total: 0, page: 1, limit: 20 },
-    })
-    cy.intercept('GET', `${Cypress.env('API_URL')}/patients*`, {
-      statusCode: 200,
-      body: { data: [], total: 0, page: 1, limit: 100 },
-    })
     cy.intercept('GET', `${Cypress.env('API_URL')}/medical-records/by-appointment/${APPT_UUID}`, {
       statusCode: 200,
       body: null,
@@ -134,12 +126,15 @@ describe('Medical Record Fill', () => {
       statusCode: 201,
       body: mockCreatedRecord,
     }).as('createRecord')
-
-    visitClinic('/appointments', mockDoctorUser)
+    cy.intercept('GET', `${Cypress.env('API_URL')}/prescriptions*`, {
+      statusCode: 200,
+      body: { data: [], total: 0, page: 1, limit: 20 },
+    })
   })
 
   it('DOCTOR sees fill-medical-record button for own scheduled appointment without record', () => {
-    cy.get('[data-testid="agenda-slot-booked"]', { timeout: 10000 }).first().click()
+    visitClinic(`/appointments/${APPT_UUID}`, mockDoctorUser)
+
     cy.wait('@getAppointment')
     cy.wait('@getRecord')
 
@@ -152,7 +147,8 @@ describe('Medical Record Fill', () => {
       body: null,
     }).as('noRecord')
 
-    cy.get('[data-testid="agenda-slot-booked"]', { timeout: 10000 }).first().click()
+    visitClinic(`/appointments/${APPT_UUID}`, mockDoctorUser)
+
     cy.wait('@getAppointment')
     cy.wait('@noRecord')
     cy.wait('@getTemplate')

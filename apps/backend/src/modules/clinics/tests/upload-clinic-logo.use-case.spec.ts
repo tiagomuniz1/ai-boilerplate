@@ -120,21 +120,14 @@ describe('UploadClinicLogoUseCase', () => {
     )
   })
 
-  it('maps svg mime type to correct extension', async () => {
+  it('throws UnprocessableEntityException for svg (not supported for PDF rendering)', async () => {
     const clinic = makeClinic()
     const file = makeFile({ mimetype: 'image/svg+xml', originalname: 'logo.svg' })
 
     mockClinicsRepository.findById.mockResolvedValue(clinic)
-    mockStorageAdapter.upload.mockResolvedValue(`https://bucket.s3.us-east-1.amazonaws.com/clinics/${clinic.id}/logo.svg`)
-    mockClinicsRepository.updateLogo.mockResolvedValue(undefined)
 
-    await useCase.execute(clinic.id, file)
-
-    expect(mockStorageAdapter.upload).toHaveBeenCalledWith(
-      file.buffer,
-      `clinics/${clinic.id}/logo.svg`,
-      'image/svg+xml',
-    )
+    await expect(useCase.execute(clinic.id, file)).rejects.toThrow(UnprocessableEntityException)
+    expect(mockStorageAdapter.upload).not.toHaveBeenCalled()
   })
 
   it('throws UnprocessableEntityException for invalid mime type', async () => {

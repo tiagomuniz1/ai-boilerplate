@@ -12,6 +12,7 @@ const mockSpecialtiesRepository: jest.Mocked<ISpecialtiesRepository> = {
   findByName: jest.fn(),
   countLinkedDoctors: jest.fn(),
   countLinkedClinics: jest.fn(),
+  countLinkedClinicsForAll: jest.fn(),
   countLinkedAppointments: jest.fn(),
   create: jest.fn(),
   update: jest.fn(),
@@ -49,6 +50,7 @@ describe('UpdateSpecialtyUseCase', () => {
     )
     mockCacheService.del.mockResolvedValue(undefined)
     mockCacheService.delByPattern.mockResolvedValue(undefined)
+    mockSpecialtiesRepository.countLinkedClinics.mockResolvedValue(0)
   })
 
   it('updates specialty and returns response', async () => {
@@ -63,6 +65,7 @@ describe('UpdateSpecialtyUseCase', () => {
 
     expect(result.id).toBe(specialty.id)
     expect(result.name).toBe('Neurologia')
+    expect(result.clinicCount).toBe(0)
   })
 
   it('response does not contain version or deletedAt', async () => {
