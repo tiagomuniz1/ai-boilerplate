@@ -140,12 +140,12 @@ O sistema possui quatro perfis de usuário (`UserRole`). Cada perfil reflete um 
 | Ação | ADMIN | DOCTOR | USER | PATIENT |
 |---|:---:|:---:|:---:|:---:|
 | Criar template | ✓ | ✗ | ✗ | ✗ |
-| Listar templates | ✓ | ✗ | ✗ | ✗ |
-| Ver por ID | ✓ | ✗ | ✗ | ✗ |
+| Listar templates | ✓ | ✓ (leitura) | ✗ | ✗ |
+| Ver por ID | ✓ | ✓ (leitura) | ✗ | ✗ |
 | Editar / Ativar-Desativar | ✓ | ✗ | ✗ | ✗ |
 | Excluir | ✓ | ✗ | ✗ | ✗ |
 
-> Templates são escopados por `clinicId + specialtyId` — cada clínica gerencia os próprios. Acesso exclusivo de ADMIN.
+> Templates são escopados por `clinicId + specialtyId`. DOCTOR tem leitura para carregar o template ao preencher um prontuário — não vê a tela de gestão de templates no menu lateral.
 
 ---
 

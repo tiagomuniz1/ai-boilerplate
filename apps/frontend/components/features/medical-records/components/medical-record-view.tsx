@@ -1,11 +1,23 @@
 'use client'
 
+import { useState } from 'react'
 import { MedicalRecordFieldType } from '@app/shared'
-import type { IMedicalRecordModel } from '../types/medical-record-model.types'
+import { Tabs } from '@/components/ui/atoms/tabs/tabs'
+import type { IMedicalRecordModel, IRecordFieldModel } from '../types/medical-record-model.types'
+
+interface IViewSection {
+  key: string
+  title: string
+  order: number
+}
 
 interface MedicalRecordViewProps {
   record: IMedicalRecordModel
+  sections?: IViewSection[]
 }
+
+const NOTES_TAB = '__notes__'
+const GENERAL_TAB = '__general__'
 
 function formatFieldValue(type: MedicalRecordFieldType, value: unknown): string {
   if (value === undefined || value === null || value === '') return '—'
@@ -20,41 +32,147 @@ function formatFieldValue(type: MedicalRecordFieldType, value: unknown): string 
   }
 }
 
-export function MedicalRecordView({ record }: MedicalRecordViewProps) {
+function FieldRow({ field, value }: { field: IRecordFieldModel; value: unknown }) {
+  const isLong =
+    field.type === MedicalRecordFieldType.TEXTAREA ||
+    (typeof value === 'string' && value.length > 60)
+
+  return (
+    <div
+      data-testid={`record-field-${field.key}`}
+      className={isLong ? 'col-span-2' : undefined}
+    >
+      <dt className="text-xs font-medium uppercase tracking-wider text-text-mute mb-0.5">
+        {field.label}
+      </dt>
+      <dd className="text-sm text-text whitespace-pre-wrap">
+        {formatFieldValue(field.type, value)}
+      </dd>
+    </div>
+  )
+}
+
+function FieldsGrid({ fields, record }: { fields: IRecordFieldModel[]; record: IMedicalRecordModel }) {
+  return (
+    <dl className="grid grid-cols-2 gap-x-6 gap-y-4">
+      {fields.map((field) => (
+        <FieldRow key={field.key} field={field} value={record.data[field.key]} />
+      ))}
+    </dl>
+  )
+}
+
+export function MedicalRecordView({ record, sections = [] }: MedicalRecordViewProps) {
+  const sortedSections = sections.slice().sort((a, b) => a.order - b.order)
+  const hasSections = sortedSections.length > 0
+
+  const fieldsBySection = new Map<string | null, IRecordFieldModel[]>()
+  for (const field of record.schema) {
+    const key = field.sectionKey ?? null
+    if (!fieldsBySection.has(key)) fieldsBySection.set(key, [])
+    fieldsBySection.get(key)!.push(field)
+  }
+  const unsectionedFields = fieldsBySection.get(null) ?? []
+
+  const hasNotes = !!record.notes
+  const nonEmptySections = sortedSections.filter(
+    (s) => (fieldsBySection.get(s.key) ?? []).length > 0,
+  )
+
+  const firstTab = hasSections
+    ? (unsectionedFields.length > 0 ? GENERAL_TAB : (nonEmptySections[0]?.key ?? NOTES_TAB))
+    : 'all'
+  const [activeTab, setActiveTab] = useState<string>(firstTab)
+
+  const tabItems = hasSections
+    ? [
+        ...(unsectionedFields.length > 0 ? [{ id: GENERAL_TAB, label: 'Geral' }] : []),
+        ...nonEmptySections.map((s) => ({ id: s.key, label: s.title })),
+        ...(hasNotes ? [{ id: NOTES_TAB, label: 'Notas' }] : []),
+      ]
+    : []
+
   return (
     <div className="space-y-4" data-testid="medical-record-view">
-      <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-sm text-text/60">
-        <span>Paciente</span>
-        <span data-testid="record-patient-name">{record.patientName}</span>
-        <span>Médico</span>
-        <span data-testid="record-doctor-name">{record.doctorName}</span>
-        <span>Especialidade</span>
-        <span data-testid="record-specialty-name">{record.specialtyName}</span>
+      {/* Header: patient / doctor / specialty */}
+      <div className="grid grid-cols-3 gap-4 rounded-lg border border-line bg-surface p-4">
+        <div>
+          <p className="text-xs font-medium uppercase tracking-wider text-text-mute">Paciente</p>
+          <p className="mt-0.5 text-sm font-medium text-text" data-testid="record-patient-name">
+            {record.patientName}
+          </p>
+        </div>
+        <div>
+          <p className="text-xs font-medium uppercase tracking-wider text-text-mute">Médico</p>
+          <p className="mt-0.5 text-sm font-medium text-text" data-testid="record-doctor-name">
+            {record.doctorName}
+          </p>
+        </div>
+        <div>
+          <p className="text-xs font-medium uppercase tracking-wider text-text-mute">Especialidade</p>
+          <p className="mt-0.5 text-sm font-medium text-text" data-testid="record-specialty-name">
+            {record.specialtyName}
+          </p>
+        </div>
       </div>
 
-      <hr className="border-border" />
+      {hasSections ? (
+        <>
+          <Tabs
+            items={tabItems}
+            activeId={activeTab}
+            onChange={setActiveTab}
+            data-testid="medical-record-view-tabs"
+          />
 
-      <dl className="space-y-3">
-        {record.schema.map((field) => {
-          const raw = record.data[field.key]
-          return (
-            <div key={field.key} data-testid={`record-field-${field.key}`}>
-              <dt className="text-xs font-medium uppercase tracking-wide text-text/50">
-                {field.label}
-              </dt>
-              <dd className="mt-0.5 text-sm text-text">
-                {formatFieldValue(field.type, raw)}
-              </dd>
+          <div className="min-h-[120px]">
+            {activeTab === NOTES_TAB && (
+              <div className="rounded-lg border border-line bg-surface p-4" data-testid="record-notes">
+                <p className="text-xs font-medium uppercase tracking-wider text-text-mute mb-1">
+                  Notas do médico
+                </p>
+                <p className="text-sm text-text whitespace-pre-wrap">{record.notes}</p>
+              </div>
+            )}
+
+            {activeTab === GENERAL_TAB && (
+              <div className="rounded-lg border border-line bg-surface p-4">
+                <FieldsGrid fields={unsectionedFields} record={record} />
+              </div>
+            )}
+
+            {activeTab !== NOTES_TAB && activeTab !== GENERAL_TAB && (
+              <div
+                className="rounded-lg border border-line bg-surface p-4"
+                data-testid={`record-section-${activeTab}`}
+              >
+                <FieldsGrid
+                  fields={fieldsBySection.get(activeTab) ?? []}
+                  record={record}
+                />
+              </div>
+            )}
+          </div>
+        </>
+      ) : (
+        <>
+          <div className="rounded-lg border border-line bg-surface p-4">
+            <dl className="grid grid-cols-2 gap-x-6 gap-y-4">
+              {record.schema.map((field) => (
+                <FieldRow key={field.key} field={field} value={record.data[field.key]} />
+              ))}
+            </dl>
+          </div>
+
+          {record.notes && (
+            <div className="rounded-lg border border-line bg-surface p-4" data-testid="record-notes">
+              <p className="text-xs font-medium uppercase tracking-wider text-text-mute mb-1">
+                Notas do médico
+              </p>
+              <p className="text-sm text-text whitespace-pre-wrap">{record.notes}</p>
             </div>
-          )
-        })}
-      </dl>
-
-      {record.notes && (
-        <div data-testid="record-notes">
-          <p className="text-xs font-medium uppercase tracking-wide text-text/50">Notas do médico</p>
-          <p className="mt-0.5 text-sm text-text">{record.notes}</p>
-        </div>
+          )}
+        </>
       )}
     </div>
   )

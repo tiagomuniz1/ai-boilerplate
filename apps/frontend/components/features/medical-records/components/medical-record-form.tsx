@@ -1,11 +1,13 @@
 'use client'
 
+import { useState } from 'react'
 import { useForm, Controller } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { MedicalRecordFieldType } from '@app/shared'
 import { Button } from '@/components/ui/atoms/button/button'
 import { Alert } from '@/components/ui/molecules/alert/alert'
+import { Tabs } from '@/components/ui/atoms/tabs/tabs'
 import { DynamicField } from './dynamic-field'
 import { coerceFieldValue } from '../mappers/coerce-field-value.mapper'
 import type { IRecordFieldModel } from '../types/medical-record-model.types'
@@ -25,6 +27,9 @@ interface MedicalRecordFormProps {
   globalError?: string | null
   onSubmit: (data: Record<string, unknown>, notes?: string) => void
 }
+
+const NOTES_TAB = '__notes__'
+const GENERAL_TAB = '__general__'
 
 function buildZodSchema(fields: IRecordFieldModel[]) {
   const shape: Record<string, z.ZodTypeAny> = {}
@@ -78,6 +83,30 @@ export function MedicalRecordForm({
   globalError,
   onSubmit,
 }: MedicalRecordFormProps) {
+  const sortedSections = sections.slice().sort((a, b) => a.order - b.order)
+  const hasSections = sortedSections.length > 0
+
+  const fieldsBySection = new Map<string | null, IRecordFieldModel[]>()
+  for (const field of schema) {
+    const key = field.sectionKey ?? null
+    if (!fieldsBySection.has(key)) fieldsBySection.set(key, [])
+    fieldsBySection.get(key)!.push(field)
+  }
+  const unsectionedFields = fieldsBySection.get(null) ?? []
+
+  const firstTab = hasSections
+    ? (unsectionedFields.length > 0 ? GENERAL_TAB : (sortedSections[0]?.key ?? NOTES_TAB))
+    : 'all'
+  const [activeSectionKey, setActiveSectionKey] = useState<string>(firstTab)
+
+  const tabItems = hasSections
+    ? [
+        ...(unsectionedFields.length > 0 ? [{ id: GENERAL_TAB, label: 'Geral' }] : []),
+        ...sortedSections.map((s) => ({ id: s.key, label: s.title })),
+        { id: NOTES_TAB, label: 'Notas' },
+      ]
+    : []
+
   const zodSchema = buildZodSchema(schema)
 
   const defaultValues: FormValues = { __notes__: defaultNotes ?? '' }
@@ -115,14 +144,20 @@ export function MedicalRecordForm({
     onSubmit(data, notes)
   }
 
-  const fieldsBySection = new Map<string | null, IRecordFieldModel[]>()
-  for (const field of schema) {
-    const key = field.sectionKey ?? null
-    if (!fieldsBySection.has(key)) fieldsBySection.set(key, [])
-    fieldsBySection.get(key)!.push(field)
+  function onFormError(formErrors: Record<string, unknown>) {
+    if (!hasSections) return
+    const errorKeys = Object.keys(formErrors)
+    for (const key of errorKeys) {
+      if (key === '__notes__') {
+        setActiveSectionKey(NOTES_TAB)
+        return
+      }
+      const field = schema.find((f) => f.key === key)
+      if (!field) continue
+      setActiveSectionKey(field.sectionKey ?? GENERAL_TAB)
+      return
+    }
   }
-  const sortedSections = sections.slice().sort((a, b) => a.order - b.order)
-  const unsectionedFields = fieldsBySection.get(null) ?? []
 
   function renderField(field: IRecordFieldModel) {
     return (
@@ -142,26 +177,8 @@ export function MedicalRecordForm({
     )
   }
 
-  return (
-    <form
-      onSubmit={handleSubmit(onFormSubmit)}
-      data-testid="medical-record-form"
-      className="space-y-4"
-    >
-      {sortedSections.map((section) => {
-        const sectionFields = fieldsBySection.get(section.key) ?? []
-        if (sectionFields.length === 0) return null
-        return (
-          <div key={section.key} className="space-y-3" data-testid={`medical-record-section-${section.key}`}>
-            <h3 className="text-sm font-semibold uppercase tracking-wider text-text-mute border-b border-border pb-1">
-              {section.title}
-            </h3>
-            {sectionFields.map(renderField)}
-          </div>
-        )
-      })}
-      {unsectionedFields.map(renderField)}
-
+  function renderNotesField() {
+    return (
       <div className="flex flex-col gap-1.5">
         <label htmlFor="field-notes" className="text-sm font-medium text-text">
           Notas do médico
@@ -177,7 +194,7 @@ export function MedicalRecordForm({
                 (rhfField.value as string) ?? ''
               }
               onChange={rhfField.onChange}
-              rows={3}
+              rows={4}
               placeholder="Observações adicionais..."
               data-testid="medical-record-notes"
               className="w-full rounded-md border border-border bg-surface px-3 py-2 text-sm text-text placeholder:text-text/40 focus:outline-none focus:ring-2 focus:ring-primary/40"
@@ -185,6 +202,38 @@ export function MedicalRecordForm({
           )}
         />
       </div>
+    )
+  }
+
+  return (
+    <form
+      onSubmit={handleSubmit(onFormSubmit, onFormError)}
+      data-testid="medical-record-form"
+      className="flex flex-col gap-4"
+    >
+      {hasSections ? (
+        <>
+          <Tabs
+            items={tabItems}
+            activeId={activeSectionKey}
+            onChange={setActiveSectionKey}
+            data-testid="medical-record-form-tabs"
+          />
+          <div className="space-y-3 min-h-[120px]">
+            {activeSectionKey === NOTES_TAB && renderNotesField()}
+            {activeSectionKey === GENERAL_TAB && unsectionedFields.map(renderField)}
+            {activeSectionKey !== NOTES_TAB && activeSectionKey !== GENERAL_TAB &&
+              (fieldsBySection.get(activeSectionKey) ?? []).map(renderField)}
+          </div>
+        </>
+      ) : (
+        <>
+          <div className="space-y-3">
+            {unsectionedFields.map(renderField)}
+          </div>
+          {renderNotesField()}
+        </>
+      )}
 
       {globalError && (
         <Alert variant="error" data-testid="medical-record-form-error">
@@ -192,7 +241,7 @@ export function MedicalRecordForm({
         </Alert>
       )}
 
-      <div className="flex justify-end pt-2">
+      <div className="flex justify-end pt-2 border-t border-border">
         <Button
           type="submit"
           isLoading={isPending}

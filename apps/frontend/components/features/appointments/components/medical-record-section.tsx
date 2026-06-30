@@ -16,7 +16,7 @@ import type { IRecordFieldModel } from '@/components/features/medical-records/ty
 import type { ITemplateFieldModel } from '@/components/features/medical-record-templates/types/template-model.types'
 import type { IApiError } from '@/types/api.types'
 
-type MedicalRecordMode = 'fill' | 'view' | null
+type MedicalRecordMode = 'fill' | null
 
 export interface MedicalRecordSectionProps {
   appointmentId: string
@@ -103,48 +103,47 @@ export function MedicalRecordSection({
 
   return (
     <>
-      <div className="flex gap-2 pt-1">
-        {canManage && !record && (
-          <Button
-            type="button"
-            variant="ghost"
-            onClick={() => setMode('fill')}
-            data-testid="fill-medical-record-button"
-            className="text-sm"
-          >
-            Preencher prontuário
-          </Button>
-        )}
-        {record && (
-          <>
+      {!record && (
+        <div className="rounded-xl border border-border bg-surface p-12 flex flex-col items-center gap-4 text-center">
+          <div className="text-4xl" aria-hidden="true">📋</div>
+          <h3 className="text-lg font-semibold text-text">Prontuário ainda não preenchido</h3>
+          <p className="text-sm text-text-mute max-w-sm">
+            Registre evolução, hipótese diagnóstica e conduta da consulta.
+          </p>
+          {canManage && (
             <Button
               type="button"
-              variant="ghost"
-              onClick={() => setMode('view')}
-              data-testid="view-medical-record-button"
-              className="text-sm"
+              onClick={() => setMode('fill')}
+              data-testid="fill-medical-record-button"
             >
-              Ver prontuário
+              Preencher prontuário
             </Button>
-            {canEdit && (
+          )}
+        </div>
+      )}
+
+      {record && (
+        <>
+          {canEdit && (
+            <div className="flex justify-end mb-4">
               <Button
                 type="button"
-                variant="ghost"
                 onClick={() => setMode('fill')}
                 data-testid="edit-medical-record-button"
-                className="text-sm"
               >
                 Editar prontuário
               </Button>
-            )}
-          </>
-        )}
-      </div>
+            </div>
+          )}
+          <MedicalRecordView record={record} sections={sections} />
+        </>
+      )}
 
       <Modal
         isOpen={mode === 'fill'}
         onClose={() => setMode(null)}
         title={record ? 'Editar prontuário' : 'Preencher prontuário'}
+        className="max-w-2xl"
         data-testid="medical-record-form-modal"
       >
         {isTemplateLoading && <MedicalRecordFormSkeleton />}
@@ -166,14 +165,6 @@ export function MedicalRecordSection({
         )}
       </Modal>
 
-      <Modal
-        isOpen={mode === 'view'}
-        onClose={() => setMode(null)}
-        title="Prontuário"
-        data-testid="medical-record-view-modal"
-      >
-        {record && <MedicalRecordView record={record} />}
-      </Modal>
     </>
   )
 }

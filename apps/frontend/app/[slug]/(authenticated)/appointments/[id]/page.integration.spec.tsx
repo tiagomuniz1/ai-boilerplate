@@ -2,6 +2,7 @@ jest.mock('@/components/features/appointments/services/appointments.service')
 jest.mock('@/components/features/doctors/services/doctors.service')
 jest.mock('@/components/features/medical-records/services/medical-records.service')
 jest.mock('@/components/features/medical-record-templates/services/medical-record-templates.service')
+jest.mock('@/components/features/prescriptions/services/prescriptions.service')
 jest.mock('@/stores/auth.store')
 jest.mock('@/lib/slug-context', () => ({ useSlug: jest.fn(() => 'clinic-slug') }))
 jest.mock('next/navigation', () => ({
@@ -17,6 +18,7 @@ import { appointmentsService } from '@/components/features/appointments/services
 import { doctorsService } from '@/components/features/doctors/services/doctors.service'
 import { medicalRecordsService } from '@/components/features/medical-records/services/medical-records.service'
 import { medicalRecordTemplatesService } from '@/components/features/medical-record-templates/services/medical-record-templates.service'
+import { prescriptionsService } from '@/components/features/prescriptions/services/prescriptions.service'
 import { useAuthStore } from '@/stores/auth.store'
 import { renderWithProviders } from '@/tests/utils/render-with-providers'
 import AppointmentDetailPage from './page'
@@ -26,6 +28,7 @@ const mockAppointmentsService = appointmentsService as jest.Mocked<typeof appoin
 const mockDoctorsService = doctorsService as jest.Mocked<typeof doctorsService>
 const mockMedicalRecordsService = medicalRecordsService as jest.Mocked<typeof medicalRecordsService>
 const mockTemplatesService = medicalRecordTemplatesService as jest.Mocked<typeof medicalRecordTemplatesService>
+const mockPrescriptionsService = prescriptionsService as jest.Mocked<typeof prescriptionsService>
 const mockUseAuthStore = useAuthStore as unknown as jest.Mock
 
 const DOCTOR_ID = 'doctor-profile-uuid'
@@ -92,6 +95,7 @@ describe('AppointmentDetailPage (integration)', () => {
     mockDoctorsService.getAll.mockResolvedValue(makeDoctorsResponse())
     mockMedicalRecordsService.getByAppointment.mockResolvedValue(null)
     mockTemplatesService.getAll.mockResolvedValue({ data: [], total: 0, page: 1, limit: 1 })
+    mockPrescriptionsService.getByAppointment.mockResolvedValue([])
   })
 
   it('renders skeleton while loading', () => {
@@ -187,7 +191,7 @@ describe('AppointmentDetailPage (integration)', () => {
     )
     renderWithProviders(<AppointmentDetailPage />)
     await waitFor(() => {
-      expect(screen.getByTestId('appointment-detail-summary')).toBeInTheDocument()
+      expect(screen.getByTestId('appointment-detail-status')).toBeInTheDocument()
     })
     expect(screen.queryByTestId('appointment-detail-cancel-button')).not.toBeInTheDocument()
   })
@@ -197,28 +201,29 @@ describe('AppointmentDetailPage (integration)', () => {
     mockAppointmentsService.getById.mockResolvedValue(makeAppointmentDto())
     renderWithProviders(<AppointmentDetailPage />)
     await waitFor(() => {
-      expect(screen.getByTestId('appointment-detail-summary')).toBeInTheDocument()
+      expect(screen.getByTestId('appointment-detail-status')).toBeInTheDocument()
     })
     expect(screen.queryByTestId('appointment-detail-cancel-button')).not.toBeInTheDocument()
     expect(screen.queryByTestId('appointment-detail-complete-button')).not.toBeInTheDocument()
   })
 
-  it('ADMIN sees medical record section', async () => {
+  it('ADMIN sees prontuário tab and fill record button in header', async () => {
     mockAppointmentsService.getById.mockResolvedValue(makeAppointmentDto())
     renderWithProviders(<AppointmentDetailPage />)
     await waitFor(() => {
-      expect(screen.getByTestId('fill-medical-record-button')).toBeInTheDocument()
+      expect(screen.getByTestId('tab-prontuario')).toBeInTheDocument()
     })
+    expect(screen.getByTestId('header-fill-record-button')).toBeInTheDocument()
   })
 
-  it('USER does not see medical record section', async () => {
+  it('USER does not see prontuário tab', async () => {
     mockAuth(UserRole.USER)
     mockAppointmentsService.getById.mockResolvedValue(makeAppointmentDto())
     renderWithProviders(<AppointmentDetailPage />)
     await waitFor(() => {
-      expect(screen.getByTestId('appointment-detail-summary')).toBeInTheDocument()
+      expect(screen.getByTestId('appointment-detail-status')).toBeInTheDocument()
     })
-    expect(screen.queryByTestId('fill-medical-record-button')).not.toBeInTheDocument()
+    expect(screen.queryByTestId('tab-prontuario')).not.toBeInTheDocument()
   })
 
   it('clicking complete button calls service', async () => {

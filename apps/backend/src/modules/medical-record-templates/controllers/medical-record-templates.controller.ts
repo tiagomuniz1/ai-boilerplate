@@ -47,7 +47,7 @@ export class MedicalRecordTemplatesController {
   }
 
   @Get()
-  @Roles(UserRole.ADMIN)
+  @Roles(UserRole.ADMIN, UserRole.DOCTOR)
   findAll(
     @Query() query: MedicalRecordTemplateListQueryDto,
     @CurrentUser() currentUser: ICurrentUser,
@@ -56,7 +56,7 @@ export class MedicalRecordTemplatesController {
   }
 
   @Get(':id')
-  @Roles(UserRole.ADMIN)
+  @Roles(UserRole.ADMIN, UserRole.DOCTOR)
   findById(
     @Param('id') id: string,
     @CurrentUser() currentUser: ICurrentUser,

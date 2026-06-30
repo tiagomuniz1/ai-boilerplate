@@ -57,6 +57,22 @@ export function PrescriptionSection({ appointmentId, canManage, userRole }: Pres
   return (
     <>
       <div data-testid="prescription-section">
+        <div className="flex items-start justify-between mb-4">
+          <div>
+            <h2 className="text-lg font-semibold text-text">Receitas</h2>
+            <p className="text-sm text-text-mute">Prescrições médicas emitidas nesta consulta.</p>
+          </div>
+          {isDoctor && canManage && (
+            <Button
+              type="button"
+              onClick={() => setShowForm(true)}
+              data-testid="prescription-new-button"
+            >
+              + Nova receita
+            </Button>
+          )}
+        </div>
+
         {isLoading && <PrescriptionListSkeleton />}
 
         {isError && !isLoading && (
@@ -78,7 +94,7 @@ export function PrescriptionSection({ appointmentId, canManage, userRole }: Pres
               return (
                 <li
                   key={rx.id}
-                  className="flex items-center justify-between border border-border rounded p-3 text-sm"
+                  className="flex items-center justify-between border border-border rounded-xl bg-surface p-4 text-sm"
                   data-testid={`prescription-item-${rx.id}`}
                 >
                   <div className="flex flex-col gap-0.5">
@@ -132,19 +148,6 @@ export function PrescriptionSection({ appointmentId, canManage, userRole }: Pres
           </ul>
         )}
 
-        {isDoctor && canManage && (
-          <div className="mt-3">
-            <Button
-              type="button"
-              variant="ghost"
-              onClick={() => setShowForm(true)}
-              data-testid="prescription-new-button"
-              className="text-sm"
-            >
-              Nova receita
-            </Button>
-          </div>
-        )}
       </div>
 
       <Modal

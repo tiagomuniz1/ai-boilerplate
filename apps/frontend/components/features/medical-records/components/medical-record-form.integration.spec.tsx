@@ -65,7 +65,7 @@ describe('MedicalRecordForm', () => {
     expect(screen.getByTestId('dynamic-field-mul')).toBeInTheDocument()
   })
 
-  it('renders notes textarea', () => {
+  it('renders notes textarea in flat layout (no sections)', () => {
     renderWithProviders(<MedicalRecordForm {...defaultProps} />)
     expect(screen.getByTestId('medical-record-notes')).toBeInTheDocument()
   })
@@ -176,42 +176,6 @@ describe('MedicalRecordForm', () => {
     expect(screen.getByTestId('medical-record-notes')).toHaveValue('Nota inicial')
   })
 
-  it('renders section headers when sections prop is provided', () => {
-    renderWithProviders(
-      <MedicalRecordForm
-        {...defaultProps}
-        schema={[
-          makeField({ key: 'f1', label: 'Campo 1', sectionKey: 'sec_a' }),
-          makeField({ key: 'f2', label: 'Campo 2', sectionKey: 'sec_b' }),
-          makeField({ key: 'f3', label: 'Campo 3', sectionKey: null }),
-        ]}
-        sections={[
-          { key: 'sec_a', title: 'Sinais Vitais', order: 0 },
-          { key: 'sec_b', title: 'Histórico', order: 1 },
-        ]}
-      />,
-    )
-    expect(screen.getByTestId('medical-record-section-sec_a')).toBeInTheDocument()
-    expect(screen.getByText('Sinais Vitais')).toBeInTheDocument()
-    expect(screen.getByTestId('medical-record-section-sec_b')).toBeInTheDocument()
-    expect(screen.getByText('Histórico')).toBeInTheDocument()
-    expect(screen.getByTestId('dynamic-field-f1')).toBeInTheDocument()
-    expect(screen.getByTestId('dynamic-field-f2')).toBeInTheDocument()
-    expect(screen.getByTestId('dynamic-field-f3')).toBeInTheDocument()
-  })
-
-  it('renders fields flat when no sections provided', () => {
-    renderWithProviders(
-      <MedicalRecordForm
-        {...defaultProps}
-        schema={[makeField({ key: 'f1' }), makeField({ key: 'f2' })]}
-      />,
-    )
-    expect(screen.queryByTestId(/medical-record-section-/)).not.toBeInTheDocument()
-    expect(screen.getByTestId('dynamic-field-f1')).toBeInTheDocument()
-    expect(screen.getByTestId('dynamic-field-f2')).toBeInTheDocument()
-  })
-
   it('calls onSubmit with notes when provided', async () => {
     const onSubmit = jest.fn()
     renderWithProviders(<MedicalRecordForm {...defaultProps} onSubmit={onSubmit} />)
@@ -222,4 +186,136 @@ describe('MedicalRecordForm', () => {
     await waitFor(() => expect(onSubmit).toHaveBeenCalled())
     expect(onSubmit.mock.calls[0][1]).toBe('Observação importante')
   })
+
+  it('renders flat layout when no sections provided', () => {
+    renderWithProviders(
+      <MedicalRecordForm
+        {...defaultProps}
+        schema={[makeField({ key: 'f1' }), makeField({ key: 'f2' })]}
+      />,
+    )
+    expect(screen.queryByTestId('medical-record-form-tabs')).not.toBeInTheDocument()
+    expect(screen.getByTestId('dynamic-field-f1')).toBeInTheDocument()
+    expect(screen.getByTestId('dynamic-field-f2')).toBeInTheDocument()
+    expect(screen.getByTestId('medical-record-notes')).toBeInTheDocument()
+  })
+
+  it('renders tabs when sections are provided', () => {
+    renderWithProviders(
+      <MedicalRecordForm
+        {...defaultProps}
+        schema={[
+          makeField({ key: 'f1', sectionKey: 'sec_a' }),
+          makeField({ key: 'f2', sectionKey: 'sec_b' }),
+        ]}
+        sections={[
+          { key: 'sec_a', title: 'Sinais Vitais', order: 0 },
+          { key: 'sec_b', title: 'Histórico', order: 1 },
+        ]}
+      />,
+    )
+    expect(screen.getByTestId('medical-record-form-tabs')).toBeInTheDocument()
+    expect(screen.getByTestId('tab-sec_a')).toBeInTheDocument()
+    expect(screen.getByTestId('tab-sec_b')).toBeInTheDocument()
+    expect(screen.getByTestId(`tab-${NOTES_TAB}`)).toBeInTheDocument()
+  })
+
+  it('shows first section fields by default when sections provided', () => {
+    renderWithProviders(
+      <MedicalRecordForm
+        {...defaultProps}
+        schema={[
+          makeField({ key: 'f1', sectionKey: 'sec_a' }),
+          makeField({ key: 'f2', sectionKey: 'sec_b' }),
+        ]}
+        sections={[
+          { key: 'sec_a', title: 'Sinais Vitais', order: 0 },
+          { key: 'sec_b', title: 'Histórico', order: 1 },
+        ]}
+      />,
+    )
+    expect(screen.getByTestId('dynamic-field-f1')).toBeInTheDocument()
+    expect(screen.queryByTestId('dynamic-field-f2')).not.toBeInTheDocument()
+  })
+
+  it('switching tab shows that section fields', async () => {
+    renderWithProviders(
+      <MedicalRecordForm
+        {...defaultProps}
+        schema={[
+          makeField({ key: 'f1', sectionKey: 'sec_a' }),
+          makeField({ key: 'f2', sectionKey: 'sec_b' }),
+        ]}
+        sections={[
+          { key: 'sec_a', title: 'Sinais Vitais', order: 0 },
+          { key: 'sec_b', title: 'Histórico', order: 1 },
+        ]}
+      />,
+    )
+    await userEvent.click(screen.getByTestId('tab-sec_b'))
+    expect(screen.queryByTestId('dynamic-field-f1')).not.toBeInTheDocument()
+    expect(screen.getByTestId('dynamic-field-f2')).toBeInTheDocument()
+  })
+
+  it('clicking Notas tab shows notes textarea', async () => {
+    renderWithProviders(
+      <MedicalRecordForm
+        {...defaultProps}
+        schema={[makeField({ key: 'f1', sectionKey: 'sec_a' })]}
+        sections={[{ key: 'sec_a', title: 'Anamnese', order: 0 }]}
+      />,
+    )
+    expect(screen.queryByTestId('medical-record-notes')).not.toBeInTheDocument()
+    await userEvent.click(screen.getByTestId(`tab-${NOTES_TAB}`))
+    expect(screen.getByTestId('medical-record-notes')).toBeInTheDocument()
+  })
+
+  it('shows Geral tab when unsectioned fields exist alongside sections', () => {
+    renderWithProviders(
+      <MedicalRecordForm
+        {...defaultProps}
+        schema={[
+          makeField({ key: 'f1', sectionKey: null }),
+          makeField({ key: 'f2', sectionKey: 'sec_a' }),
+        ]}
+        sections={[{ key: 'sec_a', title: 'Anamnese', order: 0 }]}
+      />,
+    )
+    expect(screen.getByTestId(`tab-${GENERAL_TAB}`)).toBeInTheDocument()
+    expect(screen.getByTestId('dynamic-field-f1')).toBeInTheDocument()
+  })
+
+  it('navigates to errored section tab on submit failure', async () => {
+    const onSubmit = jest.fn()
+    renderWithProviders(
+      <MedicalRecordForm
+        {...defaultProps}
+        schema={[
+          makeField({ key: 'f1', label: 'Campo A', required: true, sectionKey: 'sec_a' }),
+          makeField({ key: 'f2', label: 'Campo B', sectionKey: 'sec_b' }),
+        ]}
+        sections={[
+          { key: 'sec_a', title: 'Anamnese', order: 0 },
+          { key: 'sec_b', title: 'Histórico', order: 1 },
+        ]}
+        onSubmit={onSubmit}
+      />,
+    )
+    // Navigate to sec_b (f1 — required, empty — is in sec_a)
+    await userEvent.click(screen.getByTestId('tab-sec_b'))
+
+    // Submit from sec_b — f1 is required and empty in sec_a
+    await userEvent.click(screen.getByTestId('medical-record-form-submit'))
+
+    // Should auto-navigate back to sec_a (where the validation error is)
+    await waitFor(() => {
+      expect(screen.getByTestId('dynamic-field-f1')).toBeInTheDocument()
+    })
+    expect(screen.queryByTestId('dynamic-field-f2')).not.toBeInTheDocument()
+    expect(onSubmit).not.toHaveBeenCalled()
+  })
 })
+
+// Exported constant for test reference
+const NOTES_TAB = '__notes__'
+const GENERAL_TAB = '__general__'

@@ -1,6 +1,6 @@
 'use client'
 
-import { AppointmentStatus, UserRole } from '@app/shared'
+import { UserRole } from '@app/shared'
 import { useRouter } from 'next/navigation'
 import { Modal } from '@/components/ui/organisms/modal/modal'
 import { Button } from '@/components/ui/atoms/button/button'
@@ -9,14 +9,7 @@ import { useSlug } from '@/lib/slug-context'
 import { cn } from '@/lib/cn'
 import { useAppointment } from '../hooks/use-appointment.hook'
 import { APPOINTMENT_STATUS_LABELS } from '../types/appointment-model.types'
-
-const statusBadgeClass: Record<AppointmentStatus, string> = {
-  [AppointmentStatus.SCHEDULED]: 'bg-accent/10 text-accent',
-  [AppointmentStatus.CONFIRMED]: 'bg-accent/20 text-accent',
-  [AppointmentStatus.CANCELLED]: 'bg-danger/10 text-danger',
-  [AppointmentStatus.COMPLETED]: 'bg-good/10 text-good',
-  [AppointmentStatus.NO_SHOW]: 'bg-warn/10 text-warn',
-}
+import { APPOINTMENT_STATUS_BADGE_CLASS } from '@/lib/appointment-status'
 
 interface AppointmentDetailsDialogProps {
   appointmentId: string | null
@@ -69,7 +62,7 @@ export function AppointmentDetailsDialog({
               data-testid="details-status-badge"
               className={cn(
                 'text-xs font-medium px-2 py-1 rounded-full',
-                statusBadgeClass[appointment.status],
+                APPOINTMENT_STATUS_BADGE_CLASS[appointment.status],
               )}
             >
               {APPOINTMENT_STATUS_LABELS[appointment.status]}

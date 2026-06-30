@@ -111,11 +111,11 @@ describe('MedicalRecordSection (integration)', () => {
     })
   })
 
-  it('shows view-medical-record button when record exists', async () => {
+  it('shows medical record view inline when record exists', async () => {
     mockMedicalRecordsService.getByAppointment.mockResolvedValue(makeRecordDto() as any)
     renderWithProviders(<MedicalRecordSection {...defaultProps} />)
     await waitFor(() => {
-      expect(screen.getByTestId('view-medical-record-button')).toBeInTheDocument()
+      expect(screen.getByTestId('medical-record-view')).toBeInTheDocument()
     })
   })
 
@@ -133,7 +133,7 @@ describe('MedicalRecordSection (integration)', () => {
       <MedicalRecordSection {...defaultProps} appointmentStatus={AppointmentStatus.COMPLETED} />,
     )
     await waitFor(() => {
-      expect(screen.getByTestId('view-medical-record-button')).toBeInTheDocument()
+      expect(screen.getByTestId('medical-record-view')).toBeInTheDocument()
     })
     expect(screen.queryByTestId('edit-medical-record-button')).not.toBeInTheDocument()
   })
@@ -248,29 +248,6 @@ describe('MedicalRecordSection (integration)', () => {
       expect(screen.getByTestId('medical-record-form-error')).toHaveTextContent(
         'Prontuário não pode ser editado após a conclusão da consulta.',
       )
-    })
-  })
-
-  it('clicking view button opens view modal', async () => {
-    mockMedicalRecordsService.getByAppointment.mockResolvedValue(makeRecordDto() as any)
-    renderWithProviders(<MedicalRecordSection {...defaultProps} />)
-    await waitFor(() => expect(screen.getByTestId('view-medical-record-button')).toBeInTheDocument())
-    await userEvent.click(screen.getByTestId('view-medical-record-button'))
-    await waitFor(() => {
-      expect(screen.getByTestId('medical-record-view-modal')).toBeInTheDocument()
-    })
-  })
-
-  it('closing view modal resets mode', async () => {
-    mockMedicalRecordsService.getByAppointment.mockResolvedValue(makeRecordDto() as any)
-    renderWithProviders(<MedicalRecordSection {...defaultProps} />)
-    await waitFor(() => expect(screen.getByTestId('view-medical-record-button')).toBeInTheDocument())
-    await userEvent.click(screen.getByTestId('view-medical-record-button'))
-    await waitFor(() => expect(screen.getByTestId('medical-record-view-modal')).toBeInTheDocument())
-    const viewModal = screen.getByTestId('medical-record-view-modal')
-    await userEvent.click(within(viewModal).getByRole('button', { name: 'Fechar' }))
-    await waitFor(() => {
-      expect(screen.queryByTestId('medical-record-view-modal')).not.toBeInTheDocument()
     })
   })
 

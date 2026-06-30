@@ -3,37 +3,49 @@
 import { useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { AppointmentStatus, UserRole } from '@app/shared'
-import { useSlug } from '@/lib/slug-context'
 import { useAuthStore } from '@/stores/auth.store'
 import { Skeleton } from '@/components/ui/atoms/skeleton/skeleton'
 import { Alert } from '@/components/ui/molecules/alert/alert'
 import { Button } from '@/components/ui/atoms/button/button'
-import { cn } from '@/lib/cn'
+import { Tabs } from '@/components/ui/atoms/tabs/tabs'
 import { useAppointment } from '@/components/features/appointments/hooks/use-appointment.hook'
 import { useCompleteAppointment } from '@/components/features/appointments/hooks/use-complete-appointment.hook'
 import { useCancelAppointment } from '@/components/features/appointments/hooks/use-cancel-appointment.hook'
 import { useDoctors } from '@/components/features/doctors/hooks/use-doctors.hook'
-import { PatientInfoCard } from '@/components/features/appointments/components/patient-info-card'
+import { usePrescriptions } from '@/components/features/prescriptions/hooks/use-prescriptions.hook'
+import { useMedicalRecordByAppointment } from '@/components/features/medical-records/hooks/use-medical-record-by-appointment.hook'
+import { AppointmentHeaderCard } from '@/components/features/appointments/components/appointment-header-card'
+import { ResumoTab } from '@/components/features/appointments/components/resumo-tab'
 import { MedicalRecordSection } from '@/components/features/appointments/components/medical-record-section'
 import { PrescriptionSection } from '@/components/features/prescriptions/components/prescription-section'
 import { CancelAppointmentDialog } from '@/components/features/appointments/components/cancel-appointment-dialog'
-import {
-  APPOINTMENT_STATUS_LABELS,
-} from '@/components/features/appointments/types/appointment-model.types'
 import type { IApiError } from '@/types/api.types'
 
-const statusBadgeClass: Record<AppointmentStatus, string> = {
-  [AppointmentStatus.SCHEDULED]: 'bg-accent/10 text-accent',
-  [AppointmentStatus.CONFIRMED]: 'bg-accent/20 text-accent',
-  [AppointmentStatus.CANCELLED]: 'bg-danger/10 text-danger',
-  [AppointmentStatus.COMPLETED]: 'bg-good/10 text-good',
-  [AppointmentStatus.NO_SHOW]: 'bg-warn/10 text-warn',
+type TabId = 'resumo' | 'prontuario' | 'receitas' | 'atestados' | 'exames'
+
+function AtestadosPlaceholder() {
+  return (
+    <div className="rounded-xl border border-border bg-surface p-12 flex flex-col items-center gap-3 text-center" data-testid="atestados-placeholder">
+      <div className="text-4xl" aria-hidden="true">📄</div>
+      <h3 className="text-lg font-semibold text-text">Atestados</h3>
+      <p className="text-sm text-text-mute">Em breve disponível nesta versão.</p>
+    </div>
+  )
+}
+
+function ExamesPlaceholder() {
+  return (
+    <div className="rounded-xl border border-border bg-surface p-12 flex flex-col items-center gap-3 text-center" data-testid="exames-placeholder">
+      <div className="text-4xl" aria-hidden="true">🔬</div>
+      <h3 className="text-lg font-semibold text-text">Exames</h3>
+      <p className="text-sm text-text-mute">Em breve disponível nesta versão.</p>
+    </div>
+  )
 }
 
 export default function AppointmentDetailPage() {
   const { id } = useParams<{ id: string }>()
   const router = useRouter()
-  const slug = useSlug()
   const currentUser = useAuthStore((s) => s.user)
   const role = currentUser?.role ?? UserRole.USER
 
@@ -46,6 +58,7 @@ export default function AppointmentDetailPage() {
   const { mutate: complete, isPending: isCompleting, error: completeError } = useCompleteAppointment()
   const { mutate: cancel, isPending: isCancelling } = useCancelAppointment()
 
+  const [activeTab, setActiveTab] = useState<TabId>('resumo')
   const [showCancelDialog, setShowCancelDialog] = useState(false)
 
   const canManage =
@@ -57,6 +70,9 @@ export default function AppointmentDetailPage() {
     (role === UserRole.DOCTOR && appointment?.doctorId === currentDoctorId)
 
   const canAct = canManage && appointment?.status === AppointmentStatus.SCHEDULED
+
+  const { data: prescriptions } = usePrescriptions(id)
+  const { data: record } = useMedicalRecordByAppointment(canSeeMedicalRecord ? id : '')
 
   const completeApiError = completeError as IApiError | null
   const completeErrorMessage =
@@ -79,10 +95,20 @@ export default function AppointmentDetailPage() {
     )
   }
 
+  const tabItems = [
+    { id: 'resumo', label: 'Resumo' },
+    ...(canSeeMedicalRecord ? [{ id: 'prontuario', label: 'Prontuário' }] : []),
+    ...(canManage
+      ? [{ id: 'receitas', label: 'Receitas', count: prescriptions?.length ?? 0 }]
+      : []),
+    { id: 'atestados', label: 'Atestados' },
+    { id: 'exames', label: 'Exames' },
+  ]
+
   return (
     <>
-      <main className="p-6 max-w-4xl" data-testid="appointment-detail-page">
-        <div className="flex items-center gap-4 mb-6">
+      <main className="p-4 sm:p-6 max-w-5xl pb-24 sm:pb-6" data-testid="appointment-detail-page">
+        <div className="mb-4">
           <Button
             variant="ghost"
             size="sm"
@@ -94,19 +120,10 @@ export default function AppointmentDetailPage() {
         </div>
 
         {isLoading && (
-          <div className="flex flex-col gap-6" data-testid="appointment-detail-skeleton">
-            <Skeleton height={28} className="w-48" />
-            <div className="grid grid-cols-2 gap-4">
-              {Array.from({ length: 4 }).map((_, i) => (
-                <Skeleton key={i} height={40} className="w-full" />
-              ))}
-            </div>
-            <Skeleton height={28} className="w-48" />
-            <div className="grid grid-cols-2 gap-4">
-              {Array.from({ length: 6 }).map((_, i) => (
-                <Skeleton key={i} height={40} className="w-full" />
-              ))}
-            </div>
+          <div className="flex flex-col gap-4" data-testid="appointment-detail-skeleton">
+            <Skeleton height={120} className="w-full rounded-xl" />
+            <Skeleton height={40} className="w-full" />
+            <Skeleton height={200} className="w-full rounded-xl" />
           </div>
         )}
 
@@ -117,128 +134,90 @@ export default function AppointmentDetailPage() {
         )}
 
         {appointment && !isLoading && (
-          <div className="flex flex-col gap-8">
-            <section data-testid="appointment-detail-summary">
-              <div className="flex items-center justify-between mb-4 gap-4">
-                <h1 className="text-xl font-semibold text-text">Consulta</h1>
-                <span
-                  data-testid="appointment-detail-status"
-                  className={cn(
-                    'text-xs font-medium px-2 py-1 rounded-full',
-                    statusBadgeClass[appointment.status],
-                  )}
-                >
-                  {APPOINTMENT_STATUS_LABELS[appointment.status]}
-                </span>
-              </div>
+          <>
+            <AppointmentHeaderCard
+              appointment={appointment}
+              canManage={canManage}
+              canAct={!!canAct}
+              hasRecord={!!record}
+              onFillRecord={() => setActiveTab('prontuario')}
+              onCancel={() => setShowCancelDialog(true)}
+              onComplete={handleComplete}
+              isPendingComplete={isCompleting}
+              isPendingCancel={isCancelling}
+            />
 
-              <dl className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-3 text-sm">
-                <div className="flex flex-col gap-0.5">
-                  <dt className="text-xs font-medium uppercase tracking-wider text-text-mute">
-                    Médico
-                  </dt>
-                  <dd data-testid="appointment-detail-doctor">{appointment.doctorName}</dd>
-                </div>
+            {completeErrorMessage && (
+              <Alert variant="error" data-testid="appointment-detail-complete-error" className="mb-4">
+                {completeErrorMessage}
+              </Alert>
+            )}
 
-                <div className="flex flex-col gap-0.5">
-                  <dt className="text-xs font-medium uppercase tracking-wider text-text-mute">
-                    Data
-                  </dt>
-                  <dd data-testid="appointment-detail-date">{appointment.date}</dd>
-                </div>
+            <Tabs
+              items={tabItems}
+              activeId={activeTab}
+              onChange={(id) => setActiveTab(id as TabId)}
+              data-testid="appointment-tabs"
+            />
 
-                <div className="flex flex-col gap-0.5">
-                  <dt className="text-xs font-medium uppercase tracking-wider text-text-mute">
-                    Horário
-                  </dt>
-                  <dd data-testid="appointment-detail-time">
-                    {appointment.startTime} – {appointment.endTime}
-                  </dd>
-                </div>
-
-                {appointment.specialtyName && (
-                  <div className="flex flex-col gap-0.5">
-                    <dt className="text-xs font-medium uppercase tracking-wider text-text-mute">
-                      Especialidade
-                    </dt>
-                    <dd data-testid="appointment-detail-specialty">{appointment.specialtyName}</dd>
-                  </div>
-                )}
-
-                {appointment.reason && (
-                  <div className="flex flex-col gap-0.5">
-                    <dt className="text-xs font-medium uppercase tracking-wider text-text-mute">
-                      Motivo
-                    </dt>
-                    <dd data-testid="appointment-detail-reason">{appointment.reason}</dd>
-                  </div>
-                )}
-
-                {appointment.cancellationReason && (
-                  <div className="flex flex-col gap-0.5">
-                    <dt className="text-xs font-medium uppercase tracking-wider text-text-mute">
-                      Motivo cancelamento
-                    </dt>
-                    <dd data-testid="appointment-detail-cancellation-reason">
-                      {appointment.cancellationReason}
-                    </dd>
-                  </div>
-                )}
-              </dl>
-
-              {completeErrorMessage && (
-                <Alert variant="error" data-testid="appointment-detail-complete-error" className="mt-4">
-                  {completeErrorMessage}
-                </Alert>
+            <div className="mt-4">
+              {activeTab === 'resumo' && (
+                <ResumoTab
+                  patient={appointment.patient}
+                  prescriptionCount={canManage ? (prescriptions?.length ?? 0) : undefined}
+                  showPrescriptions={canManage}
+                  onNavigate={(tab) => setActiveTab(tab as TabId)}
+                />
               )}
 
-              {canAct && (
-                <div className="flex gap-2 mt-4">
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    onClick={() => setShowCancelDialog(true)}
-                    data-testid="appointment-detail-cancel-button"
-                    className="border-danger text-danger hover:bg-danger/10"
-                  >
-                    Cancelar consulta
-                  </Button>
-                  <Button
-                    type="button"
-                    onClick={handleComplete}
-                    isLoading={isCompleting}
-                    data-testid="appointment-detail-complete-button"
-                  >
-                    Concluir
-                  </Button>
-                </div>
-              )}
-            </section>
-
-            <PatientInfoCard patient={appointment.patient} />
-
-            {canSeeMedicalRecord && (
-              <section>
-                <h2 className="text-base font-semibold text-text mb-4">Prontuário</h2>
+              {activeTab === 'prontuario' && canSeeMedicalRecord && (
                 <MedicalRecordSection
                   appointmentId={id}
                   specialtyId={appointment.specialtyId}
                   appointmentStatus={appointment.status}
                   canManage={canManage}
                 />
-              </section>
-            )}
+              )}
 
-            {canManage && (
-              <section data-testid="prescription-section-wrapper">
-                <h2 className="text-base font-semibold text-text mb-4">Receitas</h2>
+              {activeTab === 'receitas' && canManage && (
                 <PrescriptionSection
                   appointmentId={id}
                   canManage={canManage}
                   userRole={role}
                 />
-              </section>
-            )}
+              )}
+
+              {activeTab === 'atestados' && <AtestadosPlaceholder />}
+
+              {activeTab === 'exames' && <ExamesPlaceholder />}
+            </div>
+          </>
+        )}
+
+        {/* Mobile sticky action bar */}
+        {appointment && canAct && (
+          <div className="fixed bottom-0 inset-x-0 flex gap-3 bg-surface border-t border-border p-4 sm:hidden">
+            <Button
+              type="button"
+              variant="ghost"
+              isLoading={isCancelling}
+              disabled={isCancelling || isCompleting}
+              onClick={() => setShowCancelDialog(true)}
+              className="flex-1 text-danger hover:bg-danger/10"
+              data-testid="appointment-detail-cancel-button-mobile"
+            >
+              Cancelar
+            </Button>
+            <Button
+              type="button"
+              isLoading={isCompleting}
+              disabled={isCancelling || isCompleting}
+              onClick={handleComplete}
+              className="flex-1"
+              data-testid="appointment-detail-complete-button-mobile"
+            >
+              Concluir consulta
+            </Button>
           </div>
         )}
       </main>
