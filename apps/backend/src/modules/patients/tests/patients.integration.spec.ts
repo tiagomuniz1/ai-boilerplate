@@ -280,11 +280,11 @@ describe('PatientsController (integration)', () => {
       await request(app.getHttpServer()).get('/patients').expect(401)
     })
 
-    it('returns 200 for DOCTOR', async () => {
+    it('returns 403 for DOCTOR', async () => {
       await request(app.getHttpServer())
         .get('/patients')
         .set('Authorization', `Bearer ${doctorToken}`)
-        .expect(200)
+        .expect(403)
     })
 
     it('returns 200 for USER', async () => {

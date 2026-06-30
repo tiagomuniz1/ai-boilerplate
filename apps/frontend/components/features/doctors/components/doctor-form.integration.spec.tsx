@@ -705,4 +705,5 @@ describe('DoctorForm (integration) — edit mode', () => {
       )
     })
   })
+
 })

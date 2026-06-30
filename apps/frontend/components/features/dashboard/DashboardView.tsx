@@ -6,7 +6,6 @@ import { DashboardSkeleton } from './components/DashboardSkeleton'
 import { DashboardKpiRow } from './components/DashboardKpiRow'
 import { PatientsChartCard } from './components/PatientsChartCard'
 import { ProceduresChartCard } from './components/ProceduresChartCard'
-import { InsuranceChartCard } from './components/InsuranceChartCard'
 import { DurationCard } from './components/DurationCard'
 import { AppointmentsTimelineCard } from './components/AppointmentsTimelineCard'
 import { AgeDistributionCard } from './components/AgeDistributionCard'
@@ -65,18 +64,13 @@ export function DashboardView() {
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
             <PatientsChartCard patients={data.patients} />
             <ProceduresChartCard procedures={data.procedures} />
-            <InsuranceChartCard insurance={data.insurance} />
             <DurationCard duration={data.duration} />
+            <BirthdayPanel todayBirthdays={data.todayBirthdays} />
           </div>
 
           <AppointmentsTimelineCard appointmentsByDay={data.appointmentsByDay} />
 
-          <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
-            <div className="lg:col-span-2">
-              <AgeDistributionCard ageDistribution={data.ageDistribution} />
-            </div>
-            <BirthdayPanel todayBirthdays={data.todayBirthdays} />
-          </div>
+          <AgeDistributionCard ageDistribution={data.ageDistribution} />
         </div>
       )}
     </main>

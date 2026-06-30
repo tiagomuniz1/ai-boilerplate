@@ -5,7 +5,10 @@ export function toCreatePrescriptionDto(input: ICreatePrescriptionInput): Create
   return {
     appointmentId: input.appointmentId,
     items: input.items.map((item) => ({
-      medicationId: item.medicationId,
+      ...(item.medicationId ? { medicationId: item.medicationId } : {}),
+      ...(item.activeIngredientName ? { activeIngredientName: item.activeIngredientName } : {}),
+      ...(item.dosage ? { dosage: item.dosage } : {}),
+      ...(item.quantity ? { quantity: item.quantity } : {}),
       instructions: item.instructions,
     })),
     ...(input.notes ? { notes: input.notes } : {}),

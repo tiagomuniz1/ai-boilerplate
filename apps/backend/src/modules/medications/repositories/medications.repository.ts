@@ -89,5 +89,6 @@ export class MedicationsRepository implements IMedicationsRepository {
         indexPredicate: 'import_hash IS NOT NULL',
       })
       .execute()
+
   }
 }

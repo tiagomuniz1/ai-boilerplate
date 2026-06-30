@@ -10,8 +10,15 @@ import { DynamicField } from './dynamic-field'
 import { coerceFieldValue } from '../mappers/coerce-field-value.mapper'
 import type { IRecordFieldModel } from '../types/medical-record-model.types'
 
+interface IFormSection {
+  key: string
+  title: string
+  order: number
+}
+
 interface MedicalRecordFormProps {
   schema: IRecordFieldModel[]
+  sections?: IFormSection[]
   defaultData?: Record<string, unknown>
   defaultNotes?: string
   isPending: boolean
@@ -64,6 +71,7 @@ type FormValues = Record<string, unknown>
 
 export function MedicalRecordForm({
   schema,
+  sections = [],
   defaultData = {},
   defaultNotes,
   isPending,
@@ -107,27 +115,52 @@ export function MedicalRecordForm({
     onSubmit(data, notes)
   }
 
+  const fieldsBySection = new Map<string | null, IRecordFieldModel[]>()
+  for (const field of schema) {
+    const key = field.sectionKey ?? null
+    if (!fieldsBySection.has(key)) fieldsBySection.set(key, [])
+    fieldsBySection.get(key)!.push(field)
+  }
+  const sortedSections = sections.slice().sort((a, b) => a.order - b.order)
+  const unsectionedFields = fieldsBySection.get(null) ?? []
+
+  function renderField(field: IRecordFieldModel) {
+    return (
+      <Controller
+        key={field.key}
+        name={field.key}
+        control={control}
+        render={({ field: rhfField }) => (
+          <DynamicField
+            field={field}
+            value={rhfField.value}
+            onChange={rhfField.onChange}
+            error={errors[field.key]?.message as string | undefined}
+          />
+        )}
+      />
+    )
+  }
+
   return (
     <form
       onSubmit={handleSubmit(onFormSubmit)}
       data-testid="medical-record-form"
       className="space-y-4"
     >
-      {schema.map((field) => (
-        <Controller
-          key={field.key}
-          name={field.key}
-          control={control}
-          render={({ field: rhfField }) => (
-            <DynamicField
-              field={field}
-              value={rhfField.value}
-              onChange={rhfField.onChange}
-              error={errors[field.key]?.message as string | undefined}
-            />
-          )}
-        />
-      ))}
+      {sortedSections.map((section) => {
+        const sectionFields = fieldsBySection.get(section.key) ?? []
+        if (sectionFields.length === 0) return null
+        return (
+          <div key={section.key} className="space-y-3" data-testid={`medical-record-section-${section.key}`}>
+            <h3 className="text-sm font-semibold uppercase tracking-wider text-text-mute border-b border-border pb-1">
+              {section.title}
+            </h3>
+            {sectionFields.map(renderField)}
+          </div>
+        )
+      })}
+      {unsectionedFields.map(renderField)}
 
       <div className="flex flex-col gap-1.5">
         <label htmlFor="field-notes" className="text-sm font-medium text-text">

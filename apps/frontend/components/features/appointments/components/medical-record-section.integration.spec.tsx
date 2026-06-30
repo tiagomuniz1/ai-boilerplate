@@ -17,6 +17,7 @@ const makeTemplateDto = (overrides: object = {}) => ({
   specialtyId: 'spec-uuid',
   specialtyName: 'Cardiologia',
   name: 'Anamnese',
+  sections: [],
   fields: [
     {
       key: 'complaint',
@@ -29,6 +30,7 @@ const makeTemplateDto = (overrides: object = {}) => ({
       helpText: null,
       canonical: false,
       canonicalKey: null,
+      sectionKey: null,
     },
     {
       label: 'Notas extras',
@@ -40,6 +42,7 @@ const makeTemplateDto = (overrides: object = {}) => ({
       helpText: null,
       canonical: false,
       canonicalKey: null,
+      sectionKey: null,
     },
   ],
   isActive: true,
@@ -70,6 +73,7 @@ const makeRecordDto = (overrides: object = {}) => ({
       helpText: null,
       canonical: false,
       canonicalKey: null,
+      sectionKey: null,
     },
   ],
   data: { complaint: 'Dor de cabeça' },

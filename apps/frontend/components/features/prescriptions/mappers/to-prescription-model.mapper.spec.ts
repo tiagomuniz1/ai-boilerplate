@@ -9,8 +9,8 @@ const makeDto = () => ({
   doctorName: 'Dr. João',
   issuedAt: '2026-06-28T10:00:00.000Z' as unknown as Date,
   items: [
-    { medicationId: 'med-uuid', name: 'Dipirona 500mg', activeIngredient: 'dipirona sódica', instructions: 'Tomar 1 cp 8/8h' },
-    { medicationId: null, name: 'Manipulado X', activeIngredient: null, instructions: 'Tomar 1 cp ao dia' },
+    { medicationId: 'med-uuid', name: 'Dipirona 500mg', activeIngredient: 'dipirona sódica', dosage: '500mg', quantity: '1 caixa', instructions: 'Tomar 1 cp 8/8h' },
+    { medicationId: null, name: 'Manipulado X', activeIngredient: null, dosage: null, quantity: null, instructions: 'Tomar 1 cp ao dia' },
   ],
   notes: 'Retornar em 7 dias.',
   createdAt: '2026-06-28T10:00:00.000Z' as unknown as Date,
@@ -47,6 +47,8 @@ describe('toPrescriptionModel', () => {
       medicationId: 'med-uuid',
       name: 'Dipirona 500mg',
       activeIngredient: 'dipirona sódica',
+      dosage: '500mg',
+      quantity: '1 caixa',
       instructions: 'Tomar 1 cp 8/8h',
     })
   })

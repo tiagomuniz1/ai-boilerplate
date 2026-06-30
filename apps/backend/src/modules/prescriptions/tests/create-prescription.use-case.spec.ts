@@ -79,7 +79,7 @@ const makeSavedPrescription = () => ({
     clinic: { name: 'Test Clinic', address: null, logoUrl: null },
     doctor: { name: 'Doctor Smith', crmNumber: '12345/SP', specialtyName: 'Cardiologia' },
     patient: { name: 'Patient Jones', documentNumber: '12345678900' },
-    items: [{ medicationId, name: 'Dipirona', activeIngredient: 'dipirona sódica', instructions: 'Tomar 1 cp a cada 6h' }],
+    items: [{ medicationId, name: 'Dipirona', activeIngredient: 'dipirona sódica', dosage: null, quantity: null, instructions: 'Tomar 1 cp a cada 6h' }],
     notes: null,
   },
   createdAt: new Date(),
@@ -218,6 +218,49 @@ describe('CreatePrescriptionUseCase', () => {
     expect(createCall.snapshot.items[0].activeIngredient).toBe('dipirona sódica')
   })
 
+  it('propagates dosage from DTO to snapshot when provided', async () => {
+    await useCase.execute({ ...baseDto, items: [{ medicationId, dosage: '500mg', instructions: 'Tomar 1 cp' }] }, adminUser)
+
+    const createCall = mockPrescriptionsRepository.create.mock.calls[0][0]
+    expect(createCall.snapshot.items[0].dosage).toBe('500mg')
+  })
+
+  it('sets dosage to null in snapshot when not provided', async () => {
+    await useCase.execute({ ...baseDto, items: [{ medicationId, instructions: 'Tomar 1 cp' }] }, adminUser)
+
+    const createCall = mockPrescriptionsRepository.create.mock.calls[0][0]
+    expect(createCall.snapshot.items[0].dosage).toBeNull()
+  })
+
+  it('propagates quantity from DTO to snapshot when provided', async () => {
+    await useCase.execute({ ...baseDto, items: [{ medicationId, quantity: '2 caixas', instructions: 'Tomar 1 cp' }] }, adminUser)
+
+    const createCall = mockPrescriptionsRepository.create.mock.calls[0][0]
+    expect(createCall.snapshot.items[0].quantity).toBe('2 caixas')
+  })
+
+  it('sets quantity to null in snapshot when not provided', async () => {
+    await useCase.execute({ ...baseDto, items: [{ medicationId, instructions: 'Tomar 1 cp' }] }, adminUser)
+
+    const createCall = mockPrescriptionsRepository.create.mock.calls[0][0]
+    expect(createCall.snapshot.items[0].quantity).toBeNull()
+  })
+
+  it('returns dosage=null for old snapshots without the field', async () => {
+    const oldPrescription = {
+      ...makeSavedPrescription(),
+      snapshot: {
+        ...makeSavedPrescription().snapshot,
+        items: [{ medicationId, name: 'Dipirona', activeIngredient: 'dipirona sódica', instructions: 'Tomar 1 cp' }],
+      },
+    }
+    mockPrescriptionsRepository.create.mockResolvedValueOnce(oldPrescription as any)
+
+    const result = await useCase.execute(baseDto, adminUser)
+
+    expect(result.items[0].dosage).toBeNull()
+  })
+
   it('sets specialtyName to null when appointment has no specialtyId', async () => {
     mockAppointmentsRepository.findById.mockResolvedValue(makeAppointment({ specialtyId: null }) as any)
 
@@ -290,6 +333,32 @@ describe('CreatePrescriptionUseCase', () => {
     mockMedicationsRepository.findById.mockResolvedValue(null)
 
     await expect(useCase.execute(baseDto, adminUser)).rejects.toThrow(UnprocessableEntityException)
+  })
+
+  it('builds snapshot item from activeIngredientName without DB lookup', async () => {
+    const freeTextDto = {
+      appointmentId,
+      items: [{ activeIngredientName: 'Amoxicilina', instructions: 'Tomar 1 cp 8/8h' }],
+    }
+
+    await useCase.execute(freeTextDto as any, adminUser)
+
+    expect(mockMedicationsRepository.findById).not.toHaveBeenCalled()
+    const createCall = mockPrescriptionsRepository.create.mock.calls[0][0]
+    expect(createCall.snapshot.items[0]).toMatchObject({
+      medicationId: null,
+      name: 'Amoxicilina',
+      activeIngredient: 'Amoxicilina',
+    })
+  })
+
+  it('throws UnprocessableEntityException when item has neither medicationId nor activeIngredientName', async () => {
+    const badDto = {
+      appointmentId,
+      items: [{ instructions: 'Tomar 1 cp' }],
+    }
+
+    await expect(useCase.execute(badDto as any, adminUser)).rejects.toThrow(UnprocessableEntityException)
   })
 
   it('throws NotFoundException when doctor not found during snapshot', async () => {

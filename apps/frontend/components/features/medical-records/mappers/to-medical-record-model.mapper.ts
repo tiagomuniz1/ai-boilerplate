@@ -11,6 +11,7 @@ function toRecordFieldModel(field: MedicalRecordTemplateFieldDto): IRecordFieldM
     options: field.options ? field.options.map((o) => ({ value: o.value, label: o.label })) : null,
     placeholder: field.placeholder ?? null,
     helpText: field.helpText ?? null,
+    sectionKey: field.sectionKey ?? null,
   }
 }
 

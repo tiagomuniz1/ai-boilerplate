@@ -15,6 +15,7 @@ function makeField(overrides: Partial<IRecordFieldModel> = {}): IRecordFieldMode
     options: null,
     placeholder: null,
     helpText: null,
+    sectionKey: null,
     ...overrides,
   }
 }
@@ -173,6 +174,42 @@ describe('MedicalRecordForm', () => {
     )
     expect(screen.getByTestId('dynamic-field-symptom')).toHaveValue('Febre')
     expect(screen.getByTestId('medical-record-notes')).toHaveValue('Nota inicial')
+  })
+
+  it('renders section headers when sections prop is provided', () => {
+    renderWithProviders(
+      <MedicalRecordForm
+        {...defaultProps}
+        schema={[
+          makeField({ key: 'f1', label: 'Campo 1', sectionKey: 'sec_a' }),
+          makeField({ key: 'f2', label: 'Campo 2', sectionKey: 'sec_b' }),
+          makeField({ key: 'f3', label: 'Campo 3', sectionKey: null }),
+        ]}
+        sections={[
+          { key: 'sec_a', title: 'Sinais Vitais', order: 0 },
+          { key: 'sec_b', title: 'Histórico', order: 1 },
+        ]}
+      />,
+    )
+    expect(screen.getByTestId('medical-record-section-sec_a')).toBeInTheDocument()
+    expect(screen.getByText('Sinais Vitais')).toBeInTheDocument()
+    expect(screen.getByTestId('medical-record-section-sec_b')).toBeInTheDocument()
+    expect(screen.getByText('Histórico')).toBeInTheDocument()
+    expect(screen.getByTestId('dynamic-field-f1')).toBeInTheDocument()
+    expect(screen.getByTestId('dynamic-field-f2')).toBeInTheDocument()
+    expect(screen.getByTestId('dynamic-field-f3')).toBeInTheDocument()
+  })
+
+  it('renders fields flat when no sections provided', () => {
+    renderWithProviders(
+      <MedicalRecordForm
+        {...defaultProps}
+        schema={[makeField({ key: 'f1' }), makeField({ key: 'f2' })]}
+      />,
+    )
+    expect(screen.queryByTestId(/medical-record-section-/)).not.toBeInTheDocument()
+    expect(screen.getByTestId('dynamic-field-f1')).toBeInTheDocument()
+    expect(screen.getByTestId('dynamic-field-f2')).toBeInTheDocument()
   })
 
   it('calls onSubmit with notes when provided', async () => {

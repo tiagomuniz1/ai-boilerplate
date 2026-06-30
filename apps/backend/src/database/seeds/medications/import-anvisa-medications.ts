@@ -1,4 +1,5 @@
 import * as fs from 'fs'
+import * as https from 'https'
 import axios from 'axios'
 import * as iconv from 'iconv-lite'
 import { parse } from 'csv-parse'
@@ -39,6 +40,7 @@ async function loadCsvBuffer(options: ImportAnvisaOptions): Promise<Buffer> {
   const response = await axios.get<ArrayBuffer>(url, {
     responseType: 'arraybuffer',
     timeout: DOWNLOAD_TIMEOUT_MS,
+    httpsAgent: new https.Agent({ rejectUnauthorized: false }),
   })
   return Buffer.from(response.data)
 }

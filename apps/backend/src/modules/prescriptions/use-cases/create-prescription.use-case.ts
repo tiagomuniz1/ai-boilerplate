@@ -37,6 +37,8 @@ export function toPrescriptionResponse(prescription: Prescription): Prescription
       medicationId: item.medicationId,
       name: item.name,
       activeIngredient: item.activeIngredient,
+      dosage: item.dosage ?? null,
+      quantity: item.quantity ?? null,
       instructions: item.instructions,
     })),
     notes: prescription.snapshot.notes,
@@ -81,16 +83,31 @@ export class CreatePrescriptionUseCase extends BaseUseCase {
 
     const items: PrescriptionSnapshot['items'] = []
     for (const item of dto.items) {
-      const medication = await this.medicationsRepository.findById(item.medicationId)
-      if (!medication) {
-        throw new UnprocessableEntityException(`Medication not found: ${item.medicationId}`)
+      if (item.medicationId) {
+        const medication = await this.medicationsRepository.findById(item.medicationId)
+        if (!medication) {
+          throw new UnprocessableEntityException(`Medication not found: ${item.medicationId}`)
+        }
+        items.push({
+          medicationId: medication.id,
+          name: medication.name,
+          activeIngredient: medication.activeIngredient,
+          dosage: item.dosage ?? null,
+          quantity: item.quantity ?? null,
+          instructions: item.instructions,
+        })
+      } else if (item.activeIngredientName) {
+        items.push({
+          medicationId: null,
+          name: item.activeIngredientName,
+          activeIngredient: item.activeIngredientName,
+          dosage: item.dosage ?? null,
+          quantity: item.quantity ?? null,
+          instructions: item.instructions,
+        })
+      } else {
+        throw new UnprocessableEntityException('Each prescription item must have a medicationId or activeIngredientName')
       }
-      items.push({
-        medicationId: medication.id,
-        name: medication.name,
-        activeIngredient: medication.activeIngredient,
-        instructions: item.instructions,
-      })
     }
 
     const clinic = await this.findClinicByIdUseCase.execute(clinicId)

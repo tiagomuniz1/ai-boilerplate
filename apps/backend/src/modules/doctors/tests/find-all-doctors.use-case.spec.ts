@@ -29,7 +29,7 @@ const mockCacheService = {
 const makeDoctor = () => ({
   id: faker.string.uuid(),
   userId: faker.string.uuid(),
-  user: { id: faker.string.uuid(), fullName: faker.person.fullName(), email: faker.internet.email() } as any,
+  user: { id: faker.string.uuid(), fullName: faker.person.fullName(), email: faker.internet.email(), isActive: true } as any,
   crmNumber: '12345/SP',
   specialties: [{ id: faker.string.uuid(), name: 'Cardiologia' }],
   bio: null,

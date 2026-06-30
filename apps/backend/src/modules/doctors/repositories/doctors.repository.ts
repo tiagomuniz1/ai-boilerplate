@@ -64,7 +64,12 @@ export class DoctorsRepository implements IDoctorsRepository {
   async create(data: CreateDoctorDto & { userId: string }, clinicId: string, specialties: Specialty[], queryRunner?: QueryRunner): Promise<Doctor> {
     const manager = queryRunner ? queryRunner.manager : this.repository.manager
     const repo = manager.getRepository(Doctor)
-    const doctor = repo.create({ userId: data.userId, clinicId, crmNumber: data.crmNumber, bio: data.bio })
+    const doctor = repo.create({
+      userId: data.userId,
+      clinicId,
+      crmNumber: data.crmNumber,
+      bio: data.bio,
+    })
     doctor.specialties = specialties
     const saved = await repo.save(doctor)
     return repo.findOne({ where: { id: saved.id }, relations: ['user', 'specialties'] }) as Promise<Doctor>

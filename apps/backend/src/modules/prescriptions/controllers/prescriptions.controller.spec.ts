@@ -25,7 +25,7 @@ const makePrescriptionResponse = () => ({
   doctorId: 'doctor-uuid',
   doctorName: 'Doctor Smith',
   issuedAt: new Date(),
-  items: [{ medicationId: 'med-uuid', name: 'Dipirona', activeIngredient: null, instructions: 'Tomar 1 cp' }],
+  items: [{ medicationId: 'med-uuid', name: 'Dipirona', activeIngredient: null, dosage: null, quantity: null, instructions: 'Tomar 1 cp' }],
   notes: null,
   createdAt: new Date(),
 })

@@ -33,6 +33,8 @@ function makeRepo(): jest.Mocked<Repository<Medication>> {
     create: jest.fn(),
     save: jest.fn(),
     softDelete: jest.fn(),
+    manager: { query: jest.fn().mockResolvedValue(undefined) },
+    metadata: { schema: 'test' },
   } as unknown as jest.Mocked<Repository<Medication>>
 }
 
@@ -261,7 +263,9 @@ describe('MedicationsRepository', () => {
     it('uses the queryRunner repository when provided', async () => {
       const qb = makeInsertQueryBuilder()
       const qrRepo = { createQueryBuilder: jest.fn().mockReturnValue(qb) }
-      const queryRunner = { manager: { getRepository: jest.fn().mockReturnValue(qrRepo) } }
+      const queryRunner = {
+        manager: { getRepository: jest.fn().mockReturnValue(qrRepo) },
+      }
 
       await repository.bulkUpsert([makeUpsertRow()], queryRunner as any)
 

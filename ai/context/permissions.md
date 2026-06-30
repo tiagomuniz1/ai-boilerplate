@@ -140,12 +140,12 @@ O sistema possui quatro perfis de usuário (`UserRole`). Cada perfil reflete um 
 | Ação | ADMIN | DOCTOR | USER | PATIENT |
 |---|:---:|:---:|:---:|:---:|
 | Criar template | ✓ | ✗ | ✗ | ✗ |
-| Listar templates | ✓ | ✓ (leitura) | ✗ | ✗ |
-| Ver por ID | ✓ | ✓ (leitura) | ✗ | ✗ |
+| Listar templates | ✓ | ✗ | ✗ | ✗ |
+| Ver por ID | ✓ | ✗ | ✗ | ✗ |
 | Editar / Ativar-Desativar | ✓ | ✗ | ✗ | ✗ |
 | Excluir | ✓ | ✗ | ✗ | ✗ |
 
-> Templates são escopados por `clinicId + specialtyId` — cada clínica gerencia os próprios. DOCTOR visualiza para referência ao preencher prontuários.
+> Templates são escopados por `clinicId + specialtyId` — cada clínica gerencia os próprios. Acesso exclusivo de ADMIN.
 
 ---
 
@@ -173,7 +173,7 @@ O sistema possui quatro perfis de usuário (`UserRole`). Cada perfil reflete um 
 | Pacientes | ✓ | ✗ | ✓ |
 | Médicos | ✓ | ✓ | ✓ |
 | Agendas | ✓ | ✓ | ✗ |
-| Modelos de prontuário | ✓ | ✓ | ✗ |
+| Modelos de prontuário | ✓ | ✗ | ✗ |
 | Consultas | ✓ | ✓ | ✓ |
 
 > Prontuários não têm item próprio na sidebar — são acessados a partir do diálogo de detalhes da consulta e do histórico na página do paciente.
@@ -186,7 +186,7 @@ O sistema possui quatro perfis de usuário (`UserRole`). Cada perfil reflete um 
 Acesso irrestrito. Gerencia usuários, médicos, pacientes, agendas e todas as consultas. Único perfil que pode criar usuários, ativar/desativar contas e excluir registros. Cria e edita templates de prontuário da clínica. Pode criar, editar e excluir qualquer prontuário.
 
 ### DOCTOR
-Acessa o sistema para gerenciar a própria agenda, criar e acompanhar as próprias consultas. Pode editar os próprios dados de usuário e de médico. Não vê dados de outros médicos, agendas de outros ou consultas de outros médicos. Cria e edita prontuários das próprias consultas (bloqueado após conclusão). Visualiza templates de prontuário para referência.
+Acessa o sistema para gerenciar a própria agenda, criar e acompanhar as próprias consultas. Pode editar os próprios dados de usuário e de médico. Não vê dados de outros médicos, agendas de outros ou consultas de outros médicos. Cria e edita prontuários das próprias consultas (bloqueado após conclusão). Não acessa templates de prontuário.
 
 ### USER (Recepcionista)
 Acessa o sistema para consultar dados operacionais. Pode ver a lista de pacientes, médicos e consultas (somente leitura). Pode ver a disponibilidade de qualquer médico. Pode editar o próprio cadastro de usuário. Não cria, cancela ou conclui consultas. Não acessa prontuários nem templates.

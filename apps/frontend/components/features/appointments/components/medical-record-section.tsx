@@ -35,6 +35,7 @@ function templateFieldToRecordField(f: ITemplateFieldModel, index: number): IRec
     options: f.options,
     placeholder: f.placeholder,
     helpText: f.helpText,
+    sectionKey: f.sectionKey,
   }
 }
 
@@ -64,6 +65,7 @@ export function MedicalRecordSection({
           .sort((a, b) => a.order - b.order)
           .map(templateFieldToRecordField)
       : []
+  const sections = template?.sections.slice().sort((a, b) => a.order - b.order) ?? []
 
   const isCompleted = appointmentStatus === AppointmentStatus.COMPLETED
   const canEdit = canManage && !isCompleted && !!record
@@ -154,6 +156,7 @@ export function MedicalRecordSection({
         {!isTemplateLoading && schema.length > 0 && (
           <MedicalRecordForm
             schema={schema}
+            sections={sections}
             defaultData={record?.data}
             defaultNotes={record?.notes ?? undefined}
             isPending={isCreating || isUpdating}

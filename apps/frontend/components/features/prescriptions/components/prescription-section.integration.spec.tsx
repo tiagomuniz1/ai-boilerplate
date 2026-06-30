@@ -24,7 +24,7 @@ const makePrescriptionDto = (overrides: object = {}) => ({
   doctorName: 'Dr. João',
   issuedAt: '2026-06-28T10:00:00.000Z',
   items: [
-    { medicationId: 'med-uuid', name: 'Dipirona 500mg', activeIngredient: 'dipirona sódica', instructions: 'Tomar 1 cp 8/8h' },
+    { medicationId: 'med-uuid', name: 'Dipirona 500mg', activeIngredient: 'dipirona sódica', dosage: null, quantity: null, instructions: 'Tomar 1 cp 8/8h' },
   ],
   notes: null,
   createdAt: '2026-06-28T10:00:00.000Z',

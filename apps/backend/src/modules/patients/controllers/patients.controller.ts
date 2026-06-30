@@ -31,7 +31,7 @@ export class PatientsController {
   }
 
   @Get()
-  @Roles(UserRole.ADMIN, UserRole.USER, UserRole.DOCTOR)
+  @Roles(UserRole.ADMIN, UserRole.USER)
   findAll(
     @Query() query: ListPatientsQueryDto,
     @CurrentUser() currentUser: ICurrentUser,

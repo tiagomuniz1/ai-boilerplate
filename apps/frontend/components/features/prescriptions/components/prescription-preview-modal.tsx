@@ -39,8 +39,11 @@ export function PrescriptionPreviewModal({ prescription, onClose }: Prescription
               <li key={index} data-testid={`prescription-preview-item-${index}`}>
                 <p className="font-medium">
                   {index + 1}.{' '}
-                  {item.activeIngredient ? `${item.name} — ${item.activeIngredient}` : item.name}
+                  {item.dosage ? `${item.name} ${item.dosage}` : item.name}
                 </p>
+                {item.quantity && (
+                  <p className="ml-4 text-xs text-text-mute">Quantidade: {item.quantity}</p>
+                )}
                 <p className="ml-4 mt-0.5 text-text-mute">{item.instructions}</p>
               </li>
             ))}

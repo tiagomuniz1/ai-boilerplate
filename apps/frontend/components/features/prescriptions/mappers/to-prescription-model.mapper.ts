@@ -14,6 +14,8 @@ export function toPrescriptionModel(dto: PrescriptionResponseDto): IPrescription
       medicationId: item.medicationId,
       name: item.name,
       activeIngredient: item.activeIngredient,
+      dosage: item.dosage,
+      quantity: item.quantity,
       instructions: item.instructions,
     })),
     notes: dto.notes,

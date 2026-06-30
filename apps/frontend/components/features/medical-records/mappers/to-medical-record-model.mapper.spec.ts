@@ -12,6 +12,7 @@ const makeFieldDto = (overrides = {}) => ({
   helpText: null,
   canonical: false,
   canonicalKey: null,
+  sectionKey: null,
   ...overrides,
 })
 
@@ -63,6 +64,15 @@ describe('toMedicalRecordModel', () => {
     expect(f.type).toBe(MedicalRecordFieldType.TEXT)
     expect(f.required).toBe(true)
     expect(f.order).toBe(0)
+    expect(f.sectionKey).toBeNull()
+  })
+
+  it('maps sectionKey when present', () => {
+    const dto = makeDto({
+      templateSchemaSnapshot: [makeFieldDto({ sectionKey: 'sinais_vitais' })],
+    })
+    const model = toMedicalRecordModel(dto as any)
+    expect(model.schema[0].sectionKey).toBe('sinais_vitais')
   })
 
   it('sorts schema by order ascending', () => {

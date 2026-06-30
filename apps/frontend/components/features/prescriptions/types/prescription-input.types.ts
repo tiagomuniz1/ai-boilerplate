@@ -1,5 +1,8 @@
 export interface ICreatePrescriptionItemInput {
-  medicationId: string
+  medicationId?: string
+  activeIngredientName?: string
+  dosage?: string
+  quantity?: string
   instructions: string
 }
 

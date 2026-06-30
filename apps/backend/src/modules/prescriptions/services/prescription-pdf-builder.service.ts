@@ -107,14 +107,15 @@ export class PrescriptionPdfBuilderService implements OnModuleInit {
 
     const header: object = { text: 'Medicamentos', style: 'sectionLabel' }
     const items = snapshot.items.map((item, index) => {
-      const nameText = item.activeIngredient
-        ? `${item.name} — ${item.activeIngredient}`
-        : item.name
+      const baseName = item.name
+      const nameText = item.dosage ? `${baseName} ${item.dosage}` : baseName
+      const quantityText = item.quantity ? `Quantidade: ${item.quantity}` : null
 
       return {
         margin: [0, 0, 0, 8],
         stack: [
           { text: `${index + 1}. ${nameText}`, bold: true },
+          ...(quantityText ? [{ text: quantityText, margin: [12, 2, 0, 0], fontSize: 9, color: '#555555' }] : []),
           { text: item.instructions, margin: [12, 2, 0, 0] },
         ],
       }

@@ -83,7 +83,10 @@ export function PrescriptionSection({ appointmentId, canManage, userRole }: Pres
                 >
                   <div className="flex flex-col gap-0.5">
                     <span className="font-medium" data-testid={`prescription-item-date-${rx.id}`}>
-                      {rx.issuedAt.toLocaleDateString('pt-BR')}
+                      {rx.issuedAt.toLocaleDateString('pt-BR')}{' '}
+                      <span className="font-normal text-text-mute">
+                        {rx.issuedAt.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
+                      </span>
                     </span>
                     <span className="text-xs text-text-mute" data-testid={`prescription-item-count-${rx.id}`}>
                       {rx.items.length} {rx.items.length === 1 ? 'medicamento' : 'medicamentos'}

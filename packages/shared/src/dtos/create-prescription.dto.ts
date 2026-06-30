@@ -2,8 +2,24 @@ import { ArrayMinSize, IsOptional, IsString, IsUUID, MaxLength, MinLength, Valid
 import { Type } from 'class-transformer'
 
 export class CreatePrescriptionItemDto {
+  @IsOptional()
   @IsUUID()
-  medicationId: string
+  medicationId?: string
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(200)
+  activeIngredientName?: string
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(100)
+  dosage?: string
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(100)
+  quantity?: string
 
   @IsString()
   @MinLength(1)

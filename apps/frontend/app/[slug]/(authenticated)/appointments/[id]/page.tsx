@@ -42,6 +42,7 @@ export default function AppointmentDetailPage() {
   const currentDoctorId = isDoctor ? doctors?.[0]?.id : undefined
 
   const { data: appointment, isLoading, isError } = useAppointment(id)
+
   const { mutate: complete, isPending: isCompleting, error: completeError } = useCompleteAppointment()
   const { mutate: cancel, isPending: isCancelling } = useCancelAppointment()
 

@@ -20,4 +20,5 @@ export class UpdateDoctorDto {
   @IsOptional()
   @IsBoolean()
   isActive?: boolean
+
 }

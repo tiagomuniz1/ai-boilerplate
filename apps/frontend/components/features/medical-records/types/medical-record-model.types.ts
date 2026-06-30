@@ -9,6 +9,7 @@ export interface IRecordFieldModel {
   options: { value: string; label: string }[] | null
   placeholder: string | null
   helpText: string | null
+  sectionKey: string | null
 }
 
 export interface IMedicalRecordModel {
