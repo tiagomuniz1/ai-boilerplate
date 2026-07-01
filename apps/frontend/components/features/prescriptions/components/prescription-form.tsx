@@ -6,7 +6,11 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { Button } from '@/components/ui/atoms/button/button'
 import { Alert } from '@/components/ui/molecules/alert/alert'
+import { Modal } from '@/components/ui/organisms/modal/modal'
 import { useMedications } from '@/components/features/medications/hooks/use-medications.hook'
+import { usePrescriptionTemplates } from '@/components/features/prescription-templates/hooks/use-prescription-templates.hook'
+import { useCreatePrescriptionTemplate } from '@/components/features/prescription-templates/hooks/use-create-prescription-template.hook'
+import type { IPrescriptionTemplateItemModel } from '@/components/features/prescription-templates/types/prescription-template-model.types'
 import type { ICreatePrescriptionInput } from '../types/prescription-input.types'
 import type { IApiError } from '@/types/api.types'
 
@@ -34,21 +38,39 @@ export interface PrescriptionFormProps {
   onSubmit: (input: ICreatePrescriptionInput) => void
 }
 
+function toFormItem(templateItem: IPrescriptionTemplateItemModel) {
+  return {
+    medicationId: templateItem.medicationId ?? '',
+    name: templateItem.name,
+    activeIngredient: templateItem.activeIngredient,
+    isManual: !templateItem.medicationId,
+    dosage: templateItem.dosage ?? '',
+    quantity: templateItem.quantity ?? '',
+    instructions: templateItem.instructions,
+  }
+}
+
 export function PrescriptionForm({ appointmentId, isPending, globalError, onSubmit }: PrescriptionFormProps) {
   const [search, setSearch] = useState('')
   const [inputMode, setInputMode] = useState<'medication' | 'ingredient'>('medication')
   const [manualText, setManualText] = useState('')
+  const [isLoadTemplateOpen, setIsLoadTemplateOpen] = useState(false)
+  const [isSaveTemplateOpen, setIsSaveTemplateOpen] = useState(false)
+  const [saveTemplateName, setSaveTemplateName] = useState('')
 
   const { data: medicationsPage } = useMedications(
     inputMode === 'medication' && search ? { search, limit: 10 } : undefined,
   )
+
+  const { data: prescriptionTemplates } = usePrescriptionTemplates()
+  const saveTemplateMutation = useCreatePrescriptionTemplate()
 
   const { control, register, handleSubmit, setValue, getValues, formState: { errors } } = useForm<FormValues>({
     resolver: zodResolver(schema),
     defaultValues: { items: [], notes: '' },
   })
 
-  const { fields, append, remove } = useFieldArray({ control, name: 'items' })
+  const { fields, append, remove, replace } = useFieldArray({ control, name: 'items' })
 
   function addMedication(med: { id: string; name: string; activeIngredient: string | null }) {
     if (fields.some((f) => f.medicationId === med.id)) return
@@ -69,6 +91,40 @@ export function PrescriptionForm({ appointmentId, isPending, globalError, onSubm
       isManual: true,
     })
     setManualText('')
+  }
+
+  function loadTemplate(templateId: string) {
+    const template = prescriptionTemplates?.find((t) => t.id === templateId)
+    if (!template) return
+    replace(template.items.map(toFormItem))
+    setValue('notes', template.notes ?? '')
+    setIsLoadTemplateOpen(false)
+  }
+
+  function handleSaveAsTemplate() {
+    const name = saveTemplateName.trim()
+    if (!name) return
+    const currentValues = getValues()
+    saveTemplateMutation.mutate(
+      {
+        name,
+        items: currentValues.items.map((item) => ({
+          ...(item.isManual
+            ? { activeIngredientName: item.name }
+            : { medicationId: item.medicationId }),
+          ...(item.dosage ? { dosage: item.dosage } : {}),
+          ...(item.quantity ? { quantity: item.quantity } : {}),
+          instructions: item.instructions,
+        })),
+        notes: currentValues.notes || undefined,
+      },
+      {
+        onSuccess: () => {
+          setIsSaveTemplateOpen(false)
+          setSaveTemplateName('')
+        },
+      },
+    )
   }
 
   function onFormSubmit(values: FormValues) {
@@ -92,8 +148,24 @@ export function PrescriptionForm({ appointmentId, isPending, globalError, onSubm
   const showMedResults = inputMode === 'medication' && search && medicationsPage && medicationsPage.data.length > 0
   const showMedNoResults = inputMode === 'medication' && search && medicationsPage && medicationsPage.data.length === 0
 
+  const hasTemplates = prescriptionTemplates && prescriptionTemplates.length > 0
+
   return (
     <form onSubmit={handleSubmit(onFormSubmit)} data-testid="prescription-form" className="flex flex-col gap-5">
+      {hasTemplates && (
+        <div className="flex justify-end">
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            onClick={() => setIsLoadTemplateOpen(true)}
+            data-testid="prescription-form-load-template-button"
+          >
+            Carregar modelo
+          </Button>
+        </div>
+      )}
+
       <div>
         <div className="flex gap-1 mb-2" data-testid="prescription-form-input-mode-tabs">
           <button
@@ -323,7 +395,19 @@ export function PrescriptionForm({ appointmentId, isPending, globalError, onSubm
         </Alert>
       )}
 
-      <div className="flex justify-end">
+      <div className="flex items-center justify-between">
+        {fields.length > 0 ? (
+          <button
+            type="button"
+            onClick={() => { setSaveTemplateName(''); setIsSaveTemplateOpen(true) }}
+            className="text-sm text-text-mute hover:text-accent hover:underline"
+            data-testid="prescription-form-save-template-button"
+          >
+            Salvar como modelo
+          </button>
+        ) : (
+          <span />
+        )}
         <Button
           type="submit"
           isLoading={isPending}
@@ -333,6 +417,94 @@ export function PrescriptionForm({ appointmentId, isPending, globalError, onSubm
           Emitir receita
         </Button>
       </div>
+
+      {hasTemplates && (
+        <Modal
+          isOpen={isLoadTemplateOpen}
+          onClose={() => setIsLoadTemplateOpen(false)}
+          title="Carregar modelo"
+          data-testid="prescription-form-load-template-modal"
+        >
+          <ul className="flex flex-col gap-3" data-testid="prescription-form-template-list">
+            {prescriptionTemplates!.map((template) => (
+              <li key={template.id}>
+                <button
+                  type="button"
+                  onClick={() => loadTemplate(template.id)}
+                  className="w-full text-left border border-border rounded-xl bg-surface p-4 hover:border-accent hover:bg-surface-raised transition-colors"
+                  data-testid={`prescription-form-load-template-${template.id}`}
+                >
+                  <div className="flex items-start justify-between gap-2 mb-2">
+                    <span className="font-medium text-sm text-text">{template.name}</span>
+                    <span className="text-xs text-text-mute shrink-0">
+                      {template.items.length} {template.items.length === 1 ? 'medicamento' : 'medicamentos'}
+                    </span>
+                  </div>
+                  <div className="flex flex-wrap gap-1">
+                    {template.items.map((item, i) => (
+                      <span
+                        key={i}
+                        className="inline-block px-2 py-0.5 rounded-full bg-accent/10 text-accent text-xs"
+                      >
+                        {item.name}
+                      </span>
+                    ))}
+                  </div>
+                  {template.notes && (
+                    <p className="mt-2 text-xs text-text-mute line-clamp-1">{template.notes}</p>
+                  )}
+                </button>
+              </li>
+            ))}
+          </ul>
+        </Modal>
+      )}
+
+      <Modal
+        isOpen={isSaveTemplateOpen}
+        onClose={() => setIsSaveTemplateOpen(false)}
+        title="Salvar como modelo"
+        data-testid="prescription-form-save-template-modal"
+      >
+        <div className="flex flex-col gap-4">
+          <div>
+            <label
+              htmlFor="save-template-name"
+              className="block text-xs font-medium uppercase tracking-wider text-text-mute mb-1"
+            >
+              Nome do modelo
+            </label>
+            <input
+              id="save-template-name"
+              type="text"
+              value={saveTemplateName}
+              onChange={(e) => setSaveTemplateName(e.target.value)}
+              onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); handleSaveAsTemplate() } }}
+              placeholder="Ex: Hipertensão leve, Diabetes tipo 2..."
+              className="w-full border border-border rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent"
+              data-testid="prescription-form-save-template-name"
+            />
+          </div>
+          <div className="flex justify-end gap-2">
+            <Button
+              variant="ghost"
+              onClick={() => setIsSaveTemplateOpen(false)}
+              disabled={saveTemplateMutation.isPending}
+              data-testid="prescription-form-save-template-cancel"
+            >
+              Cancelar
+            </Button>
+            <Button
+              onClick={handleSaveAsTemplate}
+              isLoading={saveTemplateMutation.isPending}
+              disabled={!saveTemplateName.trim() || saveTemplateMutation.isPending}
+              data-testid="prescription-form-save-template-confirm"
+            >
+              Salvar modelo
+            </Button>
+          </div>
+        </div>
+      </Modal>
     </form>
   )
 }

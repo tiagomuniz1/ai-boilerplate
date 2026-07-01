@@ -1,0 +1,186 @@
+import { ForbiddenException, NotFoundException, UnprocessableEntityException } from '@nestjs/common'
+import { DataSource } from 'typeorm'
+import { UserRole } from '@app/shared'
+import { ICurrentUser } from '../../auth/types/current-user.type'
+import { IDoctorsRepository } from '../../doctors/repositories/doctors.repository.interface'
+import { IMedicationsRepository } from '../../medications/repositories/medications.repository.interface'
+import { IPrescriptionTemplatesRepository } from '../repositories/prescription-templates.repository.interface'
+import { CreatePrescriptionTemplateUseCase } from '../use-cases/create-prescription-template.use-case'
+
+const clinicId = 'clinic-uuid'
+const doctorId = 'doctor-uuid'
+const medicationId = 'med-uuid'
+
+const adminUser: ICurrentUser = { id: 'admin-id', role: UserRole.ADMIN, clinicId }
+const doctorUser: ICurrentUser = { id: 'doctor-user-id', role: UserRole.DOCTOR, clinicId }
+
+const makeDoctor = (overrides = {}) => ({
+  id: doctorId,
+  user: { fullName: 'Dr. House' },
+  ...overrides,
+})
+
+const makeMedication = (overrides = {}) => ({
+  id: medicationId,
+  name: 'Dipirona',
+  activeIngredient: 'dipirona sódica',
+  ...overrides,
+})
+
+const makeSavedTemplate = (overrides = {}) => ({
+  id: 'tpl-uuid',
+  clinicId,
+  doctorId,
+  doctorName: 'Dr. House',
+  name: 'Hipertensão leve',
+  items: [{ medicationId, name: 'Dipirona', activeIngredient: 'dipirona sódica', dosage: null, quantity: null, instructions: 'Tomar 1 cp 8/8h' }],
+  notes: null,
+  isActive: true,
+  createdAt: new Date(),
+  updatedAt: new Date(),
+  deletedAt: null,
+  ...overrides,
+})
+
+const mockRepository: jest.Mocked<IPrescriptionTemplatesRepository> = {
+  findAll: jest.fn(),
+  findById: jest.fn(),
+  create: jest.fn(),
+  update: jest.fn(),
+  delete: jest.fn(),
+}
+
+const mockDoctorsRepository: jest.Mocked<IDoctorsRepository> = {
+  findAll: jest.fn(),
+  findById: jest.fn(),
+  findByUserId: jest.fn(),
+  findByCrmNumber: jest.fn(),
+  create: jest.fn(),
+  update: jest.fn(),
+  delete: jest.fn(),
+}
+
+const mockMedicationsRepository: jest.Mocked<IMedicationsRepository> = {
+  findAll: jest.fn(),
+  findById: jest.fn(),
+  create: jest.fn(),
+  update: jest.fn(),
+  delete: jest.fn(),
+  bulkUpsert: jest.fn(),
+}
+
+const baseDto = {
+  name: 'Hipertensão leve',
+  items: [{ medicationId, instructions: 'Tomar 1 cp 8/8h' }],
+}
+
+describe('CreatePrescriptionTemplateUseCase', () => {
+  let useCase: CreatePrescriptionTemplateUseCase
+
+  beforeEach(() => {
+    jest.clearAllMocks()
+    useCase = new CreatePrescriptionTemplateUseCase(
+      {} as DataSource,
+      mockRepository,
+      mockDoctorsRepository,
+      mockMedicationsRepository,
+    )
+    mockDoctorsRepository.findByUserId.mockResolvedValue(makeDoctor() as any)
+    mockDoctorsRepository.findById.mockResolvedValue(makeDoctor() as any)
+    mockMedicationsRepository.findById.mockResolvedValue(makeMedication() as any)
+    mockRepository.create.mockResolvedValue(makeSavedTemplate() as any)
+  })
+
+  it('creates template for DOCTOR using own doctorId from session', async () => {
+    const result = await useCase.execute(baseDto, doctorUser)
+
+    expect(mockDoctorsRepository.findByUserId).toHaveBeenCalledWith(doctorUser.id, clinicId)
+    expect(mockDoctorsRepository.findById).not.toHaveBeenCalled()
+    expect(result.doctorId).toBe(doctorId)
+    expect(result.name).toBe('Hipertensão leve')
+  })
+
+  it('creates template for ADMIN using doctorId from DTO', async () => {
+    const result = await useCase.execute({ ...baseDto, doctorId }, adminUser)
+
+    expect(mockDoctorsRepository.findById).toHaveBeenCalledWith(doctorId, clinicId)
+    expect(mockDoctorsRepository.findByUserId).not.toHaveBeenCalled()
+    expect(result.doctorId).toBe(doctorId)
+  })
+
+  it('resolves medication fields from DB when medicationId provided', async () => {
+    await useCase.execute(baseDto, doctorUser)
+
+    const createCall = mockRepository.create.mock.calls[0][0]
+    expect(createCall.items[0]).toMatchObject({
+      medicationId,
+      name: 'Dipirona',
+      activeIngredient: 'dipirona sódica',
+      dosage: null,
+      quantity: null,
+      instructions: 'Tomar 1 cp 8/8h',
+    })
+  })
+
+  it('builds item from activeIngredientName without DB lookup', async () => {
+    await useCase.execute({ name: 'Modelo livre', items: [{ activeIngredientName: 'Amoxicilina', instructions: 'Tomar 1 cp 8/8h' }] }, doctorUser)
+
+    expect(mockMedicationsRepository.findById).not.toHaveBeenCalled()
+    const createCall = mockRepository.create.mock.calls[0][0]
+    expect(createCall.items[0]).toMatchObject({
+      medicationId: null,
+      name: 'Amoxicilina',
+      activeIngredient: null,
+    })
+  })
+
+  it('propagates dosage and quantity to item', async () => {
+    await useCase.execute({ name: 'M', items: [{ medicationId, dosage: '500mg', quantity: '2 caixas', instructions: 'Tomar' }] }, doctorUser)
+
+    const createCall = mockRepository.create.mock.calls[0][0]
+    expect(createCall.items[0].dosage).toBe('500mg')
+    expect(createCall.items[0].quantity).toBe('2 caixas')
+  })
+
+  it('sets notes on template when provided', async () => {
+    await useCase.execute({ ...baseDto, notes: 'Retornar em 30 dias' }, doctorUser)
+
+    const createCall = mockRepository.create.mock.calls[0][0]
+    expect(createCall.notes).toBe('Retornar em 30 dias')
+  })
+
+  it('sets notes to null when omitted', async () => {
+    await useCase.execute(baseDto, doctorUser)
+
+    const createCall = mockRepository.create.mock.calls[0][0]
+    expect(createCall.notes).toBeNull()
+  })
+
+  it('throws ForbiddenException when DOCTOR has no doctor profile', async () => {
+    mockDoctorsRepository.findByUserId.mockResolvedValue(null)
+
+    await expect(useCase.execute(baseDto, doctorUser)).rejects.toThrow(ForbiddenException)
+  })
+
+  it('throws UnprocessableEntityException when ADMIN omits doctorId', async () => {
+    await expect(useCase.execute(baseDto, adminUser)).rejects.toThrow(UnprocessableEntityException)
+  })
+
+  it('throws NotFoundException when ADMIN provides unknown doctorId', async () => {
+    mockDoctorsRepository.findById.mockResolvedValue(null)
+
+    await expect(useCase.execute({ ...baseDto, doctorId }, adminUser)).rejects.toThrow(NotFoundException)
+  })
+
+  it('throws UnprocessableEntityException when medication not found', async () => {
+    mockMedicationsRepository.findById.mockResolvedValue(null)
+
+    await expect(useCase.execute(baseDto, doctorUser)).rejects.toThrow(UnprocessableEntityException)
+  })
+
+  it('throws UnprocessableEntityException when item has neither medicationId nor activeIngredientName', async () => {
+    await expect(
+      useCase.execute({ name: 'M', items: [{ instructions: 'Tomar' } as any] }, doctorUser),
+    ).rejects.toThrow(UnprocessableEntityException)
+  })
+})

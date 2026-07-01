@@ -1,0 +1,128 @@
+import { ForbiddenException, NotFoundException, UnprocessableEntityException } from '@nestjs/common'
+import { DataSource } from 'typeorm'
+import { UserRole } from '@app/shared'
+import { ICurrentUser } from '../../auth/types/current-user.type'
+import { IDoctorsRepository } from '../../doctors/repositories/doctors.repository.interface'
+import { IMedicationsRepository } from '../../medications/repositories/medications.repository.interface'
+import { IPrescriptionTemplatesRepository } from '../repositories/prescription-templates.repository.interface'
+import { UpdatePrescriptionTemplateUseCase } from '../use-cases/update-prescription-template.use-case'
+
+const clinicId = 'clinic-uuid'
+const doctorId = 'doctor-uuid'
+const templateId = 'tpl-uuid'
+const medicationId = 'med-uuid'
+
+const adminUser: ICurrentUser = { id: 'admin-id', role: UserRole.ADMIN, clinicId }
+const doctorUser: ICurrentUser = { id: 'doctor-user-id', role: UserRole.DOCTOR, clinicId }
+
+const makeDoctor = (overrides = {}) => ({ id: doctorId, user: { fullName: 'Dr. House' }, ...overrides })
+
+const makeMedication = () => ({ id: medicationId, name: 'Dipirona', activeIngredient: 'dipirona sódica' })
+
+const makeTemplate = (overrides = {}) => ({
+  id: templateId,
+  clinicId,
+  doctorId,
+  doctorName: 'Dr. House',
+  name: 'Modelo A',
+  items: [],
+  notes: null,
+  isActive: true,
+  createdAt: new Date(),
+  updatedAt: new Date(),
+  deletedAt: null,
+  ...overrides,
+})
+
+const mockRepository: jest.Mocked<IPrescriptionTemplatesRepository> = {
+  findAll: jest.fn(),
+  findById: jest.fn(),
+  create: jest.fn(),
+  update: jest.fn(),
+  delete: jest.fn(),
+}
+
+const mockDoctorsRepository: jest.Mocked<IDoctorsRepository> = {
+  findAll: jest.fn(),
+  findById: jest.fn(),
+  findByUserId: jest.fn(),
+  findByCrmNumber: jest.fn(),
+  create: jest.fn(),
+  update: jest.fn(),
+  delete: jest.fn(),
+}
+
+const mockMedicationsRepository: jest.Mocked<IMedicationsRepository> = {
+  findAll: jest.fn(),
+  findById: jest.fn(),
+  create: jest.fn(),
+  update: jest.fn(),
+  delete: jest.fn(),
+  bulkUpsert: jest.fn(),
+}
+
+describe('UpdatePrescriptionTemplateUseCase', () => {
+  let useCase: UpdatePrescriptionTemplateUseCase
+
+  beforeEach(() => {
+    jest.clearAllMocks()
+    useCase = new UpdatePrescriptionTemplateUseCase(
+      {} as DataSource,
+      mockRepository,
+      mockDoctorsRepository,
+      mockMedicationsRepository,
+    )
+    mockRepository.findById.mockResolvedValue(makeTemplate() as any)
+    mockRepository.update.mockResolvedValue(makeTemplate({ name: 'Modelo Atualizado' }) as any)
+    mockDoctorsRepository.findByUserId.mockResolvedValue(makeDoctor() as any)
+    mockMedicationsRepository.findById.mockResolvedValue(makeMedication() as any)
+  })
+
+  it('updates name without re-resolving items', async () => {
+    await useCase.execute(templateId, { name: 'Novo nome' }, adminUser)
+
+    expect(mockRepository.update).toHaveBeenCalledWith(templateId, expect.objectContaining({ name: 'Novo nome' }))
+    expect(mockMedicationsRepository.findById).not.toHaveBeenCalled()
+  })
+
+  it('re-resolves items from DB when items provided', async () => {
+    await useCase.execute(templateId, { items: [{ medicationId, instructions: 'Tomar 1 cp' }] }, adminUser)
+
+    expect(mockMedicationsRepository.findById).toHaveBeenCalledWith(medicationId)
+    const updateCall = mockRepository.update.mock.calls[0][1]
+    expect(updateCall.items![0].name).toBe('Dipirona')
+  })
+
+  it('allows DOCTOR to update own template', async () => {
+    await useCase.execute(templateId, { name: 'Novo' }, doctorUser)
+
+    expect(mockDoctorsRepository.findByUserId).toHaveBeenCalledWith(doctorUser.id, clinicId)
+    expect(mockRepository.update).toHaveBeenCalled()
+  })
+
+  it('throws NotFoundException when template not found', async () => {
+    mockRepository.findById.mockResolvedValue(null)
+
+    await expect(useCase.execute(templateId, { name: 'X' }, adminUser)).rejects.toThrow(NotFoundException)
+  })
+
+  it('throws ForbiddenException when DOCTOR updates another doctor template', async () => {
+    mockDoctorsRepository.findByUserId.mockResolvedValue(makeDoctor({ id: 'other' }) as any)
+
+    await expect(useCase.execute(templateId, { name: 'X' }, doctorUser)).rejects.toThrow(ForbiddenException)
+  })
+
+  it('throws UnprocessableEntityException when medication not found in items', async () => {
+    mockMedicationsRepository.findById.mockResolvedValue(null)
+
+    await expect(
+      useCase.execute(templateId, { items: [{ medicationId, instructions: 'Tomar' }] }, adminUser),
+    ).rejects.toThrow(UnprocessableEntityException)
+  })
+
+  it('updates isActive when provided', async () => {
+    await useCase.execute(templateId, { isActive: false }, adminUser)
+
+    expect(mockRepository.update).toHaveBeenCalledWith(templateId, expect.objectContaining({ isActive: false }))
+  })
+})

@@ -1,0 +1,2 @@
+preciso planejar a parte de solicitação e resultado de exames
+gestão de atestado médico por consulta

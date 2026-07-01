@@ -20,6 +20,7 @@ import { MedicalRecordTemplatesModule } from './modules/medical-record-templates
 import { MedicalRecordsModule } from './modules/medical-records/medical-records.module'
 import { MedicationsModule } from './modules/medications/medications.module'
 import { PrescriptionsModule } from './modules/prescriptions/prescriptions.module'
+import { PrescriptionTemplatesModule } from './modules/prescription-templates/prescription-templates.module'
 import { DashboardModule } from './modules/dashboard/dashboard.module'
 import { HttpExceptionFilter } from './common/filters/http-exception.filter'
 import { RequestIdInterceptor } from './common/interceptors/request-id.interceptor'
@@ -50,6 +51,7 @@ import { RolesGuard } from './modules/auth/guards/roles.guard'
     MedicalRecordsModule,
     MedicationsModule,
     PrescriptionsModule,
+    PrescriptionTemplatesModule,
     DashboardModule,
   ],
   providers: [
