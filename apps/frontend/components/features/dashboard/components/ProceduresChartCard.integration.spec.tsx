@@ -1,6 +1,6 @@
 import { screen } from '@testing-library/react'
 import { renderWithProviders } from '@/tests/utils/render-with-providers'
-import { ProceduresChartCard } from './ProceduresChartCard'
+import { ProceduresChartCard, formatProcedureTooltip } from './ProceduresChartCard'
 
 const procedures = {
   total: 5,
@@ -21,5 +21,11 @@ describe('ProceduresChartCard', () => {
   it('shows empty state when total is 0', () => {
     renderWithProviders(<ProceduresChartCard procedures={{ total: 0, items: [] }} />)
     expect(screen.getByText('Sem procedimentos no período')).toBeInTheDocument()
+  })
+})
+
+describe('formatProcedureTooltip', () => {
+  it('returns the value and name as a tuple', () => {
+    expect(formatProcedureTooltip(4, 'Consulta')).toEqual([4, 'Consulta'])
   })
 })

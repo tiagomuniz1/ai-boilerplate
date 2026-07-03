@@ -275,6 +275,25 @@ describe('DoctorList (integration)', () => {
     expect(screen.getByTestId('doctor-edit-link-uuid-1')).toBeInTheDocument()
   })
 
+  it.each([UserRole.ADMIN, UserRole.DOCTOR, UserRole.USER])(
+    'renders "Consultas" link pointing to the filtered agenda for %s',
+    async (role) => {
+      useAuthStore.setState({ user: makeUser(role) })
+      ;(doctorsService.getAll as jest.Mock).mockResolvedValue({ data: [makeDto()], total: 1, page: 1, limit: 20 })
+
+      renderWithProviders(<DoctorList />)
+
+      await waitFor(() => {
+        expect(screen.getByTestId('doctor-appointments-link-uuid-1')).toBeInTheDocument()
+      })
+
+      expect(screen.getByTestId('doctor-appointments-link-uuid-1')).toHaveAttribute(
+        'href',
+        expect.stringContaining('/appointments?doctor=uuid-1'),
+      )
+    },
+  )
+
   it('shows "busca" empty message when search yields no results', async () => {
     ;(doctorsService.getAll as jest.Mock).mockResolvedValue({ data: [], total: 0, page: 1, limit: 20 })
 

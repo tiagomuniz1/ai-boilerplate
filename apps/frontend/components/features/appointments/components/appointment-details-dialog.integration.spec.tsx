@@ -61,6 +61,12 @@ describe('AppointmentDetailsDialog (integration)', () => {
     expect(screen.queryByTestId('appointment-details-dialog')).not.toBeInTheDocument()
   })
 
+  it('does not fetch when appointmentId is null (initial closed state)', () => {
+    renderWithProviders(<AppointmentDetailsDialog {...defaultProps} appointmentId={null} isOpen={false} />)
+    expect(mockAppointmentsService.getById).not.toHaveBeenCalled()
+    expect(screen.queryByTestId('appointment-details-dialog')).not.toBeInTheDocument()
+  })
+
   it('renders loading state', () => {
     mockAppointmentsService.getById.mockReturnValue(new Promise(() => {}))
     renderWithProviders(<AppointmentDetailsDialog {...defaultProps} />)

@@ -185,6 +185,89 @@ describe('SetPasswordForm (integration)', () => {
       })
     })
 
+    it('shows generic error for 422 with an unrecognized detail message', async () => {
+      ;(setPasswordService.validate as jest.Mock).mockResolvedValue({
+        valid: true,
+        email: 'doc@example.com',
+      })
+      ;(setPasswordService.setPassword as jest.Mock).mockRejectedValue({
+        status: 422,
+        detail: 'Something else went wrong',
+      })
+
+      renderWithProviders(<SetPasswordForm />)
+
+      await waitFor(() => screen.getByTestId('set-password-password'))
+
+      await userEvent.type(screen.getByTestId('set-password-password'), 'password123')
+      await userEvent.type(screen.getByTestId('set-password-confirm-password'), 'password123')
+      await userEvent.click(screen.getByTestId('set-password-submit'))
+
+      await waitFor(() => {
+        expect(screen.getByTestId('set-password-error')).toHaveTextContent(
+          'Não foi possível definir sua senha. Tente novamente.',
+        )
+      })
+    })
+
+    it('shows generic error for 422 with no detail message', async () => {
+      ;(setPasswordService.validate as jest.Mock).mockResolvedValue({
+        valid: true,
+        email: 'doc@example.com',
+      })
+      ;(setPasswordService.setPassword as jest.Mock).mockRejectedValue({
+        status: 422,
+        detail: undefined,
+      })
+
+      renderWithProviders(<SetPasswordForm />)
+
+      await waitFor(() => screen.getByTestId('set-password-password'))
+
+      await userEvent.type(screen.getByTestId('set-password-password'), 'password123')
+      await userEvent.type(screen.getByTestId('set-password-confirm-password'), 'password123')
+      await userEvent.click(screen.getByTestId('set-password-submit'))
+
+      await waitFor(() => {
+        expect(screen.getByTestId('set-password-error')).toHaveTextContent(
+          'Não foi possível definir sua senha. Tente novamente.',
+        )
+      })
+    })
+
+    it('shows readonly email empty when validation has no email', async () => {
+      ;(setPasswordService.validate as jest.Mock).mockResolvedValue({
+        valid: true,
+        email: null,
+      })
+
+      renderWithProviders(<SetPasswordForm />)
+
+      await waitFor(() => {
+        expect(screen.getByTestId('set-password-email')).toBeInTheDocument()
+      })
+      expect(screen.getByTestId('set-password-email')).toHaveValue('')
+    })
+
+    it('shows zod error when password is too short', async () => {
+      ;(setPasswordService.validate as jest.Mock).mockResolvedValue({
+        valid: true,
+        email: 'doc@example.com',
+      })
+
+      renderWithProviders(<SetPasswordForm />)
+
+      await waitFor(() => screen.getByTestId('set-password-password'))
+
+      await userEvent.type(screen.getByTestId('set-password-password'), 'short')
+      await userEvent.type(screen.getByTestId('set-password-confirm-password'), 'short')
+      await userEvent.click(screen.getByTestId('set-password-submit'))
+
+      await waitFor(() => {
+        expect(screen.getByText('Mínimo 8 caracteres')).toBeInTheDocument()
+      })
+    })
+
     it('shows generic error for unexpected errors', async () => {
       ;(setPasswordService.validate as jest.Mock).mockResolvedValue({
         valid: true,

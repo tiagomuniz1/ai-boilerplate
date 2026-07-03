@@ -211,6 +211,50 @@ describe('PrescriptionSection (integration)', () => {
     })
   })
 
+  it('shows 403 error when create fails with 403', async () => {
+    mockPrescriptionsService.getByAppointment.mockResolvedValue([])
+    mockMedicationsService.getAll.mockResolvedValue(makeMedPage([makeMed()]) as any)
+    mockPrescriptionsService.create.mockRejectedValue({ status: 403 })
+
+    renderWithProviders(<PrescriptionSection {...doctorProps} />)
+    await waitFor(() => expect(screen.getByTestId('prescription-new-button')).toBeInTheDocument())
+    await userEvent.click(screen.getByTestId('prescription-new-button'))
+    await waitFor(() => expect(screen.getByTestId('prescription-form')).toBeInTheDocument())
+
+    await userEvent.type(screen.getByTestId('prescription-form-search'), 'dipi')
+    await waitFor(() => expect(screen.getByTestId('prescription-form-search-result-med-uuid')).toBeInTheDocument())
+    await userEvent.click(screen.getByTestId('prescription-form-search-result-med-uuid'))
+
+    await userEvent.type(screen.getByTestId('prescription-form-item-instructions-0'), 'Tomar 1 cp')
+    await userEvent.click(screen.getByTestId('prescription-form-submit'))
+
+    await waitFor(() => {
+      expect(screen.getByTestId('prescription-form-error')).toHaveTextContent('permissão')
+    })
+  })
+
+  it('shows generic error when create fails with an unexpected status', async () => {
+    mockPrescriptionsService.getByAppointment.mockResolvedValue([])
+    mockMedicationsService.getAll.mockResolvedValue(makeMedPage([makeMed()]) as any)
+    mockPrescriptionsService.create.mockRejectedValue({ status: 500 })
+
+    renderWithProviders(<PrescriptionSection {...doctorProps} />)
+    await waitFor(() => expect(screen.getByTestId('prescription-new-button')).toBeInTheDocument())
+    await userEvent.click(screen.getByTestId('prescription-new-button'))
+    await waitFor(() => expect(screen.getByTestId('prescription-form')).toBeInTheDocument())
+
+    await userEvent.type(screen.getByTestId('prescription-form-search'), 'dipi')
+    await waitFor(() => expect(screen.getByTestId('prescription-form-search-result-med-uuid')).toBeInTheDocument())
+    await userEvent.click(screen.getByTestId('prescription-form-search-result-med-uuid'))
+
+    await userEvent.type(screen.getByTestId('prescription-form-item-instructions-0'), 'Tomar 1 cp')
+    await userEvent.click(screen.getByTestId('prescription-form-submit'))
+
+    await waitFor(() => {
+      expect(screen.getByTestId('prescription-form-error')).toHaveTextContent('Ocorreu um erro ao emitir a receita. Tente novamente.')
+    })
+  })
+
   it('opens delete dialog on delete button click', async () => {
     mockPrescriptionsService.getByAppointment.mockResolvedValue([makePrescriptionDto()] as any)
     renderWithProviders(<PrescriptionSection {...doctorProps} />)
@@ -254,6 +298,49 @@ describe('PrescriptionSection (integration)', () => {
     await userEvent.click(screen.getByTestId('prescription-download-button-rx-uuid'))
     await waitFor(() => {
       expect(mockDownload).toHaveBeenCalledWith('rx-uuid', 'receita-rx-uuid.pdf')
+    })
+  })
+
+  it('only shows loading state on the item currently being downloaded', async () => {
+    const first = makePrescriptionDto({ id: 'rx-1' })
+    const second = makePrescriptionDto({ id: 'rx-2' })
+    mockPrescriptionsService.getByAppointment.mockResolvedValue([first, second] as any)
+    let resolveDownload: () => void
+    mockDownload.mockReturnValue(new Promise((resolve) => { resolveDownload = resolve as () => void }))
+
+    renderWithProviders(<PrescriptionSection {...doctorProps} />)
+    await waitFor(() => expect(screen.getByTestId('prescription-download-button-rx-1')).toBeInTheDocument())
+
+    await userEvent.click(screen.getByTestId('prescription-download-button-rx-1'))
+
+    await waitFor(() => {
+      expect(screen.getByTestId('prescription-download-button-rx-1')).toHaveAttribute('aria-busy', 'true')
+    })
+    expect(screen.getByTestId('prescription-download-button-rx-2')).toHaveAttribute('aria-busy', 'false')
+
+    resolveDownload!()
+  })
+
+  it('opens preview modal when "Visualizar" is clicked', async () => {
+    mockPrescriptionsService.getByAppointment.mockResolvedValue([makePrescriptionDto()] as any)
+    renderWithProviders(<PrescriptionSection {...doctorProps} />)
+    await waitFor(() => expect(screen.getByTestId('prescription-preview-button-rx-uuid')).toBeInTheDocument())
+    await userEvent.click(screen.getByTestId('prescription-preview-button-rx-uuid'))
+    await waitFor(() => {
+      expect(screen.getByTestId('prescription-preview-modal')).toBeInTheDocument()
+    })
+  })
+
+  it('closes preview modal when closed', async () => {
+    mockPrescriptionsService.getByAppointment.mockResolvedValue([makePrescriptionDto()] as any)
+    renderWithProviders(<PrescriptionSection {...doctorProps} />)
+    await waitFor(() => expect(screen.getByTestId('prescription-preview-button-rx-uuid')).toBeInTheDocument())
+    await userEvent.click(screen.getByTestId('prescription-preview-button-rx-uuid'))
+    await waitFor(() => expect(screen.getByTestId('prescription-preview-modal')).toBeInTheDocument())
+    const modal = screen.getByTestId('prescription-preview-modal')
+    await userEvent.click(within(modal).getByRole('button', { name: 'Fechar' }))
+    await waitFor(() => {
+      expect(screen.queryByTestId('prescription-preview-modal')).not.toBeInTheDocument()
     })
   })
 })

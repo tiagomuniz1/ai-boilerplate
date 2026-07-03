@@ -3,6 +3,7 @@ jest.mock('@/components/features/doctors/services/doctors.service')
 jest.mock('@/components/features/medical-records/services/medical-records.service')
 jest.mock('@/components/features/medical-record-templates/services/medical-record-templates.service')
 jest.mock('@/components/features/prescriptions/services/prescriptions.service')
+jest.mock('@/components/features/atestados/services/atestados.service')
 jest.mock('@/stores/auth.store')
 jest.mock('@/lib/slug-context', () => ({ useSlug: jest.fn(() => 'clinic-slug') }))
 jest.mock('next/navigation', () => ({
@@ -19,6 +20,7 @@ import { doctorsService } from '@/components/features/doctors/services/doctors.s
 import { medicalRecordsService } from '@/components/features/medical-records/services/medical-records.service'
 import { medicalRecordTemplatesService } from '@/components/features/medical-record-templates/services/medical-record-templates.service'
 import { prescriptionsService } from '@/components/features/prescriptions/services/prescriptions.service'
+import { atestadosService } from '@/components/features/atestados/services/atestados.service'
 import { useAuthStore } from '@/stores/auth.store'
 import { renderWithProviders } from '@/tests/utils/render-with-providers'
 import AppointmentDetailPage from './page'
@@ -29,6 +31,7 @@ const mockDoctorsService = doctorsService as jest.Mocked<typeof doctorsService>
 const mockMedicalRecordsService = medicalRecordsService as jest.Mocked<typeof medicalRecordsService>
 const mockTemplatesService = medicalRecordTemplatesService as jest.Mocked<typeof medicalRecordTemplatesService>
 const mockPrescriptionsService = prescriptionsService as jest.Mocked<typeof prescriptionsService>
+const mockAtestadosService = atestadosService as jest.Mocked<typeof atestadosService>
 const mockUseAuthStore = useAuthStore as unknown as jest.Mock
 
 const DOCTOR_ID = 'doctor-profile-uuid'
@@ -96,6 +99,7 @@ describe('AppointmentDetailPage (integration)', () => {
     mockMedicalRecordsService.getByAppointment.mockResolvedValue(null)
     mockTemplatesService.getAll.mockResolvedValue({ data: [], total: 0, page: 1, limit: 1 })
     mockPrescriptionsService.getByAppointment.mockResolvedValue([])
+    mockAtestadosService.getByAppointment.mockResolvedValue([])
   })
 
   it('renders skeleton while loading', () => {
@@ -214,6 +218,28 @@ describe('AppointmentDetailPage (integration)', () => {
       expect(screen.getByTestId('tab-prontuario')).toBeInTheDocument()
     })
     expect(screen.getByTestId('header-fill-record-button')).toBeInTheDocument()
+  })
+
+  it('ADMIN sees atestados tab and can open the section', async () => {
+    mockAppointmentsService.getById.mockResolvedValue(makeAppointmentDto())
+    renderWithProviders(<AppointmentDetailPage />)
+    await waitFor(() => {
+      expect(screen.getByTestId('tab-atestados')).toBeInTheDocument()
+    })
+    await userEvent.click(screen.getByTestId('tab-atestados'))
+    await waitFor(() => {
+      expect(screen.getByTestId('atestado-section')).toBeInTheDocument()
+    })
+  })
+
+  it('USER does not see atestados tab', async () => {
+    mockAuth(UserRole.USER)
+    mockAppointmentsService.getById.mockResolvedValue(makeAppointmentDto())
+    renderWithProviders(<AppointmentDetailPage />)
+    await waitFor(() => {
+      expect(screen.getByTestId('appointment-detail-status')).toBeInTheDocument()
+    })
+    expect(screen.queryByTestId('tab-atestados')).not.toBeInTheDocument()
   })
 
   it('USER does not see prontuário tab', async () => {

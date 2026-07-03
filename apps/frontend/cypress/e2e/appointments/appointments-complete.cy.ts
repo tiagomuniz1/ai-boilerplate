@@ -81,6 +81,10 @@ describe('Appointments — complete', () => {
       statusCode: 200,
       body: { data: [], total: 0, page: 1, limit: 20 },
     })
+    cy.intercept('GET', `${Cypress.env('API_URL')}/medical-certificates*`, {
+      statusCode: 200,
+      body: [],
+    })
   })
 
   it('ADMIN sees complete button on appointment detail page', () => {

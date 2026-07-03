@@ -25,7 +25,7 @@ export class PrescriptionTemplatesController {
   ) {}
 
   @Post()
-  @Roles(UserRole.DOCTOR)
+  @Roles(UserRole.ADMIN, UserRole.DOCTOR)
   create(
     @Body() dto: CreatePrescriptionTemplateDto,
     @CurrentUser() currentUser: ICurrentUser,
@@ -52,7 +52,7 @@ export class PrescriptionTemplatesController {
   }
 
   @Patch(':id')
-  @Roles(UserRole.DOCTOR)
+  @Roles(UserRole.ADMIN, UserRole.DOCTOR)
   update(
     @Param('id') id: string,
     @Body() dto: UpdatePrescriptionTemplateDto,

@@ -17,7 +17,7 @@ const fakeData: IDashboardModel = {
   patients: { total: 20, newPatients: 12, returningPatients: 8, byGender: { male: 9, female: 11 } },
   procedures: { total: 5, items: [{ label: 'Cardiologia', value: 5 }] },
   insurance: { total: 8, particular: 5, convenio: 3 },
-  duration: { averageMinutes: 42, byInsuranceType: { particular: 6, convenio: 2 } },
+  cidRanking: { total: 5, items: [{ label: 'M54.5', value: 5 }] },
   appointmentsByDay: [{ date: new Date('2026-01-15'), count: 3 }],
   ageDistribution: [{ age: 30, count: 5 }],
   todayBirthdays: [{ patientId: 'p1', fullName: 'Ana Costa', age: 32 }],
@@ -44,7 +44,7 @@ describe('DashboardView', () => {
     expect(screen.getByTestId('dashboard-kpi-scheduled')).toHaveTextContent('10')
     expect(screen.getByTestId('dashboard-patients-chart')).toBeInTheDocument()
     expect(screen.getByTestId('dashboard-procedures-chart')).toBeInTheDocument()
-    expect(screen.getByTestId('dashboard-duration-card')).toBeInTheDocument()
+    expect(screen.getByTestId('dashboard-cid-ranking-card')).toBeInTheDocument()
     expect(screen.getByTestId('dashboard-timeline-chart')).toBeInTheDocument()
     expect(screen.getByTestId('dashboard-age-distribution')).toBeInTheDocument()
     expect(screen.getByTestId('dashboard-birthdays')).toBeInTheDocument()

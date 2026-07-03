@@ -2,6 +2,7 @@ import { faker } from '@faker-js/faker'
 import { Repository } from 'typeorm'
 import { AppointmentStatus } from '@app/shared'
 import { Appointment } from '../../appointments/entities/appointment.entity'
+import { MedicalCertificate } from '../../medical-certificates/entities/medical-certificate.entity'
 import { DashboardRepository } from './dashboard.repository'
 
 function makeQb(raw: unknown[] = []) {
@@ -15,6 +16,7 @@ function makeQb(raw: unknown[] = []) {
     groupBy: jest.fn().mockReturnThis(),
     addGroupBy: jest.fn().mockReturnThis(),
     orderBy: jest.fn().mockReturnThis(),
+    limit: jest.fn().mockReturnThis(),
     getRawMany: jest.fn().mockResolvedValue(raw),
   }
   return qb
@@ -46,6 +48,12 @@ function makeRepo(qb: ReturnType<typeof makeQb>, queryResult: unknown[] = []): R
   } as unknown as Repository<Appointment>
 }
 
+function makeMedCertRepo(qb: ReturnType<typeof makeQb> = makeQb([])): Repository<MedicalCertificate> {
+  return {
+    createQueryBuilder: jest.fn().mockReturnValue(qb),
+  } as unknown as Repository<MedicalCertificate>
+}
+
 const CLINIC_ID = 'clinic-uuid'
 const FROM = '2026-05-23'
 const TO = '2026-06-22'
@@ -54,7 +62,7 @@ describe('DashboardRepository', () => {
   describe('countByStatus', () => {
     it('returns zero counts when no rows', async () => {
       const qb = makeQb([])
-      const repo = new DashboardRepository(makeRepo(qb))
+      const repo = new DashboardRepository(makeRepo(qb), makeMedCertRepo())
       const result = await repo.countByStatus(CLINIC_ID, FROM, TO)
 
       expect(result[AppointmentStatus.COMPLETED]).toBe(0)
@@ -66,7 +74,7 @@ describe('DashboardRepository', () => {
         { status: 'completed', count: '5' },
         { status: 'scheduled', count: '3' },
       ])
-      const repo = new DashboardRepository(makeRepo(qb))
+      const repo = new DashboardRepository(makeRepo(qb), makeMedCertRepo())
       const result = await repo.countByStatus(CLINIC_ID, FROM, TO)
 
       expect(result[AppointmentStatus.COMPLETED]).toBe(5)
@@ -75,7 +83,7 @@ describe('DashboardRepository', () => {
 
     it('applies doctorId filter when provided', async () => {
       const qb = makeQb([])
-      const repo = new DashboardRepository(makeRepo(qb))
+      const repo = new DashboardRepository(makeRepo(qb), makeMedCertRepo())
       await repo.countByStatus(CLINIC_ID, FROM, TO, 'doctor-id')
 
       expect(qb.andWhere).toHaveBeenCalledWith('a.doctor_id = :doctorId', { doctorId: 'doctor-id' })
@@ -88,7 +96,7 @@ describe('DashboardRepository', () => {
         { label: 'Cardiologia', value: '7' },
         { label: 'Sem especialidade', value: '2' },
       ])
-      const repo = new DashboardRepository(makeRepo(qb))
+      const repo = new DashboardRepository(makeRepo(qb), makeMedCertRepo())
       const result = await repo.getProceduresBySpecialty(CLINIC_ID, FROM, TO)
 
       expect(result).toEqual([
@@ -104,7 +112,7 @@ describe('DashboardRepository', () => {
         { insuranceType: 'particular', count: '4' },
         { insuranceType: 'convenio', count: '2' },
       ])
-      const repo = new DashboardRepository(makeRepo(qb))
+      const repo = new DashboardRepository(makeRepo(qb), makeMedCertRepo())
       const result = await repo.getInsuranceStats(CLINIC_ID, FROM, TO)
 
       expect(result).toEqual({ particular: 4, convenio: 2 })
@@ -112,53 +120,60 @@ describe('DashboardRepository', () => {
 
     it('returns zeros when no rows', async () => {
       const qb = makeQb([])
-      const repo = new DashboardRepository(makeRepo(qb))
+      const repo = new DashboardRepository(makeRepo(qb), makeMedCertRepo())
       const result = await repo.getInsuranceStats(CLINIC_ID, FROM, TO)
 
       expect(result).toEqual({ particular: 0, convenio: 0 })
     })
   })
 
-  describe('getDurationStats', () => {
-    it('rounds averageMinutes', async () => {
-      const avgQb = makeQb([{ avgMinutes: '27.6' }])
-      const insQb = makeQb([
-        { insuranceType: 'particular', count: '3' },
-        { insuranceType: 'convenio', count: '2' },
+  describe('getCidRanking', () => {
+    it('returns mapped CID ranking ordered by value', async () => {
+      const qb = makeQb([
+        { label: 'M54.5', value: '7' },
+        { label: 'J11', value: '2' },
       ])
+      const repo = new DashboardRepository(makeRepo(makeQb([])), makeMedCertRepo(qb))
+      const result = await repo.getCidRanking(CLINIC_ID, FROM, TO)
 
-      let callCount = 0
-      const repo = {
-        createQueryBuilder: jest.fn().mockImplementation(() => {
-          callCount++
-          return callCount === 1 ? avgQb : insQb
-        }),
-      } as unknown as Repository<Appointment>
-
-      const dashRepo = new DashboardRepository(repo)
-      const result = await dashRepo.getDurationStats(CLINIC_ID, FROM, TO)
-
-      expect(result.averageMinutes).toBe(28)
-      expect(result.particular).toBe(3)
-      expect(result.convenio).toBe(2)
+      expect(result).toEqual([
+        { label: 'M54.5', value: 7 },
+        { label: 'J11', value: 2 },
+      ])
     })
 
-    it('returns 0 for averageMinutes when no rows', async () => {
-      const avgQb = makeQb([{ avgMinutes: null }])
-      const insQb = makeQb([])
+    it('returns empty array when no certificates', async () => {
+      const qb = makeQb([])
+      const repo = new DashboardRepository(makeRepo(makeQb([])), makeMedCertRepo(qb))
+      const result = await repo.getCidRanking(CLINIC_ID, FROM, TO)
 
-      let callCount = 0
-      const repo = {
-        createQueryBuilder: jest.fn().mockImplementation(() => {
-          callCount++
-          return callCount === 1 ? avgQb : insQb
-        }),
-      } as unknown as Repository<Appointment>
+      expect(result).toEqual([])
+    })
 
-      const dashRepo = new DashboardRepository(repo)
-      const result = await dashRepo.getDurationStats(CLINIC_ID, FROM, TO)
+    it('filters by type=leave, non-null cidCode, and limits to top 10', async () => {
+      const qb = makeQb([])
+      const repo = new DashboardRepository(makeRepo(makeQb([])), makeMedCertRepo(qb))
+      await repo.getCidRanking(CLINIC_ID, FROM, TO)
 
-      expect(result.averageMinutes).toBe(0)
+      expect(qb.andWhere).toHaveBeenCalledWith("mc.snapshot->>'type' = 'leave'")
+      expect(qb.andWhere).toHaveBeenCalledWith("mc.snapshot->>'cidCode' IS NOT NULL")
+      expect(qb.limit).toHaveBeenCalledWith(10)
+    })
+
+    it('applies doctorId filter when provided', async () => {
+      const qb = makeQb([])
+      const repo = new DashboardRepository(makeRepo(makeQb([])), makeMedCertRepo(qb))
+      await repo.getCidRanking(CLINIC_ID, FROM, TO, 'doc-id')
+
+      expect(qb.andWhere).toHaveBeenCalledWith('mc.doctor_id = :doctorId', { doctorId: 'doc-id' })
+    })
+
+    it('does not apply doctorId filter when not provided', async () => {
+      const qb = makeQb([])
+      const repo = new DashboardRepository(makeRepo(makeQb([])), makeMedCertRepo(qb))
+      await repo.getCidRanking(CLINIC_ID, FROM, TO)
+
+      expect(qb.andWhere).not.toHaveBeenCalledWith('mc.doctor_id = :doctorId', expect.anything())
     })
   })
 
@@ -168,7 +183,7 @@ describe('DashboardRepository', () => {
         { date: '2026-06-20', count: '2' },
         { date: '2026-06-22', count: '1' },
       ])
-      const repo = new DashboardRepository(makeRepo(qb))
+      const repo = new DashboardRepository(makeRepo(qb), makeMedCertRepo())
       const result = await repo.getCompletedCountByDay(CLINIC_ID, FROM, TO)
 
       expect(result).toEqual([
@@ -184,7 +199,7 @@ describe('DashboardRepository', () => {
         { age: '30', count: '3' },
         { age: '45', count: '1' },
       ])
-      const repo = new DashboardRepository(makeRepo(qb))
+      const repo = new DashboardRepository(makeRepo(qb), makeMedCertRepo())
       const result = await repo.getAgeDistribution(CLINIC_ID, FROM, TO)
 
       expect(result).toEqual([
@@ -199,7 +214,7 @@ describe('DashboardRepository', () => {
       const patientId = faker.string.uuid()
       const qb = makeQb([])
       const repo = makeRepo(qb, [{ patientId, fullName: 'João Silva', age: '35' }])
-      const result = await new DashboardRepository(repo).getTodayBirthdays(CLINIC_ID)
+      const result = await new DashboardRepository(repo, makeMedCertRepo()).getTodayBirthdays(CLINIC_ID)
 
       expect(result).toEqual([{ patientId, fullName: 'João Silva', age: 35 }])
     })
@@ -207,7 +222,7 @@ describe('DashboardRepository', () => {
     it('uses QueryRunner without doctorId (queries patients directly)', async () => {
       const qb = makeQb([])
       const repo = makeRepo(qb, [])
-      await new DashboardRepository(repo).getTodayBirthdays(CLINIC_ID)
+      await new DashboardRepository(repo, makeMedCertRepo()).getTodayBirthdays(CLINIC_ID)
       const qrQuery = (repo as any)._qrQuery as jest.Mock
       const dataCalls = qrQuery.mock.calls.filter(([sql]: [string]) => !sql.startsWith('SET search_path'))
       expect(dataCalls.length).toBe(1)
@@ -220,7 +235,7 @@ describe('DashboardRepository', () => {
     it('adds EXISTS filter with doctorId when provided', async () => {
       const qb = makeQb([])
       const repo = makeRepo(qb, [])
-      await new DashboardRepository(repo).getTodayBirthdays(CLINIC_ID, 'doc-id')
+      await new DashboardRepository(repo, makeMedCertRepo()).getTodayBirthdays(CLINIC_ID, 'doc-id')
       const qrQuery = (repo as any)._qrQuery as jest.Mock
       const dataCalls = qrQuery.mock.calls.filter(([sql]: [string]) => !sql.startsWith('SET search_path'))
       expect(dataCalls.length).toBe(1)
@@ -235,7 +250,7 @@ describe('DashboardRepository', () => {
       const qb = makeQb([])
       const repo = makeRepo(qb, [{ patientId, fullName: 'Maria Costa', age: '28' }])
 
-      const result = await new DashboardRepository(repo).getTodayBirthdays(CLINIC_ID, 'doc-id')
+      const result = await new DashboardRepository(repo, makeMedCertRepo()).getTodayBirthdays(CLINIC_ID, 'doc-id')
 
       expect(result).toEqual([{ patientId, fullName: 'Maria Costa', age: 28 }])
     })
@@ -244,7 +259,7 @@ describe('DashboardRepository', () => {
   describe('getProceduresBySpecialty', () => {
     it('applies doctorId filter when provided', async () => {
       const qb = makeQb([])
-      const repo = new DashboardRepository(makeRepo(qb))
+      const repo = new DashboardRepository(makeRepo(qb), makeMedCertRepo())
       await repo.getProceduresBySpecialty(CLINIC_ID, FROM, TO, 'doc-id')
 
       expect(qb.andWhere).toHaveBeenCalledWith('a.doctor_id = :doctorId', { doctorId: 'doc-id' })
@@ -254,38 +269,17 @@ describe('DashboardRepository', () => {
   describe('getInsuranceStats', () => {
     it('applies doctorId filter when provided', async () => {
       const qb = makeQb([])
-      const repo = new DashboardRepository(makeRepo(qb))
+      const repo = new DashboardRepository(makeRepo(qb), makeMedCertRepo())
       await repo.getInsuranceStats(CLINIC_ID, FROM, TO, 'doc-id')
 
       expect(qb.andWhere).toHaveBeenCalledWith('a.doctor_id = :doctorId', { doctorId: 'doc-id' })
     })
   })
 
-  describe('getDurationStats', () => {
-    it('applies doctorId filter to both avg and insurance queries', async () => {
-      const avgQb = makeQb([{ avgMinutes: '30' }])
-      const insQb = makeQb([])
-
-      let callCount = 0
-      const repo = {
-        createQueryBuilder: jest.fn().mockImplementation(() => {
-          callCount++
-          return callCount === 1 ? avgQb : insQb
-        }),
-      } as unknown as Repository<Appointment>
-
-      const dashRepo = new DashboardRepository(repo)
-      await dashRepo.getDurationStats(CLINIC_ID, FROM, TO, 'doc-id')
-
-      expect(avgQb.andWhere).toHaveBeenCalledWith('a.doctor_id = :doctorId', { doctorId: 'doc-id' })
-      expect(insQb.andWhere).toHaveBeenCalledWith('a.doctor_id = :doctorId', { doctorId: 'doc-id' })
-    })
-  })
-
   describe('getCompletedCountByDay', () => {
     it('applies doctorId filter when provided', async () => {
       const qb = makeQb([])
-      const repo = new DashboardRepository(makeRepo(qb))
+      const repo = new DashboardRepository(makeRepo(qb), makeMedCertRepo())
       await repo.getCompletedCountByDay(CLINIC_ID, FROM, TO, 'doc-id')
 
       expect(qb.andWhere).toHaveBeenCalledWith('a.doctor_id = :doctorId', { doctorId: 'doc-id' })
@@ -295,7 +289,7 @@ describe('DashboardRepository', () => {
   describe('getAgeDistribution', () => {
     it('applies doctorId filter when provided', async () => {
       const qb = makeQb([])
-      const repo = new DashboardRepository(makeRepo(qb))
+      const repo = new DashboardRepository(makeRepo(qb), makeMedCertRepo())
       await repo.getAgeDistribution(CLINIC_ID, FROM, TO, 'doc-id')
 
       expect(qb.andWhere).toHaveBeenCalledWith('a.doctor_id = :doctorId', { doctorId: 'doc-id' })
@@ -306,7 +300,7 @@ describe('DashboardRepository', () => {
     it('returns zeros when no patients in period', async () => {
       const qb = makeQb([])
       const repo = makeRepo(qb, [])
-      const result = await new DashboardRepository(repo).getPatientStats(CLINIC_ID, FROM, TO)
+      const result = await new DashboardRepository(repo, makeMedCertRepo()).getPatientStats(CLINIC_ID, FROM, TO)
       expect(result).toEqual({ total: 0, newPatients: 0, returning: 0, male: 0, female: 0 })
     })
 
@@ -316,7 +310,7 @@ describe('DashboardRepository', () => {
         { gender: 'male', patient_type: 'new' },
         { gender: 'female', patient_type: 'returning' },
       ])
-      const result = await new DashboardRepository(repo).getPatientStats(CLINIC_ID, FROM, TO)
+      const result = await new DashboardRepository(repo, makeMedCertRepo()).getPatientStats(CLINIC_ID, FROM, TO)
       expect(result.total).toBe(2)
       expect(result.newPatients).toBe(1)
       expect(result.returning).toBe(1)
@@ -327,7 +321,7 @@ describe('DashboardRepository', () => {
     it('applies doctorId filter in SQL when provided', async () => {
       const qb = makeQb([])
       const repo = makeRepo(qb, [])
-      await new DashboardRepository(repo).getPatientStats(CLINIC_ID, FROM, TO, 'doc-id')
+      await new DashboardRepository(repo, makeMedCertRepo()).getPatientStats(CLINIC_ID, FROM, TO, 'doc-id')
       const qrQuery = (repo as any)._qrQuery as jest.Mock
       const dataCalls = qrQuery.mock.calls.filter(([sql]: [string]) => !sql.startsWith('SET search_path'))
       const [sql, params] = dataCalls[0]
@@ -338,7 +332,7 @@ describe('DashboardRepository', () => {
     it('does not include doctorId filter when not provided', async () => {
       const qb = makeQb([])
       const repo = makeRepo(qb, [])
-      await new DashboardRepository(repo).getPatientStats(CLINIC_ID, FROM, TO)
+      await new DashboardRepository(repo, makeMedCertRepo()).getPatientStats(CLINIC_ID, FROM, TO)
       const qrQuery = (repo as any)._qrQuery as jest.Mock
       const dataCalls = qrQuery.mock.calls.filter(([sql]: [string]) => !sql.startsWith('SET search_path'))
       const [sql, params] = dataCalls[0]
@@ -365,7 +359,7 @@ describe('DashboardRepository', () => {
         _qrQuery: qrQuery,
       } as unknown as Repository<Appointment>
 
-      await new DashboardRepository(repoWithoutSchema).getPatientStats(CLINIC_ID, FROM, TO)
+      await new DashboardRepository(repoWithoutSchema, makeMedCertRepo()).getPatientStats(CLINIC_ID, FROM, TO)
 
       const setPaths = qrQuery.mock.calls.filter(([sql]: [string]) => sql.startsWith('SET search_path'))
       expect(setPaths[0][0]).toContain('"public"')
@@ -392,7 +386,7 @@ describe('DashboardRepository', () => {
         _qrQuery: qrQuery,
       } as unknown as Repository<Appointment>
 
-      await new DashboardRepository(repoWithoutSchema).getTodayBirthdays(CLINIC_ID)
+      await new DashboardRepository(repoWithoutSchema, makeMedCertRepo()).getTodayBirthdays(CLINIC_ID)
 
       const setPaths = qrQuery.mock.calls.filter(([sql]: [string]) => sql.startsWith('SET search_path'))
       expect(setPaths[0][0]).toContain('"public"')

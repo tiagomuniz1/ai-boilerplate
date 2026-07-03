@@ -31,7 +31,7 @@ const mockDashboardRepository: jest.Mocked<IDashboardRepository> = {
   getPatientStats: jest.fn(),
   getProceduresBySpecialty: jest.fn(),
   getInsuranceStats: jest.fn(),
-  getDurationStats: jest.fn(),
+  getCidRanking: jest.fn(),
   getCompletedCountByDay: jest.fn(),
   getAgeDistribution: jest.fn(),
   getTodayBirthdays: jest.fn(),
@@ -66,7 +66,7 @@ function setupEmptyRepos() {
   mockDashboardRepository.getPatientStats.mockResolvedValue(emptyPatientStats())
   mockDashboardRepository.getProceduresBySpecialty.mockResolvedValue([])
   mockDashboardRepository.getInsuranceStats.mockResolvedValue({ particular: 0, convenio: 0 })
-  mockDashboardRepository.getDurationStats.mockResolvedValue({ averageMinutes: 0, particular: 0, convenio: 0 })
+  mockDashboardRepository.getCidRanking.mockResolvedValue([])
   mockDashboardRepository.getCompletedCountByDay.mockResolvedValue([])
   mockDashboardRepository.getAgeDistribution.mockResolvedValue([])
   mockDashboardRepository.getTodayBirthdays.mockResolvedValue([])
@@ -203,6 +203,26 @@ describe('GetDashboardStatsUseCase', () => {
 
       expect(result.procedures.total).toBe(8)
       expect(result.procedures.items).toHaveLength(2)
+    })
+
+    it('computes cidRanking.total as sum of items values', async () => {
+      mockDashboardRepository.getCidRanking.mockResolvedValue([
+        { label: 'M54.5', value: 5 },
+        { label: 'J11', value: 3 },
+      ])
+
+      const result = await useCase.execute({ from: '2026-01-01', to: '2026-01-31' }, adminUser)
+
+      expect(result.cidRanking.total).toBe(8)
+      expect(result.cidRanking.items).toEqual([
+        { label: 'M54.5', value: 5 },
+        { label: 'J11', value: 3 },
+      ])
+    })
+
+    it('returns cidRanking.total = 0 when no certificates', async () => {
+      const result = await useCase.execute({ from: '2026-01-01', to: '2026-01-31' }, adminUser)
+      expect(result.cidRanking).toEqual({ total: 0, items: [] })
     })
 
     it('computes insurance.total = particular + convenio', async () => {

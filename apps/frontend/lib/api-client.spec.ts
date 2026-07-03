@@ -230,6 +230,14 @@ describe('api-client', () => {
       await apiClient.delete('/users/1')
       expect(axiosInstance.delete).toHaveBeenCalledWith('/users/1')
     })
+
+    it('getBlob delegates to client.get with blob responseType', async () => {
+      const blob = new Blob(['pdf-content'])
+      axiosInstance.get.mockResolvedValue(blob)
+      const result = await apiClient.getBlob('/prescriptions/1/pdf')
+      expect(axiosInstance.get).toHaveBeenCalledWith('/prescriptions/1/pdf', { responseType: 'blob' })
+      expect(result).toBe(blob)
+    })
   })
 
   describe('request interceptor — slug header', () => {

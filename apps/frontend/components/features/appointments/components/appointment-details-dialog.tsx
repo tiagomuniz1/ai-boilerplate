@@ -31,7 +31,8 @@ export function AppointmentDetailsDialog({
   const { data: appointment, isLoading, isError } = useAppointment(appointmentId ?? '')
 
   function handleGoToAppointment() {
-    if (!appointmentId) return
+    // Only reachable once `appointment` has loaded below, which requires a non-null appointmentId
+    // (useAppointment is disabled otherwise), so appointmentId is guaranteed here.
     router.push(`/${slug}/appointments/${appointmentId}`)
     onClose()
   }

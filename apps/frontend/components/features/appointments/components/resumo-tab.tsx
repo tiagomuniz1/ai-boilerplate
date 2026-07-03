@@ -74,10 +74,19 @@ interface ResumoTabProps {
   patient: IAppointmentPatientModel
   prescriptionCount?: number
   showPrescriptions: boolean
+  certificateCount?: number
+  showCertificates: boolean
   onNavigate: (tab: string) => void
 }
 
-export function ResumoTab({ patient, prescriptionCount, showPrescriptions, onNavigate }: ResumoTabProps) {
+export function ResumoTab({
+  patient,
+  prescriptionCount,
+  showPrescriptions,
+  certificateCount,
+  showCertificates,
+  onNavigate,
+}: ResumoTabProps) {
   const birthDateFormatted = patient.birthDate.toLocaleDateString('pt-BR', {
     day: '2-digit',
     month: 'long',
@@ -126,12 +135,14 @@ export function ResumoTab({ patient, prescriptionCount, showPrescriptions, onNav
               onClick={() => onNavigate('receitas')}
             />
           )}
-          <DocumentRow
-            label="Atestados"
-            count={0}
-            testId="resumo-tab-atestados"
-            onClick={() => onNavigate('atestados')}
-          />
+          {showCertificates && (
+            <DocumentRow
+              label="Atestados"
+              count={certificateCount ?? 0}
+              testId="resumo-tab-atestados"
+              onClick={() => onNavigate('atestados')}
+            />
+          )}
           <DocumentRow
             label="Exames"
             count={0}

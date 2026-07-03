@@ -71,7 +71,7 @@ describe('Dashboard', () => {
     cy.get('[data-testid="dashboard-patients-chart"]').should('be.visible')
     cy.get('[data-testid="dashboard-procedures-chart"]').should('be.visible')
     cy.get('[data-testid="dashboard-insurance-chart"]').should('be.visible')
-    cy.get('[data-testid="dashboard-duration-card"]').should('be.visible')
+    cy.get('[data-testid="dashboard-cid-ranking-card"]').should('be.visible')
     cy.get('[data-testid="dashboard-timeline-chart"]').should('be.visible')
     cy.get('[data-testid="dashboard-age-distribution"]').should('be.visible')
   })

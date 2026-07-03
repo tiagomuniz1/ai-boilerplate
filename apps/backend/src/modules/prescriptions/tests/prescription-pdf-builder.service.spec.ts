@@ -68,6 +68,42 @@ describe('PrescriptionPdfBuilderService', () => {
     expect(buffer.slice(0, 4).toString('ascii')).toBe('%PDF')
   })
 
+  it('generates PDF with item dosage appended to the name', async () => {
+    const snapshot = makeSnapshot({
+      items: [
+        { medicationId: 'a', name: 'Dipirona', activeIngredient: 'dipirona', dosage: '500mg', instructions: 'Tomar 1 cp 8/8h' },
+      ],
+    })
+
+    const buffer = await service.build(snapshot, null)
+
+    expect(buffer.slice(0, 4).toString('ascii')).toBe('%PDF')
+  })
+
+  it('generates PDF with item quantity line', async () => {
+    const snapshot = makeSnapshot({
+      items: [
+        { medicationId: 'a', name: 'Dipirona', activeIngredient: 'dipirona', quantity: '2 caixas', instructions: 'Tomar 1 cp 8/8h' },
+      ],
+    })
+
+    const buffer = await service.build(snapshot, null)
+
+    expect(buffer.slice(0, 4).toString('ascii')).toBe('%PDF')
+  })
+
+  it('generates PDF without dosage/quantity lines when items omit them', async () => {
+    const snapshot = makeSnapshot({
+      items: [
+        { medicationId: 'a', name: 'Dipirona', activeIngredient: 'dipirona', instructions: 'Tomar 1 cp 8/8h' },
+      ],
+    })
+
+    const buffer = await service.build(snapshot, null)
+
+    expect(buffer.slice(0, 4).toString('ascii')).toBe('%PDF')
+  })
+
   it('generates PDF without notes when notes is null', async () => {
     const buffer = await service.build(makeSnapshot({ notes: null }), null)
 

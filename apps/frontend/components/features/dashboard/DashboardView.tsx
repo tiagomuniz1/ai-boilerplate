@@ -6,7 +6,8 @@ import { DashboardSkeleton } from './components/DashboardSkeleton'
 import { DashboardKpiRow } from './components/DashboardKpiRow'
 import { PatientsChartCard } from './components/PatientsChartCard'
 import { ProceduresChartCard } from './components/ProceduresChartCard'
-import { DurationCard } from './components/DurationCard'
+import { InsuranceChartCard } from './components/InsuranceChartCard'
+import { CidRankingCard } from './components/CidRankingCard'
 import { AppointmentsTimelineCard } from './components/AppointmentsTimelineCard'
 import { AgeDistributionCard } from './components/AgeDistributionCard'
 import { BirthdayPanel } from './components/BirthdayPanel'
@@ -43,8 +44,10 @@ export function DashboardView() {
       <div className="flex flex-wrap items-center justify-between gap-4">
         <h1 className="text-2xl font-bold text-text">Dashboard</h1>
         <DashboardDateRangeFilter
-          from={filters.from ?? defaults.from}
-          to={filters.to ?? defaults.to}
+          // filters.from/to are always set by the initial state above and only ever
+          // overwritten together by handleDateChange when both are truthy.
+          from={filters.from!}
+          to={filters.to!}
           onChange={handleDateChange}
         />
       </div>
@@ -64,7 +67,8 @@ export function DashboardView() {
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
             <PatientsChartCard patients={data.patients} />
             <ProceduresChartCard procedures={data.procedures} />
-            <DurationCard duration={data.duration} />
+            <InsuranceChartCard insurance={data.insurance} />
+            <CidRankingCard cidRanking={data.cidRanking} />
             <BirthdayPanel todayBirthdays={data.todayBirthdays} />
           </div>
 

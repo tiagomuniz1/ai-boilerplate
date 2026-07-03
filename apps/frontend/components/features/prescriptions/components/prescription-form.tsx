@@ -94,8 +94,9 @@ export function PrescriptionForm({ appointmentId, isPending, globalError, onSubm
   }
 
   function loadTemplate(templateId: string) {
-    const template = prescriptionTemplates?.find((t) => t.id === templateId)
-    if (!template) return
+    // Only reachable via a click on a rendered template button, so the id always
+    // corresponds to an entry in the currently-loaded prescriptionTemplates list.
+    const template = prescriptionTemplates!.find((t) => t.id === templateId)!
     replace(template.items.map(toFormItem))
     setValue('notes', template.notes ?? '')
     setIsLoadTemplateOpen(false)
@@ -143,7 +144,7 @@ export function PrescriptionForm({ appointmentId, isPending, globalError, onSubm
     })
   }
 
-  const itemsError = errors.items?.message ?? (errors.items?.root?.message)
+  const itemsError = errors.items?.message
 
   const showMedResults = inputMode === 'medication' && search && medicationsPage && medicationsPage.data.length > 0
   const showMedNoResults = inputMode === 'medication' && search && medicationsPage && medicationsPage.data.length === 0

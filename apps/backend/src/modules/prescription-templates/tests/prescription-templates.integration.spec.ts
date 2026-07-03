@@ -190,7 +190,7 @@ describe('PrescriptionTemplatesController (integration)', () => {
     it('creates template as DOCTOR → 201', async () => {
       const { body } = await request(app.getHttpServer())
         .post('/prescription-templates')
-        .set('Cookie', [`access_token_${SLUG}=${doctorToken}`])
+        .set('Cookie', [`access_token=${doctorToken}`])
         .send(makePayload())
         .expect(201)
 
@@ -205,7 +205,7 @@ describe('PrescriptionTemplatesController (integration)', () => {
     it('creates template as ADMIN with doctorId → 201', async () => {
       const { body } = await request(app.getHttpServer())
         .post('/prescription-templates')
-        .set('Cookie', [`access_token_${SLUG}=${adminToken}`])
+        .set('Cookie', [`access_token=${adminToken}`])
         .send(makePayload({ doctorId }))
         .expect(201)
 
@@ -215,7 +215,7 @@ describe('PrescriptionTemplatesController (integration)', () => {
     it('creates template with activeIngredientName → 201', async () => {
       const { body } = await request(app.getHttpServer())
         .post('/prescription-templates')
-        .set('Cookie', [`access_token_${SLUG}=${doctorToken}`])
+        .set('Cookie', [`access_token=${doctorToken}`])
         .send({ name: 'Manual', items: [{ activeIngredientName: 'Amoxicilina', instructions: 'Tomar 1 cp 8/8h' }] })
         .expect(201)
 
@@ -226,7 +226,7 @@ describe('PrescriptionTemplatesController (integration)', () => {
     it('returns 422 when ADMIN omits doctorId', async () => {
       await request(app.getHttpServer())
         .post('/prescription-templates')
-        .set('Cookie', [`access_token_${SLUG}=${adminToken}`])
+        .set('Cookie', [`access_token=${adminToken}`])
         .send(makePayload())
         .expect(422)
     })
@@ -234,7 +234,7 @@ describe('PrescriptionTemplatesController (integration)', () => {
     it('returns 403 for USER role', async () => {
       await request(app.getHttpServer())
         .post('/prescription-templates')
-        .set('Cookie', [`access_token_${SLUG}=${userToken}`])
+        .set('Cookie', [`access_token=${userToken}`])
         .send(makePayload())
         .expect(403)
     })
@@ -242,7 +242,7 @@ describe('PrescriptionTemplatesController (integration)', () => {
     it('returns 400 when items array is empty', async () => {
       await request(app.getHttpServer())
         .post('/prescription-templates')
-        .set('Cookie', [`access_token_${SLUG}=${doctorToken}`])
+        .set('Cookie', [`access_token=${doctorToken}`])
         .send({ name: 'X', items: [] })
         .expect(400)
     })
@@ -266,7 +266,7 @@ describe('PrescriptionTemplatesController (integration)', () => {
     it('DOCTOR sees only own templates → 200', async () => {
       const { body } = await request(app.getHttpServer())
         .get('/prescription-templates')
-        .set('Cookie', [`access_token_${SLUG}=${doctorToken}`])
+        .set('Cookie', [`access_token=${doctorToken}`])
         .expect(200)
 
       expect(body).toHaveLength(1)
@@ -276,7 +276,7 @@ describe('PrescriptionTemplatesController (integration)', () => {
     it('ADMIN sees all templates → 200', async () => {
       const { body } = await request(app.getHttpServer())
         .get('/prescription-templates')
-        .set('Cookie', [`access_token_${SLUG}=${adminToken}`])
+        .set('Cookie', [`access_token=${adminToken}`])
         .expect(200)
 
       expect(body).toHaveLength(1)
@@ -285,7 +285,7 @@ describe('PrescriptionTemplatesController (integration)', () => {
     it('otherDoctor sees no templates → 200 empty', async () => {
       const { body } = await request(app.getHttpServer())
         .get('/prescription-templates')
-        .set('Cookie', [`access_token_${SLUG}=${otherDoctorToken}`])
+        .set('Cookie', [`access_token=${otherDoctorToken}`])
         .expect(200)
 
       expect(body).toHaveLength(0)
@@ -294,7 +294,7 @@ describe('PrescriptionTemplatesController (integration)', () => {
     it('returns 403 for USER role', async () => {
       await request(app.getHttpServer())
         .get('/prescription-templates')
-        .set('Cookie', [`access_token_${SLUG}=${userToken}`])
+        .set('Cookie', [`access_token=${userToken}`])
         .expect(403)
     })
   })
@@ -320,7 +320,7 @@ describe('PrescriptionTemplatesController (integration)', () => {
     it('DOCTOR retrieves own template → 200', async () => {
       const { body } = await request(app.getHttpServer())
         .get(`/prescription-templates/${templateId}`)
-        .set('Cookie', [`access_token_${SLUG}=${doctorToken}`])
+        .set('Cookie', [`access_token=${doctorToken}`])
         .expect(200)
 
       expect(body.id).toBe(templateId)
@@ -329,21 +329,21 @@ describe('PrescriptionTemplatesController (integration)', () => {
     it('ADMIN retrieves any template → 200', async () => {
       await request(app.getHttpServer())
         .get(`/prescription-templates/${templateId}`)
-        .set('Cookie', [`access_token_${SLUG}=${adminToken}`])
+        .set('Cookie', [`access_token=${adminToken}`])
         .expect(200)
     })
 
     it('otherDoctor returns 403', async () => {
       await request(app.getHttpServer())
         .get(`/prescription-templates/${templateId}`)
-        .set('Cookie', [`access_token_${SLUG}=${otherDoctorToken}`])
+        .set('Cookie', [`access_token=${otherDoctorToken}`])
         .expect(403)
     })
 
     it('returns 404 when template not found', async () => {
       await request(app.getHttpServer())
         .get('/prescription-templates/00000000-0000-0000-0000-000000000000')
-        .set('Cookie', [`access_token_${SLUG}=${adminToken}`])
+        .set('Cookie', [`access_token=${adminToken}`])
         .expect(404)
     })
   })
@@ -369,7 +369,7 @@ describe('PrescriptionTemplatesController (integration)', () => {
     it('DOCTOR updates own template name → 200', async () => {
       const { body } = await request(app.getHttpServer())
         .patch(`/prescription-templates/${templateId}`)
-        .set('Cookie', [`access_token_${SLUG}=${doctorToken}`])
+        .set('Cookie', [`access_token=${doctorToken}`])
         .send({ name: 'Modelo Renomeado' })
         .expect(200)
 
@@ -379,7 +379,7 @@ describe('PrescriptionTemplatesController (integration)', () => {
     it('otherDoctor returns 403', async () => {
       await request(app.getHttpServer())
         .patch(`/prescription-templates/${templateId}`)
-        .set('Cookie', [`access_token_${SLUG}=${otherDoctorToken}`])
+        .set('Cookie', [`access_token=${otherDoctorToken}`])
         .send({ name: 'Hack' })
         .expect(403)
     })
@@ -387,7 +387,7 @@ describe('PrescriptionTemplatesController (integration)', () => {
     it('ADMIN deactivates template → 200', async () => {
       const { body } = await request(app.getHttpServer())
         .patch(`/prescription-templates/${templateId}`)
-        .set('Cookie', [`access_token_${SLUG}=${adminToken}`])
+        .set('Cookie', [`access_token=${adminToken}`])
         .send({ isActive: false })
         .expect(200)
 
@@ -397,7 +397,7 @@ describe('PrescriptionTemplatesController (integration)', () => {
     it('returns 404 when template not found', async () => {
       await request(app.getHttpServer())
         .patch('/prescription-templates/00000000-0000-0000-0000-000000000000')
-        .set('Cookie', [`access_token_${SLUG}=${adminToken}`])
+        .set('Cookie', [`access_token=${adminToken}`])
         .send({ name: 'X' })
         .expect(404)
     })
@@ -424,7 +424,7 @@ describe('PrescriptionTemplatesController (integration)', () => {
     it('DOCTOR deletes own template → 204', async () => {
       await request(app.getHttpServer())
         .delete(`/prescription-templates/${templateId}`)
-        .set('Cookie', [`access_token_${SLUG}=${doctorToken}`])
+        .set('Cookie', [`access_token=${doctorToken}`])
         .expect(204)
 
       const inDb = await templateRepository.findOne({ where: { id: templateId } })
@@ -434,21 +434,21 @@ describe('PrescriptionTemplatesController (integration)', () => {
     it('ADMIN deletes any template → 204', async () => {
       await request(app.getHttpServer())
         .delete(`/prescription-templates/${templateId}`)
-        .set('Cookie', [`access_token_${SLUG}=${adminToken}`])
+        .set('Cookie', [`access_token=${adminToken}`])
         .expect(204)
     })
 
     it('otherDoctor returns 403', async () => {
       await request(app.getHttpServer())
         .delete(`/prescription-templates/${templateId}`)
-        .set('Cookie', [`access_token_${SLUG}=${otherDoctorToken}`])
+        .set('Cookie', [`access_token=${otherDoctorToken}`])
         .expect(403)
     })
 
     it('returns 404 when template not found', async () => {
       await request(app.getHttpServer())
         .delete('/prescription-templates/00000000-0000-0000-0000-000000000000')
-        .set('Cookie', [`access_token_${SLUG}=${adminToken}`])
+        .set('Cookie', [`access_token=${adminToken}`])
         .expect(404)
     })
   })

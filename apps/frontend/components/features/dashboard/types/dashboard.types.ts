@@ -9,7 +9,7 @@ export interface IDashboardModel {
   }
   procedures: { total: number; items: { label: string; value: number }[] }
   insurance: { total: number; particular: number; convenio: number }
-  duration: { averageMinutes: number; byInsuranceType: { particular: number; convenio: number } }
+  cidRanking: { total: number; items: { label: string; value: number }[] }
   appointmentsByDay: { date: Date; count: number }[]
   ageDistribution: { age: number; count: number }[]
   todayBirthdays: { patientId: string; fullName: string; age: number }[]

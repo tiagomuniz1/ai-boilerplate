@@ -122,22 +122,20 @@ describe('Medical Record View', () => {
       statusCode: 200,
       body: { data: [], total: 0, page: 1, limit: 20 },
     })
+    cy.intercept('GET', `${Cypress.env('API_URL')}/medical-certificates*`, {
+      statusCode: 200,
+      body: [],
+    })
 
     visitClinic(`/appointments/${APPT_UUID}`, mockDoctorUser)
   })
 
-  it('shows view-medical-record button when record exists', () => {
+  it('shows medical record content when record exists', () => {
     cy.wait('@getAppointment')
     cy.wait('@getRecord')
 
-    cy.get('[data-testid="view-medical-record-button"]').should('be.visible')
-  })
+    cy.get('[data-testid="tab-prontuario"]').click()
 
-  it('opens medical-record-view modal when view button clicked', () => {
-    cy.wait('@getAppointment')
-    cy.wait('@getRecord')
-
-    cy.get('[data-testid="view-medical-record-button"]').click()
     cy.get('[data-testid="medical-record-view"]').should('be.visible')
   })
 
@@ -145,9 +143,9 @@ describe('Medical Record View', () => {
     cy.wait('@getAppointment')
     cy.wait('@getRecord')
 
-    cy.get('[data-testid="view-medical-record-button"]').click()
+    cy.get('[data-testid="tab-prontuario"]').click()
 
-    cy.get('[data-testid="medical-record-view-modal"]').within(() => {
+    cy.get('[data-testid="medical-record-view"]').within(() => {
       cy.get('[data-testid="record-field-symptom"]').should('contain.text', 'Dor no peito')
       cy.get('[data-testid="record-field-chronic"]').should('contain.text', 'Não')
     })
@@ -157,13 +155,16 @@ describe('Medical Record View', () => {
     cy.wait('@getAppointment')
     cy.wait('@getRecord')
 
-    cy.get('[data-testid="view-medical-record-button"]').click()
+    cy.get('[data-testid="tab-prontuario"]').click()
+
     cy.get('[data-testid="record-notes"]').should('contain.text', 'Paciente estável')
   })
 
   it('does not show edit-medical-record button for completed appointment', () => {
     cy.wait('@getAppointment')
     cy.wait('@getRecord')
+
+    cy.get('[data-testid="tab-prontuario"]').click()
 
     cy.get('[data-testid="edit-medical-record-button"]').should('not.exist')
   })

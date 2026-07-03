@@ -28,9 +28,14 @@ export class DashboardInsuranceDto {
   convenio: number
 }
 
-export class DashboardDurationDto {
-  averageMinutes: number
-  byInsuranceType: { particular: number; convenio: number }
+export class DashboardCidRankingItemDto {
+  label: string
+  value: number
+}
+
+export class DashboardCidRankingDto {
+  total: number
+  items: DashboardCidRankingItemDto[]
 }
 
 export class DashboardDayCountDto {
@@ -55,7 +60,7 @@ export class DashboardResponseDto {
   patients: DashboardPatientStatsDto
   procedures: DashboardProceduresDto
   insurance: DashboardInsuranceDto
-  duration: DashboardDurationDto
+  cidRanking: DashboardCidRankingDto
   appointmentsByDay: DashboardDayCountDto[]
   ageDistribution: DashboardAgeDistributionDto[]
   todayBirthdays: DashboardBirthdayDto[]

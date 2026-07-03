@@ -29,12 +29,12 @@ export abstract class IDashboardRepository {
     doctorId?: string,
   ): Promise<{ particular: number; convenio: number }>
 
-  abstract getDurationStats(
+  abstract getCidRanking(
     clinicId: string,
     from: string,
     to: string,
     doctorId?: string,
-  ): Promise<{ averageMinutes: number; particular: number; convenio: number }>
+  ): Promise<{ label: string; value: number }[]>
 
   abstract getCompletedCountByDay(
     clinicId: string,

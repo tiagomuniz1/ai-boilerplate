@@ -18,6 +18,8 @@ export function DoctorList() {
   const slug = useSlug()
   const role = useAuthStore((s) => s.user?.role)
   const canCreate = role === UserRole.ADMIN
+  const canViewAppointments =
+    role === UserRole.ADMIN || role === UserRole.DOCTOR || role === UserRole.USER
   const [searchTerm, setSearchTerm] = useState('')
   const [debouncedSearch, setDebouncedSearch] = useState('')
   const [doctorToDelete, setDoctorToDelete] = useState<IDoctorModel | null>(null)
@@ -201,6 +203,15 @@ export function DoctorList() {
                         >
                           Editar
                         </Link>
+                        {canViewAppointments && (
+                          <Link
+                            href={`/${slug}/appointments?doctor=${doctor.id}`}
+                            data-testid={`doctor-appointments-link-${doctor.id}`}
+                            className="text-xs text-text-mute hover:text-text transition-colors"
+                          >
+                            Consultas
+                          </Link>
+                        )}
                         <Link
                           href={`/${slug}/doctors/${doctor.id}`}
                           data-testid={`doctor-view-link-${doctor.id}`}

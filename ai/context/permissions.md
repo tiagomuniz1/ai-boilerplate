@@ -67,12 +67,12 @@ O sistema possui quatro perfis de usuário (`UserRole`). Cada perfil reflete um 
 | Ação | ADMIN | DOCTOR | USER | PATIENT |
 |---|:---:|:---:|:---:|:---:|
 | Criar paciente | ✓ | ✗ | ✗ | ✗ |
-| Listar pacientes | ✓ | ✗ | ✓ (leitura) | ✗ |
-| Ver por ID | ✓ | ✗ | ✓ (leitura) | ✗ |
+| Listar pacientes | ✓ | ✓ (leitura) | ✓ (leitura) | ✗ |
+| Ver por ID | ✓ | ✓ (leitura) | ✓ (leitura) | ✗ |
 | Editar | ✓ | ✗ | ✗ | ✗ |
 | Excluir | ✓ | ✗ | ✗ | ✗ |
 
-> DOCTOR não acessa `/patients` diretamente. Dados do paciente são acessados via vínculo com a consulta no módulo de agendamentos.
+> DOCTOR tem leitura em `/patients` para selecionar o paciente ao agendar a própria consulta — sem acesso a criar, editar ou excluir.
 
 ---
 

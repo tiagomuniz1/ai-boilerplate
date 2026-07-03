@@ -15,9 +15,12 @@
     ]
   },
   "insurance": { "total": 10, "particular": 7, "convenio": 3 },
-  "duration": {
-    "averageMinutes": 45,
-    "byInsuranceType": { "particular": 7, "convenio": 3 }
+  "cidRanking": {
+    "total": 7,
+    "items": [
+      { "label": "M54.5", "value": 4 },
+      { "label": "J11", "value": 3 }
+    ]
   },
   "appointmentsByDay": [
     { "date": "2026-01-10", "count": 3 },

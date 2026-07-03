@@ -229,6 +229,31 @@ describe('AppointmentAgenda (integration)', () => {
     expect(screen.queryByTestId('agenda-week-grid')).not.toBeInTheDocument()
   })
 
+  it('falls back to today when the date URL param is invalid', () => {
+    mockAuth(UserRole.DOCTOR)
+    mockUseSearchParams.mockReturnValue(new URLSearchParams('date=not-a-date'))
+    mockDoctorsService.getAll.mockResolvedValue(
+      makeDoctorsResponse([{ id: 'my-doctor', fullName: 'Dr. Me' }]),
+    )
+    renderWithProviders(<AppointmentAgenda />)
+    expect(screen.getByTestId('agenda-week-grid')).toBeInTheDocument()
+  })
+
+  it('clears the doctor param from the URL when selection is reset to empty', async () => {
+    mockAuth(UserRole.ADMIN)
+    const replaceMock = jest.fn()
+    mockUseRouter.mockReturnValue({ push: jest.fn(), replace: replaceMock })
+    mockUseSearchParams.mockReturnValue(new URLSearchParams('doctor=d1'))
+    mockDoctorsService.getAll.mockResolvedValue(makeDoctorsResponse([{ id: 'd1', fullName: 'Dr. A' }]))
+    renderWithProviders(<AppointmentAgenda />)
+
+    await userEvent.selectOptions(screen.getByTestId('toolbar-doctor-select'), '')
+
+    expect(replaceMock).toHaveBeenCalled()
+    const [url] = replaceMock.mock.calls[replaceMock.mock.calls.length - 1]
+    expect(url).not.toContain('doctor=')
+  })
+
   it('syncs view to URL when view changes', async () => {
     mockAuth(UserRole.DOCTOR)
     const replaceMock = jest.fn()

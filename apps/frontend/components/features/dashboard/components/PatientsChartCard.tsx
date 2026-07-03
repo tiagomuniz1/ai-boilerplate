@@ -5,6 +5,10 @@ import type { IDashboardModel } from '../types/dashboard.types'
 
 const COLORS = ['#2563eb', '#93c5fd']
 
+export function formatPatientsTooltip(value: any): [any, string] {
+  return [value, '']
+}
+
 interface PatientsChartCardProps {
   patients: IDashboardModel['patients']
 }
@@ -38,7 +42,7 @@ export function PatientsChartCard({ patients }: PatientsChartCardProps) {
                 <Cell key={index} fill={COLORS[index % COLORS.length]} />
               ))}
             </Pie>
-            <Tooltip formatter={(val) => [val, '']} />
+            <Tooltip formatter={formatPatientsTooltip} />
           </PieChart>
         </ResponsiveContainer>
       ) : (

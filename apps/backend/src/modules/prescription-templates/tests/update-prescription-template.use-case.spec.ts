@@ -85,6 +85,15 @@ describe('UpdatePrescriptionTemplateUseCase', () => {
     expect(mockMedicationsRepository.findById).not.toHaveBeenCalled()
   })
 
+  it('allows ADMIN to update any template without an owning-doctor check', async () => {
+    mockRepository.findById.mockResolvedValue(makeTemplate({ doctorId: 'some-other-doctor' }) as any)
+
+    await useCase.execute(templateId, { name: 'Novo nome' }, adminUser)
+
+    expect(mockDoctorsRepository.findByUserId).not.toHaveBeenCalled()
+    expect(mockRepository.update).toHaveBeenCalled()
+  })
+
   it('re-resolves items from DB when items provided', async () => {
     await useCase.execute(templateId, { items: [{ medicationId, instructions: 'Tomar 1 cp' }] }, adminUser)
 
@@ -118,6 +127,47 @@ describe('UpdatePrescriptionTemplateUseCase', () => {
     await expect(
       useCase.execute(templateId, { items: [{ medicationId, instructions: 'Tomar' }] }, adminUser),
     ).rejects.toThrow(UnprocessableEntityException)
+  })
+
+  it('resolves item from activeIngredientName without a medication lookup', async () => {
+    await useCase.execute(
+      templateId,
+      { items: [{ activeIngredientName: 'Amoxicilina', instructions: 'Tomar 1 cp 8/8h' }] },
+      adminUser,
+    )
+
+    expect(mockMedicationsRepository.findById).not.toHaveBeenCalled()
+    const updateCall = mockRepository.update.mock.calls[0][1]
+    expect(updateCall.items![0]).toMatchObject({
+      medicationId: null,
+      name: 'Amoxicilina',
+      activeIngredient: null,
+    })
+  })
+
+  it('throws UnprocessableEntityException when item has neither medicationId nor activeIngredientName', async () => {
+    await expect(
+      useCase.execute(templateId, { items: [{ instructions: 'Tomar 1 cp' }] } as any, adminUser),
+    ).rejects.toThrow(UnprocessableEntityException)
+  })
+
+  it('updates notes when provided', async () => {
+    await useCase.execute(templateId, { notes: 'Retornar em 7 dias' }, adminUser)
+
+    expect(mockRepository.update).toHaveBeenCalledWith(templateId, expect.objectContaining({ notes: 'Retornar em 7 dias' }))
+  })
+
+  it('falls back to null when notes is explicitly null', async () => {
+    await useCase.execute(templateId, { notes: null } as any, adminUser)
+
+    expect(mockRepository.update).toHaveBeenCalledWith(templateId, expect.objectContaining({ notes: null }))
+  })
+
+  it('does not include notes in update payload when omitted', async () => {
+    await useCase.execute(templateId, { name: 'Novo nome' }, adminUser)
+
+    const updateCall = mockRepository.update.mock.calls[0][1]
+    expect(updateCall).not.toHaveProperty('notes')
   })
 
   it('updates isActive when provided', async () => {

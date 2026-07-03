@@ -5,6 +5,10 @@ import type { IDashboardModel } from '../types/dashboard.types'
 
 const COLORS = ['#2563eb', '#7c3aed', '#059669', '#d97706', '#dc2626', '#0891b2', '#6b7280']
 
+export function formatProcedureTooltip(value: any, name: any): [any, any] {
+  return [value, name]
+}
+
 interface ProceduresChartCardProps {
   procedures: IDashboardModel['procedures']
 }
@@ -35,7 +39,7 @@ export function ProceduresChartCard({ procedures }: ProceduresChartCardProps) {
                   <Cell key={index} fill={COLORS[index % COLORS.length]} />
                 ))}
               </Pie>
-              <Tooltip formatter={(val, name) => [val, name]} />
+              <Tooltip formatter={formatProcedureTooltip} />
             </PieChart>
           </ResponsiveContainer>
           <div className="pointer-events-none absolute inset-0 flex items-center justify-center">

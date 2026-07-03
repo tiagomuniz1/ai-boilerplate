@@ -7,7 +7,7 @@ const mockDto: DashboardResponseDto = {
   patients: { total: 20, newPatients: 12, returningPatients: 8, byGender: { male: 9, female: 11 } },
   procedures: { total: 8, items: [{ label: 'Cardiologia', value: 8 }] },
   insurance: { total: 8, particular: 5, convenio: 3 },
-  duration: { averageMinutes: 42, byInsuranceType: { particular: 6, convenio: 2 } },
+  cidRanking: { total: 5, items: [{ label: 'M54.5', value: 5 }] },
   appointmentsByDay: [{ date: '2026-01-15', count: 3 }],
   ageDistribution: [{ age: 30, count: 5 }],
   todayBirthdays: [{ patientId: 'p1', fullName: 'Ana Costa', age: 32 }],
@@ -42,9 +42,9 @@ describe('toDashboardModel', () => {
     expect(insurance).toEqual(mockDto.insurance)
   })
 
-  it('passes duration through', () => {
-    const { duration } = toDashboardModel(mockDto)
-    expect(duration).toEqual(mockDto.duration)
+  it('passes cidRanking through', () => {
+    const { cidRanking } = toDashboardModel(mockDto)
+    expect(cidRanking).toEqual(mockDto.cidRanking)
   })
 
   it('converts appointmentsByDay date strings to Dates', () => {

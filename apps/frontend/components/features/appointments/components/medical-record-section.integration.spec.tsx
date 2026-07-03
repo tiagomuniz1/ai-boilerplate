@@ -111,6 +111,14 @@ describe('MedicalRecordSection (integration)', () => {
     })
   })
 
+  it('does not fetch templates when specialtyId is null', async () => {
+    renderWithProviders(<MedicalRecordSection {...defaultProps} specialtyId={null} />)
+    await waitFor(() => {
+      expect(screen.getByTestId('fill-medical-record-button')).toBeInTheDocument()
+    })
+    expect(mockTemplatesService.getAll).not.toHaveBeenCalled()
+  })
+
   it('shows medical record view inline when record exists', async () => {
     mockMedicalRecordsService.getByAppointment.mockResolvedValue(makeRecordDto() as any)
     renderWithProviders(<MedicalRecordSection {...defaultProps} />)

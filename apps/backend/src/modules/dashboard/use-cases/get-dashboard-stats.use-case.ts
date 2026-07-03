@@ -53,13 +53,13 @@ export class GetDashboardStatsUseCase extends BaseUseCase {
       this.logger.warn('Cache read failed', { context: 'GetDashboardStatsUseCase' })
     }
 
-    const [statusCounts, patientStats, procedures, insurance, duration, completedByDay, ageDistribution, birthdays] =
+    const [statusCounts, patientStats, procedures, insurance, cidRanking, completedByDay, ageDistribution, birthdays] =
       await Promise.all([
         this.dashboardRepository.countByStatus(clinicId, from, to, effectiveDoctorId),
         this.dashboardRepository.getPatientStats(clinicId, from, to, effectiveDoctorId),
         this.dashboardRepository.getProceduresBySpecialty(clinicId, from, to, effectiveDoctorId),
         this.dashboardRepository.getInsuranceStats(clinicId, from, to, effectiveDoctorId),
-        this.dashboardRepository.getDurationStats(clinicId, from, to, effectiveDoctorId),
+        this.dashboardRepository.getCidRanking(clinicId, from, to, effectiveDoctorId),
         this.dashboardRepository.getCompletedCountByDay(clinicId, from, to, effectiveDoctorId),
         this.dashboardRepository.getAgeDistribution(clinicId, from, to, effectiveDoctorId),
         this.dashboardRepository.getTodayBirthdays(clinicId, effectiveDoctorId),
@@ -90,9 +90,9 @@ export class GetDashboardStatsUseCase extends BaseUseCase {
         convenio: insurance.convenio,
         total: insurance.particular + insurance.convenio,
       },
-      duration: {
-        averageMinutes: duration.averageMinutes,
-        byInsuranceType: { particular: duration.particular, convenio: duration.convenio },
+      cidRanking: {
+        total: cidRanking.reduce((sum, c) => sum + c.value, 0),
+        items: cidRanking,
       },
       appointmentsByDay,
       ageDistribution,

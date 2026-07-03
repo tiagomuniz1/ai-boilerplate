@@ -5,6 +5,10 @@ import type { IDashboardModel } from '../types/dashboard.types'
 
 const COLORS = ['#2563eb', '#7c3aed']
 
+export function formatInsuranceTooltip(value: any, name: any): [any, any] {
+  return [value, name]
+}
+
 interface InsuranceChartCardProps {
   insurance: IDashboardModel['insurance']
 }
@@ -39,7 +43,7 @@ export function InsuranceChartCard({ insurance }: InsuranceChartCardProps) {
                   <Cell key={index} fill={COLORS[index % COLORS.length]} />
                 ))}
               </Pie>
-              <Tooltip formatter={(val, name) => [val, name]} />
+              <Tooltip formatter={formatInsuranceTooltip} />
             </PieChart>
           </ResponsiveContainer>
           <div className="pointer-events-none absolute inset-0 flex items-center justify-center">

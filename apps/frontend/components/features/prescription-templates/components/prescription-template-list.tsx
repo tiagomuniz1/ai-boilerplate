@@ -49,10 +49,10 @@ export function PrescriptionTemplateList() {
   }
 
   function handleUpdate(input: ICreatePrescriptionTemplateInput) {
-    if (!editingTemplate) return
+    // Only reachable while the edit modal is open, which requires editingTemplate to be set.
     setEditError(null)
     updateMutation.mutate(
-      { id: editingTemplate.id, data: input },
+      { id: editingTemplate!.id, data: input },
       {
         onSuccess: () => {
           setEditingTemplate(null)
@@ -66,8 +66,9 @@ export function PrescriptionTemplateList() {
   }
 
   function handleDelete() {
-    if (!deletingId) return
-    deleteMutation.mutate(deletingId, {
+    // Only reachable while the delete dialog is open, which requires deletingId to be set
+    // (PrescriptionTemplateDeleteDialog's isOpen is `!!deletingId`).
+    deleteMutation.mutate(deletingId!, {
       onSuccess: () => setDeletingId(null),
     })
   }

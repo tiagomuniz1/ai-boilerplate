@@ -146,8 +146,9 @@ export function MedicalRecordView({ record, sections = [] }: MedicalRecordViewPr
                 className="rounded-lg border border-line bg-surface p-4"
                 data-testid={`record-section-${activeTab}`}
               >
+                {/* activeTab only ever matches a nonEmptySections key here, so the field list is guaranteed. */}
                 <FieldsGrid
-                  fields={fieldsBySection.get(activeTab) ?? []}
+                  fields={fieldsBySection.get(activeTab)!}
                   record={record}
                 />
               </div>

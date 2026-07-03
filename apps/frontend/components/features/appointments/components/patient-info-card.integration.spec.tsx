@@ -59,4 +59,9 @@ describe('PatientInfoCard (integration)', () => {
     renderWithProviders(<PatientInfoCard patient={makePatient({ gender: PatientGender.OTHER })} />)
     expect(screen.getByTestId('patient-info-gender')).toHaveTextContent('Outro')
   })
+
+  it('falls back to the raw gender value when it has no known label', () => {
+    renderWithProviders(<PatientInfoCard patient={makePatient({ gender: 'unknown' as PatientGender })} />)
+    expect(screen.getByTestId('patient-info-gender')).toHaveTextContent('unknown')
+  })
 })

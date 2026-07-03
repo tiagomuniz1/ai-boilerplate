@@ -24,6 +24,7 @@ const CARGA_CLINIC_SLUG = 'pulso-carga'
 const TOTAL_DOCTORS = 200
 const TOTAL_PATIENTS = 2_000_000
 const TOTAL_APPOINTMENTS = 4_000_000
+const TEMPLATES_PER_DOCTOR = 15
 
 const SPECIALTIES = [
   { name: 'Cardiologia', key: 'cardiologia' },
@@ -157,6 +158,7 @@ export async function cargaSeed(dataSource: DataSource): Promise<void> {
   await seedTemplates(dataSource, specialtyEntities)
   const doctorPassword = await bcrypt.hash('carga123', 10)
   await seedDoctors(dataSource, specialtyEntities, doctorPassword)
+  await seedPrescriptionTemplatesBulk(dataSource)
   const patientHash = await bcrypt.hash('carga123', 10)
   await seedPatientsBulk(dataSource, patientHash)
   await seedAppointmentsBulk(dataSource)
@@ -369,6 +371,128 @@ async function seedDoctors(dataSource: DataSource, specialties: Specialty[], pas
   log('Doctors seeded.')
 }
 
+const TEMPLATE_NAME_SAMPLES = [
+  'Tratamento Padrão',
+  'Retorno Pós-consulta',
+  'Manutenção Contínua',
+  'Protocolo Inicial',
+  'Ajuste de Dose',
+  'Alta Hospitalar',
+  'Acompanhamento Mensal',
+  'Primeira Consulta',
+  'Reavaliação',
+  'Protocolo de Urgência',
+]
+
+const MEDICATION_NAME_SAMPLES = [
+  'Dipirona',
+  'Paracetamol',
+  'Losartana',
+  'Omeprazol',
+  'Amoxicilina',
+  'Ibuprofeno',
+  'Metformina',
+  'Sinvastatina',
+  'Captopril',
+  'Azitromicina',
+]
+
+const DOSAGE_SAMPLES = ['500mg', '250mg', '50mg', '20mg', '875mg', '400mg', '850mg', '40mg', '25mg', '500mg']
+
+const QUANTITY_SAMPLES = ['20 comprimidos', '1 caixa', '30 comprimidos', '14 cápsulas', '21 comprimidos']
+
+const INSTRUCTIONS_SAMPLES = [
+  'Tomar conforme orientação médica',
+  'Uso contínuo, sem interrupção sem orientação médica',
+  'Tomar 1 comprimido a cada 8 horas',
+  'Tomar em jejum, 30 minutos antes do café da manhã',
+  'Aplicar via oral, após as refeições',
+]
+
+async function seedPrescriptionTemplatesBulk(dataSource: DataSource): Promise<void> {
+  const qr = dataSource.createQueryRunner()
+  await qr.connect()
+
+  try {
+    const schema = (dataSource.options as any).schema ?? 'dev'
+    await qr.query(`SET search_path TO "${schema}", public`)
+
+    const doctorCount = parseInt(
+      (await qr.query(`SELECT COUNT(*) as cnt FROM doctors WHERE clinic_id = $1`, [CARGA_CLINIC_ID]))[0].cnt,
+      10,
+    )
+    if (doctorCount === 0) {
+      log('No doctors found, skipping prescription templates seed.')
+      return
+    }
+
+    const targetCount = doctorCount * TEMPLATES_PER_DOCTOR
+    const existing = parseInt(
+      (await qr.query(`SELECT COUNT(*) as cnt FROM prescription_templates WHERE clinic_id = $1`, [CARGA_CLINIC_ID]))[0]
+        .cnt,
+      10,
+    )
+    if (existing >= targetCount) {
+      log(`${existing} prescription templates already exist, skipping.`)
+      return
+    }
+
+    log(`Inserting prescription templates (${TEMPLATES_PER_DOCTOR} per doctor, ${doctorCount} doctors)...`)
+    const t0 = Date.now()
+
+    await qr.query(
+      `
+      INSERT INTO prescription_templates
+        (id, clinic_id, doctor_id, doctor_name, name, items, notes, is_active, created_at, updated_at)
+      SELECT
+        gen_random_uuid(),
+        $1,
+        doc.doctor_id,
+        doc.doctor_name,
+        (ARRAY[${TEMPLATE_NAME_SAMPLES.map((s) => `'${s}'`).join(',')}])[((gs.idx - 1) % ${TEMPLATE_NAME_SAMPLES.length}) + 1]
+          || ' - ' || doc.doctor_name,
+        jsonb_build_array(
+          jsonb_build_object(
+            'medicationId', NULL,
+            'name', (ARRAY[${MEDICATION_NAME_SAMPLES.map((s) => `'${s}'`).join(',')}])[((gs.idx - 1 + doc.rn) % ${MEDICATION_NAME_SAMPLES.length}) + 1],
+            'activeIngredient', NULL,
+            'dosage', (ARRAY[${DOSAGE_SAMPLES.map((s) => `'${s}'`).join(',')}])[((gs.idx - 1 + doc.rn) % ${DOSAGE_SAMPLES.length}) + 1],
+            'quantity', (ARRAY[${QUANTITY_SAMPLES.map((s) => `'${s}'`).join(',')}])[((gs.idx - 1 + doc.rn) % ${QUANTITY_SAMPLES.length}) + 1],
+            'instructions', (ARRAY[${INSTRUCTIONS_SAMPLES.map((s) => `'${s}'`).join(',')}])[((gs.idx - 1) % ${INSTRUCTIONS_SAMPLES.length}) + 1]
+          ),
+          jsonb_build_object(
+            'medicationId', NULL,
+            'name', (ARRAY[${MEDICATION_NAME_SAMPLES.map((s) => `'${s}'`).join(',')}])[((gs.idx - 1 + doc.rn + 3) % ${MEDICATION_NAME_SAMPLES.length}) + 1],
+            'activeIngredient', NULL,
+            'dosage', (ARRAY[${DOSAGE_SAMPLES.map((s) => `'${s}'`).join(',')}])[((gs.idx - 1 + doc.rn + 3) % ${DOSAGE_SAMPLES.length}) + 1],
+            'quantity', (ARRAY[${QUANTITY_SAMPLES.map((s) => `'${s}'`).join(',')}])[((gs.idx - 1 + doc.rn + 2) % ${QUANTITY_SAMPLES.length}) + 1],
+            'instructions', (ARRAY[${INSTRUCTIONS_SAMPLES.map((s) => `'${s}'`).join(',')}])[((gs.idx - 1 + 1) % ${INSTRUCTIONS_SAMPLES.length}) + 1]
+          )
+        ),
+        'Modelo gerado para ambiente de carga',
+        true,
+        NOW() - ((gs.idx % 365) * INTERVAL '1 day'),
+        NOW() - ((gs.idx % 365) * INTERVAL '1 day')
+      FROM (
+        SELECT
+          d.id AS doctor_id,
+          u.full_name AS doctor_name,
+          (ROW_NUMBER() OVER (ORDER BY d.created_at, d.id))::int AS rn
+        FROM doctors d
+        JOIN users u ON u.id = d.user_id
+        WHERE d.clinic_id = $1
+      ) doc
+      CROSS JOIN generate_series(1, $2) AS gs(idx)
+      `,
+      [CARGA_CLINIC_ID, TEMPLATES_PER_DOCTOR],
+    )
+
+    log(`Prescription templates inserted in ${((Date.now() - t0) / 1000).toFixed(1)}s`)
+  } finally {
+    await qr.release()
+  }
+}
+
 async function seedPatientsBulk(dataSource: DataSource, passwordHash: string): Promise<void> {
   const qr = dataSource.createQueryRunner()
   await qr.connect()
@@ -516,6 +640,8 @@ async function seedAppointmentsBulk(dataSource: DataSource): Promise<void> {
     // Using hierarchical integer division: slot → day → doctor, so that
     // every (doctor_rn, day_offset, slot_idx) triple is unique within [1, 4M].
     // Max unique slots = 200 doctors × 16 slots × 1460 days = 4,672,000 > 4,000,000.
+    // day_offset is centered on CURRENT_DATE (± DAYS_RANGE/2) so roughly half the
+    // appointments land in the future and half in the past.
     const SLOTS_PER_DAY = 16
     const DAYS_RANGE = 1460 // 4 years
     const SLOTS_PER_DOCTOR = SLOTS_PER_DAY * DAYS_RANGE // 23,360
@@ -531,24 +657,32 @@ async function seedAppointmentsBulk(dataSource: DataSource): Promise<void> {
         pt.patient_id,
         dr.specialty_id,
         dr.schedule_id,
-        (CURRENT_DATE - (((s - 1) / $6) % $7)::int * INTERVAL '1 day')::date,
+        (CURRENT_DATE + gs.day_offset * INTERVAL '1 day')::date,
         (ARRAY[
           '07:00','07:30','08:00','08:30','09:00','09:30','10:00','10:30',
           '11:00','11:30','13:00','13:30','14:00','14:30','15:00','15:30'
-        ])[((s - 1) % $6)::int + 1],
+        ])[((gs.s - 1) % $6)::int + 1],
         (ARRAY[
           '07:30','08:00','08:30','09:00','09:30','10:00','10:30','11:00',
           '11:30','12:00','13:30','14:00','14:30','15:00','15:30','16:00'
-        ])[((s - 1) % $6)::int + 1],
-        (ARRAY['scheduled','confirmed','completed','cancelled','no_show'])[(s % 5) + 1],
-        CASE WHEN s % 3 = 0 THEN 'particular' WHEN s % 3 = 1 THEN 'convenio' ELSE NULL END,
-        'Consulta de rotina - carga ' || s,
+        ])[((gs.s - 1) % $6)::int + 1],
+        CASE
+          WHEN gs.day_offset > 0 THEN (ARRAY['scheduled','confirmed'])[(gs.s % 2) + 1]
+          ELSE (ARRAY['completed','completed','completed','cancelled','no_show'])[(gs.s % 5) + 1]
+        END,
+        CASE WHEN gs.s % 3 = 0 THEN 'particular' WHEN gs.s % 3 = 1 THEN 'convenio' ELSE NULL END,
+        'Consulta de rotina - carga ' || gs.s,
         1,
-        NOW() - (((s - 1) / $6) % $7)::int * INTERVAL '1 day',
-        NOW() - (((s - 1) / $6) % $7)::int * INTERVAL '1 day'
-      FROM generate_series($2::bigint, $3::bigint) s
-      JOIN _carga_doctors_idx dr ON dr.rn = (((s - 1) / $8) % $4)::int
-      JOIN _carga_patients_idx pt ON pt.rn = ((s - 1) % $5)
+        NOW() - (gs.s % 60) * INTERVAL '1 day',
+        NOW() - (gs.s % 60) * INTERVAL '1 day'
+      FROM (
+        SELECT
+          s,
+          ((((s - 1) / $6) % $7) - ($7 / 2))::int AS day_offset
+        FROM generate_series($2::bigint, $3::bigint) s
+      ) gs
+      JOIN _carga_doctors_idx dr ON dr.rn = (((gs.s - 1) / $8) % $4)::int
+      JOIN _carga_patients_idx pt ON pt.rn = ((gs.s - 1) % $5)
     `, [
       CARGA_CLINIC_ID,
       already + 1,

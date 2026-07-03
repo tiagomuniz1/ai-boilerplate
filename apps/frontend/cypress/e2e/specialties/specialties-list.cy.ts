@@ -143,7 +143,7 @@ describe('Specialties List', () => {
 
     visitBackoffice('/specialties', mockAdminUser)
     cy.wait('@getSpecialties')
-    cy.get(`[data-testid="specialty-delete-button-${MOCK_SPECIALTY_ID}"]`).should('be.visible')
+    cy.get(`[data-testid="specialty-delete-button-${MOCK_SPECIALTY_ID}"]`).scrollIntoView().should('be.visible')
     cy.get(`[data-testid="specialty-edit-link-${MOCK_SPECIALTY_ID}"]`).should('exist')
   })
 

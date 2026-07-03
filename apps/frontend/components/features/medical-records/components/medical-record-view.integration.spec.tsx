@@ -83,6 +83,28 @@ describe('MedicalRecordView', () => {
     expect(screen.getByTestId('record-field-symptom')).toHaveTextContent('—')
   })
 
+  it('spans two columns for TEXTAREA fields', () => {
+    const record = makeRecord({
+      schema: [makeField({ key: 'notes_field', type: MedicalRecordFieldType.TEXTAREA })],
+      data: { notes_field: 'x' },
+    })
+    render(<MedicalRecordView record={record} />)
+    expect(screen.getByTestId('record-field-notes_field')).toHaveClass('col-span-2')
+  })
+
+  it('spans two columns for long text values', () => {
+    const longValue = 'x'.repeat(61)
+    const record = makeRecord({ data: { symptom: longValue } })
+    render(<MedicalRecordView record={record} />)
+    expect(screen.getByTestId('record-field-symptom')).toHaveClass('col-span-2')
+  })
+
+  it('does not span two columns for short text values', () => {
+    const record = makeRecord({ data: { symptom: 'curto' } })
+    render(<MedicalRecordView record={record} />)
+    expect(screen.getByTestId('record-field-symptom')).not.toHaveClass('col-span-2')
+  })
+
   it('renders boolean field as Sim', () => {
     const record = makeRecord({
       schema: [makeField({ key: 'diabetic', type: MedicalRecordFieldType.BOOLEAN })],
@@ -219,6 +241,15 @@ describe('MedicalRecordView', () => {
     render(<MedicalRecordView record={record} sections={[{ key: 'vitals', title: 'Sinais Vitais', order: 0 }]} />)
     expect(screen.getByTestId('tab-__general__')).toBeInTheDocument()
     expect(screen.getByTestId('record-field-f1')).toBeInTheDocument()
+  })
+
+  it('defaults to Notas tab when every section is empty and there are no unsectioned fields', () => {
+    const record = makeRecord({ schema: [], notes: 'Observação geral' })
+    render(
+      <MedicalRecordView record={record} sections={[{ key: 'empty', title: 'Vazio', order: 0 }]} />,
+    )
+    expect(screen.queryByTestId('tab-empty')).not.toBeInTheDocument()
+    expect(screen.getByTestId('record-notes')).toHaveTextContent('Observação geral')
   })
 
   it('skips sections with no fields', () => {

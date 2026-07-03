@@ -149,6 +149,10 @@ describe('Patients Update', () => {
       statusCode: 200,
       body: mockPatient,
     }).as('getPatient')
+    cy.intercept('GET', `${Cypress.env('API_URL')}/medical-records*`, {
+      statusCode: 200,
+      body: { data: [], total: 0, page: 1, limit: 20 },
+    }).as('getMedicalHistory')
 
     visitClinic('/patients', mockAuthUser)
     cy.wait('@getPatients')

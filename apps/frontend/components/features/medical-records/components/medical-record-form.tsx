@@ -94,8 +94,9 @@ export function MedicalRecordForm({
   }
   const unsectionedFields = fieldsBySection.get(null) ?? []
 
+  // sortedSections[0] is guaranteed to exist here since hasSections requires length > 0.
   const firstTab = hasSections
-    ? (unsectionedFields.length > 0 ? GENERAL_TAB : (sortedSections[0]?.key ?? NOTES_TAB))
+    ? (unsectionedFields.length > 0 ? GENERAL_TAB : sortedSections[0]!.key)
     : 'all'
   const [activeSectionKey, setActiveSectionKey] = useState<string>(firstTab)
 

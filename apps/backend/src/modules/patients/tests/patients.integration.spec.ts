@@ -280,11 +280,11 @@ describe('PatientsController (integration)', () => {
       await request(app.getHttpServer()).get('/patients').expect(401)
     })
 
-    it('returns 403 for DOCTOR', async () => {
+    it('returns 200 for DOCTOR (read access)', async () => {
       await request(app.getHttpServer())
         .get('/patients')
         .set('Authorization', `Bearer ${doctorToken}`)
-        .expect(403)
+        .expect(200)
     })
 
     it('returns 200 for USER', async () => {
@@ -320,11 +320,13 @@ describe('PatientsController (integration)', () => {
       await request(app.getHttpServer()).get(`/patients/${faker.string.uuid()}`).expect(401)
     })
 
-    it('returns 403 when DOCTOR tries to view', async () => {
+    it('returns 200 for DOCTOR (read access)', async () => {
+      const { body: created } = await createPatient().expect(201)
+
       await request(app.getHttpServer())
-        .get(`/patients/${faker.string.uuid()}`)
+        .get(`/patients/${created.id}`)
         .set('Authorization', `Bearer ${doctorToken}`)
-        .expect(403)
+        .expect(200)
     })
 
     it('returns 200 for USER', async () => {

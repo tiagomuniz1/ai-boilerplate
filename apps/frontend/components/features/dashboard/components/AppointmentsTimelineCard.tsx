@@ -11,6 +11,10 @@ function formatDate(date: Date): string {
   return date.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })
 }
 
+export function formatTimelineTooltip(value: any): [any, string] {
+  return [value, 'atendimentos']
+}
+
 export function AppointmentsTimelineCard({ appointmentsByDay }: AppointmentsTimelineCardProps) {
   const data = appointmentsByDay.map((d) => ({
     date: formatDate(d.date),
@@ -38,7 +42,7 @@ export function AppointmentsTimelineCard({ appointmentsByDay }: AppointmentsTime
               <CartesianGrid strokeDasharray="3 3" stroke="var(--line)" vertical={false} />
               <XAxis dataKey="date" tick={{ fontSize: 11 }} axisLine={false} tickLine={false} interval={tickInterval} />
               <YAxis tick={{ fontSize: 11 }} axisLine={false} tickLine={false} allowDecimals={false} />
-              <Tooltip formatter={(val) => [val, 'atendimentos']} />
+              <Tooltip formatter={formatTimelineTooltip} />
               <Area
                 type="monotone"
                 dataKey="count"

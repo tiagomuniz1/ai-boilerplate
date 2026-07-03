@@ -99,6 +99,13 @@ function stubPrescriptions() {
   }).as('getPrescriptions')
 }
 
+function stubAtestados() {
+  cy.intercept('GET', `${Cypress.env('API_URL')}/medical-certificates*`, {
+    statusCode: 200,
+    body: [],
+  }).as('getAtestados')
+}
+
 describe('Appointment Detail Page', () => {
   describe('ADMIN', () => {
     beforeEach(() => {
@@ -106,6 +113,7 @@ describe('Appointment Detail Page', () => {
       stubMedicalRecord()
       stubTemplates()
       stubPrescriptions()
+      stubAtestados()
     })
 
     it('renders appointment summary with patient info', () => {
@@ -177,10 +185,12 @@ describe('Appointment Detail Page', () => {
       stubMedicalRecord()
       stubTemplates()
       stubPrescriptions()
+      stubAtestados()
       stubAppointmentDetail({ doctorId: DOCTOR_ID })
       visitClinic(`/appointments/${APPT_ID}`, mockDoctorUser)
 
       cy.get('[data-testid="appointment-detail-cancel-button"]').should('exist')
+      cy.get('[data-testid="tab-prontuario"]').click()
       cy.get('[data-testid="fill-medical-record-button"]').should('exist')
     })
   })
@@ -191,14 +201,15 @@ describe('Appointment Detail Page', () => {
       stubMedicalRecord()
       stubTemplates()
       stubPrescriptions()
+      stubAtestados()
       stubAppointmentDetail()
 
       const mockUserRole = { ...mockAdminUser, role: 'user' }
       visitClinic(`/appointments/${APPT_ID}`, mockUserRole)
 
-      cy.get('[data-testid="appointment-detail-summary"]').should('exist')
+      cy.get('[data-testid="resumo-tab"]').should('exist')
       cy.get('[data-testid="appointment-detail-cancel-button"]').should('not.exist')
-      cy.get('[data-testid="fill-medical-record-button"]').should('not.exist')
+      cy.get('[data-testid="tab-prontuario"]').should('not.exist')
     })
   })
 })

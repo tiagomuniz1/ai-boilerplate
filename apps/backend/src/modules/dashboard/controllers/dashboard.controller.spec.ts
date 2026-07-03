@@ -14,7 +14,7 @@ const makeDashboardResponse = () => ({
   patients: { total: 4, newPatients: 2, returningPatients: 2, byGender: { male: 2, female: 2 } },
   procedures: { total: 5, items: [{ label: 'Cardiologia', value: 5 }] },
   insurance: { total: 3, particular: 2, convenio: 1 },
-  duration: { averageMinutes: 30, byInsuranceType: { particular: 2, convenio: 1 } },
+  cidRanking: { total: 5, items: [{ label: 'M54.5', value: 5 }] },
   appointmentsByDay: [{ date: '2026-06-22', count: 1 }],
   ageDistribution: [{ age: 35, count: 2 }],
   todayBirthdays: [],

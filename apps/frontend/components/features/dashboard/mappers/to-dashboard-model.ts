@@ -11,7 +11,7 @@ export function toDashboardModel(dto: DashboardResponseDto): IDashboardModel {
     patients: dto.patients,
     procedures: dto.procedures,
     insurance: dto.insurance,
-    duration: dto.duration,
+    cidRanking: dto.cidRanking,
     appointmentsByDay: dto.appointmentsByDay.map((d) => ({
       date: new Date(d.date),
       count: d.count,

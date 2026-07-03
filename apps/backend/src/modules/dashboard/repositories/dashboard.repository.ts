@@ -3,6 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm'
 import { Repository } from 'typeorm'
 import { AppointmentStatus } from '@app/shared'
 import { Appointment } from '../../appointments/entities/appointment.entity'
+import { MedicalCertificate } from '../../medical-certificates/entities/medical-certificate.entity'
 import { IDashboardRepository } from './dashboard.repository.interface'
 
 @Injectable()
@@ -10,6 +11,8 @@ export class DashboardRepository implements IDashboardRepository {
   constructor(
     @InjectRepository(Appointment)
     private readonly appointmentRepository: Repository<Appointment>,
+    @InjectRepository(MedicalCertificate)
+    private readonly medicalCertificateRepository: Repository<MedicalCertificate>,
   ) {}
 
   async countByStatus(
@@ -176,52 +179,30 @@ export class DashboardRepository implements IDashboardRepository {
     return { particular, convenio }
   }
 
-  async getDurationStats(
+  async getCidRanking(
     clinicId: string,
     from: string,
     to: string,
     doctorId?: string,
-  ): Promise<{ averageMinutes: number; particular: number; convenio: number }> {
-    const baseQb = () =>
-      this.appointmentRepository
-        .createQueryBuilder('a')
-        .where('a.clinic_id = :clinicId', { clinicId })
-        .andWhere('a.date >= :from', { from })
-        .andWhere('a.date <= :to', { to })
-        .andWhere("a.status = 'completed'")
-        .andWhere('a.deleted_at IS NULL')
+  ): Promise<{ label: string; value: number }[]> {
+    const qb = this.medicalCertificateRepository
+      .createQueryBuilder('mc')
+      .select("mc.snapshot->>'cidCode'", 'label')
+      .addSelect('COUNT(*)', 'value')
+      .where('mc.clinic_id = :clinicId', { clinicId })
+      .andWhere('mc.issued_at::date >= :from', { from })
+      .andWhere('mc.issued_at::date <= :to', { to })
+      .andWhere("mc.snapshot->>'type' = 'leave'")
+      .andWhere("mc.snapshot->>'cidCode' IS NOT NULL")
+      .andWhere('mc.deleted_at IS NULL')
+      .groupBy("mc.snapshot->>'cidCode'")
+      .orderBy('value', 'DESC')
+      .limit(10)
 
-    const avgQb = baseQb()
-      .select(
-        "AVG(EXTRACT(EPOCH FROM (TO_TIMESTAMP(a.end_time, 'HH24:MI') - TO_TIMESTAMP(a.start_time, 'HH24:MI'))) / 60)",
-        'avgMinutes',
-      )
+    if (doctorId) qb.andWhere('mc.doctor_id = :doctorId', { doctorId })
 
-    if (doctorId) avgQb.andWhere('a.doctor_id = :doctorId', { doctorId })
-
-    const insQb = baseQb()
-      .select('a.insurance_type', 'insuranceType')
-      .addSelect('COUNT(*)', 'count')
-      .andWhere('a.insurance_type IS NOT NULL')
-      .groupBy('a.insurance_type')
-
-    if (doctorId) insQb.andWhere('a.doctor_id = :doctorId', { doctorId })
-
-    const [avgRow, insRows]: [
-      Array<{ avgMinutes: string | null }>,
-      Array<{ insuranceType: string; count: string }>,
-    ] = await Promise.all([avgQb.getRawMany(), insQb.getRawMany()])
-
-    const averageMinutes = avgRow[0]?.avgMinutes ? Math.round(parseFloat(avgRow[0].avgMinutes)) : 0
-
-    let particular = 0
-    let convenio = 0
-    for (const row of insRows) {
-      if (row.insuranceType === 'particular') particular = parseInt(row.count, 10)
-      else if (row.insuranceType === 'convenio') convenio = parseInt(row.count, 10)
-    }
-
-    return { averageMinutes, particular, convenio }
+    const rows: Array<{ label: string; value: string }> = await qb.getRawMany()
+    return rows.map((r) => ({ label: r.label, value: parseInt(r.value, 10) }))
   }
 
   async getCompletedCountByDay(

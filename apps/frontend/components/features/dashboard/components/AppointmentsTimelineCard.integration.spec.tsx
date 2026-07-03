@@ -1,6 +1,6 @@
 import { screen } from '@testing-library/react'
 import { renderWithProviders } from '@/tests/utils/render-with-providers'
-import { AppointmentsTimelineCard } from './AppointmentsTimelineCard'
+import { AppointmentsTimelineCard, formatTimelineTooltip } from './AppointmentsTimelineCard'
 
 describe('AppointmentsTimelineCard', () => {
   it('renders the chart container', () => {
@@ -15,5 +15,11 @@ describe('AppointmentsTimelineCard', () => {
   it('shows empty state when all counts are zero', () => {
     renderWithProviders(<AppointmentsTimelineCard appointmentsByDay={[]} />)
     expect(screen.getByText('Sem atendimentos no período')).toBeInTheDocument()
+  })
+})
+
+describe('formatTimelineTooltip', () => {
+  it('returns the value with the "atendimentos" label', () => {
+    expect(formatTimelineTooltip(9)).toEqual([9, 'atendimentos'])
   })
 })

@@ -21,6 +21,8 @@ const defaultProps = {
   patient: makePatient(),
   prescriptionCount: 2,
   showPrescriptions: true,
+  certificateCount: 1,
+  showCertificates: true,
   onNavigate: jest.fn(),
 }
 
@@ -34,6 +36,23 @@ describe('ResumoTab', () => {
     expect(screen.getByTestId('patient-info-gender')).toHaveTextContent('Feminino')
   })
 
+  it('falls back to the raw gender value when it has no known label', () => {
+    renderWithProviders(
+      <ResumoTab {...defaultProps} patient={makePatient({ gender: 'unknown' as PatientGender })} />,
+    )
+    expect(screen.getByTestId('patient-info-gender')).toHaveTextContent('unknown')
+  })
+
+  it('falls back to 0 for prescriptionCount when undefined', () => {
+    renderWithProviders(<ResumoTab {...defaultProps} prescriptionCount={undefined} />)
+    expect(screen.getByTestId('resumo-tab-prescriptions-count')).toHaveTextContent('0')
+  })
+
+  it('falls back to 0 for certificateCount when undefined', () => {
+    renderWithProviders(<ResumoTab {...defaultProps} certificateCount={undefined} />)
+    expect(screen.getByTestId('resumo-tab-atestados-count')).toHaveTextContent('0')
+  })
+
   it('renders prescription count when showPrescriptions is true', () => {
     renderWithProviders(<ResumoTab {...defaultProps} prescriptionCount={3} />)
     expect(screen.getByTestId('resumo-tab-prescriptions')).toBeInTheDocument()
@@ -45,10 +64,19 @@ describe('ResumoTab', () => {
     expect(screen.queryByTestId('resumo-tab-prescriptions')).not.toBeInTheDocument()
   })
 
-  it('renders atestados and exames rows with count 0', () => {
-    renderWithProviders(<ResumoTab {...defaultProps} />)
+  it('renders atestados row with certificateCount when showCertificates is true', () => {
+    renderWithProviders(<ResumoTab {...defaultProps} certificateCount={3} />)
     expect(screen.getByTestId('resumo-tab-atestados')).toBeInTheDocument()
-    expect(screen.getByTestId('resumo-tab-atestados-count')).toHaveTextContent('0')
+    expect(screen.getByTestId('resumo-tab-atestados-count')).toHaveTextContent('3')
+  })
+
+  it('hides atestados row when showCertificates is false', () => {
+    renderWithProviders(<ResumoTab {...defaultProps} showCertificates={false} />)
+    expect(screen.queryByTestId('resumo-tab-atestados')).not.toBeInTheDocument()
+  })
+
+  it('renders exames row with count 0', () => {
+    renderWithProviders(<ResumoTab {...defaultProps} />)
     expect(screen.getByTestId('resumo-tab-exames')).toBeInTheDocument()
     expect(screen.getByTestId('resumo-tab-exames-count')).toHaveTextContent('0')
   })

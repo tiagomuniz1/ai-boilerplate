@@ -113,7 +113,7 @@ export function PrescriptionTemplateForm({
     })
   }
 
-  const itemsError = errors.items?.message ?? errors.items?.root?.message
+  const itemsError = errors.items?.message
 
   const showMedResults =
     inputMode === 'medication' && search && medicationsPage && medicationsPage.data.length > 0

@@ -1,12 +1,15 @@
 jest.mock('@/components/features/medications/services/medications.service')
+jest.mock('@/components/features/prescription-templates/services/prescription-templates.service')
 
-import { screen, waitFor } from '@testing-library/react'
+import { screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { medicationsService } from '@/components/features/medications/services/medications.service'
+import { prescriptionTemplatesService } from '@/components/features/prescription-templates/services/prescription-templates.service'
 import { renderWithProviders } from '@/tests/utils/render-with-providers'
 import { PrescriptionForm } from './prescription-form'
 
 const mockMedicationsService = medicationsService as jest.Mocked<typeof medicationsService>
+const mockPrescriptionTemplatesService = prescriptionTemplatesService as jest.Mocked<typeof prescriptionTemplatesService>
 
 const makeMedPage = (meds: object[] = []) => ({ data: meds, total: meds.length, page: 1, limit: 10 })
 const makeMed = (overrides: object = {}) => ({
@@ -24,6 +27,20 @@ const makeMed = (overrides: object = {}) => ({
   ...overrides,
 })
 
+const makeTemplateDto = (overrides: object = {}) => ({
+  id: 'tpl-uuid',
+  doctorId: 'doctor-uuid',
+  doctorName: 'Dr. House',
+  name: 'Modelo A',
+  items: [
+    { medicationId: 'med-uuid', name: 'Dipirona 500mg', activeIngredient: 'dipirona sódica', dosage: '500mg', quantity: '1 caixa', instructions: 'Tomar 1 cp 8/8h' },
+  ],
+  notes: null,
+  isActive: true,
+  createdAt: new Date().toISOString(),
+  ...overrides,
+})
+
 const defaultProps = {
   appointmentId: 'appt-uuid',
   isPending: false,
@@ -35,6 +52,7 @@ describe('PrescriptionForm (integration)', () => {
   beforeEach(() => {
     jest.clearAllMocks()
     mockMedicationsService.getAll.mockResolvedValue(makeMedPage() as any)
+    mockPrescriptionTemplatesService.getAll.mockResolvedValue([])
   })
 
   // ── Layout ──────────────────────────────────────────────────────────────────
@@ -58,6 +76,15 @@ describe('PrescriptionForm (integration)', () => {
     await userEvent.click(screen.getByTestId('prescription-form-tab-ingredient'))
     expect(screen.getByTestId('prescription-form-manual-input')).toBeInTheDocument()
     expect(screen.queryByTestId('prescription-form-search')).not.toBeInTheDocument()
+  })
+
+  it('does not add an item when Enter is pressed on an empty manual input', async () => {
+    renderWithProviders(<PrescriptionForm {...defaultProps} />)
+    await userEvent.click(screen.getByTestId('prescription-form-tab-ingredient'))
+
+    await userEvent.type(screen.getByTestId('prescription-form-manual-input'), '{Enter}')
+
+    expect(screen.queryByTestId('prescription-form-item-0')).not.toBeInTheDocument()
   })
 
   it('switches back to medication tab when clicking Buscar medicamento', async () => {
@@ -244,5 +271,217 @@ describe('PrescriptionForm (integration)', () => {
   it('shows globalError alert', () => {
     renderWithProviders(<PrescriptionForm {...defaultProps} globalError="Consulta cancelada." />)
     expect(screen.getByTestId('prescription-form-error')).toHaveTextContent('Consulta cancelada.')
+  })
+
+  // ── Templates: load ─────────────────────────────────────────────────────────
+
+  it('does not show load-template button when there are no templates', async () => {
+    renderWithProviders(<PrescriptionForm {...defaultProps} />)
+    await waitFor(() => expect(mockPrescriptionTemplatesService.getAll).toHaveBeenCalled())
+    expect(screen.queryByTestId('prescription-form-load-template-button')).not.toBeInTheDocument()
+  })
+
+  it('shows load-template button when templates exist', async () => {
+    mockPrescriptionTemplatesService.getAll.mockResolvedValue([makeTemplateDto()] as any)
+    renderWithProviders(<PrescriptionForm {...defaultProps} />)
+    await waitFor(() => {
+      expect(screen.getByTestId('prescription-form-load-template-button')).toBeInTheDocument()
+    })
+  })
+
+  it('opens and closes the load-template modal', async () => {
+    mockPrescriptionTemplatesService.getAll.mockResolvedValue([makeTemplateDto()] as any)
+    renderWithProviders(<PrescriptionForm {...defaultProps} />)
+    await waitFor(() => expect(screen.getByTestId('prescription-form-load-template-button')).toBeInTheDocument())
+
+    await userEvent.click(screen.getByTestId('prescription-form-load-template-button'))
+    await waitFor(() => expect(screen.getByTestId('prescription-form-load-template-modal')).toBeInTheDocument())
+
+    const modal = screen.getByTestId('prescription-form-load-template-modal')
+    await userEvent.click(within(modal).getByRole('button', { name: 'Fechar' }))
+    await waitFor(() => {
+      expect(screen.queryByTestId('prescription-form-template-list')).not.toBeInTheDocument()
+    })
+  })
+
+  it('shows singular/plural medication count and notes preview in the template list', async () => {
+    mockPrescriptionTemplatesService.getAll.mockResolvedValue([
+      makeTemplateDto({ id: 'tpl-1', notes: 'Retornar em 7 dias' }),
+      makeTemplateDto({
+        id: 'tpl-2',
+        items: [
+          { medicationId: 'm1', name: 'Med 1', activeIngredient: null, dosage: null, quantity: null, instructions: 'X' },
+          { medicationId: 'm2', name: 'Med 2', activeIngredient: null, dosage: null, quantity: null, instructions: 'X' },
+        ],
+      }),
+    ] as any)
+    renderWithProviders(<PrescriptionForm {...defaultProps} />)
+    await waitFor(() => expect(screen.getByTestId('prescription-form-load-template-button')).toBeInTheDocument())
+    await userEvent.click(screen.getByTestId('prescription-form-load-template-button'))
+
+    await waitFor(() => expect(screen.getByTestId('prescription-form-load-template-tpl-1')).toBeInTheDocument())
+    expect(screen.getByTestId('prescription-form-load-template-tpl-1')).toHaveTextContent('1 medicamento')
+    expect(screen.getByTestId('prescription-form-load-template-tpl-1')).toHaveTextContent('Retornar em 7 dias')
+    expect(screen.getByTestId('prescription-form-load-template-tpl-2')).toHaveTextContent('2 medicamentos')
+  })
+
+  it('loads a template, replacing items and notes', async () => {
+    mockPrescriptionTemplatesService.getAll.mockResolvedValue([
+      makeTemplateDto({
+        items: [
+          { medicationId: 'med-uuid', name: 'Dipirona 500mg', activeIngredient: 'dipirona sódica', dosage: '500mg', quantity: '1 caixa', instructions: 'Tomar 1 cp 8/8h' },
+          { medicationId: null, name: 'Manipulado X', activeIngredient: null, dosage: null, quantity: null, instructions: 'Tomar 1 cp ao dia' },
+        ],
+        notes: 'Observação do modelo',
+      }),
+    ] as any)
+    renderWithProviders(<PrescriptionForm {...defaultProps} />)
+    await waitFor(() => expect(screen.getByTestId('prescription-form-load-template-button')).toBeInTheDocument())
+    await userEvent.click(screen.getByTestId('prescription-form-load-template-button'))
+
+    await waitFor(() => expect(screen.getByTestId('prescription-form-load-template-tpl-uuid')).toBeInTheDocument())
+    await userEvent.click(screen.getByTestId('prescription-form-load-template-tpl-uuid'))
+
+    await waitFor(() => {
+      expect(screen.queryByTestId('prescription-form-load-template-modal')).not.toBeInTheDocument()
+    })
+    expect(screen.getByTestId('prescription-form-item-0')).toHaveTextContent('Dipirona 500mg')
+    expect(screen.getByTestId('prescription-form-item-dosage-0')).toHaveValue('500mg')
+    expect(screen.getByTestId('prescription-form-item-1')).toHaveTextContent('Manipulado X')
+    expect(screen.getByTestId('prescription-form-notes')).toHaveValue('Observação do modelo')
+  })
+
+  it('loads a template with no notes, clearing the notes field', async () => {
+    mockPrescriptionTemplatesService.getAll.mockResolvedValue([makeTemplateDto({ notes: null })] as any)
+    renderWithProviders(<PrescriptionForm {...defaultProps} />)
+    await waitFor(() => expect(screen.getByTestId('prescription-form-load-template-button')).toBeInTheDocument())
+    await userEvent.click(screen.getByTestId('prescription-form-load-template-button'))
+    await waitFor(() => expect(screen.getByTestId('prescription-form-load-template-tpl-uuid')).toBeInTheDocument())
+    await userEvent.click(screen.getByTestId('prescription-form-load-template-tpl-uuid'))
+
+    await waitFor(() => {
+      expect(screen.getByTestId('prescription-form-notes')).toHaveValue('')
+    })
+  })
+
+  // ── Templates: save ──────────────────────────────────────────────────────────
+
+  it('does not show save-as-template button when there are no items', () => {
+    renderWithProviders(<PrescriptionForm {...defaultProps} />)
+    expect(screen.queryByTestId('prescription-form-save-template-button')).not.toBeInTheDocument()
+  })
+
+  it('opens and closes the save-as-template modal', async () => {
+    mockMedicationsService.getAll.mockResolvedValue(makeMedPage([makeMed()]) as any)
+    renderWithProviders(<PrescriptionForm {...defaultProps} />)
+
+    await userEvent.type(screen.getByTestId('prescription-form-search'), 'dipi')
+    await waitFor(() => expect(screen.getByTestId('prescription-form-search-result-med-uuid')).toBeInTheDocument())
+    await userEvent.click(screen.getByTestId('prescription-form-search-result-med-uuid'))
+
+    await userEvent.click(screen.getByTestId('prescription-form-save-template-button'))
+    await waitFor(() => expect(screen.getByTestId('prescription-form-save-template-modal')).toBeInTheDocument())
+
+    await userEvent.click(screen.getByTestId('prescription-form-save-template-cancel'))
+    await waitFor(() => {
+      expect(screen.queryByTestId('prescription-form-save-template-name')).not.toBeInTheDocument()
+    })
+  })
+
+  it('closes the save-as-template modal via the modal close button', async () => {
+    mockMedicationsService.getAll.mockResolvedValue(makeMedPage([makeMed()]) as any)
+    renderWithProviders(<PrescriptionForm {...defaultProps} />)
+
+    await userEvent.type(screen.getByTestId('prescription-form-search'), 'dipi')
+    await waitFor(() => expect(screen.getByTestId('prescription-form-search-result-med-uuid')).toBeInTheDocument())
+    await userEvent.click(screen.getByTestId('prescription-form-search-result-med-uuid'))
+
+    await userEvent.click(screen.getByTestId('prescription-form-save-template-button'))
+    await waitFor(() => expect(screen.getByTestId('prescription-form-save-template-modal')).toBeInTheDocument())
+
+    const modal = screen.getByTestId('prescription-form-save-template-modal')
+    await userEvent.click(within(modal).getByRole('button', { name: 'Fechar' }))
+    await waitFor(() => {
+      expect(screen.queryByTestId('prescription-form-save-template-name')).not.toBeInTheDocument()
+    })
+  })
+
+  it('save-template confirm button is disabled when name is empty', async () => {
+    mockMedicationsService.getAll.mockResolvedValue(makeMedPage([makeMed()]) as any)
+    renderWithProviders(<PrescriptionForm {...defaultProps} />)
+
+    await userEvent.type(screen.getByTestId('prescription-form-search'), 'dipi')
+    await waitFor(() => expect(screen.getByTestId('prescription-form-search-result-med-uuid')).toBeInTheDocument())
+    await userEvent.click(screen.getByTestId('prescription-form-search-result-med-uuid'))
+    await userEvent.click(screen.getByTestId('prescription-form-save-template-button'))
+
+    await waitFor(() => expect(screen.getByTestId('prescription-form-save-template-confirm')).toBeInTheDocument())
+    expect(screen.getByTestId('prescription-form-save-template-confirm')).toBeDisabled()
+  })
+
+  it('does not save when Enter is pressed on an empty template name', async () => {
+    mockMedicationsService.getAll.mockResolvedValue(makeMedPage([makeMed()]) as any)
+    renderWithProviders(<PrescriptionForm {...defaultProps} />)
+
+    await userEvent.type(screen.getByTestId('prescription-form-search'), 'dipi')
+    await waitFor(() => expect(screen.getByTestId('prescription-form-search-result-med-uuid')).toBeInTheDocument())
+    await userEvent.click(screen.getByTestId('prescription-form-search-result-med-uuid'))
+    await userEvent.click(screen.getByTestId('prescription-form-save-template-button'))
+    await waitFor(() => expect(screen.getByTestId('prescription-form-save-template-name')).toBeInTheDocument())
+
+    await userEvent.type(screen.getByTestId('prescription-form-save-template-name'), '{Enter}')
+
+    expect(mockPrescriptionTemplatesService.create).not.toHaveBeenCalled()
+  })
+
+  it('saves as template with mapped items on confirm click', async () => {
+    mockMedicationsService.getAll.mockResolvedValue(makeMedPage([makeMed()]) as any)
+    mockPrescriptionTemplatesService.create.mockResolvedValue(makeTemplateDto() as any)
+    renderWithProviders(<PrescriptionForm {...defaultProps} />)
+
+    await userEvent.type(screen.getByTestId('prescription-form-search'), 'dipi')
+    await waitFor(() => expect(screen.getByTestId('prescription-form-search-result-med-uuid')).toBeInTheDocument())
+    await userEvent.click(screen.getByTestId('prescription-form-search-result-med-uuid'))
+    await userEvent.type(screen.getByTestId('prescription-form-item-dosage-0'), '500mg')
+    await userEvent.type(screen.getByTestId('prescription-form-item-quantity-0'), '1 caixa')
+    await userEvent.type(screen.getByTestId('prescription-form-item-instructions-0'), 'Tomar 1 cp')
+    await userEvent.type(screen.getByTestId('prescription-form-notes'), 'Observação geral')
+
+    await userEvent.click(screen.getByTestId('prescription-form-save-template-button'))
+    await waitFor(() => expect(screen.getByTestId('prescription-form-save-template-name')).toBeInTheDocument())
+    await userEvent.type(screen.getByTestId('prescription-form-save-template-name'), 'Modelo Hipertensão')
+    await userEvent.click(screen.getByTestId('prescription-form-save-template-confirm'))
+
+    await waitFor(() => {
+      expect(mockPrescriptionTemplatesService.create).toHaveBeenCalledWith({
+        name: 'Modelo Hipertensão',
+        items: [{ medicationId: 'med-uuid', dosage: '500mg', quantity: '1 caixa', instructions: 'Tomar 1 cp' }],
+        notes: 'Observação geral',
+      })
+    })
+    await waitFor(() => {
+      expect(screen.queryByTestId('prescription-form-save-template-modal')).not.toBeInTheDocument()
+    })
+  })
+
+  it('saves as template via Enter key with manual ingredient and no notes', async () => {
+    mockPrescriptionTemplatesService.create.mockResolvedValue(makeTemplateDto() as any)
+    renderWithProviders(<PrescriptionForm {...defaultProps} />)
+
+    await userEvent.click(screen.getByTestId('prescription-form-tab-ingredient'))
+    await userEvent.type(screen.getByTestId('prescription-form-manual-input'), 'Amoxicilina{Enter}')
+    await userEvent.type(screen.getByTestId('prescription-form-item-instructions-0'), 'Tomar 1 cp')
+
+    await userEvent.click(screen.getByTestId('prescription-form-save-template-button'))
+    await waitFor(() => expect(screen.getByTestId('prescription-form-save-template-name')).toBeInTheDocument())
+    await userEvent.type(screen.getByTestId('prescription-form-save-template-name'), 'Modelo Manual{Enter}')
+
+    await waitFor(() => {
+      expect(mockPrescriptionTemplatesService.create).toHaveBeenCalledWith({
+        name: 'Modelo Manual',
+        items: [{ activeIngredientName: 'Amoxicilina', instructions: 'Tomar 1 cp' }],
+        notes: undefined,
+      })
+    })
   })
 })

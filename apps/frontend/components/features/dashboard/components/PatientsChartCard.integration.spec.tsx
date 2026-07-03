@@ -1,6 +1,6 @@
 import { screen } from '@testing-library/react'
 import { renderWithProviders } from '@/tests/utils/render-with-providers'
-import { PatientsChartCard } from './PatientsChartCard'
+import { PatientsChartCard, formatPatientsTooltip } from './PatientsChartCard'
 
 const patients = { total: 20, newPatients: 12, returningPatients: 8, byGender: { male: 9, female: 11 } }
 
@@ -18,5 +18,11 @@ describe('PatientsChartCard', () => {
       <PatientsChartCard patients={{ total: 0, newPatients: 0, returningPatients: 0, byGender: { male: 0, female: 0 } }} />,
     )
     expect(screen.getByText('Sem dados no período')).toBeInTheDocument()
+  })
+})
+
+describe('formatPatientsTooltip', () => {
+  it('returns the value with an empty label', () => {
+    expect(formatPatientsTooltip(12)).toEqual([12, ''])
   })
 })

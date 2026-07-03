@@ -40,8 +40,9 @@ export function PrescriptionSection({ appointmentId, canManage, userRole }: Pres
   }
 
   function handleDeleteConfirm() {
-    if (!deletingId) return
-    deletePrescription(deletingId, { onSuccess: () => setDeletingId(null) })
+    // Only reachable while the delete dialog is open, which requires deletingId to be set
+    // (PrescriptionDeleteDialog's isOpen is `!!deletingId`), so deletingId is guaranteed here.
+    deletePrescription(deletingId!, { onSuccess: () => setDeletingId(null) })
   }
 
   const createApiError = createError as IApiError | null

@@ -3,6 +3,14 @@
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
 import type { IDashboardModel } from '../types/dashboard.types'
 
+export function formatAgeTooltip(value: any): [any, string] {
+  return [value, 'pacientes']
+}
+
+export function formatAgeLabel(label: any): string {
+  return `${label} anos`
+}
+
 interface AgeDistributionCardProps {
   ageDistribution: IDashboardModel['ageDistribution']
 }
@@ -27,7 +35,7 @@ export function AgeDistributionCard({ ageDistribution }: AgeDistributionCardProp
               <CartesianGrid strokeDasharray="3 3" stroke="var(--line)" vertical={false} />
               <XAxis dataKey="age" tick={{ fontSize: 11 }} axisLine={false} tickLine={false} />
               <YAxis tick={{ fontSize: 11 }} axisLine={false} tickLine={false} allowDecimals={false} />
-              <Tooltip formatter={(val) => [val, 'pacientes']} labelFormatter={(l) => `${l} anos`} />
+              <Tooltip formatter={formatAgeTooltip} labelFormatter={formatAgeLabel} />
               <Area
                 type="monotone"
                 dataKey="count"

@@ -130,6 +130,10 @@ describe('Medical Record Fill', () => {
       statusCode: 200,
       body: { data: [], total: 0, page: 1, limit: 20 },
     })
+    cy.intercept('GET', `${Cypress.env('API_URL')}/medical-certificates*`, {
+      statusCode: 200,
+      body: [],
+    })
   })
 
   it('DOCTOR sees fill-medical-record button for own scheduled appointment without record', () => {
@@ -138,6 +142,7 @@ describe('Medical Record Fill', () => {
     cy.wait('@getAppointment')
     cy.wait('@getRecord')
 
+    cy.get('[data-testid="tab-prontuario"]').click()
     cy.get('[data-testid="fill-medical-record-button"]').should('be.visible')
   })
 
@@ -151,6 +156,8 @@ describe('Medical Record Fill', () => {
 
     cy.wait('@getAppointment')
     cy.wait('@noRecord')
+
+    cy.get('[data-testid="tab-prontuario"]').click()
     cy.wait('@getTemplate')
 
     cy.get('[data-testid="fill-medical-record-button"]').click()

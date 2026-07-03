@@ -351,7 +351,7 @@ describe('DashboardController (integration)', () => {
     expect(body).toHaveProperty('patients')
     expect(body).toHaveProperty('procedures')
     expect(body).toHaveProperty('insurance')
-    expect(body).toHaveProperty('duration')
+    expect(body).toHaveProperty('cidRanking')
     expect(body).toHaveProperty('appointmentsByDay')
     expect(body).toHaveProperty('ageDistribution')
     expect(body).toHaveProperty('todayBirthdays')
