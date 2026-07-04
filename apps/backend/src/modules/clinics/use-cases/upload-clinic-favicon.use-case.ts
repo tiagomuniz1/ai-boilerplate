@@ -43,7 +43,7 @@ export class UploadClinicFaviconUseCase extends BaseUseCase {
 
     const ext = MIME_TO_EXT[file.mimetype]
     const path = `clinics/${clinicId}/favicon.${ext}`
-    const faviconUrl = await this.storageAdapter.upload(file.buffer, path, file.mimetype)
+    const faviconUrl = await this.storageAdapter.upload(file.buffer, path, file.mimetype, true)
 
     await this.clinicsRepository.updateFavicon(clinicId, faviconUrl)
 

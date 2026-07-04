@@ -14,26 +14,18 @@ import { useCancelAppointment } from '@/components/features/appointments/hooks/u
 import { useDoctors } from '@/components/features/doctors/hooks/use-doctors.hook'
 import { usePrescriptions } from '@/components/features/prescriptions/hooks/use-prescriptions.hook'
 import { useAtestados } from '@/components/features/atestados/hooks/use-atestados.hook'
+import { useExamRequests } from '@/components/features/exames/hooks/use-exam-requests.hook'
 import { useMedicalRecordByAppointment } from '@/components/features/medical-records/hooks/use-medical-record-by-appointment.hook'
 import { AppointmentHeaderCard } from '@/components/features/appointments/components/appointment-header-card'
 import { ResumoTab } from '@/components/features/appointments/components/resumo-tab'
 import { MedicalRecordSection } from '@/components/features/appointments/components/medical-record-section'
 import { PrescriptionSection } from '@/components/features/prescriptions/components/prescription-section'
 import { AtestadoSection } from '@/components/features/atestados/components/atestado-section'
+import { ExameSection } from '@/components/features/exames/components/exame-section'
 import { CancelAppointmentDialog } from '@/components/features/appointments/components/cancel-appointment-dialog'
 import type { IApiError } from '@/types/api.types'
 
 type TabId = 'resumo' | 'prontuario' | 'receitas' | 'atestados' | 'exames'
-
-function ExamesPlaceholder() {
-  return (
-    <div className="rounded-xl border border-border bg-surface p-12 flex flex-col items-center gap-3 text-center" data-testid="exames-placeholder">
-      <div className="text-4xl" aria-hidden="true">🔬</div>
-      <h3 className="text-lg font-semibold text-text">Exames</h3>
-      <p className="text-sm text-text-mute">Em breve disponível nesta versão.</p>
-    </div>
-  )
-}
 
 export default function AppointmentDetailPage() {
   const { id } = useParams<{ id: string }>()
@@ -65,6 +57,7 @@ export default function AppointmentDetailPage() {
 
   const { data: prescriptions } = usePrescriptions(id)
   const { data: atestados } = useAtestados(id)
+  const { data: examRequests } = useExamRequests(id)
   const { data: record } = useMedicalRecordByAppointment(canSeeMedicalRecord ? id : '')
 
   const completeApiError = completeError as IApiError | null
@@ -97,7 +90,9 @@ export default function AppointmentDetailPage() {
     ...(canManage
       ? [{ id: 'atestados', label: 'Atestados', count: atestados?.length ?? 0 }]
       : []),
-    { id: 'exames', label: 'Exames' },
+    ...(canManage
+      ? [{ id: 'exames', label: 'Exames', count: examRequests?.length ?? 0 }]
+      : []),
   ]
 
   return (
@@ -163,6 +158,8 @@ export default function AppointmentDetailPage() {
                   showPrescriptions={canManage}
                   certificateCount={canManage ? (atestados?.length ?? 0) : undefined}
                   showCertificates={canManage}
+                  examCount={canManage ? (examRequests?.length ?? 0) : undefined}
+                  showExames={canManage}
                   onNavigate={(tab) => setActiveTab(tab as TabId)}
                 />
               )}
@@ -192,7 +189,13 @@ export default function AppointmentDetailPage() {
                 />
               )}
 
-              {activeTab === 'exames' && <ExamesPlaceholder />}
+              {activeTab === 'exames' && canManage && (
+                <ExameSection
+                  appointmentId={id}
+                  canManage={canManage}
+                  userRole={role}
+                />
+              )}
             </div>
           </>
         )}

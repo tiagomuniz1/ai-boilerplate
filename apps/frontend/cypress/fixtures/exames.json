@@ -1,0 +1,17 @@
+{
+  "id": "00000000-0000-4000-a000-000000000001",
+  "appointmentId": "00000000-0000-4000-c000-000000000001",
+  "patientId": "patient-uuid",
+  "patientName": "Ana Lima",
+  "doctorId": "00000000-0000-4000-b000-000000000001",
+  "doctorName": "Dr. João",
+  "items": [
+    { "name": "Hemograma completo", "observations": "Jejum de 8 horas" },
+    { "name": "Raio-X de tórax", "observations": null }
+  ],
+  "notes": "Retornar com resultado em 7 dias",
+  "status": "requested",
+  "results": [],
+  "issuedAt": "2026-06-28T10:00:00.000Z",
+  "createdAt": "2026-06-28T10:00:00.000Z"
+}

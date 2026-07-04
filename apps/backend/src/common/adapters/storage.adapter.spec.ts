@@ -25,6 +25,7 @@ const mockSend = jest.fn()
 jest.mock('@aws-sdk/client-s3', () => ({
   S3Client: jest.fn().mockImplementation(() => ({ send: mockSend })),
   PutObjectCommand: jest.fn().mockImplementation((params) => params),
+  GetObjectCommand: jest.fn().mockImplementation((params) => params),
 }))
 
 import { getEnvConfig } from '../../config/env.config'
@@ -39,39 +40,89 @@ describe('StorageAdapter', () => {
     mockSend.mockResolvedValue(undefined)
   })
 
-  it('throws InternalServerErrorException when AWS_S3_BUCKET is missing', async () => {
-    ;(getEnvConfig as jest.Mock).mockReturnValue({ AWS_S3_BUCKET: undefined, AWS_REGION: 'us-east-1' })
-    const adapter = new StorageAdapter()
+  describe('upload', () => {
+    it('throws InternalServerErrorException when AWS_S3_BUCKET is missing', async () => {
+      ;(getEnvConfig as jest.Mock).mockReturnValue({ AWS_S3_BUCKET: undefined, AWS_REGION: 'us-east-1' })
+      const adapter = new StorageAdapter()
 
-    await expect(adapter.upload(Buffer.from('data'), 'path/file.jpg', 'image/jpeg')).rejects.toThrow(
-      InternalServerErrorException,
-    )
-    expect(mockSend).not.toHaveBeenCalled()
+      await expect(adapter.upload(Buffer.from('data'), 'path/file.jpg', 'image/jpeg', true)).rejects.toThrow(
+        InternalServerErrorException,
+      )
+      expect(mockSend).not.toHaveBeenCalled()
+    })
+
+    it('throws InternalServerErrorException when AWS_REGION is missing', async () => {
+      ;(getEnvConfig as jest.Mock).mockReturnValue({ AWS_S3_BUCKET: 'test-bucket', AWS_REGION: undefined })
+      const adapter = new StorageAdapter()
+
+      await expect(adapter.upload(Buffer.from('data'), 'path/file.jpg', 'image/jpeg', true)).rejects.toThrow(
+        InternalServerErrorException,
+      )
+      expect(mockSend).not.toHaveBeenCalled()
+    })
+
+    it('uploads public file to S3 with public-read ACL and returns public URL', async () => {
+      const adapter = new StorageAdapter()
+
+      const url = await adapter.upload(Buffer.from('image-data'), 'clinics/uuid/logo.jpg', 'image/jpeg', true)
+
+      expect(mockSend).toHaveBeenCalled()
+      expect(mockSend.mock.calls[0][0]).toMatchObject({ ACL: 'public-read' })
+      expect(url).toBe('https://test-bucket.s3.us-east-1.amazonaws.com/clinics/uuid/logo.jpg')
+    })
+
+    it('uploads private file to S3 without any ACL and returns the object key', async () => {
+      const adapter = new StorageAdapter()
+
+      const key = await adapter.upload(
+        Buffer.from('exam-data'),
+        'exam-results/clinic/request/result.pdf',
+        'application/pdf',
+        false,
+      )
+
+      expect(mockSend).toHaveBeenCalled()
+      expect(mockSend.mock.calls[0][0]).not.toHaveProperty('ACL')
+      expect(key).toBe('exam-results/clinic/request/result.pdf')
+    })
+
+    it('rethrows S3 client errors', async () => {
+      mockSend.mockRejectedValue(new Error('S3 failure'))
+      const adapter = new StorageAdapter()
+
+      await expect(adapter.upload(Buffer.from('data'), 'path/file.jpg', 'image/jpeg', true)).rejects.toThrow(
+        'S3 failure',
+      )
+    })
   })
 
-  it('throws InternalServerErrorException when AWS_REGION is missing', async () => {
-    ;(getEnvConfig as jest.Mock).mockReturnValue({ AWS_S3_BUCKET: 'test-bucket', AWS_REGION: undefined })
-    const adapter = new StorageAdapter()
+  describe('download', () => {
+    it('throws InternalServerErrorException when AWS_S3_BUCKET is missing', async () => {
+      ;(getEnvConfig as jest.Mock).mockReturnValue({ AWS_S3_BUCKET: undefined, AWS_REGION: 'us-east-1' })
+      const adapter = new StorageAdapter()
 
-    await expect(adapter.upload(Buffer.from('data'), 'path/file.jpg', 'image/jpeg')).rejects.toThrow(
-      InternalServerErrorException,
-    )
-    expect(mockSend).not.toHaveBeenCalled()
-  })
+      await expect(adapter.download('path/file.pdf')).rejects.toThrow(InternalServerErrorException)
+      expect(mockSend).not.toHaveBeenCalled()
+    })
 
-  it('uploads file to S3 and returns public URL', async () => {
-    const adapter = new StorageAdapter()
+    it('downloads the object and returns it as a Buffer', async () => {
+      mockSend.mockResolvedValue({
+        Body: { transformToByteArray: jest.fn().mockResolvedValue(new Uint8Array([1, 2, 3])) },
+      })
+      const adapter = new StorageAdapter()
 
-    const url = await adapter.upload(Buffer.from('image-data'), 'clinics/uuid/logo.jpg', 'image/jpeg')
+      const buffer = await adapter.download('exam-results/clinic/request/result.pdf')
 
-    expect(mockSend).toHaveBeenCalled()
-    expect(url).toBe('https://test-bucket.s3.us-east-1.amazonaws.com/clinics/uuid/logo.jpg')
-  })
+      expect(mockSend).toHaveBeenCalled()
+      expect(buffer).toBeInstanceOf(Buffer)
+      expect(Array.from(buffer)).toEqual([1, 2, 3])
+    })
 
-  it('rethrows S3 client errors', async () => {
-    mockSend.mockRejectedValue(new Error('S3 failure'))
-    const adapter = new StorageAdapter()
+    it('rethrows S3 client errors', async () => {
+      mockSend.mockRejectedValue(new Error('S3 failure'))
+      const adapter = new StorageAdapter()
 
-    await expect(adapter.upload(Buffer.from('data'), 'path/file.jpg', 'image/jpeg')).rejects.toThrow('S3 failure')
+      await expect(adapter.download('path/file.pdf')).rejects.toThrow('S3 failure')
+    })
   })
 })

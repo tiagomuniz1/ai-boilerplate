@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react'
+import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MedicalRecordFieldType } from '@app/shared'
 import { MedicalRecordView } from './medical-record-view'
@@ -250,6 +250,29 @@ describe('MedicalRecordView', () => {
     )
     expect(screen.queryByTestId('tab-empty')).not.toBeInTheDocument()
     expect(screen.getByTestId('record-notes')).toHaveTextContent('Observação geral')
+  })
+
+  it('does not crash when sections arrive after mount (template query resolving later than the record)', async () => {
+    // Reproduces the real MedicalRecordSection flow: the record loads first, so
+    // MedicalRecordView first mounts with sections=[] (flat layout, activeTab='all'),
+    // then the template query resolves and the parent re-renders with real sections.
+    const record = makeRecord({
+      schema: [
+        makeField({ key: 'f1', sectionKey: 'vitals' }),
+        makeField({ key: 'f2', sectionKey: 'history' }),
+      ],
+      data: { f1: '120/80', f2: 'HAS' },
+    })
+
+    const { rerender } = render(<MedicalRecordView record={record} sections={[]} />)
+    expect(screen.queryByTestId('medical-record-view-tabs')).not.toBeInTheDocument()
+
+    rerender(<MedicalRecordView record={record} sections={twoSections} />)
+
+    await waitFor(() => {
+      expect(screen.getByTestId('medical-record-view-tabs')).toBeInTheDocument()
+    })
+    expect(screen.getByTestId('record-field-f1')).toBeInTheDocument()
   })
 
   it('skips sections with no fields', () => {

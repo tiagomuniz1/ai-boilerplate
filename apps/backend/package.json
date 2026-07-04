@@ -5,7 +5,7 @@
   "scripts": {
     "build": "nest build --webpack",
     "build:docker": "nest build --config nest-cli.docker.json && tsc-alias -p tsconfig.build.json",
-    "dev": "node scripts/load-env.js && yarn workspace @app/shared build && nest start --watch",
+    "dev": "node scripts/load-env.js && yarn workspace @app/shared build && AWS_PROFILE=umi-homologation nest start --watch",
     "start": "node dist/main.js",
     "test:unit": "jest --config jest.config.ts --passWithNoTests",
     "test:integration": "NODE_ENV=test jest --config jest.integration.config.ts --runInBand --passWithNoTests",

@@ -20,6 +20,7 @@ const mockClinicsRepository: jest.Mocked<IClinicsRepository> = {
 
 const mockStorageAdapter: jest.Mocked<IStorageAdapter> = {
   upload: jest.fn(),
+  download: jest.fn(),
 }
 
 const mockCacheService = {
@@ -97,6 +98,7 @@ describe('UploadClinicLogoUseCase', () => {
       file.buffer,
       `clinics/${clinic.id}/logo.jpg`,
       'image/jpeg',
+      true,
     )
     expect(mockClinicsRepository.updateLogo).toHaveBeenCalledWith(clinic.id, logoUrl)
     expect(result.logoUrl).toBe(logoUrl)
@@ -117,6 +119,7 @@ describe('UploadClinicLogoUseCase', () => {
       file.buffer,
       `clinics/${clinic.id}/logo.png`,
       'image/png',
+      true,
     )
   })
 

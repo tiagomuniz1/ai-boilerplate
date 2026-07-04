@@ -20,6 +20,7 @@ const mockClinicsRepository: jest.Mocked<IClinicsRepository> = {
 
 const mockStorageAdapter: jest.Mocked<IStorageAdapter> = {
   upload: jest.fn(),
+  download: jest.fn(),
 }
 
 const mockCacheService = {
@@ -97,6 +98,7 @@ describe('UploadClinicFaviconUseCase', () => {
       file.buffer,
       `clinics/${clinic.id}/favicon.ico`,
       'image/x-icon',
+      true,
     )
     expect(mockClinicsRepository.updateFavicon).toHaveBeenCalledWith(clinic.id, faviconUrl)
     expect(result.faviconUrl).toBe(faviconUrl)
@@ -117,6 +119,7 @@ describe('UploadClinicFaviconUseCase', () => {
       file.buffer,
       `clinics/${clinic.id}/favicon.png`,
       'image/png',
+      true,
     )
   })
 
@@ -134,6 +137,7 @@ describe('UploadClinicFaviconUseCase', () => {
       file.buffer,
       `clinics/${clinic.id}/favicon.svg`,
       'image/svg+xml',
+      true,
     )
   })
 

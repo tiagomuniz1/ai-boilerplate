@@ -108,7 +108,7 @@ resource "aws_s3_bucket_policy" "clinic_assets" {
 
 resource "aws_iam_policy" "clinic_assets_write" {
   name        = "clinic-assets-write-${var.environment}"
-  description = "Allows ECS backend to upload and manage clinic assets in ${local.bucket_name}"
+  description = "Allows ECS backend to upload and manage clinic assets and exam results in ${local.bucket_name}"
 
   policy = jsonencode({
     Version = "2012-10-17"
@@ -121,7 +121,10 @@ resource "aws_iam_policy" "clinic_assets_write" {
           "s3:DeleteObject",
           "s3:GetObject"
         ]
-        Resource = "${aws_s3_bucket.clinic_assets.arn}/clinics/*"
+        Resource = [
+          "${aws_s3_bucket.clinic_assets.arn}/clinics/*",
+          "${aws_s3_bucket.clinic_assets.arn}/exam-results/*"
+        ]
       }
     ]
   })

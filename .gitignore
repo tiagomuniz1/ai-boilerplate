@@ -10,6 +10,10 @@ dist/
 .next/
 out/
 
+# Local file storage fallback (used only when AWS_S3_BUCKET/AWS_REGION are unset)
+apps/backend/uploads/
+apps/backend/uploads-private/
+
 # Environment files
 .env
 .env.local

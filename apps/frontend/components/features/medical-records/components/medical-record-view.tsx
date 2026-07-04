@@ -92,6 +92,14 @@ export function MedicalRecordView({ record, sections = [] }: MedicalRecordViewPr
       ]
     : []
 
+  // `sections` can arrive after the initial mount (it comes from a separate template
+  // query in the parent, while `record` may already be loaded) — so the layout can
+  // flip from flat to tabbed on a re-render. `activeTab` state only reflects the tab
+  // set at mount time, so fall back to `firstTab` whenever it no longer matches the
+  // current tab set instead of trusting stale state.
+  const validTabIds = hasSections ? tabItems.map((t) => t.id) : ['all']
+  const effectiveTab = validTabIds.includes(activeTab) ? activeTab : firstTab
+
   return (
     <div className="space-y-4" data-testid="medical-record-view">
       {/* Header: patient / doctor / specialty */}
@@ -120,13 +128,13 @@ export function MedicalRecordView({ record, sections = [] }: MedicalRecordViewPr
         <>
           <Tabs
             items={tabItems}
-            activeId={activeTab}
+            activeId={effectiveTab}
             onChange={setActiveTab}
             data-testid="medical-record-view-tabs"
           />
 
           <div className="min-h-[120px]">
-            {activeTab === NOTES_TAB && (
+            {effectiveTab === NOTES_TAB && (
               <div className="rounded-lg border border-line bg-surface p-4" data-testid="record-notes">
                 <p className="text-xs font-medium uppercase tracking-wider text-text-mute mb-1">
                   Notas do médico
@@ -135,20 +143,20 @@ export function MedicalRecordView({ record, sections = [] }: MedicalRecordViewPr
               </div>
             )}
 
-            {activeTab === GENERAL_TAB && (
+            {effectiveTab === GENERAL_TAB && (
               <div className="rounded-lg border border-line bg-surface p-4">
                 <FieldsGrid fields={unsectionedFields} record={record} />
               </div>
             )}
 
-            {activeTab !== NOTES_TAB && activeTab !== GENERAL_TAB && (
+            {effectiveTab !== NOTES_TAB && effectiveTab !== GENERAL_TAB && (
               <div
                 className="rounded-lg border border-line bg-surface p-4"
-                data-testid={`record-section-${activeTab}`}
+                data-testid={`record-section-${effectiveTab}`}
               >
-                {/* activeTab only ever matches a nonEmptySections key here, so the field list is guaranteed. */}
+                {/* effectiveTab only ever matches a nonEmptySections key here, so the field list is guaranteed. */}
                 <FieldsGrid
-                  fields={fieldsBySection.get(activeTab)!}
+                  fields={fieldsBySection.get(effectiveTab)!}
                   record={record}
                 />
               </div>

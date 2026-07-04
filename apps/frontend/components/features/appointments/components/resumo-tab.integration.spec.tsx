@@ -23,6 +23,8 @@ const defaultProps = {
   showPrescriptions: true,
   certificateCount: 1,
   showCertificates: true,
+  examCount: 1,
+  showExames: true,
   onNavigate: jest.fn(),
 }
 
@@ -75,10 +77,20 @@ describe('ResumoTab', () => {
     expect(screen.queryByTestId('resumo-tab-atestados')).not.toBeInTheDocument()
   })
 
-  it('renders exames row with count 0', () => {
-    renderWithProviders(<ResumoTab {...defaultProps} />)
-    expect(screen.getByTestId('resumo-tab-exames')).toBeInTheDocument()
+  it('falls back to 0 for examCount when undefined', () => {
+    renderWithProviders(<ResumoTab {...defaultProps} examCount={undefined} />)
     expect(screen.getByTestId('resumo-tab-exames-count')).toHaveTextContent('0')
+  })
+
+  it('renders exames row with examCount when showExames is true', () => {
+    renderWithProviders(<ResumoTab {...defaultProps} examCount={3} />)
+    expect(screen.getByTestId('resumo-tab-exames')).toBeInTheDocument()
+    expect(screen.getByTestId('resumo-tab-exames-count')).toHaveTextContent('3')
+  })
+
+  it('hides exames row when showExames is false', () => {
+    renderWithProviders(<ResumoTab {...defaultProps} showExames={false} />)
+    expect(screen.queryByTestId('resumo-tab-exames')).not.toBeInTheDocument()
   })
 
   it('calls onNavigate with receitas when prescription row clicked', async () => {

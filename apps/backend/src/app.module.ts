@@ -22,6 +22,7 @@ import { MedicationsModule } from './modules/medications/medications.module'
 import { PrescriptionsModule } from './modules/prescriptions/prescriptions.module'
 import { PrescriptionTemplatesModule } from './modules/prescription-templates/prescription-templates.module'
 import { MedicalCertificatesModule } from './modules/medical-certificates/medical-certificates.module'
+import { ExamsModule } from './modules/exams/exams.module'
 import { DashboardModule } from './modules/dashboard/dashboard.module'
 import { HttpExceptionFilter } from './common/filters/http-exception.filter'
 import { RequestIdInterceptor } from './common/interceptors/request-id.interceptor'
@@ -54,6 +55,7 @@ import { RolesGuard } from './modules/auth/guards/roles.guard'
     PrescriptionsModule,
     PrescriptionTemplatesModule,
     MedicalCertificatesModule,
+    ExamsModule,
     DashboardModule,
   ],
   providers: [

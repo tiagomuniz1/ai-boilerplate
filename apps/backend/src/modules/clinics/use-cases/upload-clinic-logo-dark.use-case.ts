@@ -44,7 +44,7 @@ export class UploadClinicLogoDarkUseCase extends BaseUseCase {
 
     const ext = MIME_TO_EXT[file.mimetype]
     const path = `clinics/${clinicId}/logo-dark.${ext}`
-    const logoDarkUrl = await this.storageAdapter.upload(file.buffer, path, file.mimetype)
+    const logoDarkUrl = await this.storageAdapter.upload(file.buffer, path, file.mimetype, true)
 
     await this.clinicsRepository.updateLogoDark(clinicId, logoDarkUrl)
 
