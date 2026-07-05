@@ -339,4 +339,39 @@ describe('UserList (integration)', () => {
       expect(screen.getByText('1 usuário cadastrado')).toBeInTheDocument()
     })
   })
+
+  it('renders a mobile card per user with name, email and actions', async () => {
+    ;(userService.getAll as jest.Mock).mockResolvedValue({ data: [makeDto()], total: 1, page: 1, limit: 20 })
+
+    renderWithProviders(<UserList />)
+
+    await waitFor(() => expect(screen.getByTestId('user-card-uuid-1')).toBeInTheDocument())
+
+    expect(screen.getByTestId('user-card-uuid-1-title')).toHaveTextContent('Alice Costa')
+    expect(screen.getByTestId('user-card-uuid-1-title')).toHaveTextContent('alice@example.com')
+    expect(screen.getByTestId('user-card-edit-link-uuid-1')).toBeInTheDocument()
+    expect(screen.getByTestId('user-card-view-link-uuid-1')).toBeInTheDocument()
+  })
+
+  it('mobile card delete button is disabled for the current user', async () => {
+    ;(userService.getAll as jest.Mock).mockResolvedValue({ data: [makeDto()], total: 1, page: 1, limit: 20 })
+    mockAuthStore('uuid-1')
+
+    renderWithProviders(<UserList />)
+
+    await waitFor(() => expect(screen.getByTestId('user-card-delete-button-uuid-1')).toBeInTheDocument())
+
+    expect(screen.getByTestId('user-card-delete-button-uuid-1')).toBeDisabled()
+  })
+
+  it('clicking delete on a mobile card opens the delete dialog', async () => {
+    ;(userService.getAll as jest.Mock).mockResolvedValue({ data: [makeDto()], total: 1, page: 1, limit: 20 })
+
+    renderWithProviders(<UserList />)
+
+    await waitFor(() => expect(screen.getByTestId('user-card-delete-button-uuid-1')).toBeInTheDocument())
+    await userEvent.click(screen.getByTestId('user-card-delete-button-uuid-1'))
+
+    expect(screen.getByTestId('delete-user-dialog')).toBeInTheDocument()
+  })
 })

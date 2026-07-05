@@ -70,7 +70,7 @@ export function AppointmentDetailsDialog({
             </span>
           </div>
 
-          <dl className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
+          <dl className="grid grid-cols-1 gap-x-4 gap-y-2 text-sm sm:grid-cols-2">
             <dt className="text-text/50">Paciente</dt>
             <dd data-testid="details-patient">{appointment.patientName}</dd>
 

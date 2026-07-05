@@ -20,7 +20,7 @@ export function Tabs({ items, activeId, onChange, 'data-testid': testId }: TabsP
     <div
       role="tablist"
       data-testid={testId}
-      className="inline-flex gap-1 rounded-full border border-line bg-surface p-1"
+      className="flex flex-wrap gap-1 rounded-2xl border border-line bg-surface p-1"
     >
       {items.map((item) => {
         const isActive = item.id === activeId
@@ -33,7 +33,7 @@ export function Tabs({ items, activeId, onChange, 'data-testid': testId }: TabsP
             onClick={() => onChange(item.id)}
             data-testid={`tab-${item.id}`}
             className={cn(
-              'inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm transition-colors',
+              'inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full px-3 py-1.5 text-sm transition-colors',
               isActive
                 ? 'bg-accent-soft text-accent font-semibold'
                 : 'text-text-mute hover:text-text',

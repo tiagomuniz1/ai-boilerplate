@@ -73,7 +73,7 @@ describe('PrescriptionTemplateList (integration)', () => {
       expect(screen.getByTestId('prescription-template-list-table')).toBeInTheDocument()
     })
     expect(screen.getByTestId('prescription-template-name-tpl-uuid')).toHaveTextContent('Modelo A')
-    expect(screen.getByText('1 medicamento')).toBeInTheDocument()
+    expect(within(screen.getByTestId('prescription-template-list-table')).getByText('1 medicamento')).toBeInTheDocument()
   })
 
   it('shows plural medication count for multiple items', async () => {
@@ -87,8 +87,11 @@ describe('PrescriptionTemplateList (integration)', () => {
     ] as any)
     renderWithProviders(<PrescriptionTemplateList />)
     await waitFor(() => {
-      expect(screen.getByText('2 medicamentos')).toBeInTheDocument()
+      expect(screen.getByTestId('prescription-template-list-table')).toBeInTheDocument()
     })
+    expect(
+      within(screen.getByTestId('prescription-template-list-table')).getByText('2 medicamentos'),
+    ).toBeInTheDocument()
   })
 
   it('shows singular count message in header', async () => {
@@ -371,5 +374,39 @@ describe('PrescriptionTemplateList (integration)', () => {
     await waitFor(() => {
       expect(mockService.remove).toHaveBeenCalledWith('tpl-uuid')
     })
+  })
+
+  it('renders a mobile card per template with name and medication count', async () => {
+    mockService.getAll.mockResolvedValue([makeTemplateDto()] as any)
+
+    renderWithProviders(<PrescriptionTemplateList />)
+
+    await waitFor(() => expect(screen.getByTestId('prescription-template-card-tpl-uuid')).toBeInTheDocument())
+
+    expect(screen.getByTestId('prescription-template-card-tpl-uuid-title')).toHaveTextContent('Modelo A')
+    expect(screen.getByTestId('prescription-template-card-edit-tpl-uuid')).toBeInTheDocument()
+  })
+
+  it('mobile card shows Médico row for ADMIN and hides the edit action (read-only)', async () => {
+    useAuthStore.setState({ user: makeUser(UserRole.ADMIN) })
+    mockService.getAll.mockResolvedValue([makeTemplateDto()] as any)
+
+    renderWithProviders(<PrescriptionTemplateList />)
+
+    await waitFor(() => expect(screen.getByTestId('prescription-template-card-tpl-uuid')).toBeInTheDocument())
+
+    expect(screen.getByTestId('prescription-template-card-tpl-uuid')).toHaveTextContent('Dr. House')
+    expect(screen.queryByTestId('prescription-template-card-edit-tpl-uuid')).not.toBeInTheDocument()
+  })
+
+  it('clicking delete on a mobile card opens the delete dialog', async () => {
+    mockService.getAll.mockResolvedValue([makeTemplateDto()] as any)
+
+    renderWithProviders(<PrescriptionTemplateList />)
+
+    await waitFor(() => expect(screen.getByTestId('prescription-template-card-delete-tpl-uuid')).toBeInTheDocument())
+    await userEvent.click(screen.getByTestId('prescription-template-card-delete-tpl-uuid'))
+
+    expect(screen.getByTestId('prescription-template-delete-dialog-confirm')).toBeInTheDocument()
   })
 })

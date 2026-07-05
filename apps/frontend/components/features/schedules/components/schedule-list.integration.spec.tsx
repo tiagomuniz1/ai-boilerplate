@@ -296,5 +296,57 @@ describe('ScheduleList (integration)', () => {
 
       expect(screen.getByTestId('schedule-doctor-uuid-1')).toHaveTextContent('Dr. Maria Santos')
     })
+
+    it('renders a mobile card per schedule with the doctor name as title', async () => {
+      ;(schedulesService.getAll as jest.Mock).mockResolvedValue(
+        makePaginatedResponse([makeScheduleDto({ doctorName: 'Dr. Maria Santos' })]),
+      )
+
+      renderWithProviders(<ScheduleList />)
+
+      await waitFor(() => expect(screen.getByTestId('schedule-card-uuid-1')).toBeInTheDocument())
+
+      expect(screen.getByTestId('schedule-card-uuid-1-title')).toHaveTextContent('Dr. Maria Santos')
+    })
+
+    it('mobile card actions include delete, edit and details link', async () => {
+      ;(schedulesService.getAll as jest.Mock).mockResolvedValue(makePaginatedResponse())
+
+      renderWithProviders(<ScheduleList />)
+
+      await waitFor(() => expect(screen.getByTestId('schedule-card-uuid-1')).toBeInTheDocument())
+
+      expect(screen.getByTestId('schedule-card-delete-button-uuid-1')).toBeInTheDocument()
+      expect(screen.getByTestId('schedule-card-edit-link-uuid-1')).toBeInTheDocument()
+      expect(screen.getByTestId('schedule-card-view-link-uuid-1')).toBeInTheDocument()
+    })
+  })
+
+  describe('as USER (cannot manage schedules)', () => {
+    beforeEach(() => mockAuthStoreAs(UserRole.USER))
+
+    it('mobile card does not show delete/edit actions, only details link', async () => {
+      ;(schedulesService.getAll as jest.Mock).mockResolvedValue(makePaginatedResponse())
+
+      renderWithProviders(<ScheduleList />)
+
+      await waitFor(() => expect(screen.getByTestId('schedule-card-uuid-1')).toBeInTheDocument())
+
+      expect(screen.queryByTestId('schedule-card-delete-button-uuid-1')).not.toBeInTheDocument()
+      expect(screen.queryByTestId('schedule-card-edit-link-uuid-1')).not.toBeInTheDocument()
+      expect(screen.getByTestId('schedule-card-view-link-uuid-1')).toBeInTheDocument()
+    })
+
+    it('mobile card title falls back to the day of week when doctor name is not shown', async () => {
+      ;(schedulesService.getAll as jest.Mock).mockResolvedValue(
+        makePaginatedResponse([makeScheduleDto({ dayOfWeek: DayOfWeek.FRIDAY })]),
+      )
+
+      renderWithProviders(<ScheduleList />)
+
+      await waitFor(() => expect(screen.getByTestId('schedule-card-uuid-1')).toBeInTheDocument())
+
+      expect(screen.getByTestId('schedule-card-uuid-1-title')).toHaveTextContent('Sexta-feira')
+    })
   })
 })

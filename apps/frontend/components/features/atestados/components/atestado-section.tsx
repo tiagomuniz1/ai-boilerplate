@@ -23,12 +23,27 @@ export interface AtestadoSectionProps {
   userRole: UserRole
 }
 
-function atestadoSummary(atestado: IAtestadoModel): string {
+function atestadoTitle(atestado: IAtestadoModel): string {
   if (atestado.type === MedicalCertificateType.LEAVE) {
     const dayLabel = atestado.daysOff === 1 ? 'dia' : 'dias'
-    return `${atestado.daysOff} ${dayLabel} a partir de ${atestado.startDate?.toLocaleDateString('pt-BR')}`
+    return `Afastamento — ${atestado.daysOff} ${dayLabel}`
   }
-  return `Comparecimento em ${atestado.attendanceDate?.toLocaleDateString('pt-BR')}`
+  return 'Comparecimento'
+}
+
+function atestadoDate(atestado: IAtestadoModel): string {
+  const date = atestado.type === MedicalCertificateType.LEAVE ? atestado.startDate : atestado.attendanceDate
+  return date?.toLocaleDateString('pt-BR') ?? ''
+}
+
+function atestadoDetail(atestado: IAtestadoModel): string | null {
+  if (atestado.type === MedicalCertificateType.LEAVE) {
+    return atestado.cidCode ? `CID ${atestado.cidCode}` : null
+  }
+  if (atestado.checkInTime && atestado.checkOutTime) {
+    return `Entrada ${atestado.checkInTime} · Saída ${atestado.checkOutTime}`
+  }
+  return null
 }
 
 export function AtestadoSection({ appointmentId, canManage, userRole }: AtestadoSectionProps) {
@@ -77,7 +92,8 @@ export function AtestadoSection({ appointmentId, canManage, userRole }: Atestado
               onClick={() => setShowForm(true)}
               data-testid="atestado-new-button"
             >
-              + Novo atestado
+              <span className="sm:hidden">+ Novo</span>
+              <span className="hidden sm:inline">+ Novo atestado</span>
             </Button>
           )}
         </div>
@@ -103,18 +119,31 @@ export function AtestadoSection({ appointmentId, canManage, userRole }: Atestado
               return (
                 <li
                   key={atestado.id}
-                  className="flex items-center justify-between border border-border rounded-xl bg-surface p-4 text-sm"
+                  className="flex flex-col gap-3 border border-border rounded-xl bg-surface p-4 text-sm sm:flex-row sm:items-center sm:justify-between"
                   data-testid={`atestado-item-${atestado.id}`}
                 >
-                  <div className="flex flex-col gap-0.5">
+                  <div className="flex flex-col gap-1">
+                    <div className="flex items-center gap-2">
+                      <span
+                        className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-good/10 text-good"
+                        data-testid={`atestado-item-badge-${atestado.id}`}
+                      >
+                        Emitido
+                      </span>
+                      <span className="text-xs text-text-mute" data-testid={`atestado-item-date-${atestado.id}`}>
+                        {atestadoDate(atestado)}
+                      </span>
+                    </div>
                     <span className="font-medium" data-testid={`atestado-item-type-${atestado.id}`}>
-                      {atestado.type === MedicalCertificateType.LEAVE ? 'Afastamento' : 'Comparecimento'}
+                      {atestadoTitle(atestado)}
                     </span>
-                    <span className="text-xs text-text-mute" data-testid={`atestado-item-summary-${atestado.id}`}>
-                      {atestadoSummary(atestado)}
-                    </span>
+                    {atestadoDetail(atestado) && (
+                      <span className="text-xs text-text-mute" data-testid={`atestado-item-summary-${atestado.id}`}>
+                        {atestadoDetail(atestado)}
+                      </span>
+                    )}
                   </div>
-                  <div className="flex gap-2">
+                  <div className="flex flex-wrap gap-2 sm:shrink-0">
                     <Button
                       type="button"
                       variant="ghost"

@@ -2,7 +2,7 @@ import { PrescriptionTemplateList } from '@/components/features/prescription-tem
 
 export default function PrescriptionTemplatesPage() {
   return (
-    <main className="p-8" data-testid="prescription-templates-page">
+    <main className="p-6 sm:p-8" data-testid="prescription-templates-page">
       <PrescriptionTemplateList />
     </main>
   )

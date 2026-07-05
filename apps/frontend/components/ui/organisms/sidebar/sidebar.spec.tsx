@@ -1,10 +1,11 @@
-import { render, screen } from '@testing-library/react'
+import { render, screen, fireEvent } from '@testing-library/react'
 import { usePathname } from 'next/navigation'
 import { Sidebar } from './sidebar'
 import { useSidebarNavigation } from '@/hooks/use-sidebar-navigation.hook'
 import { useAuthStore } from '@/stores/auth.store'
 import { useCurrentClinic } from '@/components/features/clinics/hooks/use-current-clinic.hook'
 import { useThemeStore } from '@/stores/theme.store'
+import { useSidebarStore } from '@/stores/sidebar.store'
 import type { INavigationItemViewModel } from '@/types/navigation.types'
 
 jest.mock('@/hooks/use-sidebar-navigation.hook')
@@ -41,6 +42,7 @@ describe('Sidebar', () => {
   beforeEach(() => {
     jest.clearAllMocks()
     useAuthStore.setState({ user: null })
+    useSidebarStore.setState({ isMobileOpen: false })
     mockUseSidebarNavigation.mockReturnValue({ items: mockItems })
     mockUseCurrentClinic.mockReturnValue({ data: undefined } as any)
     ;(usePathname as jest.Mock).mockReturnValue('/minha-clinica/dashboard')
@@ -215,5 +217,40 @@ describe('Sidebar', () => {
     expect(img).toHaveAttribute('src', logoDarkUrl)
 
     useThemeStore.setState({ theme: 'light' })
+  })
+
+  it('does not render the mobile backdrop when the mobile menu is closed', () => {
+    render(<Sidebar />)
+    expect(screen.queryByTestId('sidebar-backdrop')).not.toBeInTheDocument()
+  })
+
+  it('is translated off-screen when the mobile menu is closed', () => {
+    render(<Sidebar />)
+    expect(screen.getByTestId('sidebar')).toHaveClass('-translate-x-full')
+  })
+
+  it('renders the mobile backdrop and slides in when the mobile menu is open', () => {
+    useSidebarStore.setState({ isMobileOpen: true })
+    render(<Sidebar />)
+    expect(screen.getByTestId('sidebar-backdrop')).toBeInTheDocument()
+    expect(screen.getByTestId('sidebar')).toHaveClass('translate-x-0')
+  })
+
+  it('closes the mobile menu when the backdrop is clicked', () => {
+    useSidebarStore.setState({ isMobileOpen: true })
+    render(<Sidebar />)
+    fireEvent.click(screen.getByTestId('sidebar-backdrop'))
+    expect(useSidebarStore.getState().isMobileOpen).toBe(false)
+  })
+
+  it('closes the mobile menu when the pathname changes', () => {
+    useSidebarStore.setState({ isMobileOpen: true })
+    ;(usePathname as jest.Mock).mockReturnValue('/minha-clinica/dashboard')
+    const { rerender } = render(<Sidebar />)
+
+    ;(usePathname as jest.Mock).mockReturnValue('/minha-clinica/users')
+    rerender(<Sidebar />)
+
+    expect(useSidebarStore.getState().isMobileOpen).toBe(false)
   })
 })

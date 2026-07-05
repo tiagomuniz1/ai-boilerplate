@@ -200,4 +200,28 @@ describe('PatientList (integration)', () => {
       expect(screen.getByText('1 paciente cadastrado')).toBeInTheDocument()
     })
   })
+
+  it('renders a mobile card per patient with name, email and actions', async () => {
+    ;(patientsService.getAll as jest.Mock).mockResolvedValue({ data: [makeDto()], total: 1, page: 1, limit: 20 })
+
+    renderWithProviders(<PatientList />)
+
+    await waitFor(() => expect(screen.getByTestId('patient-card-uuid-1')).toBeInTheDocument())
+
+    expect(screen.getByTestId('patient-card-uuid-1-title')).toHaveTextContent('João Silva')
+    expect(screen.getByTestId('patient-card-uuid-1-title')).toHaveTextContent('joao@example.com')
+    expect(screen.getByTestId('patient-card-edit-link-uuid-1')).toBeInTheDocument()
+    expect(screen.getByTestId('patient-card-view-link-uuid-1')).toBeInTheDocument()
+  })
+
+  it('clicking delete on a mobile card opens the delete dialog', async () => {
+    ;(patientsService.getAll as jest.Mock).mockResolvedValue({ data: [makeDto()], total: 1, page: 1, limit: 20 })
+
+    renderWithProviders(<PatientList />)
+
+    await waitFor(() => expect(screen.getByTestId('patient-card-delete-button-uuid-1')).toBeInTheDocument())
+    await userEvent.click(screen.getByTestId('patient-card-delete-button-uuid-1'))
+
+    expect(screen.getByTestId('delete-patient-dialog-confirm')).toBeInTheDocument()
+  })
 })

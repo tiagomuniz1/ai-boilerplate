@@ -278,7 +278,19 @@ describe('AppointmentDetailPage (integration)', () => {
     expect(screen.queryByTestId('tab-prontuario')).not.toBeInTheDocument()
   })
 
-  it('clicking complete button calls service', async () => {
+  it('clicking complete button opens the complete confirmation dialog', async () => {
+    mockAppointmentsService.getById.mockResolvedValue(makeAppointmentDto())
+    mockAppointmentsService.getAll.mockResolvedValue({ data: [], total: 0, page: 1, limit: 100 })
+    mockAppointmentsService.getAvailability.mockResolvedValue({ doctorId: DOCTOR_ID, date: '2025-06-10', slots: [] })
+    renderWithProviders(<AppointmentDetailPage />)
+    await waitFor(() => expect(screen.getByTestId('appointment-detail-complete-button')).toBeInTheDocument())
+    await userEvent.click(screen.getByTestId('appointment-detail-complete-button'))
+
+    expect(screen.getByTestId('complete-appointment-dialog')).toBeInTheDocument()
+    expect(mockAppointmentsService.complete).not.toHaveBeenCalled()
+  })
+
+  it('confirming the complete dialog calls service', async () => {
     mockAppointmentsService.getById.mockResolvedValue(makeAppointmentDto())
     mockAppointmentsService.complete.mockResolvedValue(
       makeAppointmentDto({ status: AppointmentStatus.COMPLETED }),
@@ -288,9 +300,25 @@ describe('AppointmentDetailPage (integration)', () => {
     renderWithProviders(<AppointmentDetailPage />)
     await waitFor(() => expect(screen.getByTestId('appointment-detail-complete-button')).toBeInTheDocument())
     await userEvent.click(screen.getByTestId('appointment-detail-complete-button'))
+    await userEvent.click(screen.getByTestId('complete-dialog-confirm'))
     await waitFor(() => {
       expect(mockAppointmentsService.complete).toHaveBeenCalledWith('appt-uuid')
     })
+  })
+
+  it('closing the complete dialog does not call service', async () => {
+    mockAppointmentsService.getById.mockResolvedValue(makeAppointmentDto())
+    mockAppointmentsService.getAll.mockResolvedValue({ data: [], total: 0, page: 1, limit: 100 })
+    mockAppointmentsService.getAvailability.mockResolvedValue({ doctorId: DOCTOR_ID, date: '2025-06-10', slots: [] })
+    renderWithProviders(<AppointmentDetailPage />)
+    await waitFor(() => expect(screen.getByTestId('appointment-detail-complete-button')).toBeInTheDocument())
+    await userEvent.click(screen.getByTestId('appointment-detail-complete-button'))
+    await userEvent.click(screen.getByTestId('complete-dialog-cancel'))
+
+    await waitFor(() => {
+      expect(screen.queryByTestId('complete-appointment-dialog')).not.toBeInTheDocument()
+    })
+    expect(mockAppointmentsService.complete).not.toHaveBeenCalled()
   })
 
   it('shows 422 error when complete fails', async () => {
@@ -301,6 +329,7 @@ describe('AppointmentDetailPage (integration)', () => {
     renderWithProviders(<AppointmentDetailPage />)
     await waitFor(() => expect(screen.getByTestId('appointment-detail-complete-button')).toBeInTheDocument())
     await userEvent.click(screen.getByTestId('appointment-detail-complete-button'))
+    await userEvent.click(screen.getByTestId('complete-dialog-confirm'))
     await waitFor(() => {
       expect(screen.getByTestId('appointment-detail-complete-error')).toHaveTextContent(
         'Não é possível concluir uma consulta futura.',

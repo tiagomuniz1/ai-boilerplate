@@ -2,7 +2,7 @@ jest.mock('next/navigation', () => ({ useRouter: jest.fn() }))
 jest.mock('../services/doctors.service')
 jest.mock('../use-cases/delete-doctor.use-case')
 
-import { screen, waitFor } from '@testing-library/react'
+import { screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { useRouter } from 'next/navigation'
 import { UserRole } from '@app/shared'
@@ -112,11 +112,12 @@ describe('DoctorList (integration)', () => {
       expect(screen.getByTestId('doctor-list-table')).toBeInTheDocument()
     })
 
-    expect(screen.getByTestId('doctor-specialty-badge-spec-uuid-1')).toBeInTheDocument()
-    expect(screen.getByTestId('doctor-specialty-badge-spec-uuid-2')).toBeInTheDocument()
-    expect(screen.queryByTestId('doctor-specialty-badge-spec-uuid-3')).not.toBeInTheDocument()
-    expect(screen.queryByTestId('doctor-specialty-badge-spec-uuid-4')).not.toBeInTheDocument()
-    expect(screen.getByText('+2 mais')).toBeInTheDocument()
+    const table = screen.getByTestId('doctor-list-table')
+    expect(within(table).getByTestId('doctor-specialty-badge-spec-uuid-1')).toBeInTheDocument()
+    expect(within(table).getByTestId('doctor-specialty-badge-spec-uuid-2')).toBeInTheDocument()
+    expect(within(table).queryByTestId('doctor-specialty-badge-spec-uuid-3')).not.toBeInTheDocument()
+    expect(within(table).queryByTestId('doctor-specialty-badge-spec-uuid-4')).not.toBeInTheDocument()
+    expect(within(table).getByText('+2 mais')).toBeInTheDocument()
   })
 
   it('renders empty specialty cell when doctor has no specialties', async () => {
@@ -316,5 +317,41 @@ describe('DoctorList (integration)', () => {
     await waitFor(() => {
       expect(screen.getByText('1 médico cadastrado')).toBeInTheDocument()
     })
+  })
+
+  it('renders a mobile card per doctor with name, email, CRM and specialties', async () => {
+    useAuthStore.setState({ user: makeUser(UserRole.ADMIN) })
+    ;(doctorsService.getAll as jest.Mock).mockResolvedValue({ data: [makeDto()], total: 1, page: 1, limit: 20 })
+
+    renderWithProviders(<DoctorList />)
+
+    await waitFor(() => expect(screen.getByTestId('doctor-card-uuid-1')).toBeInTheDocument())
+
+    expect(screen.getByTestId('doctor-card-uuid-1-title')).toHaveTextContent('Dr. João Silva')
+    expect(screen.getByTestId('doctor-card-uuid-1-title')).toHaveTextContent('joao@example.com')
+    expect(screen.getByTestId('doctor-card-specialty-badge-spec-uuid-1')).toHaveTextContent('Cardiologia')
+    expect(screen.getByTestId('doctor-card-edit-link-uuid-1')).toBeInTheDocument()
+    expect(screen.getByTestId('doctor-card-view-link-uuid-1')).toBeInTheDocument()
+  })
+
+  it('mobile card shows Consultas link for roles that can view appointments', async () => {
+    useAuthStore.setState({ user: makeUser(UserRole.USER) })
+    ;(doctorsService.getAll as jest.Mock).mockResolvedValue({ data: [makeDto()], total: 1, page: 1, limit: 20 })
+
+    renderWithProviders(<DoctorList />)
+
+    await waitFor(() => expect(screen.getByTestId('doctor-card-appointments-link-uuid-1')).toBeInTheDocument())
+  })
+
+  it('clicking delete on a mobile card opens the delete dialog', async () => {
+    useAuthStore.setState({ user: makeUser(UserRole.ADMIN) })
+    ;(doctorsService.getAll as jest.Mock).mockResolvedValue({ data: [makeDto()], total: 1, page: 1, limit: 20 })
+
+    renderWithProviders(<DoctorList />)
+
+    await waitFor(() => expect(screen.getByTestId('doctor-card-delete-button-uuid-1')).toBeInTheDocument())
+    await userEvent.click(screen.getByTestId('doctor-card-delete-button-uuid-1'))
+
+    expect(screen.getByTestId('delete-doctor-dialog')).toBeInTheDocument()
   })
 })

@@ -61,7 +61,7 @@ export function AgendaToolbar({
   const blockTimeDisabled = role === UserRole.ADMIN && !selectedDoctorId
 
   return (
-    <div className="flex flex-wrap items-center gap-3 mb-4" data-testid="agenda-toolbar">
+    <div className="flex flex-col gap-3 mb-4 sm:flex-row sm:flex-wrap sm:items-center" data-testid="agenda-toolbar">
       <div className="flex items-center gap-1">
         <Button variant="ghost" size="sm" onClick={goBack} data-testid="toolbar-prev" aria-label="Anterior">
           ‹
@@ -78,7 +78,7 @@ export function AgendaToolbar({
         {formatDateLabel(currentDate, view)}
       </span>
 
-      <div className="flex items-center gap-1 ml-auto">
+      <div className="hidden sm:flex items-center gap-1 ml-auto">
         <Button
           variant={view === 'day' ? 'primary' : 'ghost'}
           size="sm"
@@ -103,7 +103,7 @@ export function AgendaToolbar({
             data-testid="toolbar-doctor-select"
             value={selectedDoctorId ?? ''}
             onChange={(e) => onDoctorChange(e.target.value || null)}
-            className="rounded-md border border-line bg-surface-2 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-accent"
+            className="w-full rounded-md border border-line bg-surface-2 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-accent sm:w-auto"
           >
             <option value="">Selecione um médico</option>
             {doctors?.map((doctor) => (
@@ -122,6 +122,7 @@ export function AgendaToolbar({
           onClick={onBlockTime}
           disabled={blockTimeDisabled}
           data-testid="toolbar-block-time"
+          className="w-full sm:w-auto"
         >
           Bloquear horário
         </Button>

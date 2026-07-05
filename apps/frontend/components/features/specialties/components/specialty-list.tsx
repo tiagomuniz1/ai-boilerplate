@@ -7,6 +7,7 @@ import { useSlug } from '@/lib/slug-context'
 import { Alert } from '@/components/ui/molecules/alert/alert'
 import { Button } from '@/components/ui/atoms/button/button'
 import { Input } from '@/components/ui/atoms/input/input'
+import { MobileListCard } from '@/components/ui/molecules/mobile-list-card/mobile-list-card'
 import { useAuthStore } from '@/stores/auth.store'
 import { useSpecialties } from '../hooks/use-specialties.hook'
 import { useDeleteSpecialty } from '../hooks/use-delete-specialty.hook'
@@ -70,7 +71,7 @@ export function SpecialtyList() {
 
   return (
     <div className="flex flex-col gap-6" data-testid="specialty-list">
-      <div className="flex items-start justify-between gap-4">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <h1 className="text-2xl font-semibold text-text">Especialidades</h1>
           {!isPending && !isError && specialtiesPage && (
@@ -82,8 +83,8 @@ export function SpecialtyList() {
           )}
         </div>
         {isAdmin && (
-          <Link href={`/${slug}/specialties/new`}>
-            <Button variant="primary" data-testid="specialty-list-new-button">
+          <Link href={`/${slug}/specialties/new`} className="block sm:inline-block">
+            <Button variant="primary" data-testid="specialty-list-new-button" className="w-full sm:w-auto">
               + Nova especialidade
             </Button>
           </Link>
@@ -133,7 +134,7 @@ export function SpecialtyList() {
         )}
 
         {!isPending && !isError && specialties.length > 0 && (
-          <div className="overflow-x-auto">
+          <div className="hidden overflow-x-auto md:block">
             <table className="w-full text-left" data-testid="specialty-list-table">
               <thead>
                 <tr className="border-b border-line">
@@ -146,7 +147,7 @@ export function SpecialtyList() {
                   <th className="px-6 py-3 text-xs font-medium uppercase tracking-wider text-text-mute">
                     Clínicas
                   </th>
-                  <th className="px-6 py-3 text-xs font-medium uppercase tracking-wider text-text-mute">
+                  <th className="hidden px-6 py-3 text-xs font-medium uppercase tracking-wider text-text-mute lg:table-cell">
                     Cadastrado em
                   </th>
                   <th className="px-6 py-3 text-xs font-medium uppercase tracking-wider text-text-mute">
@@ -180,7 +181,7 @@ export function SpecialtyList() {
                       {specialty.clinicCount}
                     </td>
                     <td
-                      className="px-6 py-4 text-sm text-text-dim whitespace-nowrap"
+                      className="hidden px-6 py-4 text-sm text-text-dim whitespace-nowrap lg:table-cell"
                       data-testid={`specialty-created-at-${specialty.id}`}
                     >
                       {specialty.createdAt.toLocaleDateString('pt-BR', {
@@ -228,6 +229,64 @@ export function SpecialtyList() {
               </tbody>
             </table>
           </div>
+        )}
+
+        {!isPending && !isError && specialties.length > 0 && (
+          <ul className="flex flex-col gap-3 p-4 md:hidden" data-testid="specialty-list-cards">
+            {specialties.map((specialty) => (
+              <MobileListCard
+                key={specialty.id}
+                data-testid={`specialty-card-${specialty.id}`}
+                title={specialty.name}
+                rows={[
+                  { label: 'Descrição', value: specialty.description ?? '—' },
+                  { label: 'Clínicas', value: specialty.clinicCount },
+                  {
+                    label: 'Cadastrado em',
+                    value: specialty.createdAt.toLocaleDateString('pt-BR', {
+                      day: '2-digit',
+                      month: 'short',
+                      year: 'numeric',
+                    }),
+                  },
+                ]}
+                actions={
+                  <>
+                    {isAdmin && (
+                      <>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleDeleteClick(specialty)}
+                          data-testid={`specialty-card-delete-button-${specialty.id}`}
+                          className="text-xs text-danger hover:text-danger/80"
+                        >
+                          Excluir
+                        </Button>
+                        <Link
+                          href={`/${slug}/specialties/${specialty.id}/edit`}
+                          data-testid={`specialty-card-edit-link-${specialty.id}`}
+                          className="text-xs text-text-mute hover:text-text transition-colors"
+                        >
+                          Editar
+                        </Link>
+                      </>
+                    )}
+                    <Link
+                      href={`/${slug}/specialties/${specialty.id}`}
+                      data-testid={`specialty-card-view-link-${specialty.id}`}
+                      className="ml-auto flex items-center gap-1 text-xs text-text-mute transition-colors hover:text-text"
+                    >
+                      Ver detalhes
+                      <svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                        <path d="M6 12L10 8L6 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                      </svg>
+                    </Link>
+                  </>
+                }
+              />
+            ))}
+          </ul>
         )}
       </div>
 

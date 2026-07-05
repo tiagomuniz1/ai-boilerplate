@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { Button } from '@/components/ui/atoms/button/button'
 import { Alert } from '@/components/ui/molecules/alert/alert'
 import { Modal } from '@/components/ui/organisms/modal/modal'
+import { MobileListCard } from '@/components/ui/molecules/mobile-list-card/mobile-list-card'
 import { useAuthStore } from '@/stores/auth.store'
 import { UserRole } from '@app/shared'
 import { usePrescriptionTemplates } from '../hooks/use-prescription-templates.hook'
@@ -75,7 +76,7 @@ export function PrescriptionTemplateList() {
 
   return (
     <div className="flex flex-col gap-6" data-testid="prescription-template-list">
-      <div className="flex items-start justify-between gap-4">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <h1 className="text-2xl font-semibold text-text">Modelos de receita</h1>
           {!isPending && !isError && templates && (
@@ -91,6 +92,7 @@ export function PrescriptionTemplateList() {
             variant="primary"
             onClick={() => { setCreateError(null); setIsCreateOpen(true) }}
             data-testid="prescription-template-list-new-button"
+            className="w-full sm:w-auto"
           >
             + Novo modelo
           </Button>
@@ -115,7 +117,7 @@ export function PrescriptionTemplateList() {
         )}
 
         {!isPending && !isError && templates && templates.length > 0 && (
-          <div className="overflow-x-auto">
+          <div className="hidden overflow-x-auto md:block">
             <table className="w-full text-left" data-testid="prescription-template-list-table">
               <thead>
                 <tr className="border-b border-line">
@@ -188,6 +190,49 @@ export function PrescriptionTemplateList() {
               </tbody>
             </table>
           </div>
+        )}
+
+        {!isPending && !isError && templates && templates.length > 0 && (
+          <ul className="flex flex-col gap-3 p-4 md:hidden" data-testid="prescription-template-list-cards">
+            {templates.map((template) => (
+              <MobileListCard
+                key={template.id}
+                data-testid={`prescription-template-card-${template.id}`}
+                title={template.name}
+                rows={[
+                  ...(isAdmin ? [{ label: 'Médico', value: template.doctorName }] : []),
+                  {
+                    label: 'Medicamentos',
+                    value: template.items.length === 1 ? '1 medicamento' : `${template.items.length} medicamentos`,
+                  },
+                ]}
+                actions={
+                  <>
+                    {isDoctor && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => { setEditError(null); setEditingTemplate(template) }}
+                        data-testid={`prescription-template-card-edit-${template.id}`}
+                        className="text-xs text-accent hover:text-accent/80"
+                      >
+                        Editar
+                      </Button>
+                    )}
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setDeletingId(template.id)}
+                      data-testid={`prescription-template-card-delete-${template.id}`}
+                      className="text-xs text-danger hover:text-danger/80"
+                    >
+                      Excluir
+                    </Button>
+                  </>
+                }
+              />
+            ))}
+          </ul>
         )}
       </div>
 

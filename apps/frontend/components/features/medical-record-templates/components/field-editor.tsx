@@ -155,7 +155,7 @@ export function FieldEditor({
         </div>
       </div>
 
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <div className="flex flex-col gap-1">
           <label className="text-sm font-medium text-text" htmlFor={`field-label-${fieldPath}-${index}`}>
             Rótulo <span className="text-error">*</span>
@@ -204,7 +204,7 @@ export function FieldEditor({
         </label>
       </div>
 
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <div className="flex flex-col gap-1">
           <label className="text-sm font-medium text-text" htmlFor={`field-placeholder-${fieldPath}-${index}`}>
             Placeholder

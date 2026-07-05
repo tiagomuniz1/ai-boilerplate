@@ -2,6 +2,7 @@ import { render, screen, fireEvent } from '@testing-library/react'
 import { Header } from './header'
 import { useHeaderUser } from './hooks/use-header-user.hook'
 import { useLogout } from './hooks/use-logout.hook'
+import { useSidebarStore } from '@/stores/sidebar.store'
 
 jest.mock('./hooks/use-header-user.hook')
 jest.mock('./hooks/use-logout.hook')
@@ -23,6 +24,7 @@ const mockLogout = jest.fn()
 describe('Header', () => {
   beforeEach(() => {
     jest.clearAllMocks()
+    useSidebarStore.setState({ isMobileOpen: false })
     mockUseHeaderUser.mockReturnValue({ user: null, isAuthenticated: false })
     mockUseLogout.mockReturnValue({ logout: mockLogout, isPending: false, error: null })
   })

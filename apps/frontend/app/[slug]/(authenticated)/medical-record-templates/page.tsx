@@ -2,7 +2,7 @@ import { TemplateList } from '@/components/features/medical-record-templates/com
 
 export default function MedicalRecordTemplatesPage() {
   return (
-    <main className="p-8" data-testid="medical-record-templates-page">
+    <main className="p-6 sm:p-8" data-testid="medical-record-templates-page">
       <TemplateList />
     </main>
   )

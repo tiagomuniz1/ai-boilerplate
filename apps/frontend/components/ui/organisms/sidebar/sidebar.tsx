@@ -1,11 +1,13 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { usePathname } from 'next/navigation'
 import { useSidebarNavigation } from '@/hooks/use-sidebar-navigation.hook'
 import { useAuthStore } from '@/stores/auth.store'
 import { useCurrentClinic } from '@/components/features/clinics/hooks/use-current-clinic.hook'
 import { useThemeStore } from '@/stores/theme.store'
+import { useSidebarStore } from '@/stores/sidebar.store'
+import { cn } from '@/lib/cn'
 import { SidebarItem } from './sidebar-item'
 
 function getInitials(fullName: string): string {
@@ -21,10 +23,20 @@ export function Sidebar() {
   const theme = useThemeStore((s) => s.theme)
   const pathname = usePathname()
   const [mounted, setMounted] = useState(false)
+  const isMobileOpen = useSidebarStore((s) => s.isMobileOpen)
+  const closeMobile = useSidebarStore((s) => s.closeMobile)
+  const previousPathnameRef = useRef(pathname)
 
   useEffect(() => {
     setMounted(true)
   }, [])
+
+  useEffect(() => {
+    if (previousPathnameRef.current !== pathname) {
+      previousPathnameRef.current = pathname
+      closeMobile()
+    }
+  }, [pathname, closeMobile])
 
   const isBackoffice = pathname?.startsWith('/backoffice') ?? false
   const clinicName = isBackoffice ? 'Backoffice' : (clinic?.name ?? 'Clínica')
@@ -32,11 +44,26 @@ export function Sidebar() {
   const logoUrl = (theme === 'dark' && clinic?.logoDarkUrl) ? clinic.logoDarkUrl : clinic?.logoUrl
 
   return (
-    <aside
-      data-testid="sidebar"
-      className="flex flex-col w-64 border-r border-line bg-bg shrink-0"
-      style={{ padding: '20px 14px 16px' }}
-    >
+    <>
+      {isMobileOpen && (
+        <div
+          data-testid="sidebar-backdrop"
+          aria-hidden="true"
+          onClick={closeMobile}
+          className="fixed inset-0 z-40 bg-black/40 md:hidden"
+        />
+      )}
+
+      <aside
+        data-testid="sidebar"
+        className={cn(
+          'fixed inset-y-0 left-0 z-50 flex flex-col w-64 border-r border-line bg-bg',
+          'transition-transform duration-200 ease-in-out',
+          isMobileOpen ? 'translate-x-0' : '-translate-x-full',
+          'md:static md:z-auto md:shrink-0 md:translate-x-0 md:transition-none',
+        )}
+        style={{ padding: '20px 14px 16px' }}
+      >
       <div className="flex items-center gap-[10px] pb-5 px-2">
         {logoUrl ? (
           <div data-testid="sidebar-logo" className="flex-1 min-w-0">
@@ -99,6 +126,7 @@ export function Sidebar() {
           </div>
         </div>
       )}
-    </aside>
+      </aside>
+    </>
   )
 }

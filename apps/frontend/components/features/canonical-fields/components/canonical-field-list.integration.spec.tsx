@@ -308,4 +308,27 @@ describe('CanonicalFieldList (integration)', () => {
 
     expect(screen.getByTestId('canonical-field-type-uuid-1')).toHaveTextContent('custom_type')
   })
+
+  it('renders a mobile card per field with label, key and type', async () => {
+    ;(canonicalFieldsAdminService.getAll as jest.Mock).mockResolvedValue([makeDto()])
+
+    renderWithProviders(<CanonicalFieldList />)
+
+    await waitFor(() => expect(screen.getByTestId('canonical-field-card-uuid-1')).toBeInTheDocument())
+
+    expect(screen.getByTestId('canonical-field-card-uuid-1-title')).toHaveTextContent('Pressão arterial')
+    expect(screen.getByTestId('canonical-field-card-uuid-1')).toHaveTextContent('blood_pressure')
+    expect(screen.getByTestId('canonical-field-card-edit-link-uuid-1')).toBeInTheDocument()
+  })
+
+  it('mobile card toggle button opens the toggle dialog', async () => {
+    ;(canonicalFieldsAdminService.getAll as jest.Mock).mockResolvedValue([makeDto()])
+
+    renderWithProviders(<CanonicalFieldList />)
+
+    await waitFor(() => expect(screen.getByTestId('canonical-field-card-toggle-button-uuid-1')).toBeInTheDocument())
+    await userEvent.click(screen.getByTestId('canonical-field-card-toggle-button-uuid-1'))
+
+    expect(screen.getByTestId('canonical-field-toggle-dialog')).toBeInTheDocument()
+  })
 })

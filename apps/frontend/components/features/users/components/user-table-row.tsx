@@ -36,6 +36,8 @@ const roleBadge: Record<UserRole, { label: string; className: string }> = {
   },
 }
 
+export { getInitials, roleBadge }
+
 export interface UserTableRowProps {
   user: IUserModel
   isCurrentUser: boolean
@@ -115,7 +117,7 @@ export function UserTableRow({ user, isCurrentUser, onDeleteClick }: UserTableRo
         </div>
       </td>
 
-      <td className="px-6 py-4 text-sm text-text-dim whitespace-nowrap" data-testid={`user-created-at-${user.id}`}>
+      <td className="hidden px-6 py-4 text-sm text-text-dim whitespace-nowrap lg:table-cell" data-testid={`user-created-at-${user.id}`}>
         {user.createdAt.toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' })}
       </td>
 

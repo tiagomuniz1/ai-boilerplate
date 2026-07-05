@@ -278,4 +278,25 @@ describe('ClinicList (integration)', () => {
 
     expect(screen.getByTestId('clinic-theme-uuid-1')).toHaveTextContent('Padrão')
   })
+
+  it('renders a mobile card per clinic with name, slug and status', async () => {
+    ;(clinicsService.getAll as jest.Mock).mockResolvedValue(makePaginated())
+
+    renderWithProviders(<ClinicList />)
+
+    await waitFor(() => expect(screen.getByTestId('clinic-card-uuid-1')).toBeInTheDocument())
+
+    expect(screen.getByTestId('clinic-card-uuid-1-title')).toHaveTextContent('Clínica do Coração')
+    expect(screen.getByTestId('clinic-card-uuid-1')).toHaveTextContent('clinica-do-coracao')
+    expect(screen.getByTestId('clinic-card-edit-link-uuid-1')).toBeInTheDocument()
+    expect(screen.getByTestId('clinic-card-view-link-uuid-1')).toBeInTheDocument()
+  })
+
+  it('mobile card shows inactive badge for inactive clinics', async () => {
+    ;(clinicsService.getAll as jest.Mock).mockResolvedValue(makePaginated([makeDto({ isActive: false })]))
+
+    renderWithProviders(<ClinicList />)
+
+    await waitFor(() => expect(screen.getByTestId('clinic-card-inactive-badge-uuid-1')).toBeInTheDocument())
+  })
 })

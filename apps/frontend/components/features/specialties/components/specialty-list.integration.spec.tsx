@@ -320,4 +320,46 @@ describe('SpecialtyList (integration)', () => {
       expect(screen.queryByTestId('specialty-edit-link-uuid-1')).not.toBeInTheDocument()
     })
   })
+
+  describe('mobile cards', () => {
+    it('renders a mobile card per specialty as PLATFORM_ADMIN with all actions', async () => {
+      mockAuthStoreAs(UserRole.PLATFORM_ADMIN)
+      ;(specialtiesService.getAll as jest.Mock).mockResolvedValue(makePaginatedResponse())
+
+      renderWithProviders(<SpecialtyList />)
+
+      await waitFor(() => expect(screen.getByTestId('specialty-card-uuid-1')).toBeInTheDocument())
+
+      expect(screen.getByTestId('specialty-card-uuid-1-title')).toHaveTextContent('Cardiologia')
+      expect(screen.getByTestId('specialty-card-uuid-1')).toHaveTextContent('Especialidade do coração')
+      expect(screen.getByTestId('specialty-card-delete-button-uuid-1')).toBeInTheDocument()
+      expect(screen.getByTestId('specialty-card-edit-link-uuid-1')).toBeInTheDocument()
+      expect(screen.getByTestId('specialty-card-view-link-uuid-1')).toBeInTheDocument()
+    })
+
+    it('mobile card hides edit and delete actions for DOCTOR', async () => {
+      mockAuthStoreAs(UserRole.DOCTOR)
+      ;(specialtiesService.getAll as jest.Mock).mockResolvedValue(makePaginatedResponse())
+
+      renderWithProviders(<SpecialtyList />)
+
+      await waitFor(() => expect(screen.getByTestId('specialty-card-uuid-1')).toBeInTheDocument())
+
+      expect(screen.queryByTestId('specialty-card-delete-button-uuid-1')).not.toBeInTheDocument()
+      expect(screen.queryByTestId('specialty-card-edit-link-uuid-1')).not.toBeInTheDocument()
+      expect(screen.getByTestId('specialty-card-view-link-uuid-1')).toBeInTheDocument()
+    })
+
+    it('clicking delete on a mobile card opens the delete dialog', async () => {
+      mockAuthStoreAs(UserRole.PLATFORM_ADMIN)
+      ;(specialtiesService.getAll as jest.Mock).mockResolvedValue(makePaginatedResponse())
+
+      renderWithProviders(<SpecialtyList />)
+
+      await waitFor(() => expect(screen.getByTestId('specialty-card-delete-button-uuid-1')).toBeInTheDocument())
+      await userEvent.click(screen.getByTestId('specialty-card-delete-button-uuid-1'))
+
+      expect(screen.getByTestId('delete-specialty-dialog')).toBeInTheDocument()
+    })
+  })
 })

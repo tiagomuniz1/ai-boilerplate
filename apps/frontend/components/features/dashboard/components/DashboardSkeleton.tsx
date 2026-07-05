@@ -3,7 +3,7 @@ import { Skeleton } from '@/components/ui/atoms/skeleton/skeleton'
 export function DashboardSkeleton() {
   return (
     <div data-testid="dashboard-loading" className="flex flex-col gap-6">
-      <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-4">
         {Array.from({ length: 4 }).map((_, i) => (
           <Skeleton key={i} className="h-24 w-full" />
         ))}

@@ -2,7 +2,7 @@ import { MedicationList } from '@/components/features/medications/components/med
 
 export default function MedicationsPage() {
   return (
-    <main className="p-8" data-testid="medications-page">
+    <main className="p-6 sm:p-8" data-testid="medications-page">
       <MedicationList />
     </main>
   )

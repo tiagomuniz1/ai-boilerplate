@@ -1,15 +1,16 @@
 'use client'
 
-import { useState } from 'react'
 import { useHeaderUser } from './hooks/use-header-user.hook'
 import { useLogout } from './hooks/use-logout.hook'
 import { HeaderUserMenu } from './components/header-user-menu'
 import { HeaderMobileMenu } from './components/header-mobile-menu'
 import { ThemeToggle } from '@/components/ui/molecules/theme-toggle/theme-toggle'
+import { useSidebarStore } from '@/stores/sidebar.store'
 import type { IHeaderProps } from './types/header.types'
 
 export function Header({ variant = 'default' }: IHeaderProps) {
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
+  const isMobileMenuOpen = useSidebarStore((s) => s.isMobileOpen)
+  const toggleMobileMenu = useSidebarStore((s) => s.toggleMobile)
   const { user, isAuthenticated } = useHeaderUser()
   const { logout, isPending, error: logoutError } = useLogout()
 
@@ -21,7 +22,7 @@ export function Header({ variant = 'default' }: IHeaderProps) {
     >
       <HeaderMobileMenu
         isOpen={isMobileMenuOpen}
-        onToggle={() => setIsMobileMenuOpen((prev) => !prev)}
+        onToggle={toggleMobileMenu}
       />
 
       <div className="flex items-center gap-[10px] ml-auto" data-testid="header-actions">

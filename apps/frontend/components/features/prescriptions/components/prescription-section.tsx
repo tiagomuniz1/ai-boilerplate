@@ -95,7 +95,7 @@ export function PrescriptionSection({ appointmentId, canManage, userRole }: Pres
               return (
                 <li
                   key={rx.id}
-                  className="flex items-center justify-between border border-border rounded-xl bg-surface p-4 text-sm"
+                  className="flex flex-col gap-3 border border-border rounded-xl bg-surface p-4 text-sm sm:flex-row sm:items-center sm:justify-between"
                   data-testid={`prescription-item-${rx.id}`}
                 >
                   <div className="flex flex-col gap-0.5">
@@ -109,7 +109,7 @@ export function PrescriptionSection({ appointmentId, canManage, userRole }: Pres
                       {rx.items.length} {rx.items.length === 1 ? 'medicamento' : 'medicamentos'}
                     </span>
                   </div>
-                  <div className="flex gap-2">
+                  <div className="flex flex-wrap gap-2 sm:shrink-0">
                     <Button
                       type="button"
                       variant="ghost"

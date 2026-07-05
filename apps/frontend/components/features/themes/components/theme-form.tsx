@@ -285,7 +285,7 @@ export function ThemeForm(props: ThemeFormProps) {
 
         <div className="flex flex-col gap-1.5" data-testid="theme-form-radius-selector">
           <label className="text-sm font-medium text-text">Bordas</label>
-          <div className="grid grid-cols-3 gap-2">
+          <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
             {RADIUS_OPTIONS.map(({ value, label, preview }) => (
               <button
                 key={value}

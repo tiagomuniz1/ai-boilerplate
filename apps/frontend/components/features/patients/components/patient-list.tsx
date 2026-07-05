@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/atoms/button/button'
 import { Input } from '@/components/ui/atoms/input/input'
 import { PatientGender } from '@app/shared'
 import { formatPhone } from '@/lib/format-phone'
+import { MobileListCard } from '@/components/ui/molecules/mobile-list-card/mobile-list-card'
 import { usePatients } from '../hooks/use-patients.hook'
 import { useDeletePatient } from '../hooks/use-delete-patient.hook'
 import { PatientListSkeleton } from './patient-list-skeleton'
@@ -64,7 +65,7 @@ export function PatientList() {
 
   return (
     <div className="flex flex-col gap-6" data-testid="patient-list">
-      <div className="flex items-start justify-between gap-4">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <h1 className="text-2xl font-semibold text-text">Pacientes</h1>
           {!isPending && !isError && patients && (
@@ -75,8 +76,8 @@ export function PatientList() {
             </p>
           )}
         </div>
-        <Link href={`/${slug}/patients/new`}>
-          <Button variant="primary" data-testid="patient-list-new-button">
+        <Link href={`/${slug}/patients/new`} className="block sm:inline-block">
+          <Button variant="primary" data-testid="patient-list-new-button" className="w-full sm:w-auto">
             + Novo paciente
           </Button>
         </Link>
@@ -119,7 +120,7 @@ export function PatientList() {
         )}
 
         {!isPending && !isError && patients && patients.length > 0 && (
-          <div className="overflow-x-auto">
+          <div className="hidden overflow-x-auto md:block">
             <table className="w-full text-left" data-testid="patient-list-table">
               <thead>
                 <tr className="border-b border-line">
@@ -132,7 +133,7 @@ export function PatientList() {
                   <th className="px-6 py-3 text-xs font-medium uppercase tracking-wider text-text-mute">
                     Nascimento
                   </th>
-                  <th className="px-6 py-3 text-xs font-medium uppercase tracking-wider text-text-mute">
+                  <th className="hidden px-6 py-3 text-xs font-medium uppercase tracking-wider text-text-mute lg:table-cell">
                     Gênero
                   </th>
                   <th className="px-6 py-3 text-xs font-medium uppercase tracking-wider text-text-mute">
@@ -178,7 +179,7 @@ export function PatientList() {
                       })}
                     </td>
                     <td
-                      className="px-6 py-4 text-sm text-text-dim"
+                      className="hidden px-6 py-4 text-sm text-text-dim lg:table-cell"
                       data-testid={`patient-gender-${patient.id}`}
                     >
                       {genderLabel[patient.gender]}
@@ -218,6 +219,65 @@ export function PatientList() {
               </tbody>
             </table>
           </div>
+        )}
+
+        {!isPending && !isError && patients && patients.length > 0 && (
+          <ul className="flex flex-col gap-3 p-4 md:hidden" data-testid="patient-list-cards">
+            {patients.map((patient) => (
+              <MobileListCard
+                key={patient.id}
+                data-testid={`patient-card-${patient.id}`}
+                title={
+                  <span className="block">
+                    <span className="block">{patient.fullName}</span>
+                    <span className="block text-xs font-normal text-text-dim">{patient.email}</span>
+                  </span>
+                }
+                rows={[
+                  { label: 'Telefone', value: formatPhone(patient.phoneNumber) },
+                  {
+                    label: 'Nascimento',
+                    value: patient.birthDate.toLocaleDateString('pt-BR', {
+                      day: '2-digit',
+                      month: '2-digit',
+                      year: 'numeric',
+                    }),
+                  },
+                  { label: 'Gênero', value: genderLabel[patient.gender] },
+                ]}
+                actions={
+                  <>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleDeleteClick(patient)}
+                      data-testid={`patient-card-delete-button-${patient.id}`}
+                      className="text-xs text-danger hover:text-danger/80"
+                    >
+                      Excluir
+                    </Button>
+                    <Link
+                      href={`/${slug}/patients/${patient.id}/edit`}
+                      data-testid={`patient-card-edit-link-${patient.id}`}
+                      className="text-xs text-text-mute hover:text-text transition-colors"
+                    >
+                      Editar
+                    </Link>
+                    <Link
+                      href={`/${slug}/patients/${patient.id}`}
+                      data-testid={`patient-card-view-link-${patient.id}`}
+                      className="ml-auto flex items-center gap-1 text-xs text-text-mute transition-colors hover:text-text"
+                    >
+                      Ver detalhes
+                      <svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                        <path d="M6 12L10 8L6 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                      </svg>
+                    </Link>
+                  </>
+                }
+              />
+            ))}
+          </ul>
         )}
       </div>
 

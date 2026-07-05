@@ -131,7 +131,7 @@ export function ExameSection({ appointmentId, canManage, userRole }: ExameSectio
               return (
                 <li
                   key={examRequest.id}
-                  className="flex items-center justify-between border border-border rounded-xl bg-surface p-4 text-sm"
+                  className="flex flex-col gap-3 border border-border rounded-xl bg-surface p-4 text-sm sm:flex-row sm:items-center sm:justify-between"
                   data-testid={`exame-item-${examRequest.id}`}
                 >
                   <div className="flex flex-col gap-1">
@@ -161,7 +161,7 @@ export function ExameSection({ appointmentId, canManage, userRole }: ExameSectio
                         : 'nenhum resultado anexado'}
                     </span>
                   </div>
-                  <div className="flex gap-2 shrink-0">
+                  <div className="flex flex-wrap gap-2 sm:shrink-0">
                     <Button
                       type="button"
                       variant="ghost"

@@ -98,4 +98,17 @@ describe('Appointments — agenda views', () => {
     const today = new Date().toLocaleDateString('pt-BR', { day: 'numeric', month: 'long', year: 'numeric' })
     cy.get('[data-testid="toolbar-date-label"]').should('contain.text', String(new Date().getFullYear()))
   })
+
+  it('mobile (375px): hides the Dia/Semana toggle and always shows the day grid, even with view=week in the URL', () => {
+    cy.viewport(375, 700)
+    visitClinic('/appointments?view=week', mockDoctorUser)
+
+    cy.get('[data-testid="toolbar-view-day"]').should('not.be.visible')
+    cy.get('[data-testid="toolbar-view-week"]').should('not.be.visible')
+    cy.get('[data-testid="agenda-week-grid"]').should('not.exist')
+    // These intercepts return no slots for any date, so the day grid renders its
+    // own empty state — what matters here is that it's the day grid's empty
+    // state (not the week grid) despite ?view=week in the URL.
+    cy.get('[data-testid="agenda-day-empty"]').should('exist')
+  })
 })

@@ -120,7 +120,7 @@ export function AtestadoForm({ appointmentId, isPending, globalError, onSubmit }
 
       {isLeave ? (
         <div className="flex flex-col gap-4">
-          <div className="grid grid-cols-2 gap-2">
+          <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
             <div>
               <label
                 htmlFor="atestado-days-off"
@@ -200,7 +200,7 @@ export function AtestadoForm({ appointmentId, isPending, globalError, onSubmit }
               <p role="alert" className="text-danger text-xs mt-0.5">{errors.attendanceDate.message}</p>
             )}
           </div>
-          <div className="grid grid-cols-2 gap-2">
+          <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
             <div>
               <label
                 htmlFor="atestado-check-in-time"

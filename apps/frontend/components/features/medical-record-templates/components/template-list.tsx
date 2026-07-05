@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { useSlug } from '@/lib/slug-context'
 import { Alert } from '@/components/ui/molecules/alert/alert'
 import { Button } from '@/components/ui/atoms/button/button'
+import { MobileListCard } from '@/components/ui/molecules/mobile-list-card/mobile-list-card'
 import { useAuthStore } from '@/stores/auth.store'
 import { UserRole } from '@app/shared'
 import { useTemplates } from '../hooks/use-templates.hook'
@@ -18,7 +19,7 @@ export function TemplateList() {
 
   return (
     <div className="flex flex-col gap-6" data-testid="template-list">
-      <div className="flex items-start justify-between gap-4">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <h1 className="text-2xl font-semibold text-text">Modelos de prontuário</h1>
           {!isPending && !isError && paginated && (
@@ -28,8 +29,8 @@ export function TemplateList() {
           )}
         </div>
         {isAdmin && (
-          <Link href={`/${slug}/medical-record-templates/new`}>
-            <Button variant="primary" data-testid="template-list-new-button">
+          <Link href={`/${slug}/medical-record-templates/new`} className="block sm:inline-block">
+            <Button variant="primary" data-testid="template-list-new-button" className="w-full sm:w-auto">
               + Novo modelo
             </Button>
           </Link>
@@ -54,7 +55,7 @@ export function TemplateList() {
         )}
 
         {!isPending && !isError && paginated && paginated.data.length > 0 && (
-          <div className="overflow-x-auto">
+          <div className="hidden overflow-x-auto md:block">
             <table className="w-full text-left" data-testid="template-list-table">
               <thead>
                 <tr className="border-b border-line">
@@ -126,6 +127,46 @@ export function TemplateList() {
               </tbody>
             </table>
           </div>
+        )}
+
+        {!isPending && !isError && paginated && paginated.data.length > 0 && (
+          <ul className="flex flex-col gap-3 p-4 md:hidden" data-testid="template-list-cards">
+            {paginated.data.map((template) => (
+              <MobileListCard
+                key={template.id}
+                data-testid={`template-card-${template.id}`}
+                title={template.name}
+                rows={[
+                  { label: 'Especialidade', value: template.specialtyName },
+                  { label: 'Campos', value: template.fields.length },
+                  {
+                    label: 'Status',
+                    value: (
+                      <span
+                        className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${
+                          template.isActive ? 'bg-success/10 text-success' : 'bg-line text-text-mute'
+                        }`}
+                      >
+                        {template.isActive ? 'Ativo' : 'Inativo'}
+                      </span>
+                    ),
+                  },
+                ]}
+                actions={
+                  <Link
+                    href={`/${slug}/medical-record-templates/${template.id}`}
+                    data-testid={`template-card-view-link-${template.id}`}
+                    className="flex items-center gap-1 text-xs text-text-mute transition-colors hover:text-text"
+                  >
+                    Ver detalhes
+                    <svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                      <path d="M6 12L10 8L6 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                    </svg>
+                  </Link>
+                }
+              />
+            ))}
+          </ul>
         )}
       </div>
     </div>

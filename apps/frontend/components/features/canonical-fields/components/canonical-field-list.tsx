@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { useSlug } from '@/lib/slug-context'
 import { Alert } from '@/components/ui/molecules/alert/alert'
 import { Button } from '@/components/ui/atoms/button/button'
+import { MobileListCard } from '@/components/ui/molecules/mobile-list-card/mobile-list-card'
 import { useCanonicalFieldsAdmin } from '../hooks/use-canonical-fields-admin.hook'
 import { useUpdateCanonicalField } from '../hooks/use-update-canonical-field.hook'
 import { CanonicalFieldListSkeleton } from './canonical-field-list-skeleton'
@@ -65,7 +66,7 @@ export function CanonicalFieldList() {
 
   return (
     <div className="flex flex-col gap-6" data-testid="canonical-field-list">
-      <div className="flex items-start justify-between gap-4">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <h1 className="text-2xl font-semibold text-text">Campos canônicos</h1>
           {!isPending && !isError && fields && (
@@ -74,8 +75,8 @@ export function CanonicalFieldList() {
             </p>
           )}
         </div>
-        <Link href={`/${slug}/canonical-fields/new`}>
-          <Button variant="primary" data-testid="canonical-field-list-new-button">
+        <Link href={`/${slug}/canonical-fields/new`} className="block sm:inline-block">
+          <Button variant="primary" data-testid="canonical-field-list-new-button" className="w-full sm:w-auto">
             + Novo campo
           </Button>
         </Link>
@@ -125,7 +126,7 @@ export function CanonicalFieldList() {
         )}
 
         {!isPending && !isError && fields && fields.length > 0 && (
-          <div className="overflow-x-auto">
+          <div className="hidden overflow-x-auto md:block">
             <table className="w-full text-left" data-testid="canonical-field-list-table">
               <thead>
                 <tr className="border-b border-line">
@@ -208,6 +209,54 @@ export function CanonicalFieldList() {
               </tbody>
             </table>
           </div>
+        )}
+
+        {!isPending && !isError && fields && fields.length > 0 && (
+          <ul className="flex flex-col gap-3 p-4 md:hidden" data-testid="canonical-field-list-cards">
+            {fields.map((field) => (
+              <MobileListCard
+                key={field.id}
+                data-testid={`canonical-field-card-${field.id}`}
+                title={field.label}
+                rows={[
+                  { label: 'Chave', value: <span className="font-mono">{field.canonicalKey}</span> },
+                  { label: 'Tipo', value: FIELD_TYPE_LABELS[field.type] ?? field.type },
+                  {
+                    label: 'Status',
+                    value: (
+                      <span
+                        className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${
+                          field.isActive ? 'bg-success/10 text-success' : 'bg-line text-text-mute'
+                        }`}
+                      >
+                        {field.isActive ? 'Ativo' : 'Inativo'}
+                      </span>
+                    ),
+                  },
+                ]}
+                actions={
+                  <>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleToggleClick(field)}
+                      data-testid={`canonical-field-card-toggle-button-${field.id}`}
+                      className="text-xs text-text-mute hover:text-text"
+                    >
+                      {field.isActive ? 'Desativar' : 'Ativar'}
+                    </Button>
+                    <Link
+                      href={`/${slug}/canonical-fields/${field.id}/edit`}
+                      data-testid={`canonical-field-card-edit-link-${field.id}`}
+                      className="text-xs text-text-mute hover:text-text transition-colors"
+                    >
+                      Editar
+                    </Link>
+                  </>
+                }
+              />
+            ))}
+          </ul>
         )}
       </div>
 

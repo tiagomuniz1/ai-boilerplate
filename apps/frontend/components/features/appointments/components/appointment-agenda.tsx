@@ -4,6 +4,7 @@ import { useState, useCallback } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { UserRole } from '@app/shared'
 import { useAuthStore } from '@/stores/auth.store'
+import { useIsMobile } from '@/hooks/use-is-mobile.hook'
 import { useDoctors } from '@/components/features/doctors/hooks/use-doctors.hook'
 import { BlockTimeDialog } from '@/components/features/schedule-exceptions/components/BlockTimeDialog'
 import { AgendaToolbar } from './agenda-toolbar'
@@ -44,6 +45,12 @@ export function AppointmentAgenda() {
     () => searchParams.get('doctor'),
   )
   const [isBlockDialogOpen, setIsBlockDialogOpen] = useState(false)
+
+  // Week view crams 7 columns of time slots into the viewport — illegible on
+  // mobile without horizontal scroll. Force day view there regardless of the
+  // persisted/URL view, and hide the toggle in AgendaToolbar to match.
+  const isMobile = useIsMobile()
+  const effectiveView: AgendaView = isMobile ? 'day' : view
 
   const isDoctor = role === UserRole.DOCTOR
   const showDoctorSelector = role === UserRole.ADMIN || role === UserRole.USER
@@ -91,7 +98,7 @@ export function AppointmentAgenda() {
     <div data-testid="appointment-agenda">
       <AgendaToolbar
         currentDate={currentDate}
-        view={view}
+        view={effectiveView}
         onDateChange={handleDateChange}
         onViewChange={handleViewChange}
         role={role}
@@ -101,7 +108,7 @@ export function AppointmentAgenda() {
         onBlockTime={() => setIsBlockDialogOpen(true)}
       />
 
-      {view === 'day' ? (
+      {effectiveView === 'day' ? (
         <AgendaDayGrid
           doctorId={doctorIdForGrid}
           date={dateString}

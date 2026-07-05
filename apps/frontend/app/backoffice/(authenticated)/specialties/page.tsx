@@ -2,7 +2,7 @@ import { SpecialtyList } from '@/components/features/specialties/components/spec
 
 export default function SpecialtiesPage() {
   return (
-    <main className="p-8" data-testid="specialties-page">
+    <main className="p-6 sm:p-8" data-testid="specialties-page">
       <SpecialtyList />
     </main>
   )

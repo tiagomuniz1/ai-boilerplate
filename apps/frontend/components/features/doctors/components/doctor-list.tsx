@@ -8,6 +8,7 @@ import { UserRole } from '@app/shared'
 import { Alert } from '@/components/ui/molecules/alert/alert'
 import { Button } from '@/components/ui/atoms/button/button'
 import { Input } from '@/components/ui/atoms/input/input'
+import { MobileListCard } from '@/components/ui/molecules/mobile-list-card/mobile-list-card'
 import { useDoctors } from '../hooks/use-doctors.hook'
 import { useDeleteDoctor } from '../hooks/use-delete-doctor.hook'
 import { DoctorListSkeleton } from './doctor-list-skeleton'
@@ -62,7 +63,7 @@ export function DoctorList() {
 
   return (
     <div className="flex flex-col gap-6" data-testid="doctor-list">
-      <div className="flex items-start justify-between gap-4">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <h1 className="text-2xl font-semibold text-text">Médicos</h1>
           {!isPending && !isError && doctors && (
@@ -74,8 +75,8 @@ export function DoctorList() {
           )}
         </div>
         {canCreate && (
-          <Link href={`/${slug}/doctors/new`}>
-            <Button variant="primary" data-testid="doctor-list-new-button">
+          <Link href={`/${slug}/doctors/new`} className="block sm:inline-block">
+            <Button variant="primary" data-testid="doctor-list-new-button" className="w-full sm:w-auto">
               + Novo médico
             </Button>
           </Link>
@@ -119,7 +120,7 @@ export function DoctorList() {
         )}
 
         {!isPending && !isError && doctors && doctors.length > 0 && (
-          <div className="overflow-x-auto">
+          <div className="hidden overflow-x-auto md:block">
             <table className="w-full text-left" data-testid="doctor-list-table">
               <thead>
                 <tr className="border-b border-line">
@@ -229,6 +230,87 @@ export function DoctorList() {
               </tbody>
             </table>
           </div>
+        )}
+
+        {!isPending && !isError && doctors && doctors.length > 0 && (
+          <ul className="flex flex-col gap-3 p-4 md:hidden" data-testid="doctor-list-cards">
+            {doctors.map((doctor) => (
+              <MobileListCard
+                key={doctor.id}
+                data-testid={`doctor-card-${doctor.id}`}
+                title={
+                  <span className="block">
+                    <span className="block">{doctor.user.fullName}</span>
+                    <span className="block text-xs font-normal text-text-dim">{doctor.user.email}</span>
+                  </span>
+                }
+                rows={[
+                  { label: 'CRM', value: doctor.crmNumber },
+                  {
+                    label: 'Especialidade',
+                    value: (
+                      <span className="flex flex-wrap justify-end gap-1">
+                        {doctor.specialties.slice(0, 2).map((s) => (
+                          <span
+                            key={s.id}
+                            data-testid={`doctor-card-specialty-badge-${s.id}`}
+                            className="inline-flex items-center rounded-full border border-line bg-surface-2 px-2 py-0.5 text-xs text-text"
+                          >
+                            {s.name}
+                          </span>
+                        ))}
+                        {doctor.specialties.length > 2 && (
+                          <span className="inline-flex items-center text-xs text-text-mute">
+                            +{doctor.specialties.length - 2} mais
+                          </span>
+                        )}
+                        {doctor.specialties.length === 0 && <span className="text-xs text-text-mute">—</span>}
+                      </span>
+                    ),
+                  },
+                ]}
+                actions={
+                  <>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleDeleteClick(doctor)}
+                      data-testid={`doctor-card-delete-button-${doctor.id}`}
+                      className="text-xs text-danger hover:text-danger/80"
+                    >
+                      Excluir
+                    </Button>
+                    <Link
+                      href={`/${slug}/doctors/${doctor.id}/edit`}
+                      data-testid={`doctor-card-edit-link-${doctor.id}`}
+                      className="text-xs text-text-mute hover:text-text transition-colors"
+                    >
+                      Editar
+                    </Link>
+                    {canViewAppointments && (
+                      <Link
+                        href={`/${slug}/appointments?doctor=${doctor.id}`}
+                        data-testid={`doctor-card-appointments-link-${doctor.id}`}
+                        className="text-xs text-text-mute hover:text-text transition-colors"
+                      >
+                        Consultas
+                      </Link>
+                    )}
+                    <Link
+                      href={`/${slug}/doctors/${doctor.id}`}
+                      data-testid={`doctor-card-view-link-${doctor.id}`}
+                      className="ml-auto flex items-center gap-1 text-xs text-text-mute transition-colors hover:text-text"
+                    >
+                      Ver detalhes
+                      <svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                        <path d="M6 12L10 8L6 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                      </svg>
+                    </Link>
+                  </>
+                }
+              />
+            ))}
+          </ul>
         )}
       </div>
 

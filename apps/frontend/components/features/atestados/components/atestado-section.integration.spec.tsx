@@ -63,26 +63,46 @@ describe('AtestadoSection (integration)', () => {
     })
   })
 
-  it('renders list of atestados with type label and summary', async () => {
+  it('renders list of atestados with badge, type label and date', async () => {
     mockAtestadosService.getByAppointment.mockResolvedValue([makeAtestadoDto()] as any)
     renderWithProviders(<AtestadoSection {...doctorProps} />)
     await waitFor(() => {
       expect(screen.getByTestId('atestado-item-cert-uuid')).toBeInTheDocument()
     })
+    expect(screen.getByTestId('atestado-item-badge-cert-uuid')).toHaveTextContent('Emitido')
     expect(screen.getByTestId('atestado-item-type-cert-uuid')).toHaveTextContent('Afastamento')
-    expect(screen.getByTestId('atestado-item-summary-cert-uuid')).toHaveTextContent('3 dias')
+    expect(screen.getByTestId('atestado-item-type-cert-uuid')).toHaveTextContent('3 dias')
+    const expectedDate = new Date('2026-01-05').toLocaleDateString('pt-BR')
+    expect(screen.getByTestId('atestado-item-date-cert-uuid')).toHaveTextContent(expectedDate)
   })
 
-  it('renders singular "dia" in summary when daysOff is 1', async () => {
+  it('renders singular "dia" in title when daysOff is 1', async () => {
     mockAtestadosService.getByAppointment.mockResolvedValue([makeAtestadoDto({ daysOff: 1 })] as any)
     renderWithProviders(<AtestadoSection {...doctorProps} />)
     await waitFor(() => {
-      expect(screen.getByTestId('atestado-item-summary-cert-uuid')).toHaveTextContent('1 dia')
+      expect(screen.getByTestId('atestado-item-type-cert-uuid')).toHaveTextContent('1 dia')
     })
-    expect(screen.getByTestId('atestado-item-summary-cert-uuid')).not.toHaveTextContent('1 dias')
+    expect(screen.getByTestId('atestado-item-type-cert-uuid')).not.toHaveTextContent('1 dias')
   })
 
-  it('renders comparecimento summary for ATTENDANCE type', async () => {
+  it('renders CID in summary when present', async () => {
+    mockAtestadosService.getByAppointment.mockResolvedValue([makeAtestadoDto({ cidCode: 'M25.5' })] as any)
+    renderWithProviders(<AtestadoSection {...doctorProps} />)
+    await waitFor(() => {
+      expect(screen.getByTestId('atestado-item-summary-cert-uuid')).toHaveTextContent('CID M25.5')
+    })
+  })
+
+  it('does not render summary line when there is no CID', async () => {
+    mockAtestadosService.getByAppointment.mockResolvedValue([makeAtestadoDto({ cidCode: null })] as any)
+    renderWithProviders(<AtestadoSection {...doctorProps} />)
+    await waitFor(() => {
+      expect(screen.getByTestId('atestado-item-cert-uuid')).toBeInTheDocument()
+    })
+    expect(screen.queryByTestId('atestado-item-summary-cert-uuid')).not.toBeInTheDocument()
+  })
+
+  it('renders comparecimento title for ATTENDANCE type', async () => {
     const attendanceDto = makeAtestadoDto({
       type: MedicalCertificateType.ATTENDANCE,
       daysOff: null,
@@ -96,6 +116,7 @@ describe('AtestadoSection (integration)', () => {
     await waitFor(() => {
       expect(screen.getByTestId('atestado-item-type-cert-uuid')).toHaveTextContent('Comparecimento')
     })
+    expect(screen.getByTestId('atestado-item-summary-cert-uuid')).toHaveTextContent('Entrada 08:00 · Saída 08:30')
   })
 
   it('shows "Novo atestado" button for DOCTOR with canManage', async () => {

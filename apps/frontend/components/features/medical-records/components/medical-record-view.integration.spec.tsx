@@ -89,20 +89,20 @@ describe('MedicalRecordView', () => {
       data: { notes_field: 'x' },
     })
     render(<MedicalRecordView record={record} />)
-    expect(screen.getByTestId('record-field-notes_field')).toHaveClass('col-span-2')
+    expect(screen.getByTestId('record-field-notes_field')).toHaveClass('sm:col-span-2')
   })
 
   it('spans two columns for long text values', () => {
     const longValue = 'x'.repeat(61)
     const record = makeRecord({ data: { symptom: longValue } })
     render(<MedicalRecordView record={record} />)
-    expect(screen.getByTestId('record-field-symptom')).toHaveClass('col-span-2')
+    expect(screen.getByTestId('record-field-symptom')).toHaveClass('sm:col-span-2')
   })
 
   it('does not span two columns for short text values', () => {
     const record = makeRecord({ data: { symptom: 'curto' } })
     render(<MedicalRecordView record={record} />)
-    expect(screen.getByTestId('record-field-symptom')).not.toHaveClass('col-span-2')
+    expect(screen.getByTestId('record-field-symptom')).not.toHaveClass('sm:col-span-2')
   })
 
   it('renders boolean field as Sim', () => {

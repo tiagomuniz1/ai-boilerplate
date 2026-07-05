@@ -7,6 +7,7 @@ import { MedicationSource } from '@app/shared'
 import { Alert } from '@/components/ui/molecules/alert/alert'
 import { Button } from '@/components/ui/atoms/button/button'
 import { Input } from '@/components/ui/atoms/input/input'
+import { MobileListCard } from '@/components/ui/molecules/mobile-list-card/mobile-list-card'
 import { useMedications } from '../hooks/use-medications.hook'
 import { useUpdateMedication } from '../hooks/use-update-medication.hook'
 import { useDeleteMedication } from '../hooks/use-delete-medication.hook'
@@ -107,7 +108,7 @@ export function MedicationList() {
 
   return (
     <div className="flex flex-col gap-6" data-testid="medication-list">
-      <div className="flex items-start justify-between gap-4">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <h1 className="text-2xl font-semibold text-text">Medicamentos</h1>
           {!isPending && !isError && (
@@ -116,8 +117,8 @@ export function MedicationList() {
             </p>
           )}
         </div>
-        <Link href={`/${slug}/medications/new`}>
-          <Button variant="primary" data-testid="medication-list-new-button">
+        <Link href={`/${slug}/medications/new`} className="block sm:inline-block">
+          <Button variant="primary" data-testid="medication-list-new-button" className="w-full sm:w-auto">
             + Novo medicamento
           </Button>
         </Link>
@@ -182,14 +183,14 @@ export function MedicationList() {
         )}
 
         {!isPending && !isError && medications.length > 0 && (
-          <div className="overflow-x-auto">
+          <div className="hidden overflow-x-auto md:block">
             <table className="w-full text-left" data-testid="medication-list-table">
               <thead>
                 <tr className="border-b border-line">
                   <th className="px-6 py-3 text-xs font-medium uppercase tracking-wider text-text-mute">Nome</th>
                   <th className="px-6 py-3 text-xs font-medium uppercase tracking-wider text-text-mute">Princípio ativo</th>
                   <th className="px-6 py-3 text-xs font-medium uppercase tracking-wider text-text-mute">Classe terapêutica</th>
-                  <th className="px-6 py-3 text-xs font-medium uppercase tracking-wider text-text-mute">Origem</th>
+                  <th className="hidden px-6 py-3 text-xs font-medium uppercase tracking-wider text-text-mute lg:table-cell">Origem</th>
                   <th className="px-6 py-3 text-xs font-medium uppercase tracking-wider text-text-mute">Status</th>
                   <th className="px-6 py-3 text-xs font-medium uppercase tracking-wider text-text-mute">Ações</th>
                 </tr>
@@ -201,7 +202,7 @@ export function MedicationList() {
                     data-testid={`medication-row-${medication.id}`}
                     className="border-b border-line last:border-0 hover:bg-surface-2 transition-colors duration-100"
                   >
-                    <td className="px-6 py-4 text-sm font-medium text-text" data-testid={`medication-name-${medication.id}`}>
+                    <td className="px-6 py-4 text-sm font-medium text-text whitespace-nowrap" data-testid={`medication-name-${medication.id}`}>
                       {medication.name}
                     </td>
                     <td className="px-6 py-4 text-sm text-text-dim">
@@ -210,7 +211,7 @@ export function MedicationList() {
                     <td className="px-6 py-4 text-sm text-text-dim">
                       {medication.therapeuticClass ?? '—'}
                     </td>
-                    <td className="px-6 py-4 text-sm text-text-dim" data-testid={`medication-source-${medication.id}`}>
+                    <td className="hidden px-6 py-4 text-sm text-text-dim lg:table-cell" data-testid={`medication-source-${medication.id}`}>
                       {SOURCE_LABELS[medication.source]}
                     </td>
                     <td className="px-6 py-4">
@@ -257,6 +258,64 @@ export function MedicationList() {
               </tbody>
             </table>
           </div>
+        )}
+
+        {!isPending && !isError && medications.length > 0 && (
+          <ul className="flex flex-col gap-3 p-4 md:hidden" data-testid="medication-list-cards">
+            {medications.map((medication) => (
+              <MobileListCard
+                key={medication.id}
+                data-testid={`medication-card-${medication.id}`}
+                title={medication.name}
+                rows={[
+                  { label: 'Princípio ativo', value: medication.activeIngredient ?? '—' },
+                  { label: 'Classe terapêutica', value: medication.therapeuticClass ?? '—' },
+                  { label: 'Origem', value: SOURCE_LABELS[medication.source] },
+                  {
+                    label: 'Status',
+                    value: (
+                      <span
+                        className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${
+                          medication.isActive ? 'bg-good-soft text-good' : 'bg-line text-text-mute'
+                        }`}
+                      >
+                        {medication.isActive ? 'Ativo' : 'Inativo'}
+                      </span>
+                    ),
+                  },
+                ]}
+                actions={
+                  <>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setMedicationToToggle(medication)}
+                      data-testid={`medication-card-toggle-button-${medication.id}`}
+                      className="text-xs text-text-mute hover:text-text"
+                    >
+                      {medication.isActive ? 'Desativar' : 'Ativar'}
+                    </Button>
+                    <Link
+                      href={`/${slug}/medications/${medication.id}/edit`}
+                      data-testid={`medication-card-edit-link-${medication.id}`}
+                      className="text-xs text-text-mute hover:text-text transition-colors"
+                    >
+                      Editar
+                    </Link>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setMedicationToDelete(medication)}
+                      data-testid={`medication-card-delete-button-${medication.id}`}
+                      className="text-xs text-danger hover:text-danger"
+                    >
+                      Excluir
+                    </Button>
+                  </>
+                }
+              />
+            ))}
+          </ul>
         )}
       </div>
 

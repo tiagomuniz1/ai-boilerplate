@@ -8,11 +8,13 @@ import { Alert } from '@/components/ui/molecules/alert/alert'
 import { Button } from '@/components/ui/atoms/button/button'
 import { Input } from '@/components/ui/atoms/input/input'
 import { useAuthStore } from '@/stores/auth.store'
+import { MobileListCard } from '@/components/ui/molecules/mobile-list-card/mobile-list-card'
 import { useUsers } from '../hooks/use-users.hook'
 import { useDeleteUser } from '../hooks/use-delete-user.hook'
-import { UserTableRow } from './user-table-row'
+import { UserTableRow, getInitials, roleBadge } from './user-table-row'
 import { DeleteUserDialog } from './delete-user-dialog'
 import type { IUserModel } from '../types/user-model.types'
+import { cn } from '@/lib/cn'
 
 export function UserList() {
   const slug = useSlug()
@@ -61,7 +63,7 @@ export function UserList() {
   return (
     <div className="flex flex-col gap-6" data-testid="user-list">
 
-      <div className="flex items-start justify-between gap-4">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <h1 className="text-2xl font-semibold text-text">Usuários</h1>
           {!isPending && !isError && users && (
@@ -70,8 +72,8 @@ export function UserList() {
             </p>
           )}
         </div>
-        <Link href={`/${slug}/users/new`}>
-          <Button variant="primary" data-testid="user-list-new-button">
+        <Link href={`/${slug}/users/new`} className="block sm:inline-block">
+          <Button variant="primary" data-testid="user-list-new-button" className="w-full sm:w-auto">
             + Novo usuário
           </Button>
         </Link>
@@ -124,7 +126,7 @@ export function UserList() {
         )}
 
         {!isPending && !isError && users && users.length > 0 && (
-          <div className="overflow-x-auto">
+          <div className="hidden overflow-x-auto md:block">
             <table className="w-full text-left" data-testid="user-list-table">
               <thead>
                 <tr className="border-b border-line">
@@ -132,7 +134,7 @@ export function UserList() {
                   <th className="px-6 py-3 text-xs font-medium uppercase tracking-wider text-text-mute">Status</th>
                   <th className="px-6 py-3 text-xs font-medium uppercase tracking-wider text-text-mute">Role</th>
                   <th className="px-6 py-3 text-xs font-medium uppercase tracking-wider text-text-mute">Perfis</th>
-                  <th className="px-6 py-3 text-xs font-medium uppercase tracking-wider text-text-mute">Criado em</th>
+                  <th className="hidden px-6 py-3 text-xs font-medium uppercase tracking-wider text-text-mute lg:table-cell">Criado em</th>
                   <th className="px-6 py-3 text-xs font-medium uppercase tracking-wider text-text-mute">Ações</th>
                 </tr>
               </thead>
@@ -148,6 +150,100 @@ export function UserList() {
               </tbody>
             </table>
           </div>
+        )}
+
+        {!isPending && !isError && users && users.length > 0 && (
+          <ul className="flex flex-col gap-3 p-4 md:hidden" data-testid="user-list-cards">
+            {users.map((user) => {
+              const badge = roleBadge[user.role]
+              const isCurrentUser = user.id === currentUser?.id
+              return (
+                <MobileListCard
+                  key={user.id}
+                  data-testid={`user-card-${user.id}`}
+                  title={
+                    <span className="flex items-center gap-3">
+                      <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-warm-soft text-xs font-semibold text-warm select-none">
+                        {getInitials(user.fullName)}
+                      </span>
+                      <span className="min-w-0">
+                        <span className="block truncate">{user.fullName}</span>
+                        <span className="block truncate text-xs font-normal text-text-dim">{user.email}</span>
+                      </span>
+                    </span>
+                  }
+                  rows={[
+                    {
+                      label: 'Status',
+                      value: (
+                        <span
+                          className={cn(
+                            'inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium',
+                            user.isActive ? 'bg-good-soft text-good' : 'bg-danger-soft text-danger',
+                          )}
+                        >
+                          {user.isActive ? 'Ativo' : 'Inativo'}
+                        </span>
+                      ),
+                    },
+                    {
+                      label: 'Role',
+                      value: (
+                        <span className={cn('inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium', badge.className)}>
+                          {badge.label}
+                        </span>
+                      ),
+                    },
+                    {
+                      label: 'Perfis',
+                      value: user.isDoctor
+                        ? 'Médico'
+                        /* c8 ignore next */
+                        : user.isPatient
+                          ? 'Paciente'
+                          : '—',
+                    },
+                    {
+                      label: 'Criado em',
+                      value: user.createdAt.toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' }),
+                    },
+                  ]}
+                  actions={
+                    <>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleDeleteClick(user)}
+                        disabled={isCurrentUser}
+                        title={isCurrentUser ? 'Não é possível excluir o próprio usuário' : undefined}
+                        data-testid={`user-card-delete-button-${user.id}`}
+                        className="text-xs text-danger hover:text-danger/80"
+                      >
+                        Excluir
+                      </Button>
+                      <Link
+                        href={`/${slug}/users/${user.id}/edit`}
+                        data-testid={`user-card-edit-link-${user.id}`}
+                        className="text-xs text-text-mute hover:text-text transition-colors"
+                      >
+                        Editar
+                      </Link>
+                      <Link
+                        href={`/${slug}/users/${user.id}`}
+                        data-testid={`user-card-view-link-${user.id}`}
+                        className="ml-auto flex items-center gap-1 text-xs text-text-mute transition-colors hover:text-text"
+                      >
+                        Ver detalhes
+                        <svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                          <path d="M6 12L10 8L6 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                        </svg>
+                      </Link>
+                    </>
+                  }
+                />
+              )
+            })}
+          </ul>
         )}
 
       </div>

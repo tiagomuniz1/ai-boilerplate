@@ -215,4 +215,37 @@ describe('MedicationList (integration)', () => {
 
     await waitFor(() => expect(screen.getByTestId('medication-list-action-error')).toBeInTheDocument())
   })
+
+  it('renders a mobile card per medication with name and details', async () => {
+    ;(medicationsService.getAll as jest.Mock).mockResolvedValue(page([makeDto()]))
+
+    renderWithProviders(<MedicationList />)
+
+    await waitFor(() => expect(screen.getByTestId('medication-card-m1')).toBeInTheDocument())
+
+    expect(screen.getByTestId('medication-card-m1-title')).toHaveTextContent('Dipirona Sódica')
+    expect(screen.getByTestId('medication-card-edit-link-m1')).toBeInTheDocument()
+  })
+
+  it('mobile card toggle button opens the toggle dialog', async () => {
+    ;(medicationsService.getAll as jest.Mock).mockResolvedValue(page([makeDto()]))
+
+    renderWithProviders(<MedicationList />)
+
+    await waitFor(() => expect(screen.getByTestId('medication-card-toggle-button-m1')).toBeInTheDocument())
+    await userEvent.click(screen.getByTestId('medication-card-toggle-button-m1'))
+
+    expect(screen.getByTestId('medication-toggle-dialog')).toBeInTheDocument()
+  })
+
+  it('mobile card delete button opens the delete dialog', async () => {
+    ;(medicationsService.getAll as jest.Mock).mockResolvedValue(page([makeDto()]))
+
+    renderWithProviders(<MedicationList />)
+
+    await waitFor(() => expect(screen.getByTestId('medication-card-delete-button-m1')).toBeInTheDocument())
+    await userEvent.click(screen.getByTestId('medication-card-delete-button-m1'))
+
+    expect(screen.getByTestId('medication-delete-dialog')).toBeInTheDocument()
+  })
 })

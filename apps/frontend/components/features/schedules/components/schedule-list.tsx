@@ -6,6 +6,7 @@ import { UserRole } from '@app/shared'
 import { useSlug } from '@/lib/slug-context'
 import { Alert } from '@/components/ui/molecules/alert/alert'
 import { Button } from '@/components/ui/atoms/button/button'
+import { MobileListCard } from '@/components/ui/molecules/mobile-list-card/mobile-list-card'
 import { useAuthStore } from '@/stores/auth.store'
 import { useDoctors } from '@/components/features/doctors/hooks/use-doctors.hook'
 import { useSchedules } from '../hooks/use-schedules.hook'
@@ -16,6 +17,40 @@ import { DAY_OF_WEEK_LABELS } from '../types/schedule-model.types'
 import type { IScheduleModel } from '../types/schedule-model.types'
 import type { DayOfWeek } from '@app/shared'
 import { cn } from '@/lib/cn'
+
+function CalendarIcon() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
+      <line x1="16" y1="2" x2="16" y2="6" />
+      <line x1="8" y1="2" x2="8" y2="6" />
+      <line x1="3" y1="10" x2="21" y2="10" />
+    </svg>
+  )
+}
+
+function ClockIcon() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <circle cx="12" cy="12" r="10" />
+      <polyline points="12 6 12 12 16 14" />
+    </svg>
+  )
+}
+
+function ShieldIcon() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M12 2l8 4v6c0 5-3.5 8.5-8 10-4.5-1.5-8-5-8-10V6l8-4z" />
+    </svg>
+  )
+}
+
+function scheduleValidityLabel(schedule: IScheduleModel): string {
+  return schedule.validFrom || schedule.validUntil
+    ? `${schedule.validFrom ?? '∞'} → ${schedule.validUntil ?? '∞'}`
+    : 'Indefinida'
+}
 
 export function ScheduleList() {
   const slug = useSlug()
@@ -68,7 +103,7 @@ export function ScheduleList() {
 
   return (
     <div className="flex flex-col gap-6" data-testid="schedule-list">
-      <div className="flex items-start justify-between gap-4">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <h1 className="text-2xl font-semibold text-text">Agendas</h1>
           {!isPending && !isError && (
@@ -81,8 +116,8 @@ export function ScheduleList() {
           )}
         </div>
         {canManageSchedules && (
-          <Link href={`/${slug}/schedules/new`}>
-            <Button variant="primary" data-testid="schedule-list-new-button">
+          <Link href={`/${slug}/schedules/new`} className="block sm:inline-block">
+            <Button variant="primary" data-testid="schedule-list-new-button" className="w-full sm:w-auto">
               + Nova agenda
             </Button>
           </Link>
@@ -183,7 +218,7 @@ export function ScheduleList() {
         )}
 
         {!isPending && !isError && schedules.length > 0 && (
-          <div className="overflow-x-auto">
+          <div className="hidden overflow-x-auto md:block">
             <table className="w-full text-left" data-testid="schedule-list-table">
               <thead>
                 <tr className="border-b border-line">
@@ -198,7 +233,7 @@ export function ScheduleList() {
                   <th className="px-6 py-3 text-xs font-medium uppercase tracking-wider text-text-mute">
                     Horário
                   </th>
-                  <th className="px-6 py-3 text-xs font-medium uppercase tracking-wider text-text-mute">
+                  <th className="hidden px-6 py-3 text-xs font-medium uppercase tracking-wider text-text-mute lg:table-cell">
                     Duração do slot
                   </th>
                   <th className="px-6 py-3 text-xs font-medium uppercase tracking-wider text-text-mute">
@@ -220,7 +255,7 @@ export function ScheduleList() {
                     >
                       {isAdmin && (
                         <td
-                          className="px-6 py-4 text-sm text-text"
+                          className="px-6 py-4 text-sm text-text whitespace-nowrap"
                           data-testid={`schedule-doctor-${schedule.id}`}
                         >
                           {doctorName}
@@ -239,7 +274,7 @@ export function ScheduleList() {
                         {schedule.startTime} – {schedule.endTime}
                       </td>
                       <td
-                        className="px-6 py-4 text-sm text-text-dim"
+                        className="hidden px-6 py-4 text-sm text-text-dim lg:table-cell"
                         data-testid={`schedule-slot-${schedule.id}`}
                       >
                         {schedule.slotDurationInMinutes} min
@@ -248,9 +283,7 @@ export function ScheduleList() {
                         className="px-6 py-4 text-sm text-text-dim"
                         data-testid={`schedule-validity-${schedule.id}`}
                       >
-                        {schedule.validFrom || schedule.validUntil
-                          ? `${schedule.validFrom ?? '∞'} → ${schedule.validUntil ?? '∞'}`
-                          : 'Indefinida'}
+                        {scheduleValidityLabel(schedule)}
                       </td>
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-3">
@@ -292,6 +325,60 @@ export function ScheduleList() {
               </tbody>
             </table>
           </div>
+        )}
+
+        {!isPending && !isError && schedules.length > 0 && (
+          <ul className="flex flex-col gap-3 p-4 md:hidden" data-testid="schedule-list-cards">
+            {schedules.map((schedule) => (
+              <MobileListCard
+                key={schedule.id}
+                data-testid={`schedule-card-${schedule.id}`}
+                title={isAdmin ? schedule.doctorName : DAY_OF_WEEK_LABELS[schedule.dayOfWeek]}
+                rows={[
+                  ...(isAdmin
+                    ? [{ icon: <CalendarIcon />, label: 'Dia da semana', value: DAY_OF_WEEK_LABELS[schedule.dayOfWeek] }]
+                    : []),
+                  { icon: <ClockIcon />, label: 'Horário', value: `${schedule.startTime} – ${schedule.endTime}` },
+                  { icon: <ClockIcon />, label: 'Duração do slot', value: `${schedule.slotDurationInMinutes} min` },
+                  { icon: <ShieldIcon />, label: 'Validade', value: scheduleValidityLabel(schedule) },
+                ]}
+                actions={
+                  <>
+                    {canManageSchedules && (
+                      <>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleDeleteClick(schedule)}
+                          data-testid={`schedule-card-delete-button-${schedule.id}`}
+                          className="text-xs text-danger hover:text-danger/80"
+                        >
+                          Excluir
+                        </Button>
+                        <Link
+                          href={`/${slug}/schedules/${schedule.id}/edit`}
+                          data-testid={`schedule-card-edit-link-${schedule.id}`}
+                          className="text-xs text-text-mute hover:text-text transition-colors"
+                        >
+                          Editar
+                        </Link>
+                      </>
+                    )}
+                    <Link
+                      href={`/${slug}/schedules/${schedule.id}`}
+                      data-testid={`schedule-card-view-link-${schedule.id}`}
+                      className="ml-auto flex items-center gap-1 text-xs text-text-mute transition-colors hover:text-text"
+                    >
+                      Ver detalhes
+                      <svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                        <path d="M6 12L10 8L6 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                      </svg>
+                    </Link>
+                  </>
+                }
+              />
+            ))}
+          </ul>
         )}
       </div>
 

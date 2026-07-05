@@ -2,7 +2,7 @@ import { ScheduleList } from '@/components/features/schedules/components/schedul
 
 export default function SchedulesPage() {
   return (
-    <main className="p-8" data-testid="schedules-page">
+    <main className="p-6 sm:p-8" data-testid="schedules-page">
       <ScheduleList />
     </main>
   )

@@ -23,6 +23,7 @@ import { PrescriptionSection } from '@/components/features/prescriptions/compone
 import { AtestadoSection } from '@/components/features/atestados/components/atestado-section'
 import { ExameSection } from '@/components/features/exames/components/exame-section'
 import { CancelAppointmentDialog } from '@/components/features/appointments/components/cancel-appointment-dialog'
+import { CompleteAppointmentDialog } from '@/components/features/appointments/components/complete-appointment-dialog'
 import type { IApiError } from '@/types/api.types'
 
 type TabId = 'resumo' | 'prontuario' | 'receitas' | 'atestados' | 'exames'
@@ -44,6 +45,7 @@ export default function AppointmentDetailPage() {
 
   const [activeTab, setActiveTab] = useState<TabId>('resumo')
   const [showCancelDialog, setShowCancelDialog] = useState(false)
+  const [showCompleteDialog, setShowCompleteDialog] = useState(false)
 
   const canManage =
     role === UserRole.ADMIN ||
@@ -68,8 +70,11 @@ export default function AppointmentDetailPage() {
         ? 'Ocorreu um erro ao concluir. Tente novamente.'
         : null
 
-  function handleComplete() {
-    complete(id, { onSuccess: undefined })
+  function handleCompleteConfirm() {
+    complete(id, {
+      onSuccess: () => setShowCompleteDialog(false),
+      onError: () => setShowCompleteDialog(false),
+    })
   }
 
   function handleCancelConfirm(cancellationReason?: string) {
@@ -98,7 +103,7 @@ export default function AppointmentDetailPage() {
   return (
     <>
       <main className="p-4 sm:p-6 max-w-5xl pb-24 sm:pb-6" data-testid="appointment-detail-page">
-        <div className="mb-4">
+        <div className="mb-4 hidden sm:block">
           <Button
             variant="ghost"
             size="sm"
@@ -130,9 +135,10 @@ export default function AppointmentDetailPage() {
               canManage={canManage}
               canAct={!!canAct}
               hasRecord={!!record}
+              onBack={() => router.back()}
               onFillRecord={() => setActiveTab('prontuario')}
               onCancel={() => setShowCancelDialog(true)}
-              onComplete={handleComplete}
+              onComplete={() => setShowCompleteDialog(true)}
               isPendingComplete={isCompleting}
               isPendingCancel={isCancelling}
             />
@@ -218,7 +224,7 @@ export default function AppointmentDetailPage() {
               type="button"
               isLoading={isCompleting}
               disabled={isCancelling || isCompleting}
-              onClick={handleComplete}
+              onClick={() => setShowCompleteDialog(true)}
               className="flex-1"
               data-testid="appointment-detail-complete-button-mobile"
             >
@@ -234,6 +240,15 @@ export default function AppointmentDetailPage() {
           isPending={isCancelling}
           onClose={() => setShowCancelDialog(false)}
           onConfirm={handleCancelConfirm}
+        />
+      )}
+
+      {appointment && (
+        <CompleteAppointmentDialog
+          isOpen={showCompleteDialog}
+          isPending={isCompleting}
+          onClose={() => setShowCompleteDialog(false)}
+          onConfirm={handleCompleteConfirm}
         />
       )}
     </>

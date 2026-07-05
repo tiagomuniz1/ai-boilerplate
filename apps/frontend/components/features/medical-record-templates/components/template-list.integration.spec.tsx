@@ -68,6 +68,21 @@ describe('TemplateList (integration)', () => {
       expect(screen.getByTestId('template-status-uuid-1')).toHaveTextContent('Ativo')
     })
 
+    it('renders a mobile card per template with name, specialty and status', async () => {
+      ;(medicalRecordTemplatesService.getAll as jest.Mock).mockResolvedValue(makePaginated())
+
+      renderWithProviders(<TemplateList />)
+
+      await waitFor(() => expect(screen.getByTestId('template-card-uuid-1')).toBeInTheDocument())
+
+      expect(screen.getByTestId('template-card-uuid-1-title')).toHaveTextContent('Anamnese Cardíaca')
+      expect(screen.getByTestId('template-card-uuid-1')).toHaveTextContent('Cardiologia')
+      expect(screen.getByTestId('template-card-view-link-uuid-1')).toHaveAttribute(
+        'href',
+        '/clinic-slug/medical-record-templates/uuid-1',
+      )
+    })
+
     it('renders Inativo status for inactive template', async () => {
       ;(medicalRecordTemplatesService.getAll as jest.Mock).mockResolvedValue(makePaginated([makeDto({ isActive: false })]))
 

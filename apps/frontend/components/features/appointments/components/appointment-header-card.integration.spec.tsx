@@ -40,6 +40,7 @@ const defaultProps = {
   canManage: true,
   canAct: true,
   hasRecord: false,
+  onBack: jest.fn(),
   onFillRecord: jest.fn(),
   onCancel: jest.fn(),
   onComplete: jest.fn(),

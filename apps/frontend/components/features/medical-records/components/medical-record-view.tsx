@@ -40,7 +40,7 @@ function FieldRow({ field, value }: { field: IRecordFieldModel; value: unknown }
   return (
     <div
       data-testid={`record-field-${field.key}`}
-      className={isLong ? 'col-span-2' : undefined}
+      className={isLong ? 'sm:col-span-2' : undefined}
     >
       <dt className="text-xs font-medium uppercase tracking-wider text-text-mute mb-0.5">
         {field.label}
@@ -54,7 +54,7 @@ function FieldRow({ field, value }: { field: IRecordFieldModel; value: unknown }
 
 function FieldsGrid({ fields, record }: { fields: IRecordFieldModel[]; record: IMedicalRecordModel }) {
   return (
-    <dl className="grid grid-cols-2 gap-x-6 gap-y-4">
+    <dl className="grid grid-cols-1 gap-x-6 gap-y-4 sm:grid-cols-2">
       {fields.map((field) => (
         <FieldRow key={field.key} field={field} value={record.data[field.key]} />
       ))}
@@ -103,7 +103,7 @@ export function MedicalRecordView({ record, sections = [] }: MedicalRecordViewPr
   return (
     <div className="space-y-4" data-testid="medical-record-view">
       {/* Header: patient / doctor / specialty */}
-      <div className="grid grid-cols-3 gap-4 rounded-lg border border-line bg-surface p-4">
+      <div className="grid grid-cols-1 gap-4 rounded-lg border border-line bg-surface p-4 sm:grid-cols-3">
         <div>
           <p className="text-xs font-medium uppercase tracking-wider text-text-mute">Paciente</p>
           <p className="mt-0.5 text-sm font-medium text-text" data-testid="record-patient-name">
@@ -166,7 +166,7 @@ export function MedicalRecordView({ record, sections = [] }: MedicalRecordViewPr
       ) : (
         <>
           <div className="rounded-lg border border-line bg-surface p-4">
-            <dl className="grid grid-cols-2 gap-x-6 gap-y-4">
+            <dl className="grid grid-cols-1 gap-x-6 gap-y-4 sm:grid-cols-2">
               {record.schema.map((field) => (
                 <FieldRow key={field.key} field={field} value={record.data[field.key]} />
               ))}

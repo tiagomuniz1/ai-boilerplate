@@ -11,9 +11,9 @@ export default function AuthenticatedLayout({ children }: { children: React.Reac
       <ClinicThemeProvider />
       <ClinicFaviconApplier />
       <Sidebar />
-      <div className="flex flex-col flex-1 overflow-hidden">
+      <div className="flex flex-col flex-1 min-w-0 overflow-hidden">
         <Header />
-        <main className="flex-1 overflow-auto">
+        <main className="flex-1 min-w-0 overflow-y-auto overflow-x-hidden">
           {children}
         </main>
       </div>

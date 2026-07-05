@@ -42,7 +42,7 @@ export function Modal({ isOpen, onClose, title, className, 'data-testid': testId
     return (
         <div
             data-testid="modal-backdrop"
-            className="fixed inset-0 z-50 flex items-center justify-center"
+            className="fixed inset-0 z-50 flex items-center justify-center p-4"
             onClick={onClose}
         >
             <div aria-hidden="true" className="absolute inset-0 bg-bg/80 backdrop-blur-sm" />

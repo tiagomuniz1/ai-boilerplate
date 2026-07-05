@@ -334,7 +334,7 @@ function ThemeSelector({ value, onChange }: ThemeSelectorProps) {
     return (
       <div className="flex flex-col gap-2">
         <span className="text-sm font-medium text-text">Tema</span>
-        <div className="grid grid-cols-2 gap-2" data-testid="clinic-form-theme-loading">
+        <div className="grid grid-cols-1 gap-2 sm:grid-cols-2" data-testid="clinic-form-theme-loading">
           {[1, 2, 3, 4].map((i) => (
             <div key={i} className="h-14 animate-pulse rounded-md bg-surface" />
           ))}
@@ -346,7 +346,7 @@ function ThemeSelector({ value, onChange }: ThemeSelectorProps) {
   return (
     <div className="flex flex-col gap-2" data-testid="clinic-form-theme-selector">
       <span className="text-sm font-medium text-text">Tema</span>
-      <div className="grid grid-cols-2 gap-2">
+      <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
         <button
           type="button"
           data-testid="clinic-form-theme-none"
