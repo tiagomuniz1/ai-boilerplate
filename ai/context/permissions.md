@@ -180,6 +180,18 @@ O sistema possui quatro perfis de usuário (`UserRole`). Cada perfil reflete um 
 
 ---
 
+## Verificação Pública de Receita (`GET /prescriptions/verify/:token`)
+
+Endpoint **público** (sem autenticação, `@Public`) consumido ao bipar o QR Code do rodapé do PDF da receita. Serve para a farmácia confirmar a autenticidade contra a fonte, evitando PDFs adulterados.
+
+| Ação | Público (sem login) |
+|---|:---:|
+| Verificar receita por token | ✓ (leitura, dados mascarados) |
+
+> O token (`verification_token`) é opaco e único, gerado na emissão. A resposta traz clínica, médico (nome/CRM/especialidade), **nome e CPF do paciente mascarados** e as medicações (sem posologia, sem observações, sem IDs internos). Receita soft-deleted retorna `404`. Nenhum outro dado clínico é exposto.
+
+---
+
 ## Resumo por perfil
 
 ### ADMIN

@@ -7,6 +7,7 @@ import { FindPrescriptionsByAppointmentUseCase } from '../use-cases/find-prescri
 import { FindPrescriptionByIdUseCase } from '../use-cases/find-prescription-by-id.use-case'
 import { DeletePrescriptionUseCase } from '../use-cases/delete-prescription.use-case'
 import { GeneratePrescriptionPdfUseCase } from '../use-cases/generate-prescription-pdf.use-case'
+import { VerifyPrescriptionUseCase } from '../use-cases/verify-prescription.use-case'
 import { PrescriptionListQueryDto } from '../dto/prescription-list-query.dto'
 
 const mockCreate = { execute: jest.fn() } as unknown as jest.Mocked<CreatePrescriptionUseCase>
@@ -14,6 +15,7 @@ const mockFindByAppointment = { execute: jest.fn() } as unknown as jest.Mocked<F
 const mockFindById = { execute: jest.fn() } as unknown as jest.Mocked<FindPrescriptionByIdUseCase>
 const mockDelete = { execute: jest.fn() } as unknown as jest.Mocked<DeletePrescriptionUseCase>
 const mockGeneratePdf = { execute: jest.fn() } as unknown as jest.Mocked<GeneratePrescriptionPdfUseCase>
+const mockVerify = { execute: jest.fn() } as unknown as jest.Mocked<VerifyPrescriptionUseCase>
 
 const currentUser: ICurrentUser = { id: 'doctor-uuid', role: UserRole.DOCTOR, clinicId: 'clinic-uuid' }
 
@@ -41,7 +43,18 @@ describe('PrescriptionsController', () => {
       mockFindById,
       mockDelete,
       mockGeneratePdf,
+      mockVerify,
     )
+  })
+
+  it('verify delegates to VerifyPrescriptionUseCase', async () => {
+    const response = { clinicName: 'Clinic' } as any
+    mockVerify.execute.mockResolvedValue(response)
+
+    const result = await controller.verify('token-123')
+
+    expect(mockVerify.execute).toHaveBeenCalledWith('token-123')
+    expect(result).toBe(response)
   })
 
   it('create delegates to CreatePrescriptionUseCase', async () => {

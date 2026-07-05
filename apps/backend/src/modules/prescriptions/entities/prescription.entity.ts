@@ -28,6 +28,9 @@ export class Prescription {
   @Column({ type: 'jsonb' })
   snapshot: PrescriptionSnapshot
 
+  @Column({ name: 'verification_token', type: 'varchar', length: 64, unique: true })
+  verificationToken: string
+
   @Column({ name: 'issued_at', type: 'timestamptz' })
   issuedAt: Date
 

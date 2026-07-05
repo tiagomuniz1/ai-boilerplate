@@ -1,8 +1,14 @@
 import { Body, Controller, Delete, Get, HttpCode, Param, Post, Query, Res } from '@nestjs/common'
 import { Throttle } from '@nestjs/throttler'
 import { Response } from 'express'
-import { CreatePrescriptionDto, PrescriptionResponseDto, UserRole } from '@app/shared'
+import {
+  CreatePrescriptionDto,
+  PrescriptionResponseDto,
+  UserRole,
+  VerifyPrescriptionResponseDto,
+} from '@app/shared'
 import { Roles } from '../../auth/decorators/roles.decorator'
+import { Public } from '../../auth/decorators/public.decorator'
 import { CurrentUser } from '../../auth/decorators/current-user.decorator'
 import { ICurrentUser } from '../../auth/types/current-user.type'
 import { CreatePrescriptionUseCase } from '../use-cases/create-prescription.use-case'
@@ -10,6 +16,7 @@ import { FindPrescriptionsByAppointmentUseCase } from '../use-cases/find-prescri
 import { FindPrescriptionByIdUseCase } from '../use-cases/find-prescription-by-id.use-case'
 import { DeletePrescriptionUseCase } from '../use-cases/delete-prescription.use-case'
 import { GeneratePrescriptionPdfUseCase } from '../use-cases/generate-prescription-pdf.use-case'
+import { VerifyPrescriptionUseCase } from '../use-cases/verify-prescription.use-case'
 import { PrescriptionListQueryDto } from '../dto/prescription-list-query.dto'
 
 @Controller('prescriptions')
@@ -20,7 +27,15 @@ export class PrescriptionsController {
     private readonly findPrescriptionByIdUseCase: FindPrescriptionByIdUseCase,
     private readonly deletePrescriptionUseCase: DeletePrescriptionUseCase,
     private readonly generatePrescriptionPdfUseCase: GeneratePrescriptionPdfUseCase,
+    private readonly verifyPrescriptionUseCase: VerifyPrescriptionUseCase,
   ) {}
+
+  @Get('verify/:token')
+  @Public()
+  @Throttle({ default: { limit: 60, ttl: 60000 } })
+  verify(@Param('token') token: string): Promise<VerifyPrescriptionResponseDto> {
+    return this.verifyPrescriptionUseCase.execute(token)
+  }
 
   @Post()
   @Roles(UserRole.DOCTOR)

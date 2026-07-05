@@ -74,6 +74,7 @@ const makeSavedPrescription = () => ({
   patientId,
   doctorId,
   issuedAt: new Date(),
+  verificationToken: 'a'.repeat(64),
   snapshot: {
     issuedAt: new Date().toISOString(),
     clinic: { name: 'Test Clinic', address: null, logoUrl: null },
@@ -90,6 +91,7 @@ const makeSavedPrescription = () => ({
 const mockPrescriptionsRepository: jest.Mocked<IPrescriptionsRepository> = {
   findByAppointment: jest.fn(),
   findById: jest.fn(),
+  findByVerificationToken: jest.fn(),
   create: jest.fn(),
   delete: jest.fn(),
 }
@@ -291,6 +293,28 @@ describe('CreatePrescriptionUseCase', () => {
 
     const createCall = mockPrescriptionsRepository.create.mock.calls[0][0]
     expect(createCall.snapshot.notes).toBeNull()
+  })
+
+  it('generates a unique verification token and passes it to create', async () => {
+    await useCase.execute(baseDto, adminUser)
+
+    const createCall = mockPrescriptionsRepository.create.mock.calls[0][0]
+    expect(createCall.verificationToken).toMatch(/^[a-f0-9]{64}$/)
+  })
+
+  it('generates a different verification token on each create', async () => {
+    await useCase.execute(baseDto, adminUser)
+    await useCase.execute(baseDto, adminUser)
+
+    const first = mockPrescriptionsRepository.create.mock.calls[0][0].verificationToken
+    const second = mockPrescriptionsRepository.create.mock.calls[1][0].verificationToken
+    expect(first).not.toBe(second)
+  })
+
+  it('does not expose the verification token in the response DTO', async () => {
+    const result = await useCase.execute(baseDto, adminUser)
+
+    expect(result).not.toHaveProperty('verificationToken')
   })
 
   it('invalidates appointment cache after create', async () => {

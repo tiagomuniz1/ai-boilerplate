@@ -29,12 +29,20 @@ export class PrescriptionPdfBuilderService implements OnModuleInit {
     pdfmake.setUrlAccessPolicy(() => false)
   }
 
-  async build(snapshot: PrescriptionSnapshot, logoBase64: string | null): Promise<Buffer> {
-    const docDefinition = this.buildDocDefinition(snapshot, logoBase64)
+  async build(
+    snapshot: PrescriptionSnapshot,
+    logoBase64: string | null,
+    verificationUrl: string,
+  ): Promise<Buffer> {
+    const docDefinition = this.buildDocDefinition(snapshot, logoBase64, verificationUrl)
     return pdfmake.createPdf(docDefinition).getBuffer()
   }
 
-  private buildDocDefinition(snapshot: PrescriptionSnapshot, logoBase64: string | null) {
+  private buildDocDefinition(
+    snapshot: PrescriptionSnapshot,
+    logoBase64: string | null,
+    verificationUrl: string,
+  ) {
     const content: object[] = []
 
     content.push(...this.buildHeader(snapshot, logoBase64))
@@ -42,7 +50,7 @@ export class PrescriptionPdfBuilderService implements OnModuleInit {
     content.push(...this.buildPatientBlock(snapshot))
     content.push(...this.buildItems(snapshot))
     if (snapshot.notes) content.push(...this.buildNotes(snapshot.notes))
-    content.push(...this.buildFooter(snapshot))
+    content.push(...this.buildFooter(snapshot, verificationUrl))
 
     return {
       content,
@@ -131,7 +139,7 @@ export class PrescriptionPdfBuilderService implements OnModuleInit {
     ]
   }
 
-  private buildFooter(snapshot: PrescriptionSnapshot): object[] {
+  private buildFooter(snapshot: PrescriptionSnapshot, verificationUrl: string): object[] {
     const issuedAt = new Date(snapshot.issuedAt)
     const city = snapshot.clinic.address?.city ?? null
     const dateFormatted = `${issuedAt.getUTCDate()} de ${MONTHS_PT[issuedAt.getUTCMonth()]} de ${issuedAt.getUTCFullYear()}`
@@ -150,6 +158,10 @@ export class PrescriptionPdfBuilderService implements OnModuleInit {
 
     if (specialtyLine) footerStack.push(specialtyLine)
 
+    footerStack.push(
+      { qr: verificationUrl, fit: 90, margin: [0, 16, 0, 4] },
+      { text: 'Verifique a autenticidade desta receita', fontSize: 8, color: '#555555' },
+    )
 
     return footerStack
   }

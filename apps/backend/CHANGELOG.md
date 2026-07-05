@@ -4,6 +4,12 @@
 
 ### Added
 
+#### Validação de Receita com QR Code (`/prescriptions`)
+- Coluna `verification_token` (aleatória/opaca, `randomBytes(32).toString('hex')`) em `prescriptions`, gerada na emissão; migration `add-verification-token-to-prescriptions` com backfill dos registros existentes + índice único
+- Endpoint **público** `GET /prescriptions/verify/:token` (`@Public`, rate limit 60/60s) que retorna os dados autoritativos da receita com **nome e CPF do paciente mascarados** — sem `instructions`, `notes` nem IDs internos; receita soft-deleted retorna `404`
+- QR Code no rodapé de todo PDF (nó nativo do pdfmake — sem novas dependências) apontando para `${FRONTEND_URL}/{clinicSlug}/verify/prescriptions/{token}`
+- `VerifyPrescriptionResponseDto` no `@app/shared`; util de máscara (`maskCpf`, `maskName`); testes unitários (100%) e de integração
+
 #### Módulo de Medicamentos (`/medications`)
 - Entidade `Medication` — base canônica de plataforma (sem `clinicId`), origem das futuras receitas médicas; soft delete + flag `isActive`
 - CRUD completo: listar (paginado + busca por nome/princípio ativo), ver por ID, criar (`source = manual`), editar/ativar-desativar, excluir (soft)

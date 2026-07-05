@@ -38,6 +38,7 @@ const makePrescription = () => ({
 const mockPrescriptionsRepository: jest.Mocked<IPrescriptionsRepository> = {
   findByAppointment: jest.fn(),
   findById: jest.fn(),
+  findByVerificationToken: jest.fn(),
   create: jest.fn(),
   delete: jest.fn(),
 }

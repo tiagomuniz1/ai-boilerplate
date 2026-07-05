@@ -668,4 +668,74 @@ describe('PrescriptionsController (integration)', () => {
         .expect(401)
     })
   })
+
+  describe('GET /prescriptions/verify/:token', () => {
+    let prescriptionId: string
+    let verificationToken: string
+
+    beforeEach(async () => {
+      const { body } = await request(app.getHttpServer())
+        .post('/prescriptions')
+        .set('Cookie', `access_token=${doctorToken}`)
+        .send(validPayload())
+        .expect(201)
+      prescriptionId = body.id
+
+      const saved = await prescriptionRepository.findOne({ where: { id: prescriptionId } })
+      verificationToken = saved!.verificationToken
+    })
+
+    it('returns 200 with masked prescription data without authentication', async () => {
+      const { body } = await request(app.getHttpServer())
+        .get(`/prescriptions/verify/${verificationToken}`)
+        .expect(200)
+
+      expect(body.clinicName).toBe('Prescriptions Clinic')
+      expect(body.doctorName).toBe('Doctor Smith')
+      expect(body.doctorCrmNumber).toBe('11111/SP')
+      expect(body.items).toHaveLength(1)
+      expect(body.items[0].name).toBe('Dipirona 500mg')
+      expect(body.items[0].activeIngredient).toBe('dipirona sódica')
+    })
+
+    it('masks the patient name and does not expose full name/CPF', async () => {
+      const { body } = await request(app.getHttpServer())
+        .get(`/prescriptions/verify/${verificationToken}`)
+        .expect(200)
+
+      expect(body.patientNameMasked).toBe('Patient J.')
+      expect(body.patientDocumentMasked).toMatch(/^\*\*\*\.\*\*\*\.\d{3}-\*\*$/)
+      expect(JSON.stringify(body)).not.toContain('Patient Jones')
+    })
+
+    it('does not expose instructions, notes or internal ids', async () => {
+      const { body } = await request(app.getHttpServer())
+        .get(`/prescriptions/verify/${verificationToken}`)
+        .expect(200)
+
+      expect(body).not.toHaveProperty('id')
+      expect(body).not.toHaveProperty('patientId')
+      expect(body).not.toHaveProperty('doctorId')
+      expect(body).not.toHaveProperty('notes')
+      expect(body.items[0]).not.toHaveProperty('instructions')
+      expect(body.items[0]).not.toHaveProperty('medicationId')
+    })
+
+    it('returns 404 when the token does not exist', async () => {
+      await request(app.getHttpServer())
+        .get(`/prescriptions/verify/${'b'.repeat(64)}`)
+        .expect(404)
+    })
+
+    it('returns 404 when the prescription was soft-deleted', async () => {
+      await request(app.getHttpServer())
+        .delete(`/prescriptions/${prescriptionId}`)
+        .set('Cookie', `access_token=${adminToken}`)
+        .expect(204)
+
+      await request(app.getHttpServer())
+        .get(`/prescriptions/verify/${verificationToken}`)
+        .expect(404)
+    })
+  })
 })

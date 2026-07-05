@@ -5,6 +5,7 @@ import {
   NotFoundException,
   UnprocessableEntityException,
 } from '@nestjs/common'
+import { randomBytes } from 'crypto'
 import { DataSource } from 'typeorm'
 import {
   AppointmentStatus,
@@ -154,12 +155,15 @@ export class CreatePrescriptionUseCase extends BaseUseCase {
       notes: dto.notes ?? null,
     }
 
+    const verificationToken = randomBytes(32).toString('hex')
+
     const prescription = await this.prescriptionsRepository.create({
       clinicId,
       appointmentId: dto.appointmentId,
       patientId: appointment.patientId,
       doctorId: appointment.doctorId,
       snapshot,
+      verificationToken,
       issuedAt,
     })
 

@@ -8,12 +8,14 @@ export interface CreatePrescriptionData {
   patientId: string
   doctorId: string
   snapshot: PrescriptionSnapshot
+  verificationToken: string
   issuedAt: Date
 }
 
 export abstract class IPrescriptionsRepository {
   abstract findByAppointment(appointmentId: string, clinicId: string): Promise<Prescription[]>
   abstract findById(id: string, clinicId: string): Promise<Prescription | null>
+  abstract findByVerificationToken(token: string): Promise<Prescription | null>
   abstract create(data: CreatePrescriptionData, queryRunner?: QueryRunner): Promise<Prescription>
   abstract delete(id: string, queryRunner?: QueryRunner): Promise<void>
 }

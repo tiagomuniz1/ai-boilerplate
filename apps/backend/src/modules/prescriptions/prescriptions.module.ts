@@ -13,6 +13,7 @@ import { FindPrescriptionsByAppointmentUseCase } from './use-cases/find-prescrip
 import { FindPrescriptionByIdUseCase } from './use-cases/find-prescription-by-id.use-case'
 import { DeletePrescriptionUseCase } from './use-cases/delete-prescription.use-case'
 import { GeneratePrescriptionPdfUseCase } from './use-cases/generate-prescription-pdf.use-case'
+import { VerifyPrescriptionUseCase } from './use-cases/verify-prescription.use-case'
 import { IPrescriptionsRepository } from './repositories/prescriptions.repository.interface'
 import { PrescriptionsRepository } from './repositories/prescriptions.repository'
 import { LogoFetcherService } from './services/logo-fetcher.service'
@@ -35,6 +36,7 @@ import { PrescriptionPdfBuilderService } from './services/prescription-pdf-build
     FindPrescriptionByIdUseCase,
     DeletePrescriptionUseCase,
     GeneratePrescriptionPdfUseCase,
+    VerifyPrescriptionUseCase,
     LogoFetcherService,
     PrescriptionPdfBuilderService,
     { provide: IPrescriptionsRepository, useClass: PrescriptionsRepository },

@@ -22,6 +22,10 @@ export class PrescriptionsRepository implements IPrescriptionsRepository {
     return this.repository.findOne({ where: { id, clinicId } })
   }
 
+  async findByVerificationToken(token: string): Promise<Prescription | null> {
+    return this.repository.findOne({ where: { verificationToken: token } })
+  }
+
   async create(data: CreatePrescriptionData, queryRunner?: QueryRunner): Promise<Prescription> {
     const repo = queryRunner ? queryRunner.manager.getRepository(Prescription) : this.repository
     return repo.save(repo.create(data))

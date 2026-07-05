@@ -4,6 +4,12 @@
 
 ### Added
 
+#### Página Pública de Verificação de Receita
+- Rota pública `/[slug]/verify/prescriptions/[token]` (grupo `(public)`, sem autenticação) aberta ao bipar o QR Code do PDF da receita
+- Exibe os dados autoritativos da receita — clínica, médico (nome/CRM/especialidade), paciente mascarado e as medicações (nome/princípio ativo/dosagem/quantidade); **não** exibe posologia nem observações
+- Estados de loading (skeleton), receita inválida/não encontrada e sucesso; layout responsivo mobile-first
+- Camadas service/mapper/use-case/hook (dados via React Query); `/verify` liberado no `middleware.ts`; testes de integração com 100% de cobertura
+
 #### Telas de Gestão de Medicamentos (Backoffice / PLATFORM_ADMIN)
 - Listagem com busca (debounced) por nome/princípio ativo, paginação server-side, filtro "incluir inativos" e exibição da origem (ANVISA/Manual)
 - Criação, edição, ativar/desativar (com confirmação) e exclusão (soft delete, com confirmação)

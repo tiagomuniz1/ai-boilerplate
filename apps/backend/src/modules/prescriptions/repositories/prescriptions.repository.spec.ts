@@ -27,6 +27,7 @@ function makePrescriptionData(): CreatePrescriptionData {
       items: [{ medicationId: 'med-uuid', name: 'Dipirona', activeIngredient: null, instructions: 'Tomar 1 cp' }],
       notes: null,
     },
+    verificationToken: 'a'.repeat(64),
     issuedAt: new Date(),
   }
 }
@@ -75,6 +76,27 @@ describe('PrescriptionsRepository', () => {
       const prescription = { id: 'rx-uuid' } as Prescription
       mockRepo.findOne.mockResolvedValue(prescription)
       const result = await repository.findById('rx-uuid', 'clinic-uuid')
+      expect(result).toBe(prescription)
+    })
+  })
+
+  describe('findByVerificationToken', () => {
+    it('queries by verificationToken only (no clinic scope)', async () => {
+      mockRepo.findOne.mockResolvedValue(null)
+      await repository.findByVerificationToken('token-123')
+      expect(mockRepo.findOne).toHaveBeenCalledWith({ where: { verificationToken: 'token-123' } })
+    })
+
+    it('returns null when not found', async () => {
+      mockRepo.findOne.mockResolvedValue(null)
+      const result = await repository.findByVerificationToken('token-123')
+      expect(result).toBeNull()
+    })
+
+    it('returns the prescription when found', async () => {
+      const prescription = { id: 'rx-uuid' } as Prescription
+      mockRepo.findOne.mockResolvedValue(prescription)
+      const result = await repository.findByVerificationToken('token-123')
       expect(result).toBe(prescription)
     })
   })

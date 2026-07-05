@@ -1,6 +1,8 @@
 import { PrescriptionPdfBuilderService } from '../services/prescription-pdf-builder.service'
 import { PrescriptionSnapshot } from '@app/shared'
 
+const VERIFY_URL = 'http://localhost:3000/clinica/verify/prescriptions/' + 'a'.repeat(64)
+
 const makeSnapshot = (overrides: Partial<PrescriptionSnapshot> = {}): PrescriptionSnapshot => ({
   issuedAt: '2026-06-28T10:00:00.000Z',
   clinic: {
@@ -34,14 +36,21 @@ describe('PrescriptionPdfBuilderService', () => {
   })
 
   it('generates a valid PDF buffer (starts with %PDF)', async () => {
-    const buffer = await service.build(makeSnapshot(), null)
+    const buffer = await service.build(makeSnapshot(), null, VERIFY_URL)
+
+    expect(buffer.slice(0, 4).toString('ascii')).toBe('%PDF')
+    expect(buffer.length).toBeGreaterThan(1000)
+  })
+
+  it('generates PDF with a QR code node in the footer (verification URL)', async () => {
+    const buffer = await service.build(makeSnapshot(), null, VERIFY_URL)
 
     expect(buffer.slice(0, 4).toString('ascii')).toBe('%PDF')
     expect(buffer.length).toBeGreaterThan(1000)
   })
 
   it('generates PDF without logo', async () => {
-    const buffer = await service.build(makeSnapshot({ clinic: { name: 'Clínica', address: null, logoUrl: null } }), null)
+    const buffer = await service.build(makeSnapshot({ clinic: { name: 'Clínica', address: null, logoUrl: null } }), null, VERIFY_URL)
 
     expect(buffer.slice(0, 4).toString('ascii')).toBe('%PDF')
   })
@@ -50,7 +59,7 @@ describe('PrescriptionPdfBuilderService', () => {
     const tinyPng =
       'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg=='
 
-    const buffer = await service.build(makeSnapshot(), tinyPng)
+    const buffer = await service.build(makeSnapshot(), tinyPng, VERIFY_URL)
 
     expect(buffer.slice(0, 4).toString('ascii')).toBe('%PDF')
   })
@@ -63,7 +72,7 @@ describe('PrescriptionPdfBuilderService', () => {
       ],
     })
 
-    const buffer = await service.build(snapshot, null)
+    const buffer = await service.build(snapshot, null, VERIFY_URL)
 
     expect(buffer.slice(0, 4).toString('ascii')).toBe('%PDF')
   })
@@ -75,7 +84,7 @@ describe('PrescriptionPdfBuilderService', () => {
       ],
     })
 
-    const buffer = await service.build(snapshot, null)
+    const buffer = await service.build(snapshot, null, VERIFY_URL)
 
     expect(buffer.slice(0, 4).toString('ascii')).toBe('%PDF')
   })
@@ -87,7 +96,7 @@ describe('PrescriptionPdfBuilderService', () => {
       ],
     })
 
-    const buffer = await service.build(snapshot, null)
+    const buffer = await service.build(snapshot, null, VERIFY_URL)
 
     expect(buffer.slice(0, 4).toString('ascii')).toBe('%PDF')
   })
@@ -99,13 +108,13 @@ describe('PrescriptionPdfBuilderService', () => {
       ],
     })
 
-    const buffer = await service.build(snapshot, null)
+    const buffer = await service.build(snapshot, null, VERIFY_URL)
 
     expect(buffer.slice(0, 4).toString('ascii')).toBe('%PDF')
   })
 
   it('generates PDF without notes when notes is null', async () => {
-    const buffer = await service.build(makeSnapshot({ notes: null }), null)
+    const buffer = await service.build(makeSnapshot({ notes: null }), null, VERIFY_URL)
 
     expect(buffer.slice(0, 4).toString('ascii')).toBe('%PDF')
   })
@@ -114,6 +123,7 @@ describe('PrescriptionPdfBuilderService', () => {
     const buffer = await service.build(
       makeSnapshot({ doctor: { name: 'Dr. Test', crmNumber: '99999/SP', specialtyName: null } }),
       null,
+      VERIFY_URL,
     )
 
     expect(buffer.slice(0, 4).toString('ascii')).toBe('%PDF')
@@ -123,19 +133,20 @@ describe('PrescriptionPdfBuilderService', () => {
     const buffer = await service.build(
       makeSnapshot({ clinic: { name: 'Clínica', address: null, logoUrl: null } }),
       null,
+      VERIFY_URL,
     )
 
     expect(buffer.slice(0, 4).toString('ascii')).toBe('%PDF')
   })
 
   it('formats CPF correctly in the buffer content (11 digits)', async () => {
-    const buffer = await service.build(makeSnapshot({ patient: { name: 'Maria', documentNumber: '12345678901' } }), null)
+    const buffer = await service.build(makeSnapshot({ patient: { name: 'Maria', documentNumber: '12345678901' } }), null, VERIFY_URL)
 
     expect(buffer.slice(0, 4).toString('ascii')).toBe('%PDF')
   })
 
   it('generates PDF with empty items list (skips medications section)', async () => {
-    const buffer = await service.build(makeSnapshot({ items: [] }), null)
+    const buffer = await service.build(makeSnapshot({ items: [] }), null, VERIFY_URL)
 
     expect(buffer.slice(0, 4).toString('ascii')).toBe('%PDF')
   })
@@ -144,13 +155,14 @@ describe('PrescriptionPdfBuilderService', () => {
     const buffer = await service.build(
       makeSnapshot({ patient: { name: 'Maria', documentNumber: '123' } }),
       null,
+      VERIFY_URL,
     )
 
     expect(buffer.slice(0, 4).toString('ascii')).toBe('%PDF')
   })
 
   it('ignores non-dataURL logo and generates PDF without it', async () => {
-    const buffer = await service.build(makeSnapshot(), 'https://example.com/logo.png')
+    const buffer = await service.build(makeSnapshot(), 'https://example.com/logo.png', VERIFY_URL)
     expect(buffer.slice(0, 4).toString('ascii')).toBe('%PDF')
   })
 
@@ -163,7 +175,7 @@ describe('PrescriptionPdfBuilderService', () => {
       },
     })
 
-    const buffer = await service.build(snapshot, null)
+    const buffer = await service.build(snapshot, null, VERIFY_URL)
 
     expect(buffer.slice(0, 4).toString('ascii')).toBe('%PDF')
   })
