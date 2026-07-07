@@ -8,8 +8,8 @@ const makeDto = () => ({
     email: 'joao@example.com',
     isActive: true,
   },
-  crmNumber: '12345/SP',
-  specialties: [{ id: 'spec-uuid-1', name: 'Cardiologia' }],
+  crms: [{ id: 'crm-uuid-1', number: '12345', state: 'SP', isPrimary: true }],
+  specialties: [{ id: 'spec-uuid-1', name: 'Cardiologia', rqe: '6789' }],
   bio: 'Especialista em cardiologia intervencionista.',
   createdAt: '2024-01-15T10:00:00.000Z' as unknown as Date,
   updatedAt: '2024-01-16T10:00:00.000Z' as unknown as Date,
@@ -23,8 +23,8 @@ describe('toDoctorModel', () => {
     expect(model.user.id).toBe('user-uuid-1')
     expect(model.user.fullName).toBe('Dr. João Silva')
     expect(model.user.email).toBe('joao@example.com')
-    expect(model.crmNumber).toBe('12345/SP')
-    expect(model.specialties).toEqual([{ id: 'spec-uuid-1', name: 'Cardiologia' }])
+    expect(model.crms).toEqual([{ id: 'crm-uuid-1', number: '12345', state: 'SP', isPrimary: true }])
+    expect(model.specialties).toEqual([{ id: 'spec-uuid-1', name: 'Cardiologia', rqe: '6789' }])
     expect(model.bio).toBe('Especialista em cardiologia intervencionista.')
   })
 
@@ -65,12 +65,36 @@ describe('toDoctorModel', () => {
     expect(model.user.isActive).toBe(false)
   })
 
+  it('maps specialty rqe as null when null', () => {
+    const model = toDoctorModel({
+      ...makeDto(),
+      specialties: [{ id: 'spec-uuid-1', name: 'Cardiologia', rqe: null }],
+    })
+
+    expect(model.specialties[0].rqe).toBeNull()
+  })
+
+  it('maps multiple crms preserving the primary flag', () => {
+    const dto = {
+      ...makeDto(),
+      crms: [
+        { id: 'crm-uuid-1', number: '12345', state: 'SP', isPrimary: true },
+        { id: 'crm-uuid-2', number: '54321', state: 'RJ', isPrimary: false },
+      ],
+    }
+
+    const model = toDoctorModel(dto)
+
+    expect(model.crms).toHaveLength(2)
+    expect(model.crms[1]).toEqual({ id: 'crm-uuid-2', number: '54321', state: 'RJ', isPrimary: false })
+  })
+
   it('maps multiple specialties correctly', () => {
     const dto = {
       ...makeDto(),
       specialties: [
-        { id: 'spec-uuid-1', name: 'Cardiologia' },
-        { id: 'spec-uuid-2', name: 'Neurologia' },
+        { id: 'spec-uuid-1', name: 'Cardiologia', rqe: '6789' },
+        { id: 'spec-uuid-2', name: 'Neurologia', rqe: null },
       ],
     }
 

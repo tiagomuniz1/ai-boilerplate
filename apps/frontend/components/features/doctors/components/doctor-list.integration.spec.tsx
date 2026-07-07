@@ -24,9 +24,9 @@ const mockPush = jest.fn()
 
 const makeDto = (overrides = {}) => ({
   id: 'uuid-1',
-  user: { id: 'user-uuid-1', fullName: 'Dr. João Silva', email: 'joao@example.com' },
-  crmNumber: '12345/SP',
-  specialties: [{ id: 'spec-uuid-1', name: 'Cardiologia' }],
+  user: { id: 'user-uuid-1', fullName: 'Dr. João Silva', email: 'joao@example.com', isActive: true },
+  crms: [{ id: 'crm-uuid-1', number: '12345', state: 'SP', isPrimary: true }],
+  specialties: [{ id: 'spec-uuid-1', name: 'Cardiologia', rqe: null }],
   bio: null,
   createdAt: '2024-01-15T10:00:00.000Z',
   updatedAt: '2024-01-16T10:00:00.000Z',
@@ -61,6 +61,41 @@ describe('DoctorList (integration)', () => {
     expect(screen.getByTestId('doctor-email-uuid-1')).toHaveTextContent('joao@example.com')
     expect(screen.getByTestId('doctor-crm-uuid-1')).toHaveTextContent('12345/SP')
     expect(screen.getByTestId('doctor-specialty-badge-spec-uuid-1')).toHaveTextContent('Cardiologia')
+  })
+
+  it('shows the primary CRM with a +N indicator when the doctor has multiple CRMs', async () => {
+    const dto = makeDto({
+      crms: [
+        { id: 'crm-1', number: '12345', state: 'SP', isPrimary: true },
+        { id: 'crm-2', number: '54321', state: 'RJ', isPrimary: false },
+      ],
+    })
+    ;(doctorsService.getAll as jest.Mock).mockResolvedValue({ data: [dto], total: 1, page: 1, limit: 20 })
+
+    renderWithProviders(<DoctorList />)
+
+    await waitFor(() => expect(screen.getByTestId('doctor-list-table')).toBeInTheDocument())
+    expect(screen.getByTestId('doctor-crm-uuid-1')).toHaveTextContent('12345/SP +1')
+  })
+
+  it('falls back to the first CRM when none is marked primary', async () => {
+    const dto = makeDto({ crms: [{ id: 'crm-1', number: '99999', state: 'MG', isPrimary: false }] })
+    ;(doctorsService.getAll as jest.Mock).mockResolvedValue({ data: [dto], total: 1, page: 1, limit: 20 })
+
+    renderWithProviders(<DoctorList />)
+
+    await waitFor(() => expect(screen.getByTestId('doctor-list-table')).toBeInTheDocument())
+    expect(screen.getByTestId('doctor-crm-uuid-1')).toHaveTextContent('99999/MG')
+  })
+
+  it('shows a dash when the doctor has no CRM', async () => {
+    const dto = makeDto({ crms: [] })
+    ;(doctorsService.getAll as jest.Mock).mockResolvedValue({ data: [dto], total: 1, page: 1, limit: 20 })
+
+    renderWithProviders(<DoctorList />)
+
+    await waitFor(() => expect(screen.getByTestId('doctor-list-table')).toBeInTheDocument())
+    expect(screen.getByTestId('doctor-crm-uuid-1')).toHaveTextContent('—')
   })
 
   it('renders 1 badge when doctor has 1 specialty', async () => {

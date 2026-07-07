@@ -11,7 +11,7 @@ const mockDoctorsRepository: jest.Mocked<IDoctorsRepository> = {
   findAll: jest.fn(),
   findById: jest.fn(),
   findByUserId: jest.fn(),
-  findByCrmNumber: jest.fn(),
+  findByCrm: jest.fn(),
   create: jest.fn(),
   update: jest.fn(),
   delete: jest.fn(),
@@ -29,8 +29,8 @@ const makeDoctor = () => ({
   id: faker.string.uuid(),
   userId: faker.string.uuid(),
   user: { id: faker.string.uuid(), fullName: faker.person.fullName(), email: faker.internet.email(), isActive: true } as any,
-  crmNumber: '12345/SP',
-  specialties: [{ id: faker.string.uuid(), name: 'Cardiologia' }],
+  crms: [{ id: faker.string.uuid(), number: '12345', state: 'SP', isPrimary: true }],
+  doctorSpecialties: [{ id: faker.string.uuid(), specialtyId: 'spec-1', specialty: { id: 'spec-1', name: 'Cardiologia' }, rqe: null }],
   bio: 'Especialista em cardio',
   version: 1,
   createdAt: new Date(),
@@ -68,7 +68,7 @@ describe('FindDoctorByIdUseCase', () => {
 
   it('returns cached result without calling repository on cache hit', async () => {
     const doctor = makeDoctor()
-    const cached = { id: doctor.id, crmNumber: '12345/SP' }
+    const cached = { id: doctor.id, crms: [] }
     mockCacheService.get.mockResolvedValue(cached)
 
     const result = await useCase.execute(doctor.id, adminUser)
@@ -157,7 +157,7 @@ describe('FindDoctorByIdUseCase', () => {
   })
 
   it('returns empty specialties array when doctor has no specialties', async () => {
-    const doctor = { ...makeDoctor(), specialties: null }
+    const doctor = { ...makeDoctor(), doctorSpecialties: null }
     const adminUser: ICurrentUser = { id: faker.string.uuid(), role: UserRole.ADMIN, clinicId: CLINIC_ID }
     mockCacheService.get.mockResolvedValue(null)
     mockDoctorsRepository.findById.mockResolvedValue(doctor as any)

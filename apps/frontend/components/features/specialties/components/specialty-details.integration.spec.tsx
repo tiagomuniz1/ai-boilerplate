@@ -59,6 +59,22 @@ describe('SpecialtyDetails (integration)', () => {
       expect(screen.queryByTestId('specialty-details-description')).not.toBeInTheDocument()
     })
 
+    it('renders the specialist title when set', () => {
+      renderWithProviders(
+        <SpecialtyDetails specialty={{ ...specialty, titleName: 'cardiologista' }} onDeleteClick={jest.fn()} />,
+      )
+
+      expect(screen.getByTestId('specialty-details-title-name')).toHaveTextContent('cardiologista')
+    })
+
+    it('does not render the specialist title when null', () => {
+      renderWithProviders(
+        <SpecialtyDetails specialty={{ ...specialty, titleName: null }} onDeleteClick={jest.fn()} />,
+      )
+
+      expect(screen.queryByTestId('specialty-details-title-name')).not.toBeInTheDocument()
+    })
+
     it('renders edit and delete buttons', () => {
       renderWithProviders(<SpecialtyDetails specialty={specialty} onDeleteClick={jest.fn()} />)
 

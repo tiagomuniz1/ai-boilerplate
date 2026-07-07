@@ -12,7 +12,7 @@ const mockDoctorsRepository: jest.Mocked<IDoctorsRepository> = {
   findAll: jest.fn(),
   findById: jest.fn(),
   findByUserId: jest.fn(),
-  findByCrmNumber: jest.fn(),
+  findByCrm: jest.fn(),
   create: jest.fn(),
   update: jest.fn(),
   delete: jest.fn(),
@@ -30,8 +30,8 @@ const makeDoctor = () => ({
   id: faker.string.uuid(),
   userId: faker.string.uuid(),
   user: { id: faker.string.uuid(), fullName: faker.person.fullName(), email: faker.internet.email(), isActive: true } as any,
-  crmNumber: '12345/SP',
-  specialties: [{ id: faker.string.uuid(), name: 'Cardiologia' }],
+  crms: [{ id: faker.string.uuid(), number: '12345', state: 'SP', isPrimary: true }],
+  doctorSpecialties: [{ id: faker.string.uuid(), specialtyId: 'spec-1', specialty: { id: 'spec-1', name: 'Cardiologia' }, rqe: null }],
   bio: null,
   version: 1,
   createdAt: new Date(),
@@ -158,7 +158,7 @@ describe('FindAllDoctorsUseCase', () => {
   })
 
   it('returns empty specialties array when doctor has no specialties', async () => {
-    const doctor = { ...makeDoctor(), specialties: null }
+    const doctor = { ...makeDoctor(), doctorSpecialties: null }
     mockCacheService.get.mockResolvedValue(null)
     mockDoctorsRepository.findAll.mockResolvedValue([[doctor as any], 1])
     mockCacheService.set.mockResolvedValue(undefined)

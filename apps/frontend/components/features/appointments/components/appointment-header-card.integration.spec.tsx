@@ -15,7 +15,7 @@ function makeAppointment(overrides: Partial<IAppointmentDetailModel> = {}): IApp
     specialtyId: 'spec-uuid',
     specialtyName: 'Cardiologia',
     scheduleId: 'sched-uuid',
-    date: '10/06/2026',
+    date: '2026-06-10',
     startTime: '09:00',
     endTime: '09:30',
     status: AppointmentStatus.SCHEDULED,

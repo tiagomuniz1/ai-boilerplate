@@ -19,6 +19,9 @@ export class Specialty {
   @Column({ nullable: true, type: 'varchar' })
   description: string | null
 
+  @Column({ name: 'title_name', type: 'varchar', length: 100, nullable: true, default: null })
+  titleName: string | null
+
   @VersionColumn()
   version: number
 

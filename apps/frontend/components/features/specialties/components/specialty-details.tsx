@@ -79,6 +79,15 @@ export function SpecialtyDetails({ specialty, onDeleteClick }: SpecialtyDetailsP
               testId="specialty-details-updated-at"
             />
           </div>
+          {specialty.titleName && (
+            <div className="bg-surface px-6 py-4 sm:col-span-2">
+              <DetailRow
+                label="Título do especialista"
+                value={specialty.titleName}
+                testId="specialty-details-title-name"
+              />
+            </div>
+          )}
           {specialty.description && (
             <div className="bg-surface px-6 py-4 sm:col-span-2">
               <DetailRow

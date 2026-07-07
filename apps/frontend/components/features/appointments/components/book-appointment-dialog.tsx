@@ -11,6 +11,7 @@ import { usePatients } from '@/components/features/patients/hooks/use-patients.h
 import { useDoctor } from '@/components/features/doctors/hooks/use-doctor.hook'
 import { useBookAppointment } from '../hooks/use-book-appointment.hook'
 import type { IApiError } from '@/types/api.types'
+import { formatDateToBR } from '@/lib/format-date'
 
 interface BookFormValues {
   patientId: string
@@ -130,7 +131,7 @@ export function BookAppointmentDialog({
         <div className="flex gap-4 text-sm bg-surface-2 rounded-md px-3 py-2">
           <div>
             <span className="text-text/50">Data</span>
-            <p className="font-medium" data-testid="book-dialog-date">{date}</p>
+            <p className="font-medium" data-testid="book-dialog-date">{formatDateToBR(date)}</p>
           </div>
           <div>
             <span className="text-text/50">Horário</span>

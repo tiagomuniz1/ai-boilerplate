@@ -142,17 +142,18 @@ describe('SchedulesController (integration)', () => {
       specialtyRepository.create({ name: 'Neurologia' }),
     )
 
-    const doctorEntity = doctorRepository.create({ userId: doctorUserId, crmNumber: '11111/SP', clinicId: SEED_CLINIC_ID })
-    doctorEntity.specialties = [cardiologia]
+    const doctorEntity = doctorRepository.create({ userId: doctorUserId, clinicId: SEED_CLINIC_ID })
+    doctorEntity.crms = [{ clinicId: SEED_CLINIC_ID, number: '11111', state: 'SP', isPrimary: true }] as any
+    doctorEntity.doctorSpecialties = ([cardiologia]).map((s: any) => ({ specialtyId: s.id, rqe: null })) as any
     const doctorProfile = await doctorRepository.save(doctorEntity)
     doctorId = doctorProfile.id
 
     const otherDoctorEntity = doctorRepository.create({
       userId: otherDoctorUserRecord.id,
-      crmNumber: '22222/SP',
       clinicId: SEED_CLINIC_ID,
     })
-    otherDoctorEntity.specialties = [neurologia]
+    otherDoctorEntity.crms = [{ clinicId: SEED_CLINIC_ID, number: '22222', state: 'SP', isPrimary: true }] as any
+    otherDoctorEntity.doctorSpecialties = ([neurologia]).map((s: any) => ({ specialtyId: s.id, rqe: null })) as any
     const otherDoctorProfile = await doctorRepository.save(otherDoctorEntity)
     otherDoctorId = otherDoctorProfile.id
 

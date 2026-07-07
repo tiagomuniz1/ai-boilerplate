@@ -19,6 +19,7 @@ import type { IApiError } from '@/types/api.types'
 
 export interface AtestadoSectionProps {
   appointmentId: string
+  doctorId: string
   canManage: boolean
   userRole: UserRole
 }
@@ -46,7 +47,7 @@ function atestadoDetail(atestado: IAtestadoModel): string | null {
   return null
 }
 
-export function AtestadoSection({ appointmentId, canManage, userRole }: AtestadoSectionProps) {
+export function AtestadoSection({ appointmentId, doctorId, canManage, userRole }: AtestadoSectionProps) {
   const [showForm, setShowForm] = useState(false)
   const [deletingId, setDeletingId] = useState<string | null>(null)
   const [previewAtestado, setPreviewAtestado] = useState<IAtestadoModel | null>(null)
@@ -192,6 +193,7 @@ export function AtestadoSection({ appointmentId, canManage, userRole }: Atestado
       >
         <AtestadoForm
           appointmentId={appointmentId}
+          doctorId={doctorId}
           isPending={isCreating}
           globalError={createGlobalError}
           onSubmit={handleCreate}

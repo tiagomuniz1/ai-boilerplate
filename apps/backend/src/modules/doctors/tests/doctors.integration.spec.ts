@@ -107,8 +107,9 @@ describe('DoctorsController (integration)', () => {
     )
     doctorToken = await loginUser('doctor@doctors.test', password)
 
-    const doctorEntity = doctorRepository.create({ userId: doctorUser.id, crmNumber: '99999/SP', clinicId: SEED_CLINIC_ID })
-    doctorEntity.specialties = [defaultSpecialty]
+    const doctorEntity = doctorRepository.create({ userId: doctorUser.id, clinicId: SEED_CLINIC_ID })
+    doctorEntity.crms = [{ clinicId: SEED_CLINIC_ID, number: '99999', state: 'SP', isPrimary: true }] as any
+    doctorEntity.doctorSpecialties = [{ specialtyId: defaultSpecialty.id, rqe: null }] as any
     const doctorProfile = await doctorRepository.save(doctorEntity)
     doctorProfileId = doctorProfile.id
 
@@ -140,6 +141,7 @@ describe('DoctorsController (integration)', () => {
   afterEach(async () => {
     await doctorRepository.query('DELETE FROM test.schedules')
     await doctorRepository.query('DELETE FROM test.doctor_specialties')
+    await doctorRepository.query('DELETE FROM test.doctor_crms')
     await doctorRepository.query('DELETE FROM test.doctors')
     await doctorRepository.query('DELETE FROM test.patients')
     await specialtyRepository.query('DELETE FROM test.specialties')
@@ -163,17 +165,26 @@ describe('DoctorsController (integration)', () => {
     )
   }
 
+  function crmToArray(crmNumber: string) {
+    const [number, state] = crmNumber.split('/')
+    return [{ number, state, isPrimary: true }]
+  }
+
   function makePayload(userId: string, overrides: Partial<{
     crmNumber: string
     specialtyIds: string[]
     bio: string
   }> = {}) {
-    return {
+    const payload: Record<string, unknown> = {
       userId,
-      crmNumber: '12345/SP',
-      specialtyIds: [defaultSpecialtyId],
-      ...overrides,
+      crms: overrides.crmNumber !== undefined ? crmToArray(overrides.crmNumber) : [{ number: '12345', state: 'SP', isPrimary: true }],
+      specialties:
+        overrides.specialtyIds !== undefined
+          ? overrides.specialtyIds.map((specialtyId) => ({ specialtyId }))
+          : [{ specialtyId: defaultSpecialtyId }],
     }
+    if (overrides.bio !== undefined) payload.bio = overrides.bio
+    return payload
   }
 
   function createDoctor(userId: string, overrides = {}) {
@@ -194,10 +205,12 @@ describe('DoctorsController (integration)', () => {
       expect(body.user.id).toBe(targetUser.id)
       expect(body.user.fullName).toBe(targetUser.fullName)
       expect(body.user.email).toBe(targetUser.email)
-      expect(body.crmNumber).toBe(payload.crmNumber)
+      expect(body.crms).toHaveLength(1)
+      expect(body.crms[0]).toMatchObject({ number: '12345', state: 'SP', isPrimary: true })
       expect(body.specialties).toHaveLength(1)
       expect(body.specialties[0].id).toBe(defaultSpecialtyId)
       expect(body.specialties[0].name).toBe('Cardiologia')
+      expect(body.specialties[0].rqe).toBeNull()
       expect(body.bio).toBeNull()
       expect(body.createdAt).toBeDefined()
       expect(body.updatedAt).toBeDefined()
@@ -508,13 +521,14 @@ describe('DoctorsController (integration)', () => {
       const { body } = await request(app.getHttpServer())
         .patch(`/doctors/${created.id}`)
         .set('Authorization', `Bearer ${accessToken}`)
-        .send({ specialtyIds: [neurology.id] })
+        .send({ specialties: [{ specialtyId: neurology.id, rqe: '7788' }] })
         .expect(200)
 
       expect(body.id).toBe(created.id)
       expect(body.specialties).toHaveLength(1)
       expect(body.specialties[0].name).toBe('Neurologia')
-      expect(body.crmNumber).toBe(created.crmNumber)
+      expect(body.specialties[0].rqe).toBe('7788')
+      expect(body.crms).toEqual(created.crms)
     })
 
     it('replaces specialties completely when specialtyIds is provided', async () => {
@@ -531,7 +545,7 @@ describe('DoctorsController (integration)', () => {
       const { body } = await request(app.getHttpServer())
         .patch(`/doctors/${created.id}`)
         .set('Authorization', `Bearer ${accessToken}`)
-        .send({ specialtyIds: [defaultSpecialtyId] })
+        .send({ specialties: [{ specialtyId: defaultSpecialtyId }] })
         .expect(200)
 
       expect(body.specialties).toHaveLength(1)
@@ -569,7 +583,7 @@ describe('DoctorsController (integration)', () => {
       await request(app.getHttpServer())
         .patch(`/doctors/${d2.id}`)
         .set('Authorization', `Bearer ${accessToken}`)
-        .send({ crmNumber: '11111/SP' })
+        .send({ crms: [{ number: '11111', state: 'SP', isPrimary: true }] })
         .expect(409)
     })
 
@@ -580,7 +594,7 @@ describe('DoctorsController (integration)', () => {
       await request(app.getHttpServer())
         .patch(`/doctors/${created.id}`)
         .set('Authorization', `Bearer ${accessToken}`)
-        .send({ specialtyIds: [faker.string.uuid()] })
+        .send({ specialties: [{ specialtyId: faker.string.uuid() }] })
         .expect(422)
     })
 
@@ -591,7 +605,7 @@ describe('DoctorsController (integration)', () => {
       await request(app.getHttpServer())
         .patch(`/doctors/${created.id}`)
         .set('Authorization', `Bearer ${accessToken}`)
-        .send({ crmNumber: 'INVALID' })
+        .send({ crms: [{ number: 'INVALID', state: 'SP', isPrimary: true }] })
         .expect(400)
     })
 

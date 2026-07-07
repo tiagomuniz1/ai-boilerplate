@@ -21,14 +21,21 @@ const descriptionField = z
   .max(500, 'Descrição deve ter no máximo 500 caracteres')
   .optional()
 
+const titleNameField = z
+  .string()
+  .max(100, 'Título deve ter no máximo 100 caracteres')
+  .default('')
+
 const createSchema = z.object({
   name: nameField,
   description: descriptionField,
+  titleName: titleNameField,
 })
 
 const updateSchema = z.object({
   name: nameField.optional().or(z.literal('')),
   description: descriptionField,
+  titleName: titleNameField,
 })
 
 type CreateFormValues = z.infer<typeof createSchema>
@@ -76,7 +83,11 @@ function SpecialtyFormCreate({ isPending, globalError, onSubmit }: SpecialtyForm
 
   function handleFormSubmit(data: CreateFormValues) {
     onSubmit(
-      { name: data.name, description: data.description || undefined },
+      {
+        name: data.name,
+        description: data.description || undefined,
+        titleName: data.titleName.trim() || undefined,
+      },
       setError as (field: keyof ICreateSpecialtyInput, error: { message: string }) => void,
     )
   }
@@ -96,6 +107,15 @@ function SpecialtyFormCreate({ isPending, globalError, onSubmit }: SpecialtyForm
           data-testid="specialty-form-name"
           error={errors.name?.message}
           {...register('name')}
+        />
+
+        <Input
+          label="Título do especialista"
+          id="titleName"
+          data-testid="specialty-form-title-name"
+          helperText='Nome da profissão exibido em receitas, atestados e exames (ex.: "mastologista"). Se vazio, usa o nome da especialidade.'
+          error={errors.titleName?.message}
+          {...register('titleName')}
         />
 
         <TextAreaField
@@ -137,6 +157,7 @@ function SpecialtyFormEdit({ defaultValues, isPending, globalError, onSubmit }: 
     reset({
       name: defaultValues.name,
       description: defaultValues.description ?? '',
+      titleName: defaultValues.titleName ?? '',
     })
     setClearDescription(false)
   }, [defaultValues, reset])
@@ -145,6 +166,7 @@ function SpecialtyFormEdit({ defaultValues, isPending, globalError, onSubmit }: 
     const input: IUpdateSpecialtyInput = {
       name: data.name || undefined,
       description: clearDescription ? null : data.description || undefined,
+      titleName: data.titleName.trim() ? data.titleName.trim() : null,
     }
     onSubmit(
       input,
@@ -167,6 +189,15 @@ function SpecialtyFormEdit({ defaultValues, isPending, globalError, onSubmit }: 
           data-testid="specialty-form-name"
           error={errors.name?.message}
           {...register('name')}
+        />
+
+        <Input
+          label="Título do especialista"
+          id="titleName"
+          data-testid="specialty-form-title-name"
+          helperText='Nome da profissão exibido em receitas, atestados e exames (ex.: "mastologista"). Se vazio, usa o nome da especialidade.'
+          error={errors.titleName?.message}
+          {...register('titleName')}
         />
 
         <div className="flex flex-col gap-1.5">

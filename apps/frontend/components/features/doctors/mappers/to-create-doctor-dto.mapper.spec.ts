@@ -3,8 +3,11 @@ import { toCreateDoctorDto } from './to-create-doctor-dto.mapper'
 describe('toCreateDoctorDto', () => {
   const input = {
     userId: 'user-uuid-1',
-    crmNumber: '12345/SP',
-    specialtyIds: ['spec-uuid-1', 'spec-uuid-2'],
+    crms: [{ number: '12345', state: 'SP', isPrimary: true }],
+    specialties: [
+      { specialtyId: 'spec-uuid-1', rqe: '6789' },
+      { specialtyId: 'spec-uuid-2', rqe: undefined },
+    ],
     bio: 'Bio do médico.',
   }
 
@@ -12,8 +15,8 @@ describe('toCreateDoctorDto', () => {
     const dto = toCreateDoctorDto(input)
 
     expect(dto.userId).toBe(input.userId)
-    expect(dto.crmNumber).toBe(input.crmNumber)
-    expect(dto.specialtyIds).toEqual(input.specialtyIds)
+    expect(dto.crms).toEqual(input.crms)
+    expect(dto.specialties).toEqual(input.specialties)
     expect(dto.bio).toBe(input.bio)
   })
 
@@ -27,8 +30,8 @@ describe('toCreateDoctorDto', () => {
     const newUserInput = {
       fullName: 'Maria Áurea de Andrade Borba',
       email: 'maria.aurea@example.com',
-      crmNumber: '28250/PE',
-      specialtyIds: ['spec-uuid-1'],
+      crms: [{ number: '28250', state: 'PE', isPrimary: true }],
+      specialties: [{ specialtyId: 'spec-uuid-1' }],
       bio: 'Bio da médica.',
     }
 
@@ -37,6 +40,6 @@ describe('toCreateDoctorDto', () => {
     expect(dto.fullName).toBe(newUserInput.fullName)
     expect(dto.email).toBe(newUserInput.email)
     expect(dto.userId).toBeUndefined()
-    expect(dto.crmNumber).toBe(newUserInput.crmNumber)
+    expect(dto.crms).toEqual(newUserInput.crms)
   })
 })

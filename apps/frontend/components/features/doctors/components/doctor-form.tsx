@@ -13,18 +13,39 @@ import { UserRole } from '@app/shared'
 import { useAuthStore } from '@/stores/auth.store'
 import { userService } from '@/components/features/users/services/users.service'
 import { clinicSpecialtiesService } from '@/components/features/clinic-specialties/services/clinic-specialties.service'
-import type { ICreateDoctorInput, IUpdateDoctorInput } from '../types/doctor-input.types'
+import type { ICreateDoctorInput, IDoctorCrmInput, IUpdateDoctorInput } from '../types/doctor-input.types'
 import type { IDoctorModel } from '../types/doctor-model.types'
 
-const crmRegex = /^\d{1,6}\/[A-Z]{2}$/
+const BRAZILIAN_STATES = [
+  'AC', 'AL', 'AP', 'AM', 'BA', 'CE', 'DF', 'ES', 'GO', 'MA', 'MT', 'MS', 'MG',
+  'PA', 'PB', 'PR', 'PE', 'PI', 'RJ', 'RN', 'RS', 'RO', 'RR', 'SC', 'SP', 'SE', 'TO',
+]
 
-const crmField = z
-  .string()
-  .min(1, 'CRM obrigatório')
-  .regex(crmRegex, 'CRM inválido. Use o formato NNNNN/UF (ex: 12345/SP)')
+const crmsField = z
+  .array(
+    z.object({
+      number: z.string(),
+      state: z.string(),
+      isPrimary: z.boolean(),
+    }),
+  )
+  .min(1, 'Informe ao menos um CRM')
+  .refine(
+    (crms) => crms.every((crm) => /^\d{1,6}$/.test(crm.number) && /^[A-Z]{2}$/.test(crm.state)),
+    'Preencha número e UF de todos os CRMs',
+  )
 
-const specialtyIdsField = z
-  .array(z.string().uuid())
+const specialtiesField = z
+  .array(
+    z.object({
+      specialtyId: z.string().uuid(),
+      rqe: z
+        .string()
+        .regex(/^\d{1,10}$/, 'RQE deve conter apenas dígitos')
+        .optional()
+        .or(z.literal('')),
+    }),
+  )
   .min(1, 'Selecione ao menos uma especialidade')
 
 const bioField = z.string().max(500, 'Bio deve ter no máximo 500 caracteres').optional()
@@ -35,8 +56,8 @@ const createSchema = z
     userId: z.string().optional(),
     fullName: z.string().optional(),
     email: z.string().optional(),
-    crmNumber: crmField,
-    specialtyIds: specialtyIdsField,
+    crms: crmsField,
+    specialties: specialtiesField,
     bio: bioField,
   })
   .superRefine((data, ctx) => {
@@ -54,8 +75,8 @@ const createSchema = z
   })
 
 const updateSchema = z.object({
-  crmNumber: crmField.optional().or(z.literal('')),
-  specialtyIds: specialtyIdsField,
+  crms: crmsField,
+  specialties: specialtiesField,
   bio: bioField,
   isActive: z.boolean(),
 })
@@ -63,6 +84,19 @@ const updateSchema = z.object({
 type CreateFormValues = z.infer<typeof createSchema>
 type UpdateFormValues = z.infer<typeof updateSchema>
 
+type SpecialtyValue = { specialtyId: string; rqe?: string }
+
+function fieldArrayError(error: unknown): string | undefined {
+  const err = error as { message?: string; root?: { message?: string } } | undefined
+  return err?.message ?? err?.root?.message
+}
+
+function toDoctorSpecialtiesInput(specialties: SpecialtyValue[]) {
+  return specialties.map((specialty) => ({
+    specialtyId: specialty.specialtyId,
+    rqe: specialty.rqe ? specialty.rqe : undefined,
+  }))
+}
 
 interface DoctorFormCreateProps {
   mode: 'create'
@@ -108,10 +142,15 @@ function DoctorFormCreate({ isPending, globalError, onSubmit }: DoctorFormCreate
     formState: { errors },
   } = useForm<CreateFormValues>({
     resolver: zodResolver(createSchema),
-    defaultValues: { userMode: 'existing', specialtyIds: [] },
+    defaultValues: {
+      userMode: 'existing',
+      crms: [{ number: '', state: '', isPrimary: true }],
+      specialties: [],
+    },
   })
 
-  const { field: specialtyField } = useController({ name: 'specialtyIds', control })
+  const { field: crmsFieldCtl } = useController({ name: 'crms', control })
+  const { field: specialtyField } = useController({ name: 'specialties', control })
   const { field: userModeField } = useController({ name: 'userMode', control })
 
   const userMode = watch('userMode')
@@ -130,18 +169,35 @@ function DoctorFormCreate({ isPending, globalError, onSubmit }: DoctorFormCreate
   function handleFormSubmit(data: CreateFormValues) {
     const input: ICreateDoctorInput =
       data.userMode === 'existing'
-        ? { userId: data.userId, crmNumber: data.crmNumber, specialtyIds: data.specialtyIds, bio: data.bio || undefined }
-        : { fullName: data.fullName, email: data.email, crmNumber: data.crmNumber, specialtyIds: data.specialtyIds, bio: data.bio || undefined }
+        ? {
+            userId: data.userId,
+            crms: data.crms,
+            specialties: toDoctorSpecialtiesInput(data.specialties),
+            bio: data.bio || undefined,
+          }
+        : {
+            fullName: data.fullName,
+            email: data.email,
+            crms: data.crms,
+            specialties: toDoctorSpecialtiesInput(data.specialties),
+            bio: data.bio || undefined,
+          }
     onSubmit(input, setError as (field: keyof ICreateDoctorInput, error: { message: string }) => void)
   }
 
   function toggleSpecialty(id: string) {
-    const current = specialtyField.value
-    if (current.includes(id)) {
-      specialtyField.onChange(current.filter((v) => v !== id))
+    const current = specialtyField.value as SpecialtyValue[]
+    if (current.some((s) => s.specialtyId === id)) {
+      specialtyField.onChange(current.filter((s) => s.specialtyId !== id))
     } else {
-      specialtyField.onChange([...current, id])
+      specialtyField.onChange([...current, { specialtyId: id, rqe: '' }])
     }
+  }
+
+  function changeRqe(id: string, value: string) {
+    const digits = value.replace(/\D/g, '').slice(0, 10)
+    const current = specialtyField.value as SpecialtyValue[]
+    specialtyField.onChange(current.map((s) => (s.specialtyId === id ? { ...s, rqe: digits } : s)))
   }
 
   return (
@@ -203,21 +259,19 @@ function DoctorFormCreate({ isPending, globalError, onSubmit }: DoctorFormCreate
           </>
         )}
 
-        <Input
-          label="CRM"
-          id="crmNumber"
-          placeholder="12345/SP"
-          data-testid="doctor-form-crm"
-          error={errors.crmNumber?.message}
-          {...register('crmNumber')}
+        <CrmListField
+          value={crmsFieldCtl.value as IDoctorCrmInput[]}
+          onChange={crmsFieldCtl.onChange}
+          error={fieldArrayError(errors.crms)}
         />
 
         <SpecialtyCheckboxGroup
           specialties={specialties}
-          selectedIds={specialtyField.value}
+          value={specialtyField.value as SpecialtyValue[]}
           isLoading={isLoadingSpecialties}
-          error={errors.specialtyIds?.message as string | undefined}
+          error={fieldArrayError(errors.specialties)}
           onToggle={toggleSpecialty}
+          onRqeChange={changeRqe}
         />
 
         <TextAreaField
@@ -257,12 +311,14 @@ function DoctorFormEdit({ defaultValues, isPending, globalError, onSubmit }: Doc
   } = useForm<UpdateFormValues>({
     resolver: zodResolver(updateSchema),
     defaultValues: {
-      specialtyIds: defaultValues.specialties.map((s) => s.id),
+      crms: defaultValues.crms.map((c) => ({ number: c.number, state: c.state, isPrimary: c.isPrimary })),
+      specialties: defaultValues.specialties.map((s) => ({ specialtyId: s.id, rqe: s.rqe ?? '' })),
       isActive: defaultValues.user.isActive,
     },
   })
 
-  const { field: specialtyField } = useController({ name: 'specialtyIds', control })
+  const { field: crmsFieldCtl } = useController({ name: 'crms', control })
+  const { field: specialtyField } = useController({ name: 'specialties', control })
 
   const { data: clinicSpecialtiesResponse, isPending: isLoadingSpecialties } = useQuery({
     queryKey: ['clinic-specialties-for-select', clinicId],
@@ -277,8 +333,8 @@ function DoctorFormEdit({ defaultValues, isPending, globalError, onSubmit }: Doc
 
   useEffect(() => {
     reset({
-      crmNumber: defaultValues.crmNumber,
-      specialtyIds: defaultValues.specialties.map((s) => s.id),
+      crms: defaultValues.crms.map((c) => ({ number: c.number, state: c.state, isPrimary: c.isPrimary })),
+      specialties: defaultValues.specialties.map((s) => ({ specialtyId: s.id, rqe: s.rqe ?? '' })),
       bio: defaultValues.bio ?? '',
       isActive: defaultValues.user.isActive,
     })
@@ -286,8 +342,8 @@ function DoctorFormEdit({ defaultValues, isPending, globalError, onSubmit }: Doc
 
   function handleFormSubmit(data: UpdateFormValues) {
     const input: IUpdateDoctorInput = {
-      crmNumber: data.crmNumber || undefined,
-      specialtyIds: data.specialtyIds,
+      crms: data.crms,
+      specialties: toDoctorSpecialtiesInput(data.specialties),
       bio: data.bio || undefined,
       isActive: isAdmin ? data.isActive : undefined,
     }
@@ -298,12 +354,18 @@ function DoctorFormEdit({ defaultValues, isPending, globalError, onSubmit }: Doc
   }
 
   function toggleSpecialty(id: string) {
-    const current = specialtyField.value
-    if (current.includes(id)) {
-      specialtyField.onChange(current.filter((v) => v !== id))
+    const current = specialtyField.value as SpecialtyValue[]
+    if (current.some((s) => s.specialtyId === id)) {
+      specialtyField.onChange(current.filter((s) => s.specialtyId !== id))
     } else {
-      specialtyField.onChange([...current, id])
+      specialtyField.onChange([...current, { specialtyId: id, rqe: '' }])
     }
+  }
+
+  function changeRqe(id: string, value: string) {
+    const digits = value.replace(/\D/g, '').slice(0, 10)
+    const current = specialtyField.value as SpecialtyValue[]
+    specialtyField.onChange(current.map((s) => (s.specialtyId === id ? { ...s, rqe: digits } : s)))
   }
 
   return (
@@ -326,21 +388,19 @@ function DoctorFormEdit({ defaultValues, isPending, globalError, onSubmit }: Doc
           <p className="text-xs text-text-mute">O usuário vinculado não pode ser alterado.</p>
         </div>
 
-        <Input
-          label="CRM"
-          id="crmNumber"
-          placeholder="12345/SP"
-          data-testid="doctor-form-crm"
-          error={errors.crmNumber?.message}
-          {...register('crmNumber')}
+        <CrmListField
+          value={crmsFieldCtl.value as IDoctorCrmInput[]}
+          onChange={crmsFieldCtl.onChange}
+          error={fieldArrayError(errors.crms)}
         />
 
         <SpecialtyCheckboxGroup
           specialties={specialties}
-          selectedIds={specialtyField.value}
+          value={specialtyField.value as SpecialtyValue[]}
           isLoading={isLoadingSpecialties}
-          error={errors.specialtyIds?.message as string | undefined}
+          error={fieldArrayError(errors.specialties)}
           onToggle={toggleSpecialty}
+          onRqeChange={changeRqe}
         />
 
         <TextAreaField
@@ -377,19 +437,131 @@ function DoctorFormEdit({ defaultValues, isPending, globalError, onSubmit }: Doc
   )
 }
 
+function CrmListField({
+  value,
+  onChange,
+  error,
+}: {
+  value: IDoctorCrmInput[]
+  onChange: (value: IDoctorCrmInput[]) => void
+  error?: string
+}) {
+  function setNumber(index: number, raw: string) {
+    const number = raw.replace(/\D/g, '').slice(0, 6)
+    onChange(value.map((crm, idx) => (idx === index ? { ...crm, number } : crm)))
+  }
+
+  function setState(index: number, raw: string) {
+    const state = raw.replace(/[^A-Za-z]/g, '').toUpperCase().slice(0, 2)
+    onChange(value.map((crm, idx) => (idx === index ? { ...crm, state } : crm)))
+  }
+
+  function setPrimary(index: number) {
+    onChange(value.map((crm, idx) => ({ ...crm, isPrimary: idx === index })))
+  }
+
+  function addCrm() {
+    onChange([...value, { number: '', state: '', isPrimary: value.length === 0 }])
+  }
+
+  function removeCrm(index: number) {
+    const next = value.filter((_, idx) => idx !== index)
+    if (next.length > 0 && !next.some((crm) => crm.isPrimary)) {
+      next[0] = { ...next[0], isPrimary: true }
+    }
+    onChange(next)
+  }
+
+  return (
+    <div className="flex flex-col gap-1.5" data-testid="doctor-form-crm-group">
+      <label className="text-sm font-medium text-text">CRM</label>
+      <div className="flex flex-col gap-2">
+        {value.map((crm, index) => (
+          <div key={index} className="flex items-center gap-2" data-testid={`doctor-form-crm-row-${index}`}>
+            <input
+              type="text"
+              inputMode="numeric"
+              autoComplete="off"
+              maxLength={6}
+              placeholder="12345"
+              value={crm.number}
+              onChange={(e) => setNumber(index, e.target.value)}
+              data-testid={`doctor-form-crm-number-${index}`}
+              className="h-10 w-28 rounded-md border border-line bg-surface px-3 text-base text-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+            />
+            <select
+              value={crm.state}
+              onChange={(e) => setState(index, e.target.value)}
+              data-testid={`doctor-form-crm-state-${index}`}
+              className="h-10 w-20 rounded-md border border-line bg-surface px-2 text-base text-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+            >
+              <option value="">UF</option>
+              {BRAZILIAN_STATES.map((uf) => (
+                <option key={uf} value={uf}>
+                  {uf}
+                </option>
+              ))}
+            </select>
+            <label className="flex cursor-pointer items-center gap-1.5 text-sm text-text">
+              <input
+                type="radio"
+                name="primary-crm"
+                checked={crm.isPrimary}
+                onChange={() => setPrimary(index)}
+                data-testid={`doctor-form-crm-primary-${index}`}
+                className="accent-accent"
+              />
+              Principal
+            </label>
+            {value.length > 1 && (
+              <button
+                type="button"
+                onClick={() => removeCrm(index)}
+                data-testid={`doctor-form-crm-remove-${index}`}
+                className="text-sm text-danger hover:underline"
+              >
+                Remover
+              </button>
+            )}
+          </div>
+        ))}
+      </div>
+      <button
+        type="button"
+        onClick={addCrm}
+        data-testid="doctor-form-crm-add"
+        className="self-start text-sm text-accent hover:underline"
+      >
+        + Adicionar CRM
+      </button>
+      {error && (
+        <span role="alert" className="text-xs text-danger">
+          {error}
+        </span>
+      )}
+    </div>
+  )
+}
+
 function SpecialtyCheckboxGroup({
   specialties,
-  selectedIds,
+  value,
   isLoading,
   error,
   onToggle,
+  onRqeChange,
 }: {
   specialties: Array<{ id: string; name: string }>
-  selectedIds: string[]
+  value: SpecialtyValue[]
   isLoading: boolean
   error?: string
   onToggle: (id: string) => void
+  onRqeChange: (id: string, value: string) => void
 }) {
+  function rqeFor(id: string): string {
+    return value.find((s) => s.specialtyId === id)?.rqe ?? ''
+  }
+
   return (
     <div className="flex flex-col gap-1.5" data-testid="doctor-form-specialty-group">
       <label className="text-sm font-medium text-text">Especialidades</label>
@@ -400,7 +572,7 @@ function SpecialtyCheckboxGroup({
       ) : (
         <div
           className={cn(
-            'max-h-48 overflow-y-auto rounded-md border p-3',
+            'max-h-64 overflow-y-auto rounded-md border p-3',
             'bg-surface',
             error ? 'border-danger' : 'border-line',
           )}
@@ -408,21 +580,36 @@ function SpecialtyCheckboxGroup({
           {specialties.length === 0 ? (
             <p className="text-sm text-text-mute">Nenhuma especialidade cadastrada.</p>
           ) : (
-            specialties.map((specialty) => (
-              <label
-                key={specialty.id}
-                className="flex cursor-pointer items-center gap-2 rounded px-1 py-1.5 text-sm text-text hover:bg-surface-2"
-              >
-                <input
-                  type="checkbox"
-                  checked={selectedIds.includes(specialty.id)}
-                  onChange={() => onToggle(specialty.id)}
-                  data-testid={`doctor-form-specialty-${specialty.id}`}
-                  className="accent-accent"
-                />
-                {specialty.name}
-              </label>
-            ))
+            specialties.map((specialty) => {
+              const checked = value.some((s) => s.specialtyId === specialty.id)
+              return (
+                <div key={specialty.id} className="flex flex-col gap-1 rounded px-1 py-1.5">
+                  <label className="flex cursor-pointer items-center gap-2 text-sm text-text hover:bg-surface-2">
+                    <input
+                      type="checkbox"
+                      checked={checked}
+                      onChange={() => onToggle(specialty.id)}
+                      data-testid={`doctor-form-specialty-${specialty.id}`}
+                      className="accent-accent"
+                    />
+                    {specialty.name}
+                  </label>
+                  {checked && (
+                    <input
+                      type="text"
+                      inputMode="numeric"
+                      autoComplete="off"
+                      maxLength={10}
+                      placeholder="RQE (opcional)"
+                      value={rqeFor(specialty.id)}
+                      onChange={(e) => onRqeChange(specialty.id, e.target.value)}
+                      data-testid={`doctor-form-rqe-${specialty.id}`}
+                      className="ml-6 h-9 w-40 rounded-md border border-line bg-surface px-3 text-sm text-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+                    />
+                  )}
+                </div>
+              )
+            })
           )}
         </div>
       )}

@@ -8,6 +8,8 @@ export interface ICreatePrescriptionItemInput {
 
 export interface ICreatePrescriptionInput {
   appointmentId: string
+  crmId?: string
+  specialtyId?: string
   items: ICreatePrescriptionItemInput[]
   notes?: string
 }

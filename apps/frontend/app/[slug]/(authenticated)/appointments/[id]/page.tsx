@@ -182,6 +182,7 @@ export default function AppointmentDetailPage() {
               {activeTab === 'receitas' && canManage && (
                 <PrescriptionSection
                   appointmentId={id}
+                  doctorId={appointment.doctorId}
                   canManage={canManage}
                   userRole={role}
                 />
@@ -190,6 +191,7 @@ export default function AppointmentDetailPage() {
               {activeTab === 'atestados' && canManage && (
                 <AtestadoSection
                   appointmentId={id}
+                  doctorId={appointment.doctorId}
                   canManage={canManage}
                   userRole={role}
                 />
@@ -198,6 +200,7 @@ export default function AppointmentDetailPage() {
               {activeTab === 'exames' && canManage && (
                 <ExameSection
                   appointmentId={id}
+                  doctorId={appointment.doctorId}
                   canManage={canManage}
                   userRole={role}
                 />

@@ -4,6 +4,15 @@
 
 ### Added
 
+#### Seleção de CRM/especialidade ao emitir receita, atestado e exame
+- Componente reutilizável `DoctorSignatureSelect` nos formulários de receita, atestado e exame — seletor de **CRM** (default "CRM principal") e de **especialidade** ("assinar como", trazendo o RQE de cada uma); só aparece quando o médico tem mais de uma opção
+- Envia `crmId`/`specialtyId` ao backend apenas quando alterados; default mantém CRM primário + especialidade da consulta
+
+#### Título do especialista no cadastro de especialidade
+- Campo opcional "Título do especialista" no formulário de especialidade (ex.: "mastologista") — usado nos documentos; exibido nos detalhes quando preenchido
+- `titleName` propagado em tipos, mappers e no modelo de especialidade
+- Cobertura de testes de integração 100% nos componentes novos/alterados
+
 #### Página Pública de Verificação de Receita
 - Rota pública `/[slug]/verify/prescriptions/[token]` (grupo `(public)`, sem autenticação) aberta ao bipar o QR Code do PDF da receita
 - Exibe os dados autoritativos da receita — clínica, médico (nome/CRM/especialidade), paciente mascarado e as medicações (nome/princípio ativo/dosagem/quantidade); **não** exibe posologia nem observações

@@ -1,4 +1,42 @@
-import { ArrayMinSize, IsArray, IsEmail, IsOptional, IsString, IsUUID, Matches, MaxLength, MinLength, ValidateIf } from 'class-validator'
+import { Type } from 'class-transformer'
+import {
+  ArrayMinSize,
+  IsArray,
+  IsBoolean,
+  IsEmail,
+  IsOptional,
+  IsString,
+  IsUUID,
+  Matches,
+  MaxLength,
+  MinLength,
+  ValidateIf,
+  ValidateNested,
+} from 'class-validator'
+
+export class DoctorCrmInputDto {
+  @IsString()
+  @Matches(/^\d{1,6}$/, { message: 'CRM number must contain only digits (e.g., 12345)' })
+  number!: string
+
+  @IsString()
+  @Matches(/^[A-Z]{2}$/, { message: 'CRM state must be a two-letter UF (e.g., SP)' })
+  state!: string
+
+  @IsBoolean()
+  isPrimary!: boolean
+}
+
+export class DoctorSpecialtyInputDto {
+  @IsUUID('4')
+  specialtyId!: string
+
+  @IsOptional()
+  @IsString()
+  @Matches(/^\d{1,10}$/, { message: 'RQE must contain only digits' })
+  @MaxLength(10)
+  rqe?: string
+}
 
 export class CreateDoctorDto {
   @IsOptional()
@@ -15,14 +53,17 @@ export class CreateDoctorDto {
   @IsEmail()
   email?: string
 
-  @IsString()
-  @Matches(/^\d{1,6}\/[A-Z]{2}$/, { message: 'crmNumber must be in the format NNNNN/UF (e.g., 12345/SP)' })
-  crmNumber!: string
+  @IsArray()
+  @ArrayMinSize(1)
+  @ValidateNested({ each: true })
+  @Type(() => DoctorCrmInputDto)
+  crms!: DoctorCrmInputDto[]
 
   @IsArray()
-  @IsUUID('4', { each: true })
   @ArrayMinSize(1)
-  specialtyIds!: string[]
+  @ValidateNested({ each: true })
+  @Type(() => DoctorSpecialtyInputDto)
+  specialties!: DoctorSpecialtyInputDto[]
 
   @IsOptional()
   @IsString()

@@ -7,13 +7,13 @@ import { toDoctorModel } from '../mappers/to-doctor-model.mapper'
 import { toUpdateDoctorDto } from '../mappers/to-update-doctor-dto.mapper'
 import { updateDoctorUseCase } from './update-doctor.use-case'
 
-const input = { specialtyIds: ['spec-uuid-2'] }
+const input = { specialties: [{ specialtyId: 'spec-uuid-2' }] }
 
 const makeDto = () => ({
   id: 'uuid-1',
   user: { id: 'user-uuid-1', fullName: 'Dr. João', email: 'joao@example.com' },
-  crmNumber: '12345/SP',
-  specialties: [{ id: 'spec-uuid-2', name: 'Neurologia' }],
+  crms: [{ id: 'crm-uuid-1', number: '12345', state: 'SP', isPrimary: true }],
+  specialties: [{ id: 'spec-uuid-2', name: 'Neurologia', rqe: null }],
   bio: null,
   createdAt: new Date(),
   updatedAt: new Date(),

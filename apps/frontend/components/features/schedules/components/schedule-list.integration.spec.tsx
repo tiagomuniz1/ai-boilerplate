@@ -49,7 +49,7 @@ const makePaginatedResponse = (items = [makeScheduleDto()]) => ({
 const makeDoctorDto = (overrides = {}) => ({
   id: 'doc-uuid-1',
   user: { id: 'user-uuid-1', fullName: 'Dr. João Silva', email: 'joao@example.com', isActive: true },
-  crmNumber: '12345/SP',
+  crms: [{ id: 'crm-1', number: '12345', state: 'SP', isPrimary: true }],
   specialties: [],
   bio: null,
   createdAt: '2025-01-01T10:00:00.000Z',

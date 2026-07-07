@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/atoms/button/button'
 import { Alert } from '@/components/ui/molecules/alert/alert'
 import { Modal } from '@/components/ui/organisms/modal/modal'
 import { useMedications } from '@/components/features/medications/hooks/use-medications.hook'
+import { DoctorSignatureSelect } from '@/components/features/doctors/components/doctor-signature-select'
 import { usePrescriptionTemplates } from '@/components/features/prescription-templates/hooks/use-prescription-templates.hook'
 import { useCreatePrescriptionTemplate } from '@/components/features/prescription-templates/hooks/use-create-prescription-template.hook'
 import type { IPrescriptionTemplateItemModel } from '@/components/features/prescription-templates/types/prescription-template-model.types'
@@ -33,6 +34,7 @@ type FormValues = z.infer<typeof schema>
 
 export interface PrescriptionFormProps {
   appointmentId: string
+  doctorId: string
   isPending: boolean
   globalError: string | null
   onSubmit: (input: ICreatePrescriptionInput) => void
@@ -50,8 +52,10 @@ function toFormItem(templateItem: IPrescriptionTemplateItemModel) {
   }
 }
 
-export function PrescriptionForm({ appointmentId, isPending, globalError, onSubmit }: PrescriptionFormProps) {
+export function PrescriptionForm({ appointmentId, doctorId, isPending, globalError, onSubmit }: PrescriptionFormProps) {
   const [search, setSearch] = useState('')
+  const [crmId, setCrmId] = useState('')
+  const [specialtyId, setSpecialtyId] = useState('')
   const [inputMode, setInputMode] = useState<'medication' | 'ingredient'>('medication')
   const [manualText, setManualText] = useState('')
   const [isLoadTemplateOpen, setIsLoadTemplateOpen] = useState(false)
@@ -131,6 +135,8 @@ export function PrescriptionForm({ appointmentId, isPending, globalError, onSubm
   function onFormSubmit(values: FormValues) {
     onSubmit({
       appointmentId,
+      ...(crmId ? { crmId } : {}),
+      ...(specialtyId ? { specialtyId } : {}),
       items: values.items.map((item) => ({
         ...(item.isManual
           ? { activeIngredientName: item.name }
@@ -389,6 +395,14 @@ export function PrescriptionForm({ appointmentId, isPending, globalError, onSubm
           <p role="alert" className="text-danger text-xs mt-0.5">{errors.notes.message}</p>
         )}
       </div>
+
+      <DoctorSignatureSelect
+        doctorId={doctorId}
+        crmId={crmId}
+        specialtyId={specialtyId}
+        onCrmIdChange={setCrmId}
+        onSpecialtyIdChange={setSpecialtyId}
+      />
 
       {globalError && (
         <Alert variant="error" data-testid="prescription-form-error">

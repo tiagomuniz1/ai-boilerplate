@@ -19,6 +19,17 @@ export class CreateMedicalCertificateDto {
   @IsUUID()
   appointmentId: string
 
+  // Optional: which of the doctor's CRMs to sign with. Defaults to the primary CRM.
+  @IsOptional()
+  @IsUUID()
+  crmId?: string
+
+  // Optional: which of the doctor's registered specialties to sign as (carries RQE and title).
+  // Defaults to the appointment's specialty.
+  @IsOptional()
+  @IsUUID()
+  specialtyId?: string
+
   @IsEnum(MedicalCertificateType)
   type: MedicalCertificateType
 

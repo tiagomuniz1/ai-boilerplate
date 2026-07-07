@@ -1,16 +1,21 @@
-import { ArrayMinSize, IsArray, IsBoolean, IsOptional, IsString, IsUUID, Matches, MaxLength } from 'class-validator'
+import { Type } from 'class-transformer'
+import { ArrayMinSize, IsArray, IsBoolean, IsOptional, IsString, MaxLength, ValidateNested } from 'class-validator'
+import { DoctorCrmInputDto, DoctorSpecialtyInputDto } from './create-doctor.dto'
 
 export class UpdateDoctorDto {
   @IsOptional()
-  @IsString()
-  @Matches(/^\d{1,6}\/[A-Z]{2}$/, { message: 'crmNumber must be in the format NNNNN/UF (e.g., 12345/SP)' })
-  crmNumber?: string
+  @IsArray()
+  @ArrayMinSize(1)
+  @ValidateNested({ each: true })
+  @Type(() => DoctorCrmInputDto)
+  crms?: DoctorCrmInputDto[]
 
   @IsOptional()
   @IsArray()
-  @IsUUID('4', { each: true })
   @ArrayMinSize(1)
-  specialtyIds?: string[]
+  @ValidateNested({ each: true })
+  @Type(() => DoctorSpecialtyInputDto)
+  specialties?: DoctorSpecialtyInputDto[]
 
   @IsOptional()
   @IsString()
@@ -20,5 +25,4 @@ export class UpdateDoctorDto {
   @IsOptional()
   @IsBoolean()
   isActive?: boolean
-
 }

@@ -14,7 +14,7 @@ const makePrescription = (overrides: Record<string, any> = {}) => ({
   snapshot: {
     issuedAt: '2026-01-05T10:00:00.000Z',
     clinic: { name: 'Clínica Saúde', address: null, logoUrl: null },
-    doctor: { name: 'Dr. João Silva', crmNumber: '12345/SP', specialtyName: 'Cardiologia' },
+    doctor: { name: 'Dr. João Silva', crmNumber: '12345/SP', rqe: null, specialtyName: 'Cardiologia' },
     patient: { name: 'Maria Santos', documentNumber: '12345678901' },
     items: [
       {
@@ -92,7 +92,7 @@ describe('VerifyPrescriptionUseCase', () => {
         snapshot: {
           issuedAt: '2026-01-05T10:00:00.000Z',
           clinic: { name: 'Clínica', address: null, logoUrl: null },
-          doctor: { name: 'Dr. X', crmNumber: '1/SP', specialtyName: null },
+          doctor: { name: 'Dr. X', crmNumber: '1/SP', rqe: null, specialtyName: null },
           patient: { name: 'Ana', documentNumber: '123' },
           items: [],
           notes: null,
@@ -111,7 +111,7 @@ describe('VerifyPrescriptionUseCase', () => {
         snapshot: {
           issuedAt: '2026-01-05T10:00:00.000Z',
           clinic: { name: 'Clínica', address: null, logoUrl: null },
-          doctor: { name: 'Dr. X', crmNumber: '1/SP', specialtyName: null },
+          doctor: { name: 'Dr. X', crmNumber: '1/SP', rqe: null, specialtyName: null },
           patient: { name: 'Cher', documentNumber: '12345678901' },
           items: [],
           notes: null,
@@ -130,7 +130,7 @@ describe('VerifyPrescriptionUseCase', () => {
         snapshot: {
           issuedAt: '2026-01-05T10:00:00.000Z',
           clinic: { name: 'Clínica', address: null, logoUrl: null },
-          doctor: { name: 'Dr. X', crmNumber: '1/SP', specialtyName: null },
+          doctor: { name: 'Dr. X', crmNumber: '1/SP', rqe: null, specialtyName: null },
           patient: { name: 'Ana Lima', documentNumber: '12345678901' },
           items: [{ medicationId: null, name: 'Amoxicilina', activeIngredient: null, instructions: 'Tomar' }],
           notes: null,

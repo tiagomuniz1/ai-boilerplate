@@ -7,6 +7,8 @@ export function toCreateAtestadoDto(input: ICreateAtestadoInput): CreateMedicalC
 
   return {
     appointmentId: input.appointmentId,
+    ...(input.crmId ? { crmId: input.crmId } : {}),
+    ...(input.specialtyId ? { specialtyId: input.specialtyId } : {}),
     type: input.type,
     ...(isLeave
       ? {

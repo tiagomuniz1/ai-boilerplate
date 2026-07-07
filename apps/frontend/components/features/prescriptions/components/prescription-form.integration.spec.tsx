@@ -1,15 +1,18 @@
 jest.mock('@/components/features/medications/services/medications.service')
 jest.mock('@/components/features/prescription-templates/services/prescription-templates.service')
+jest.mock('@/components/features/doctors/hooks/use-doctor.hook')
 
 import { screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { medicationsService } from '@/components/features/medications/services/medications.service'
 import { prescriptionTemplatesService } from '@/components/features/prescription-templates/services/prescription-templates.service'
+import { useDoctor } from '@/components/features/doctors/hooks/use-doctor.hook'
 import { renderWithProviders } from '@/tests/utils/render-with-providers'
 import { PrescriptionForm } from './prescription-form'
 
 const mockMedicationsService = medicationsService as jest.Mocked<typeof medicationsService>
 const mockPrescriptionTemplatesService = prescriptionTemplatesService as jest.Mocked<typeof prescriptionTemplatesService>
+const mockUseDoctor = useDoctor as jest.Mock
 
 const makeMedPage = (meds: object[] = []) => ({ data: meds, total: meds.length, page: 1, limit: 10 })
 const makeMed = (overrides: object = {}) => ({
@@ -43,9 +46,26 @@ const makeTemplateDto = (overrides: object = {}) => ({
 
 const defaultProps = {
   appointmentId: 'appt-uuid',
+  doctorId: 'doctor-uuid',
   isPending: false,
   globalError: null,
   onSubmit: jest.fn(),
+}
+
+const doctorWithSignatureOptions = {
+  id: 'doctor-uuid',
+  user: { id: 'user-uuid', fullName: 'Dr. Test', email: 'dr@example.com', isActive: true },
+  crms: [
+    { id: 'crm-1', number: '12345', state: 'SP', isPrimary: true },
+    { id: 'crm-2', number: '67890', state: 'RJ', isPrimary: false },
+  ],
+  specialties: [
+    { id: 'spec-1', name: 'Cardiologia', rqe: '111' },
+    { id: 'spec-2', name: 'Mastologia', rqe: '222' },
+  ],
+  bio: null,
+  createdAt: new Date(),
+  updatedAt: new Date(),
 }
 
 describe('PrescriptionForm (integration)', () => {
@@ -53,6 +73,7 @@ describe('PrescriptionForm (integration)', () => {
     jest.clearAllMocks()
     mockMedicationsService.getAll.mockResolvedValue(makeMedPage() as any)
     mockPrescriptionTemplatesService.getAll.mockResolvedValue([])
+    mockUseDoctor.mockReturnValue({ data: undefined })
   })
 
   // ── Layout ──────────────────────────────────────────────────────────────────
@@ -205,6 +226,36 @@ describe('PrescriptionForm (integration)', () => {
     await waitFor(() => expect(onSubmit).toHaveBeenCalled())
     expect(onSubmit.mock.calls[0][0]).toEqual({
       appointmentId: 'appt-uuid',
+      items: [{ activeIngredientName: 'Amoxicilina', instructions: 'Tomar 1 cp 8/8h' }],
+      notes: undefined,
+    })
+  })
+
+  it('does not render the signature pickers when the doctor has a single CRM and specialty', () => {
+    renderWithProviders(<PrescriptionForm {...defaultProps} />)
+    expect(screen.queryByTestId('doctor-signature-select')).not.toBeInTheDocument()
+  })
+
+  it('includes the chosen CRM and specialty in the submitted payload', async () => {
+    mockUseDoctor.mockReturnValue({ data: doctorWithSignatureOptions })
+    const onSubmit = jest.fn()
+    renderWithProviders(<PrescriptionForm {...defaultProps} onSubmit={onSubmit} />)
+
+    await userEvent.click(screen.getByTestId('prescription-form-tab-ingredient'))
+    await userEvent.type(screen.getByTestId('prescription-form-manual-input'), 'Amoxicilina')
+    await userEvent.click(screen.getByTestId('prescription-form-manual-add'))
+    await userEvent.type(screen.getByTestId('prescription-form-item-instructions-0'), 'Tomar 1 cp 8/8h')
+
+    await userEvent.selectOptions(screen.getByTestId('doctor-signature-crm'), 'crm-2')
+    await userEvent.selectOptions(screen.getByTestId('doctor-signature-specialty'), 'spec-2')
+
+    await userEvent.click(screen.getByTestId('prescription-form-submit'))
+
+    await waitFor(() => expect(onSubmit).toHaveBeenCalled())
+    expect(onSubmit.mock.calls[0][0]).toEqual({
+      appointmentId: 'appt-uuid',
+      crmId: 'crm-2',
+      specialtyId: 'spec-2',
       items: [{ activeIngredientName: 'Amoxicilina', instructions: 'Tomar 1 cp 8/8h' }],
       notes: undefined,
     })

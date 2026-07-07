@@ -19,14 +19,14 @@ function wrapper({ children }: { children: React.ReactNode }) {
 describe('useCreateDoctor', () => {
   const input = {
     userId: 'user-uuid-1',
-    crmNumber: '12345/SP',
-    specialtyIds: ['spec-uuid-1'],
+    crms: [{ id: 'crm-uuid-1', number: '12345', state: 'SP', isPrimary: true }],
+    specialties: [{ specialtyId: 'spec-uuid-1' }],
   }
   const model = {
     id: 'uuid-1',
     user: { id: 'user-uuid-1', fullName: 'Dr. João', email: 'joao@example.com' },
-    crmNumber: '12345/SP',
-    specialties: [{ id: 'spec-uuid-1', name: 'Cardiologia' }],
+    crms: [{ id: 'crm-uuid-1', number: '12345', state: 'SP', isPrimary: true }],
+    specialties: [{ id: 'spec-uuid-1', name: 'Cardiologia', rqe: null }],
     bio: null,
     createdAt: new Date(),
     updatedAt: new Date(),

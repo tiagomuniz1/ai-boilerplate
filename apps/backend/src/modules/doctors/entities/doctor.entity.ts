@@ -4,16 +4,16 @@ import {
   DeleteDateColumn,
   Entity,
   JoinColumn,
-  JoinTable,
-  ManyToMany,
   ManyToOne,
+  OneToMany,
   PrimaryGeneratedColumn,
   UpdateDateColumn,
   VersionColumn,
 } from 'typeorm'
 import { Clinic } from '../../clinics/entities/clinic.entity'
 import { User } from '../../users/entities/user.entity'
-import { Specialty } from '../../specialties/entities/specialty.entity'
+import { DoctorCrm } from './doctor-crm.entity'
+import { DoctorSpecialty } from './doctor-specialty.entity'
 
 @Entity('doctors')
 export class Doctor {
@@ -34,16 +34,11 @@ export class Doctor {
   @Column({ name: 'clinic_id' })
   clinicId: string
 
-  @Column({ name: 'crm_number' })
-  crmNumber: string
+  @OneToMany(() => DoctorCrm, (crm) => crm.doctor, { cascade: true })
+  crms: DoctorCrm[]
 
-  @ManyToMany(() => Specialty, { eager: false })
-  @JoinTable({
-    name: 'doctor_specialties',
-    joinColumn: { name: 'doctor_id', referencedColumnName: 'id' },
-    inverseJoinColumn: { name: 'specialty_id', referencedColumnName: 'id' },
-  })
-  specialties: Specialty[]
+  @OneToMany(() => DoctorSpecialty, (doctorSpecialty) => doctorSpecialty.doctor, { cascade: true })
+  doctorSpecialties: DoctorSpecialty[]
 
   @Column({ nullable: true, type: 'text' })
   bio: string | null

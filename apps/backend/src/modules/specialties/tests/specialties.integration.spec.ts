@@ -153,6 +153,17 @@ describe('SpecialtiesController (integration)', () => {
       expect(body.description).toBe('Especialidade do sistema nervoso')
     })
 
+    it('returns null titleName by default and persists it when provided', async () => {
+      const { body: withoutTitle } = await createSpecialty(platformAdminToken, { name: 'Ortopedia' }).expect(201)
+      expect(withoutTitle.titleName).toBeNull()
+
+      const { body: withTitle } = await createSpecialty(platformAdminToken, {
+        name: 'Mastologia',
+        titleName: 'mastologista',
+      }).expect(201)
+      expect(withTitle.titleName).toBe('mastologista')
+    })
+
     it('response never contains version or deletedAt', async () => {
       const { body } = await createSpecialty(platformAdminToken, { name: 'Cardiologia' }).expect(201)
 
@@ -364,6 +375,27 @@ describe('SpecialtiesController (integration)', () => {
       expect(body.name).toBe('Neurologia')
     })
 
+    it('updates and clears the titleName', async () => {
+      const { body: created } = await createSpecialty(platformAdminToken, {
+        name: 'Mastologia',
+        titleName: 'mastologista',
+      }).expect(201)
+
+      const { body: updated } = await request(app.getHttpServer())
+        .patch(`/specialties/${created.id}`)
+        .set('Authorization', `Bearer ${platformAdminToken}`)
+        .send({ titleName: 'especialista em mama' })
+        .expect(200)
+      expect(updated.titleName).toBe('especialista em mama')
+
+      const { body: cleared } = await request(app.getHttpServer())
+        .patch(`/specialties/${created.id}`)
+        .set('Authorization', `Bearer ${platformAdminToken}`)
+        .send({ titleName: null })
+        .expect(200)
+      expect(cleared.titleName).toBeNull()
+    })
+
     it('clears description when null is sent', async () => {
       const { body: created } = await createSpecialty(platformAdminToken, {
         name: 'Cardiologia',
@@ -553,7 +585,7 @@ describe('SpecialtiesController (integration)', () => {
       await request(app.getHttpServer())
         .post('/doctors')
         .set('Authorization', `Bearer ${adminToken}`)
-        .send({ userId: doctorUser.id, crmNumber: '77777/SP', specialtyIds: [specialty.id] })
+        .send({ userId: doctorUser.id, crms: [{ number: '77777', state: 'SP', isPrimary: true }], specialties: [{ specialtyId: specialty.id }] })
         .expect(201)
 
       const { body } = await request(app.getHttpServer())
@@ -598,7 +630,7 @@ describe('SpecialtiesController (integration)', () => {
       const { body: doctor } = await request(app.getHttpServer())
         .post('/doctors')
         .set('Authorization', `Bearer ${adminToken}`)
-        .send({ userId: doctorUser.id, crmNumber: '88888/SP', specialtyIds: [specialty.id] })
+        .send({ userId: doctorUser.id, crms: [{ number: '88888', state: 'SP', isPrimary: true }], specialties: [{ specialtyId: specialty.id }] })
         .expect(201)
 
       await request(app.getHttpServer())

@@ -19,11 +19,12 @@ import type { IApiError } from '@/types/api.types'
 
 export interface PrescriptionSectionProps {
   appointmentId: string
+  doctorId: string
   canManage: boolean
   userRole: UserRole
 }
 
-export function PrescriptionSection({ appointmentId, canManage, userRole }: PrescriptionSectionProps) {
+export function PrescriptionSection({ appointmentId, doctorId, canManage, userRole }: PrescriptionSectionProps) {
   const [showForm, setShowForm] = useState(false)
   const [deletingId, setDeletingId] = useState<string | null>(null)
   const [previewPrescription, setPreviewPrescription] = useState<IPrescriptionModel | null>(null)
@@ -159,6 +160,7 @@ export function PrescriptionSection({ appointmentId, canManage, userRole }: Pres
       >
         <PrescriptionForm
           appointmentId={appointmentId}
+          doctorId={doctorId}
           isPending={isCreating}
           globalError={createGlobalError}
           onSubmit={handleCreate}

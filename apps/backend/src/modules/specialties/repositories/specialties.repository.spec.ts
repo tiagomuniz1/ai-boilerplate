@@ -250,7 +250,8 @@ describe('SpecialtiesRepository', () => {
       const result = await repository.countLinkedDoctors('uuid-1')
 
       expect((repo.manager as any).createQueryBuilder).toHaveBeenCalledWith(Doctor, 'doctor')
-      expect(mockQueryBuilder.innerJoin).toHaveBeenCalledWith('doctor.specialties', 'specialty')
+      expect(mockQueryBuilder.innerJoin).toHaveBeenCalledWith('doctor.doctorSpecialties', 'doctorSpecialty')
+      expect(mockQueryBuilder.innerJoin).toHaveBeenCalledWith('doctorSpecialty.specialty', 'specialty')
       expect(mockQueryBuilder.where).toHaveBeenCalledWith('specialty.id = :id', { id: 'uuid-1' })
       expect(result).toBe(2)
     })

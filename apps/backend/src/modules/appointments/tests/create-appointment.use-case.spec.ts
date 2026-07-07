@@ -21,11 +21,15 @@ const doctorUserId = faker.string.uuid()
 const doctorId = faker.string.uuid()
 const specialtyId = faker.string.uuid()
 const specialtyName = 'Cardiologia'
-const makeDoctor = (overrides = {}) => ({
-  id: doctorId,
-  specialties: [{ id: specialtyId, name: specialtyName }],
-  ...overrides,
-})
+const makeDoctor = (overrides: any = {}) => {
+  const { specialties = [{ id: specialtyId, name: specialtyName }], ...rest } = overrides
+  return {
+    id: doctorId,
+    crms: [{ id: 'crm-1', number: '12345', state: 'SP', isPrimary: true }],
+    doctorSpecialties: specialties.map((s: any) => ({ specialtyId: s.id, specialty: { id: s.id, name: s.name } })),
+    ...rest,
+  }
+}
 
 const doctorUser: ICurrentUser = { id: doctorUserId, role: UserRole.DOCTOR, clinicId: CLINIC_ID }
 const adminUser: ICurrentUser = { id: faker.string.uuid(), role: UserRole.ADMIN, clinicId: CLINIC_ID }
@@ -96,7 +100,7 @@ const mockDoctorsRepository: jest.Mocked<IDoctorsRepository> = {
   findAll: jest.fn(),
   findById: jest.fn(),
   findByUserId: jest.fn(),
-  findByCrmNumber: jest.fn(),
+  findByCrm: jest.fn(),
   create: jest.fn(),
   update: jest.fn(),
   delete: jest.fn(),

@@ -154,19 +154,19 @@ describe('PrescriptionsController (integration)', () => {
 
     const doctorEntity = doctorRepository.create({
       userId: doctorUser.id,
-      crmNumber: '11111/SP',
       clinicId: SEED_CLINIC_ID,
     })
-    doctorEntity.specialties = [specialty]
+    doctorEntity.crms = [{ clinicId: SEED_CLINIC_ID, number: '11111', state: 'SP', isPrimary: true }] as any
+    doctorEntity.doctorSpecialties = ([specialty]).map((s: any) => ({ specialtyId: s.id, rqe: null })) as any
     const doctorProfile = await doctorRepository.save(doctorEntity)
     doctorId = doctorProfile.id
 
     const otherDoctorEntity = doctorRepository.create({
       userId: otherDoctorUser.id,
-      crmNumber: '22222/SP',
       clinicId: SEED_CLINIC_ID,
     })
-    otherDoctorEntity.specialties = [specialty]
+    otherDoctorEntity.crms = [{ clinicId: SEED_CLINIC_ID, number: '22222', state: 'SP', isPrimary: true }] as any
+    otherDoctorEntity.doctorSpecialties = ([specialty]).map((s: any) => ({ specialtyId: s.id, rqe: null })) as any
     const otherDoctorProfile = await doctorRepository.save(otherDoctorEntity)
     otherDoctorId = otherDoctorProfile.id
 
@@ -308,6 +308,22 @@ describe('PrescriptionsController (integration)', () => {
       expect(body.items[0].instructions).toBe('Tomar 1 comprimido a cada 8 horas')
       expect(body.notes).toBe('Retornar em 7 dias se necessário')
       expect(body.issuedAt).toBeDefined()
+    })
+
+    it('returns 422 when specialtyId is not one the doctor is registered for', async () => {
+      await request(app.getHttpServer())
+        .post('/prescriptions')
+        .set('Cookie', `access_token=${doctorToken}`)
+        .send({ ...validPayload(), specialtyId: faker.string.uuid() })
+        .expect(422)
+    })
+
+    it('returns 422 when crmId does not belong to the doctor', async () => {
+      await request(app.getHttpServer())
+        .post('/prescriptions')
+        .set('Cookie', `access_token=${doctorToken}`)
+        .send({ ...validPayload(), crmId: faker.string.uuid() })
+        .expect(422)
     })
 
     it('returns 201 with multiple items', async () => {

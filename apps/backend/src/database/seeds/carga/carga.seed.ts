@@ -10,6 +10,8 @@ import { User } from '../../../modules/users/entities/user.entity'
 import { Specialty } from '../../../modules/specialties/entities/specialty.entity'
 import { ClinicSpecialty } from '../../../modules/clinic-specialties/entities/clinic-specialty.entity'
 import { Doctor } from '../../../modules/doctors/entities/doctor.entity'
+import { DoctorCrm } from '../../../modules/doctors/entities/doctor-crm.entity'
+import { DoctorSpecialty } from '../../../modules/doctors/entities/doctor-specialty.entity'
 import { Schedule } from '../../../modules/schedules/entities/schedule.entity'
 import {
   MedicalRecordTemplate,
@@ -344,8 +346,11 @@ async function seedDoctors(dataSource: DataSource, specialties: Specialty[], pas
 
         let doctor = await doctorRepo.findOneBy({ userId: user.id })
         if (!doctor) {
-          const d = doctorRepo.create({ userId: user.id, clinicId: CARGA_CLINIC_ID, crmNumber: `${100000 + idx}/SP` })
-          d.specialties = [specialty]
+          const d = doctorRepo.create({ userId: user.id, clinicId: CARGA_CLINIC_ID })
+          d.crms = [
+            dataSource.getRepository(DoctorCrm).create({ clinicId: CARGA_CLINIC_ID, number: `${100000 + idx}`, state: 'SP', isPrimary: true }),
+          ]
+          d.doctorSpecialties = [dataSource.getRepository(DoctorSpecialty).create({ specialtyId: specialty.id, rqe: null })]
           doctor = await doctorRepo.save(d)
         }
 

@@ -76,4 +76,16 @@ describe('toCreateAtestadoDto', () => {
     const dto = toCreateAtestadoDto({ ...baseLeaveInput, observations: 'Repouso absoluto.' })
     expect(dto.observations).toBe('Repouso absoluto.')
   })
+
+  it('omits crmId and specialtyId when not provided', () => {
+    const dto = toCreateAtestadoDto(baseLeaveInput)
+    expect(dto).not.toHaveProperty('crmId')
+    expect(dto).not.toHaveProperty('specialtyId')
+  })
+
+  it('includes crmId and specialtyId when provided', () => {
+    const dto = toCreateAtestadoDto({ ...baseLeaveInput, crmId: 'crm-2', specialtyId: 'spec-2' })
+    expect(dto.crmId).toBe('crm-2')
+    expect(dto.specialtyId).toBe('spec-2')
+  })
 })

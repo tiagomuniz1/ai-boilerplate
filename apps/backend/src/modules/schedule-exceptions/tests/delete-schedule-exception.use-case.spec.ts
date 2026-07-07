@@ -21,7 +21,7 @@ const mockDoctorsRepository: jest.Mocked<IDoctorsRepository> = {
   findAll: jest.fn(),
   findById: jest.fn(),
   findByUserId: jest.fn(),
-  findByCrmNumber: jest.fn(),
+  findByCrm: jest.fn(),
   create: jest.fn(),
   update: jest.fn(),
   delete: jest.fn(),

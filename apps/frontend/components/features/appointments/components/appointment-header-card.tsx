@@ -6,6 +6,7 @@ import { cn } from '@/lib/cn'
 import { Button } from '@/components/ui/atoms/button/button'
 import { APPOINTMENT_STATUS_BADGE_CLASS } from '@/lib/appointment-status'
 import { calculateAge } from '@/lib/calculate-age'
+import { formatDateToBR } from '@/lib/format-date'
 import {
   APPOINTMENT_STATUS_LABELS,
   type IAppointmentDetailModel,
@@ -227,7 +228,7 @@ export function AppointmentHeaderCard({
 
         <div className="flex flex-col gap-0.5">
           <dt className="text-xs font-medium uppercase tracking-wider text-text-mute">Data</dt>
-          <dd data-testid="appointment-detail-date">{appointment.date}</dd>
+          <dd data-testid="appointment-detail-date">{formatDateToBR(appointment.date)}</dd>
         </div>
 
         <div className="flex flex-col gap-0.5">

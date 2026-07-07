@@ -8,8 +8,8 @@ const mockApiClient = apiClient as jest.Mocked<typeof apiClient>
 const makeDto = () => ({
   id: 'uuid-1',
   user: { id: 'user-uuid-1', fullName: 'Dr. João Silva', email: 'joao@example.com' },
-  crmNumber: '12345/SP',
-  specialties: [{ id: 'spec-uuid-1', name: 'Cardiologia' }],
+  crms: [{ id: 'crm-uuid-1', number: '12345', state: 'SP', isPrimary: true }],
+  specialties: [{ id: 'spec-uuid-1', name: 'Cardiologia', rqe: null }],
   bio: null,
   createdAt: new Date('2024-01-15T10:00:00.000Z'),
   updatedAt: new Date('2024-01-16T10:00:00.000Z'),
@@ -61,8 +61,8 @@ describe('doctorsService', () => {
     mockApiClient.post.mockResolvedValue(dto)
     const input = {
       userId: 'user-uuid-1',
-      crmNumber: '12345/SP',
-      specialtyIds: ['spec-uuid-1'],
+      crms: [{ id: 'crm-uuid-1', number: '12345', state: 'SP', isPrimary: true }],
+      specialties: [{ specialtyId: 'spec-uuid-1' }],
     }
 
     const result = await doctorsService.create(input)
@@ -74,7 +74,7 @@ describe('doctorsService', () => {
   it('update calls PATCH /doctors/:id with data and returns result', async () => {
     const dto = makeDto()
     mockApiClient.patch.mockResolvedValue(dto)
-    const input = { specialtyIds: ['spec-uuid-2'] }
+    const input = { specialties: [{ specialtyId: 'spec-uuid-2' }] }
 
     const result = await doctorsService.update('uuid-1', input)
 

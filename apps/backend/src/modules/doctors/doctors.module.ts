@@ -6,6 +6,8 @@ import { UsersModule } from '../users/users.module'
 import { SpecialtiesModule } from '../specialties/specialties.module'
 import { SchedulesModule } from '../schedules/schedules.module'
 import { Doctor } from './entities/doctor.entity'
+import { DoctorCrm } from './entities/doctor-crm.entity'
+import { DoctorSpecialty } from './entities/doctor-specialty.entity'
 import { DoctorsController } from './controllers/doctors.controller'
 import { CreateDoctorUseCase } from './use-cases/create-doctor.use-case'
 import { FindAllDoctorsUseCase } from './use-cases/find-all-doctors.use-case'
@@ -17,7 +19,7 @@ import { DoctorsRepository } from './repositories/doctors.repository'
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([Doctor]),
+    TypeOrmModule.forFeature([Doctor, DoctorCrm, DoctorSpecialty]),
     CacheModule,
     forwardRef(() => AuthModule),
     forwardRef(() => UsersModule),

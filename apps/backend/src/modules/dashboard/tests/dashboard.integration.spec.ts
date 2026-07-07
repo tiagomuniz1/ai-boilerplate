@@ -182,19 +182,19 @@ describe('DashboardController (integration)', () => {
 
     const doctorEntity = doctorRepository.create({
       userId: doctorUser.id,
-      crmNumber: 'CRM-D1',
       clinicId: SEED_CLINIC_ID,
     })
-    doctorEntity.specialties = [specialty]
+    doctorEntity.crms = [{ clinicId: SEED_CLINIC_ID, number: '10001', state: 'SP', isPrimary: true }] as any
+    doctorEntity.doctorSpecialties = ([specialty]).map((s: any) => ({ specialtyId: s.id, rqe: null })) as any
     const doctorProfile = await doctorRepository.save(doctorEntity)
     doctorId = doctorProfile.id
 
     const otherDoctorEntity = doctorRepository.create({
       userId: otherDoctorUser.id,
-      crmNumber: 'CRM-D2',
       clinicId: SEED_CLINIC_ID,
     })
-    otherDoctorEntity.specialties = []
+    otherDoctorEntity.crms = [{ clinicId: SEED_CLINIC_ID, number: '10002', state: 'SP', isPrimary: true }] as any
+    otherDoctorEntity.doctorSpecialties = ([]).map((s: any) => ({ specialtyId: s.id, rqe: null })) as any
     const otherDoctorProfile = await doctorRepository.save(otherDoctorEntity)
     otherDoctorId = otherDoctorProfile.id
 

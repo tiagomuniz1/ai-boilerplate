@@ -133,17 +133,17 @@ describe('PrescriptionTemplatesController (integration)', () => {
 
     const doctorEntity = doctorRepository.create({
       userId: doctorUser.id,
-      crmNumber: '11111/SP',
       clinicId: SEED_CLINIC_ID,
     })
+    doctorEntity.crms = [{ clinicId: SEED_CLINIC_ID, number: '11111', state: 'SP', isPrimary: true }] as any
     const savedDoctor = await doctorRepository.save(doctorEntity)
     doctorId = savedDoctor.id
 
     const otherDoctorEntity = doctorRepository.create({
       userId: otherDoctorUser.id,
-      crmNumber: '22222/SP',
       clinicId: SEED_CLINIC_ID,
     })
+    otherDoctorEntity.crms = [{ clinicId: SEED_CLINIC_ID, number: '22222', state: 'SP', isPrimary: true }] as any
     const savedOther = await doctorRepository.save(otherDoctorEntity)
     otherDoctorId = savedOther.id
 

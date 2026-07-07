@@ -153,17 +153,39 @@ export class PrescriptionPdfBuilderService implements OnModuleInit {
       { text: cityDateLine, style: 'footerCity' },
       { canvas: [{ type: 'line', x1: 0, y1: 0, x2: 200, y2: 0, lineWidth: 0.5 }], margin: [0, 0, 0, 4] },
       { text: snapshot.doctor.name, bold: true },
-      { text: `CRM ${snapshot.doctor.crmNumber}`, fontSize: 9 },
+      {
+        text: `CRM ${snapshot.doctor.crmNumber}${snapshot.doctor.rqe ? ` · RQE ${snapshot.doctor.rqe}` : ''}`,
+        fontSize: 9,
+      },
     ]
 
     if (specialtyLine) footerStack.push(specialtyLine)
 
-    footerStack.push(
-      { qr: verificationUrl, fit: 90, margin: [0, 16, 0, 4] },
-      { text: 'Verifique a autenticidade desta receita', fontSize: 8, color: '#555555' },
-    )
+    // QR pinned to the bottom-right corner (absolute position, A4 595.28 x 841.89, margins 50)
+    footerStack.push(...this.buildVerificationQr(verificationUrl))
 
     return footerStack
+  }
+
+  private buildVerificationQr(verificationUrl: string): object[] {
+    const qrSize = 100
+    const rightEdge = 595.28 - 50 // page width minus right margin
+    return [
+      {
+        qr: verificationUrl,
+        fit: qrSize,
+        absolutePosition: { x: rightEdge - qrSize, y: 675 },
+      },
+      {
+        text: 'Verifique a autenticidade desta receita',
+        fontSize: 7,
+        color: '#555555',
+        alignment: 'right',
+        lineHeight: 1,
+        width: 200,
+        absolutePosition: { x: rightEdge - 200, y: 775 },
+      },
+    ]
   }
 
   private formatCpf(cpf: string): string {

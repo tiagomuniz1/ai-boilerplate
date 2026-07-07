@@ -11,4 +11,11 @@ export class UpdateSpecialtyDto {
   @IsString()
   @MaxLength(500)
   description?: string | null
+
+  // Profession/specialist title shown on prescriptions, certificates and exam requests
+  // (e.g. "mastologista" for the "Mastologia" specialty). Falls back to `name` when empty.
+  @IsOptional()
+  @IsString()
+  @MaxLength(100)
+  titleName?: string | null
 }

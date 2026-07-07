@@ -6,8 +6,8 @@ export function toCreateDoctorDto(input: ICreateDoctorInput): CreateDoctorDto {
     userId: input.userId,
     fullName: input.fullName,
     email: input.email,
-    crmNumber: input.crmNumber,
-    specialtyIds: input.specialtyIds,
+    crms: input.crms,
+    specialties: input.specialties,
     bio: input.bio,
   }
 }

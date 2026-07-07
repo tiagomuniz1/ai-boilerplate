@@ -16,7 +16,7 @@ export interface MedicalCertificateSnapshot {
     } | null
     logoUrl: string | null
   }
-  doctor: { name: string; crmNumber: string; specialtyName: string | null }
+  doctor: { name: string; crmNumber: string; rqe: string | null; specialtyName: string | null }
   patient: { name: string; documentNumber: string }
   daysOff: number | null
   startDate: string | null

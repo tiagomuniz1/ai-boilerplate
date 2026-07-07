@@ -34,11 +34,16 @@ const mockAdminUser = { id: 'auth-user-id', fullName: 'Admin', email: 'admin@tes
 const existingDoctor: IDoctorModel = {
   id: 'uuid-1',
   user: { id: 'user-uuid-1', fullName: 'Dr. João Silva', email: 'joao@example.com', isActive: true },
-  crmNumber: '12345/SP',
-  specialties: [{ id: SPEC_ID_1, name: 'Cardiologia' }],
+  crms: [{ id: 'crm-uuid-1', number: '12345', state: 'SP', isPrimary: true }],
+  specialties: [{ id: SPEC_ID_1, name: 'Cardiologia', rqe: '6789' }],
   bio: 'Bio inicial.',
   createdAt: new Date('2024-01-15'),
   updatedAt: new Date('2024-01-16'),
+}
+
+function fillFirstCrm(number = '12345', state = 'SP') {
+  fireEvent.change(screen.getByTestId('doctor-form-crm-number-0'), { target: { value: number } })
+  fireEvent.change(screen.getByTestId('doctor-form-crm-state-0'), { target: { value: state } })
 }
 
 describe('DoctorForm (integration) — create mode', () => {
@@ -52,17 +57,19 @@ describe('DoctorForm (integration) — create mode', () => {
     ;(clinicSpecialtiesService.getAll as jest.Mock).mockResolvedValue({ data: mockClinicSpecialties, total: 2, page: 1, limit: 100 })
   })
 
-  it('renders user mode toggle, crm, specialties and bio fields', async () => {
+  it('renders user mode toggle, crm list, specialties and bio fields', () => {
     renderWithProviders(<DoctorForm mode="create" isPending={false} onSubmit={jest.fn()} />)
 
     expect(screen.getByTestId('doctor-form-user-mode')).toBeInTheDocument()
     expect(screen.getByTestId('doctor-form-user-mode-existing')).toBeChecked()
-    expect(screen.getByTestId('doctor-form-crm')).toBeInTheDocument()
+    expect(screen.getByTestId('doctor-form-crm-group')).toBeInTheDocument()
+    expect(screen.getByTestId('doctor-form-crm-number-0')).toBeInTheDocument()
+    expect(screen.getByTestId('doctor-form-crm-primary-0')).toBeChecked()
     expect(screen.getByTestId('doctor-form-specialty-group')).toBeInTheDocument()
     expect(screen.getByTestId('doctor-form-bio')).toBeInTheDocument()
   })
 
-  it('shows user search by default (existing user mode)', async () => {
+  it('shows user search by default (existing user mode)', () => {
     renderWithProviders(<DoctorForm mode="create" isPending={false} onSubmit={jest.fn()} />)
 
     expect(screen.getByTestId('doctor-form-user-search')).toBeInTheDocument()
@@ -100,20 +107,51 @@ describe('DoctorForm (integration) — create mode', () => {
     })
   })
 
-  it('calls onSubmit with userId in existing user mode', async () => {
+  it('filters non-digits from the CRM number field', async () => {
+    renderWithProviders(<DoctorForm mode="create" isPending={false} onSubmit={jest.fn()} />)
+
+    fireEvent.change(screen.getByTestId('doctor-form-crm-number-0'), { target: { value: '12a3b4' } })
+
+    expect(screen.getByTestId('doctor-form-crm-number-0')).toHaveValue('1234')
+  })
+
+  it('adds and removes CRM rows', async () => {
+    renderWithProviders(<DoctorForm mode="create" isPending={false} onSubmit={jest.fn()} />)
+
+    await userEvent.click(screen.getByTestId('doctor-form-crm-add'))
+    expect(screen.getByTestId('doctor-form-crm-number-1')).toBeInTheDocument()
+    expect(screen.getByTestId('doctor-form-crm-primary-1')).not.toBeChecked()
+
+    await userEvent.click(screen.getByTestId('doctor-form-crm-remove-1'))
+    expect(screen.queryByTestId('doctor-form-crm-number-1')).not.toBeInTheDocument()
+  })
+
+  it('promotes the first remaining CRM to primary when the primary row is removed', async () => {
+    renderWithProviders(<DoctorForm mode="create" isPending={false} onSubmit={jest.fn()} />)
+
+    await userEvent.click(screen.getByTestId('doctor-form-crm-add'))
+    // second row (index 1) becomes primary
+    await userEvent.click(screen.getByTestId('doctor-form-crm-primary-1'))
+    expect(screen.getByTestId('doctor-form-crm-primary-1')).toBeChecked()
+
+    // remove the primary (index 1) -> row 0 becomes primary
+    await userEvent.click(screen.getByTestId('doctor-form-crm-remove-1'))
+    expect(screen.getByTestId('doctor-form-crm-primary-0')).toBeChecked()
+  })
+
+  it('calls onSubmit with userId, crms and specialties in existing user mode', async () => {
     const onSubmit = jest.fn()
 
     renderWithProviders(<DoctorForm mode="create" isPending={false} onSubmit={onSubmit} />)
 
     await userEvent.type(screen.getByTestId('doctor-form-user-search'), 'João')
-
     await waitFor(
       () => expect(screen.getByTestId('doctor-form-user-option')).toBeInTheDocument(),
       { timeout: 2000 },
     )
     await userEvent.click(screen.getByTestId('doctor-form-user-option'))
 
-    await userEvent.type(screen.getByTestId('doctor-form-crm'), '12345/SP')
+    fillFirstCrm('12345', 'SP')
 
     await waitFor(() => {
       expect(screen.getByTestId(`doctor-form-specialty-${SPEC_ID_1}`)).toBeInTheDocument()
@@ -126,8 +164,42 @@ describe('DoctorForm (integration) — create mode', () => {
       expect(onSubmit).toHaveBeenCalledWith(
         expect.objectContaining({
           userId: 'user-uuid-1',
-          crmNumber: '12345/SP',
-          specialtyIds: [SPEC_ID_1],
+          crms: [{ number: '12345', state: 'SP', isPrimary: true }],
+          specialties: [{ specialtyId: SPEC_ID_1, rqe: undefined }],
+        }),
+        expect.any(Function),
+      )
+    })
+  })
+
+  it('captures the RQE typed for a selected specialty', async () => {
+    const onSubmit = jest.fn()
+
+    renderWithProviders(<DoctorForm mode="create" isPending={false} onSubmit={onSubmit} />)
+
+    await userEvent.type(screen.getByTestId('doctor-form-user-search'), 'João')
+    await waitFor(
+      () => expect(screen.getByTestId('doctor-form-user-option')).toBeInTheDocument(),
+      { timeout: 2000 },
+    )
+    await userEvent.click(screen.getByTestId('doctor-form-user-option'))
+
+    fillFirstCrm('12345', 'SP')
+
+    await waitFor(() => {
+      expect(screen.getByTestId(`doctor-form-specialty-${SPEC_ID_1}`)).toBeInTheDocument()
+    })
+    await userEvent.click(screen.getByTestId(`doctor-form-specialty-${SPEC_ID_1}`))
+    fireEvent.change(screen.getByTestId(`doctor-form-rqe-${SPEC_ID_1}`), { target: { value: '67ab89' } })
+
+    expect(screen.getByTestId(`doctor-form-rqe-${SPEC_ID_1}`)).toHaveValue('6789')
+
+    await userEvent.click(screen.getByTestId('doctor-form-submit'))
+
+    await waitFor(() => {
+      expect(onSubmit).toHaveBeenCalledWith(
+        expect.objectContaining({
+          specialties: [{ specialtyId: SPEC_ID_1, rqe: '6789' }],
         }),
         expect.any(Function),
       )
@@ -143,7 +215,7 @@ describe('DoctorForm (integration) — create mode', () => {
 
     await userEvent.type(screen.getByTestId('doctor-form-fullname'), 'Dra. Maria Santos')
     await userEvent.type(screen.getByTestId('doctor-form-email'), 'maria@clinica.com')
-    await userEvent.type(screen.getByTestId('doctor-form-crm'), '54321/RJ')
+    fillFirstCrm('54321', 'RJ')
 
     await waitFor(() => {
       expect(screen.getByTestId(`doctor-form-specialty-${SPEC_ID_1}`)).toBeInTheDocument()
@@ -157,8 +229,7 @@ describe('DoctorForm (integration) — create mode', () => {
         expect.objectContaining({
           fullName: 'Dra. Maria Santos',
           email: 'maria@clinica.com',
-          crmNumber: '54321/RJ',
-          specialtyIds: [SPEC_ID_1],
+          crms: [{ number: '54321', state: 'RJ', isPrimary: true }],
         }),
         expect.any(Function),
       )
@@ -187,14 +258,15 @@ describe('DoctorForm (integration) — create mode', () => {
     })
   })
 
-  it('shows validation error for invalid CRM format', async () => {
+  it('shows validation error when the CRM is incomplete', async () => {
     renderWithProviders(<DoctorForm mode="create" isPending={false} onSubmit={jest.fn()} />)
 
-    await userEvent.type(screen.getByTestId('doctor-form-crm'), 'INVALID')
+    // number filled but no UF selected
+    fireEvent.change(screen.getByTestId('doctor-form-crm-number-0'), { target: { value: '12345' } })
     await userEvent.click(screen.getByTestId('doctor-form-submit'))
 
     await waitFor(() => {
-      expect(screen.getByText(/CRM inválido/)).toBeInTheDocument()
+      expect(screen.getByText('Preencha número e UF de todos os CRMs')).toBeInTheDocument()
     })
   })
 
@@ -208,7 +280,7 @@ describe('DoctorForm (integration) — create mode', () => {
     )
     await userEvent.click(screen.getByTestId('doctor-form-user-option'))
 
-    await userEvent.type(screen.getByTestId('doctor-form-crm'), '12345/SP')
+    fillFirstCrm('12345', 'SP')
     await userEvent.click(screen.getByTestId('doctor-form-submit'))
 
     await waitFor(() => {
@@ -228,7 +300,7 @@ describe('DoctorForm (integration) — create mode', () => {
     )
     await userEvent.click(screen.getByTestId('doctor-form-user-option'))
 
-    await userEvent.type(screen.getByTestId('doctor-form-crm'), '12345/SP')
+    fillFirstCrm('12345', 'SP')
 
     await waitFor(() => {
       expect(screen.getByTestId(`doctor-form-specialty-${SPEC_ID_1}`)).toBeInTheDocument()
@@ -241,7 +313,10 @@ describe('DoctorForm (integration) — create mode', () => {
     await waitFor(() => {
       expect(onSubmit).toHaveBeenCalledWith(
         expect.objectContaining({
-          specialtyIds: expect.arrayContaining([SPEC_ID_1, SPEC_ID_2]),
+          specialties: expect.arrayContaining([
+            { specialtyId: SPEC_ID_1, rqe: undefined },
+            { specialtyId: SPEC_ID_2, rqe: undefined },
+          ]),
         }),
         expect.any(Function),
       )
@@ -385,7 +460,7 @@ describe('DoctorForm (integration) — edit mode', () => {
     ;(clinicSpecialtiesService.getAll as jest.Mock).mockResolvedValue({ data: mockClinicSpecialties, total: 2, page: 1, limit: 100 })
   })
 
-  it('pre-fills form with existing doctor data', async () => {
+  it('pre-fills form with existing doctor crm, specialties and rqe', async () => {
     renderWithProviders(
       <DoctorForm
         mode="edit"
@@ -396,12 +471,15 @@ describe('DoctorForm (integration) — edit mode', () => {
     )
 
     await waitFor(() => {
-      expect(screen.getByTestId('doctor-form-crm')).toHaveValue('12345/SP')
+      expect(screen.getByTestId('doctor-form-crm-number-0')).toHaveValue('12345')
     })
+    expect(screen.getByTestId('doctor-form-crm-state-0')).toHaveValue('SP')
+    expect(screen.getByTestId('doctor-form-crm-primary-0')).toBeChecked()
 
     await waitFor(() => {
       expect(screen.getByTestId(`doctor-form-specialty-${SPEC_ID_1}`)).toBeChecked()
     })
+    expect(screen.getByTestId(`doctor-form-rqe-${SPEC_ID_1}`)).toHaveValue('6789')
     expect(screen.getByTestId(`doctor-form-specialty-${SPEC_ID_2}`)).not.toBeChecked()
   })
 
@@ -420,7 +498,7 @@ describe('DoctorForm (integration) — edit mode', () => {
     expect(screen.queryByTestId('doctor-form-user-search')).not.toBeInTheDocument()
   })
 
-  it('calls onSubmit with updated specialties', async () => {
+  it('calls onSubmit with updated crms and specialties', async () => {
     const onSubmit = jest.fn()
 
     renderWithProviders(
@@ -433,7 +511,7 @@ describe('DoctorForm (integration) — edit mode', () => {
     )
 
     await waitFor(() => {
-      expect(screen.getByTestId('doctor-form-crm')).toHaveValue('12345/SP')
+      expect(screen.getByTestId('doctor-form-crm-number-0')).toHaveValue('12345')
     })
 
     await waitFor(() => {
@@ -445,33 +523,40 @@ describe('DoctorForm (integration) — edit mode', () => {
     await waitFor(() => {
       expect(onSubmit).toHaveBeenCalledWith(
         expect.objectContaining({
-          specialtyIds: expect.arrayContaining([SPEC_ID_1, SPEC_ID_2]),
+          crms: [{ number: '12345', state: 'SP', isPrimary: true }],
+          specialties: expect.arrayContaining([
+            { specialtyId: SPEC_ID_1, rqe: '6789' },
+            { specialtyId: SPEC_ID_2, rqe: undefined },
+          ]),
         }),
         expect.any(Function),
       )
     })
   })
 
-  it('shows validation error for invalid CRM in edit mode', async () => {
+  it('updates the RQE of a pre-filled specialty in edit mode', async () => {
+    const onSubmit = jest.fn()
+
     renderWithProviders(
-      <DoctorForm
-        mode="edit"
-        defaultValues={existingDoctor}
-        isPending={false}
-        onSubmit={jest.fn()}
-      />,
+      <DoctorForm mode="edit" defaultValues={existingDoctor} isPending={false} onSubmit={onSubmit} />,
     )
 
     await waitFor(() => {
-      expect(screen.getByTestId('doctor-form-crm')).toHaveValue('12345/SP')
+      expect(screen.getByTestId(`doctor-form-rqe-${SPEC_ID_1}`)).toHaveValue('6789')
     })
 
-    await userEvent.clear(screen.getByTestId('doctor-form-crm'))
-    await userEvent.type(screen.getByTestId('doctor-form-crm'), 'INVALID')
+    fireEvent.change(screen.getByTestId(`doctor-form-rqe-${SPEC_ID_1}`), { target: { value: '43a21' } })
+    expect(screen.getByTestId(`doctor-form-rqe-${SPEC_ID_1}`)).toHaveValue('4321')
+
     await userEvent.click(screen.getByTestId('doctor-form-submit'))
 
     await waitFor(() => {
-      expect(screen.getByText(/CRM inválido/)).toBeInTheDocument()
+      expect(onSubmit).toHaveBeenCalledWith(
+        expect.objectContaining({
+          specialties: [{ specialtyId: SPEC_ID_1, rqe: '4321' }],
+        }),
+        expect.any(Function),
+      )
     })
   })
 
@@ -496,36 +581,10 @@ describe('DoctorForm (integration) — edit mode', () => {
     )
 
     await waitFor(() => {
-      expect(screen.getByTestId('doctor-form-crm')).toHaveValue('12345/SP')
+      expect(screen.getByTestId('doctor-form-crm-number-0')).toHaveValue('12345')
     })
 
     expect(screen.getByTestId('doctor-form-bio')).toHaveValue('')
-  })
-
-  it('submits with crmNumber: undefined when CRM is cleared', async () => {
-    const onSubmit = jest.fn()
-
-    renderWithProviders(
-      <DoctorForm mode="edit" defaultValues={existingDoctor} isPending={false} onSubmit={onSubmit} />,
-    )
-
-    await waitFor(() => {
-      expect(screen.getByTestId('doctor-form-crm')).toHaveValue('12345/SP')
-    })
-
-    await waitFor(() => {
-      expect(screen.getByTestId(`doctor-form-specialty-${SPEC_ID_1}`)).toBeChecked()
-    })
-
-    await userEvent.clear(screen.getByTestId('doctor-form-crm'))
-    await userEvent.click(screen.getByTestId('doctor-form-submit'))
-
-    await waitFor(() => {
-      expect(onSubmit).toHaveBeenCalledWith(
-        expect.objectContaining({ crmNumber: undefined }),
-        expect.any(Function),
-      )
-    })
   })
 
   it('submits with bio: undefined when bio is cleared', async () => {
@@ -536,7 +595,7 @@ describe('DoctorForm (integration) — edit mode', () => {
     )
 
     await waitFor(() => {
-      expect(screen.getByTestId('doctor-form-crm')).toHaveValue('12345/SP')
+      expect(screen.getByTestId('doctor-form-crm-number-0')).toHaveValue('12345')
     })
 
     await waitFor(() => {
@@ -566,7 +625,7 @@ describe('DoctorForm (integration) — edit mode', () => {
     )
 
     await waitFor(() => {
-      expect(screen.getByTestId('doctor-form-crm')).toHaveValue('12345/SP')
+      expect(screen.getByTestId('doctor-form-crm-number-0')).toHaveValue('12345')
     })
 
     await waitFor(() => {
@@ -611,7 +670,7 @@ describe('DoctorForm (integration) — edit mode', () => {
     )
 
     await waitFor(() => {
-      expect(screen.getByTestId('doctor-form-crm')).toHaveValue('12345/SP')
+      expect(screen.getByTestId('doctor-form-crm-number-0')).toHaveValue('12345')
     })
 
     const longBio = 'a'.repeat(501)
@@ -705,5 +764,4 @@ describe('DoctorForm (integration) — edit mode', () => {
       )
     })
   })
-
 })

@@ -54,13 +54,13 @@ export function Modal({ isOpen, onClose, title, className, 'data-testid': testId
                 tabIndex={-1}
                 data-testid={testId}
                 className={cn(
-                    'relative z-10 w-full max-w-md rounded-lg bg-surface-2 border border-line shadow-lg p-6',
+                    'relative z-10 flex max-h-[calc(100dvh-2rem)] w-full max-w-md flex-col rounded-lg bg-surface-2 border border-line shadow-lg p-6',
                     'focus-visible:outline-none',
                     className,
                 )}
                 onClick={(e) => e.stopPropagation()}
             >
-                <div className="flex items-start justify-between mb-4">
+                <div className="flex shrink-0 items-start justify-between mb-4">
                     {title && (
                         <Typography variant="h3" id="modal-title">
                             {title}
@@ -76,7 +76,7 @@ export function Modal({ isOpen, onClose, title, className, 'data-testid': testId
                         <span aria-hidden="true">✕</span>
                     </Button>
                 </div>
-                {children}
+                <div className="min-h-0 overflow-y-auto">{children}</div>
             </div>
         </div>
     )

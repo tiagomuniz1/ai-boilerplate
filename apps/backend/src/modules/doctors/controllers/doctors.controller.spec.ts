@@ -17,8 +17,8 @@ const mockDelete = { execute: jest.fn() } as unknown as jest.Mocked<DeleteDoctor
 const makeResponse = (overrides = {}) => ({
   id: 'uuid-1',
   user: { id: 'user-uuid-1', fullName: 'Dr. Alice', email: 'alice@clinic.com', isActive: true },
-  crmNumber: '12345/SP',
-  specialties: [{ id: 'spec-uuid-1', name: 'Cardiologia' }],
+  crms: [{ id: 'crm-uuid-1', number: '12345', state: 'SP', isPrimary: true }],
+  specialties: [{ id: 'spec-uuid-1', name: 'Cardiologia', rqe: null }],
   bio: null,
   createdAt: new Date(),
   updatedAt: new Date(),
@@ -42,7 +42,7 @@ describe('DoctorsController', () => {
   })
 
   it('create delegates to CreateDoctorUseCase', async () => {
-    const dto = { userId: 'user-uuid-1', crmNumber: '12345/SP', specialtyIds: ['spec-uuid-1'] }
+    const dto = { userId: 'user-uuid-1', crms: [{ number: '12345', state: 'SP', isPrimary: true }], specialties: [{ specialtyId: 'spec-uuid-1' }] }
     const response = makeResponse()
     mockCreate.execute.mockResolvedValue(response)
 
@@ -91,8 +91,8 @@ describe('DoctorsController', () => {
   })
 
   it('update delegates to UpdateDoctorUseCase with id and dto', async () => {
-    const dto = { specialtyIds: ['spec-uuid-2'] }
-    const response = makeResponse({ specialties: [{ id: 'spec-uuid-2', name: 'Neurologia' }] })
+    const dto = { specialties: [{ specialtyId: 'spec-uuid-2' }] }
+    const response = makeResponse({ specialties: [{ id: 'spec-uuid-2', name: 'Neurologia', rqe: null }] })
     mockUpdate.execute.mockResolvedValue(response)
 
     const result = await controller.update('uuid-1', dto as any, currentUser)

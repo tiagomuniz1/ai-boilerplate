@@ -330,7 +330,12 @@ describe('UsersController (integration)', () => {
         specialtyRepository.create({ name: `Spec ${faker.string.alphanumeric(6)}` }),
       )
       const doctor = await doctorRepository.save(
-        doctorRepository.create({ userId: doctorUserId, crmNumber: `${faker.string.numeric(5)}/SP`, clinicId: SEED_CLINIC_ID, specialties: [specialty] }),
+        doctorRepository.create({
+          userId: doctorUserId,
+          clinicId: SEED_CLINIC_ID,
+          crms: [{ clinicId: SEED_CLINIC_ID, number: faker.string.numeric(5), state: 'SP', isPrimary: true }],
+          doctorSpecialties: [{ specialtyId: specialty.id, rqe: null }],
+        }),
       )
 
       const { body } = await request(app.getHttpServer())
@@ -678,7 +683,7 @@ describe('UsersController (integration)', () => {
       const { body: doctor } = await request(app.getHttpServer())
         .post('/doctors')
         .set('Authorization', `Bearer ${accessToken}`)
-        .send({ userId: targetUser.id, crmNumber: '11111/SP', specialtyIds: [specialty.id] })
+        .send({ userId: targetUser.id, crms: [{ number: '11111', state: 'SP', isPrimary: true }], specialties: [{ specialtyId: specialty.id }] })
         .expect(201)
 
       await request(app.getHttpServer())

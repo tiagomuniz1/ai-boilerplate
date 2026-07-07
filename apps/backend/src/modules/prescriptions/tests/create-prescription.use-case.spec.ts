@@ -31,13 +31,16 @@ const makeAppointment = (overrides = {}) => ({
   ...overrides,
 })
 
-const makeDoctor = (overrides = {}) => ({
-  id: doctorId,
-  user: { fullName: 'Doctor Smith' },
-  crmNumber: '12345/SP',
-  specialties: [{ id: specialtyId, name: 'Cardiologia' }],
-  ...overrides,
-})
+const makeDoctor = (overrides: any = {}) => {
+  const { specialties = [{ id: specialtyId, name: 'Cardiologia' }], ...rest } = overrides
+  return {
+    id: doctorId,
+    user: { fullName: 'Doctor Smith' },
+    crms: [{ id: 'crm-1', number: '12345', state: 'SP', isPrimary: true }],
+    doctorSpecialties: specialties.map((s: any) => ({ specialtyId: s.id, specialty: { id: s.id, name: s.name } })),
+    ...rest,
+  }
+}
 
 const makePatient = () => ({
   id: patientId,
@@ -78,7 +81,7 @@ const makeSavedPrescription = () => ({
   snapshot: {
     issuedAt: new Date().toISOString(),
     clinic: { name: 'Test Clinic', address: null, logoUrl: null },
-    doctor: { name: 'Doctor Smith', crmNumber: '12345/SP', specialtyName: 'Cardiologia' },
+    doctor: { name: 'Doctor Smith', crmNumber: '12345/SP', rqe: null, specialtyName: 'Cardiologia' },
     patient: { name: 'Patient Jones', documentNumber: '12345678900' },
     items: [{ medicationId, name: 'Dipirona', activeIngredient: 'dipirona sódica', dosage: null, quantity: null, instructions: 'Tomar 1 cp a cada 6h' }],
     notes: null,
@@ -110,7 +113,7 @@ const mockDoctorsRepository: jest.Mocked<IDoctorsRepository> = {
   findAll: jest.fn(),
   findById: jest.fn(),
   findByUserId: jest.fn(),
-  findByCrmNumber: jest.fn(),
+  findByCrm: jest.fn(),
   create: jest.fn(),
   update: jest.fn(),
   delete: jest.fn(),
@@ -218,6 +221,36 @@ describe('CreatePrescriptionUseCase', () => {
     expect(createCall.snapshot.patient.documentNumber).toBe('12345678900')
     expect(createCall.snapshot.items[0].name).toBe('Dipirona')
     expect(createCall.snapshot.items[0].activeIngredient).toBe('dipirona sódica')
+  })
+
+  it('signs with the chosen CRM and specialty (alternate RQE and profession title) when crmId/specialtyId are provided', async () => {
+    const altSpecialtyId = 'specialty-alt'
+    const doctorWithOptions = {
+      id: doctorId,
+      user: { fullName: 'Doctor Smith' },
+      crms: [
+        { id: 'crm-1', number: '12345', state: 'SP', isPrimary: true },
+        { id: 'crm-2', number: '67890', state: 'RJ', isPrimary: false },
+      ],
+      doctorSpecialties: [
+        { specialtyId, rqe: '111', specialty: { id: specialtyId, name: 'Cardiologia', titleName: null } },
+        { specialtyId: altSpecialtyId, rqe: '222', specialty: { id: altSpecialtyId, name: 'Mastologia', titleName: 'mastologista' } },
+      ],
+    }
+    mockDoctorsRepository.findById.mockResolvedValue(doctorWithOptions as any)
+
+    await useCase.execute({ ...baseDto, crmId: 'crm-2', specialtyId: altSpecialtyId }, adminUser)
+
+    const createCall = mockPrescriptionsRepository.create.mock.calls[0][0]
+    expect(createCall.snapshot.doctor.crmNumber).toBe('67890/RJ')
+    expect(createCall.snapshot.doctor.rqe).toBe('222')
+    expect(createCall.snapshot.doctor.specialtyName).toBe('mastologista')
+  })
+
+  it('rejects an unknown specialtyId that does not belong to the doctor', async () => {
+    await expect(
+      useCase.execute({ ...baseDto, specialtyId: 'not-my-specialty' }, adminUser),
+    ).rejects.toThrow(UnprocessableEntityException)
   })
 
   it('propagates dosage from DTO to snapshot when provided', async () => {

@@ -13,7 +13,7 @@ export interface PrescriptionSnapshot {
     } | null
     logoUrl: string | null
   }
-  doctor: { name: string; crmNumber: string; specialtyName: string | null }
+  doctor: { name: string; crmNumber: string; rqe: string | null; specialtyName: string | null }
   patient: { name: string; documentNumber: string }
   items: Array<{
     medicationId: string | null

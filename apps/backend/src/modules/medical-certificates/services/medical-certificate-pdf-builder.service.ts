@@ -140,7 +140,10 @@ export class MedicalCertificatePdfBuilderService implements OnModuleInit {
       { text: cityDateLine, style: 'footerCity' },
       { canvas: [{ type: 'line', x1: 0, y1: 0, x2: 200, y2: 0, lineWidth: 0.5 }], margin: [0, 0, 0, 4] },
       { text: snapshot.doctor.name, bold: true },
-      { text: `CRM ${snapshot.doctor.crmNumber}`, fontSize: 9 },
+      {
+        text: `CRM ${snapshot.doctor.crmNumber}${snapshot.doctor.rqe ? ` · RQE ${snapshot.doctor.rqe}` : ''}`,
+        fontSize: 9,
+      },
     ]
 
     if (specialtyLine) footerStack.push(specialtyLine)

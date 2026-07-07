@@ -55,7 +55,8 @@ export class SpecialtiesRepository implements ISpecialtiesRepository {
   async countLinkedDoctors(id: string): Promise<number> {
     return this.repository.manager
       .createQueryBuilder(Doctor, 'doctor')
-      .innerJoin('doctor.specialties', 'specialty')
+      .innerJoin('doctor.doctorSpecialties', 'doctorSpecialty')
+      .innerJoin('doctorSpecialty.specialty', 'specialty')
       .where('specialty.id = :id', { id })
       .getCount()
   }

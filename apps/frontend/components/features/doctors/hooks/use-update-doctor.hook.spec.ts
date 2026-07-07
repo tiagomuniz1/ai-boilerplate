@@ -21,8 +21,8 @@ function makeWrapper(client: QueryClient) {
 const model = {
   id: 'uuid-1',
   user: { id: 'user-uuid-1', fullName: 'Dr. João', email: 'joao@example.com' },
-  crmNumber: '12345/SP',
-  specialties: [{ id: 'spec-uuid-2', name: 'Neurologia' }],
+  crms: [{ id: 'crm-uuid-1', number: '12345', state: 'SP', isPrimary: true }],
+  specialties: [{ id: 'spec-uuid-2', name: 'Neurologia', rqe: null }],
   bio: null,
   createdAt: new Date(),
   updatedAt: new Date(),
@@ -39,10 +39,10 @@ describe('useUpdateDoctor', () => {
 
     const { result } = renderHook(() => useUpdateDoctor(), { wrapper: makeWrapper(createQueryClient()) })
 
-    act(() => result.current.mutate({ id: 'uuid-1', data: { specialtyIds: ['spec-uuid-2'] } }))
+    act(() => result.current.mutate({ id: 'uuid-1', data: { specialties: [{ specialtyId: 'spec-uuid-2' }] } }))
 
     await waitFor(() => {
-      expect(updateDoctorUseCase).toHaveBeenCalledWith('uuid-1', { specialtyIds: ['spec-uuid-2'] })
+      expect(updateDoctorUseCase).toHaveBeenCalledWith('uuid-1', { specialties: [{ specialtyId: 'spec-uuid-2' }] })
     })
   })
 
@@ -54,7 +54,7 @@ describe('useUpdateDoctor', () => {
 
     const { result } = renderHook(() => useUpdateDoctor(), { wrapper: makeWrapper(client) })
 
-    act(() => result.current.mutate({ id: 'uuid-1', data: { specialtyIds: ['spec-uuid-2'] } }))
+    act(() => result.current.mutate({ id: 'uuid-1', data: { specialties: [{ specialtyId: 'spec-uuid-2' }] } }))
 
     await waitFor(() => expect(mockPush).toHaveBeenCalledWith('/test-clinic/doctors/uuid-1'))
 
@@ -68,7 +68,7 @@ describe('useUpdateDoctor', () => {
 
     const { result } = renderHook(() => useUpdateDoctor(), { wrapper: makeWrapper(createQueryClient()) })
 
-    act(() => result.current.mutate({ id: 'uuid-1', data: { specialtyIds: ['spec-uuid-2'] } }))
+    act(() => result.current.mutate({ id: 'uuid-1', data: { specialties: [{ specialtyId: 'spec-uuid-2' }] } }))
 
     await waitFor(() => {
       expect(mockPush).toHaveBeenCalledWith('/test-clinic/doctors/uuid-1')
@@ -81,7 +81,7 @@ describe('useUpdateDoctor', () => {
 
     const { result } = renderHook(() => useUpdateDoctor(), { wrapper: makeWrapper(createQueryClient()) })
 
-    act(() => result.current.mutate({ id: 'uuid-1', data: { specialtyIds: ['spec-uuid-2'] } }))
+    act(() => result.current.mutate({ id: 'uuid-1', data: { specialties: [{ specialtyId: 'spec-uuid-2' }] } }))
 
     await waitFor(() => expect(result.current.isError).toBe(true))
 

@@ -23,6 +23,7 @@ import type { IApiError } from '@/types/api.types'
 
 export interface ExameSectionProps {
   appointmentId: string
+  doctorId: string
   canManage: boolean
   userRole: UserRole
 }
@@ -32,7 +33,7 @@ const statusLabel: Record<ExamRequestStatus, string> = {
   [ExamRequestStatus.COMPLETED]: 'Concluído',
 }
 
-export function ExameSection({ appointmentId, canManage, userRole }: ExameSectionProps) {
+export function ExameSection({ appointmentId, doctorId, canManage, userRole }: ExameSectionProps) {
   const [showForm, setShowForm] = useState(false)
   const [deletingId, setDeletingId] = useState<string | null>(null)
   const [deletingResultId, setDeletingResultId] = useState<string | null>(null)
@@ -210,6 +211,7 @@ export function ExameSection({ appointmentId, canManage, userRole }: ExameSectio
       >
         <ExameForm
           appointmentId={appointmentId}
+          doctorId={doctorId}
           isPending={isCreating}
           globalError={createGlobalError}
           onSubmit={handleCreate}

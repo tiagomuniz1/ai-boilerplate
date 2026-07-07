@@ -7,6 +7,8 @@ import { User } from '../../../modules/users/entities/user.entity'
 import { Specialty } from '../../../modules/specialties/entities/specialty.entity'
 import { ClinicSpecialty } from '../../../modules/clinic-specialties/entities/clinic-specialty.entity'
 import { Doctor } from '../../../modules/doctors/entities/doctor.entity'
+import { DoctorCrm } from '../../../modules/doctors/entities/doctor-crm.entity'
+import { DoctorSpecialty } from '../../../modules/doctors/entities/doctor-specialty.entity'
 import { Patient } from '../../../modules/patients/entities/patient.entity'
 import { Schedule } from '../../../modules/schedules/entities/schedule.entity'
 import { Appointment } from '../../../modules/appointments/entities/appointment.entity'
@@ -402,8 +404,13 @@ async function seedMedicalRecords(dataSource: DataSource): Promise<void> {
       )
     }
     const specialty = await dataSource.getRepository(Specialty).findOneBy({ id: specialtyId })
-    const doctorEntity = doctorRepository.create({ userId: doctorUser.id, crmNumber: '12345/SP', clinicId: SEED_CLINIC_ID })
-    doctorEntity.specialties = specialty ? [specialty] : []
+    const doctorEntity = doctorRepository.create({ userId: doctorUser.id, clinicId: SEED_CLINIC_ID })
+    doctorEntity.crms = [
+      dataSource.getRepository(DoctorCrm).create({ clinicId: SEED_CLINIC_ID, number: '12345', state: 'SP', isPrimary: true }),
+    ]
+    doctorEntity.doctorSpecialties = specialty
+      ? [dataSource.getRepository(DoctorSpecialty).create({ specialtyId: specialty.id, rqe: '11223' })]
+      : []
     doctor = await doctorRepository.save(doctorEntity)
     console.log('Dev seed: seed doctor created.')
   }

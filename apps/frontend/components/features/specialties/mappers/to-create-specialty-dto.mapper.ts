@@ -5,5 +5,6 @@ export function toCreateSpecialtyDto(input: ICreateSpecialtyInput): CreateSpecia
   return {
     name: input.name,
     description: input.description,
+    titleName: input.titleName,
   }
 }

@@ -17,7 +17,7 @@ const makeSnapshot = (overrides: Partial<MedicalCertificateSnapshot> = {}): Medi
     },
     logoUrl: null,
   },
-  doctor: { name: 'Dr. João Silva', crmNumber: '12345/SP', specialtyName: 'Clínica Geral' },
+  doctor: { name: 'Dr. João Silva', crmNumber: '12345/SP', rqe: null, specialtyName: 'Clínica Geral' },
   patient: { name: 'Maria Santos', documentNumber: '12345678901' },
   daysOff: 3,
   startDate: '2026-01-05',
@@ -97,7 +97,16 @@ describe('MedicalCertificatePdfBuilderService', () => {
 
   it('generates PDF without specialty when specialtyName is null', async () => {
     const buffer = await service.build(
-      makeSnapshot({ doctor: { name: 'Dr. Test', crmNumber: '99999/SP', specialtyName: null } }),
+      makeSnapshot({ doctor: { name: 'Dr. Test', crmNumber: '99999/SP', rqe: null, specialtyName: null } }),
+      null,
+    )
+
+    expect(buffer.slice(0, 4).toString('ascii')).toBe('%PDF')
+  })
+
+  it('generates PDF including the RQE next to the CRM when present', async () => {
+    const buffer = await service.build(
+      makeSnapshot({ doctor: { name: 'Dr. Test', crmNumber: '12345/SP', rqe: '222', specialtyName: 'mastologista' } }),
       null,
     )
 

@@ -17,7 +17,7 @@ const doctorUser: ICurrentUser = { id: 'doctor-user-id', role: UserRole.DOCTOR, 
 const makeSnapshot = () => ({
   issuedAt: '2026-01-05T10:00:00.000Z',
   clinic: { name: 'Clínica', address: null, logoUrl: null },
-  doctor: { name: 'Dr. Test', crmNumber: '12345/SP', specialtyName: null },
+  doctor: { name: 'Dr. Test', crmNumber: '12345/SP', rqe: null, specialtyName: null },
   patient: { name: 'Patient', documentNumber: '12345678901' },
   items: [{ name: 'Hemograma completo', observations: null }],
   notes: null,

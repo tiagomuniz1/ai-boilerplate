@@ -14,6 +14,7 @@ const existingSpecialty: ISpecialtyModel = {
   id: 'uuid-1',
   name: 'Cardiologia',
   description: 'Especialidade do coração',
+  titleName: 'cardiologista',
   clinicCount: 0,
   createdAt: new Date('2024-01-15'),
   updatedAt: new Date('2024-01-16'),
@@ -89,6 +90,35 @@ describe('SpecialtyForm (integration) — create mode', () => {
     })
   })
 
+  it('calls onSubmit with titleName when provided', async () => {
+    const onSubmit = jest.fn()
+
+    renderWithProviders(<SpecialtyForm mode="create" isPending={false} onSubmit={onSubmit} />)
+
+    await userEvent.type(screen.getByTestId('specialty-form-name'), 'Mastologia')
+    await userEvent.type(screen.getByTestId('specialty-form-title-name'), 'mastologista')
+    await userEvent.click(screen.getByTestId('specialty-form-submit'))
+
+    await waitFor(() => {
+      expect(onSubmit).toHaveBeenCalledWith(
+        expect.objectContaining({ name: 'Mastologia', titleName: 'mastologista' }),
+        expect.any(Function),
+      )
+    })
+  })
+
+  it('shows validation error for titleName exceeding max length', async () => {
+    renderWithProviders(<SpecialtyForm mode="create" isPending={false} onSubmit={jest.fn()} />)
+
+    await userEvent.type(screen.getByTestId('specialty-form-name'), 'Mastologia')
+    await userEvent.type(screen.getByTestId('specialty-form-title-name'), 'a'.repeat(101))
+    await userEvent.click(screen.getByTestId('specialty-form-submit'))
+
+    await waitFor(() => {
+      expect(screen.getByText('Título deve ter no máximo 100 caracteres')).toBeInTheDocument()
+    })
+  })
+
   it('shows global error when provided', () => {
     renderWithProviders(
       <SpecialtyForm
@@ -127,6 +157,86 @@ describe('SpecialtyForm (integration) — edit mode', () => {
     })
 
     expect(screen.getByTestId('specialty-form-description')).toHaveValue('Especialidade do coração')
+    expect(screen.getByTestId('specialty-form-title-name')).toHaveValue('cardiologista')
+  })
+
+  it('sends the edited titleName', async () => {
+    const onSubmit = jest.fn()
+
+    renderWithProviders(
+      <SpecialtyForm mode="edit" defaultValues={existingSpecialty} isPending={false} onSubmit={onSubmit} />,
+    )
+
+    await waitFor(() => {
+      expect(screen.getByTestId('specialty-form-title-name')).toHaveValue('cardiologista')
+    })
+
+    await userEvent.clear(screen.getByTestId('specialty-form-title-name'))
+    await userEvent.type(screen.getByTestId('specialty-form-title-name'), 'especialista em coração')
+    await userEvent.click(screen.getByTestId('specialty-form-submit'))
+
+    await waitFor(() => {
+      expect(onSubmit).toHaveBeenCalledWith(
+        expect.objectContaining({ titleName: 'especialista em coração' }),
+        expect.any(Function),
+      )
+    })
+  })
+
+  it('sends null for titleName when it is cleared', async () => {
+    const onSubmit = jest.fn()
+
+    renderWithProviders(
+      <SpecialtyForm mode="edit" defaultValues={existingSpecialty} isPending={false} onSubmit={onSubmit} />,
+    )
+
+    await waitFor(() => {
+      expect(screen.getByTestId('specialty-form-title-name')).toHaveValue('cardiologista')
+    })
+
+    await userEvent.clear(screen.getByTestId('specialty-form-title-name'))
+    await userEvent.click(screen.getByTestId('specialty-form-submit'))
+
+    await waitFor(() => {
+      expect(onSubmit).toHaveBeenCalledWith(
+        expect.objectContaining({ titleName: null }),
+        expect.any(Function),
+      )
+    })
+  })
+
+  it('pre-fills an empty title field when the specialty has no title', async () => {
+    renderWithProviders(
+      <SpecialtyForm
+        mode="edit"
+        defaultValues={{ ...existingSpecialty, titleName: null }}
+        isPending={false}
+        onSubmit={jest.fn()}
+      />,
+    )
+
+    await waitFor(() => {
+      expect(screen.getByTestId('specialty-form-name')).toHaveValue('Cardiologia')
+    })
+
+    expect(screen.getByTestId('specialty-form-title-name')).toHaveValue('')
+  })
+
+  it('shows validation error for titleName exceeding max length in edit mode', async () => {
+    renderWithProviders(
+      <SpecialtyForm mode="edit" defaultValues={existingSpecialty} isPending={false} onSubmit={jest.fn()} />,
+    )
+
+    await waitFor(() => {
+      expect(screen.getByTestId('specialty-form-name')).toHaveValue('Cardiologia')
+    })
+
+    await userEvent.type(screen.getByTestId('specialty-form-title-name'), 'a'.repeat(101))
+    await userEvent.click(screen.getByTestId('specialty-form-submit'))
+
+    await waitFor(() => {
+      expect(screen.getByText('Título deve ter no máximo 100 caracteres')).toBeInTheDocument()
+    })
   })
 
   it('calls onSubmit with updated values', async () => {

@@ -24,7 +24,7 @@ function makeCertificateData(): CreateMedicalCertificateData {
       issuedAt: new Date().toISOString(),
       type: MedicalCertificateType.LEAVE,
       clinic: { name: 'Clinic', address: null, logoUrl: null },
-      doctor: { name: 'Doctor', crmNumber: '12345/SP', specialtyName: null },
+      doctor: { name: 'Doctor', crmNumber: '12345/SP', rqe: null, specialtyName: null },
       patient: { name: 'Patient', documentNumber: '12345678900' },
       daysOff: 3,
       startDate: '2026-01-05',

@@ -13,7 +13,14 @@ import { useDoctors } from '../hooks/use-doctors.hook'
 import { useDeleteDoctor } from '../hooks/use-delete-doctor.hook'
 import { DoctorListSkeleton } from './doctor-list-skeleton'
 import { DoctorDeleteDialog } from './doctor-delete-dialog'
-import type { IDoctorModel } from '../types/doctor-model.types'
+import type { IDoctorCrmModel, IDoctorModel } from '../types/doctor-model.types'
+
+function primaryCrmLabel(crms: IDoctorCrmModel[]): string {
+  if (crms.length === 0) return '—'
+  const primary = crms.find((crm) => crm.isPrimary) ?? crms[0]
+  const suffix = crms.length > 1 ? ` +${crms.length - 1}` : ''
+  return `${primary.number}/${primary.state}${suffix}`
+}
 
 export function DoctorList() {
   const slug = useSlug()
@@ -163,7 +170,7 @@ export function DoctorList() {
                       className="px-6 py-4 text-sm text-text-dim whitespace-nowrap"
                       data-testid={`doctor-crm-${doctor.id}`}
                     >
-                      {doctor.crmNumber}
+                      {primaryCrmLabel(doctor.crms)}
                     </td>
                     <td
                       className="px-6 py-4"
@@ -245,7 +252,7 @@ export function DoctorList() {
                   </span>
                 }
                 rows={[
-                  { label: 'CRM', value: doctor.crmNumber },
+                  { label: 'CRM', value: primaryCrmLabel(doctor.crms) },
                   {
                     label: 'Especialidade',
                     value: (

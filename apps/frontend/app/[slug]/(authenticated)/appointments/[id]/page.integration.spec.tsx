@@ -53,7 +53,7 @@ const makeDoctorsResponse = (id = DOCTOR_ID) => ({
     {
       id,
       user: { id: DOCTOR_USER_ID, fullName: 'Dr. Test', email: 'doctor@test.com', isActive: true },
-      crmNumber: '12345/SP',
+      crms: [{ id: 'crm-1', number: '12345', state: 'SP', isPrimary: true }],
       specialties: [],
       bio: null,
       createdAt: new Date().toISOString(),
@@ -127,7 +127,7 @@ describe('AppointmentDetailPage (integration)', () => {
       expect(screen.getByTestId('appointment-detail-doctor')).toBeInTheDocument()
     })
     expect(screen.getByTestId('appointment-detail-doctor')).toHaveTextContent('Dr. Test')
-    expect(screen.getByTestId('appointment-detail-date')).toHaveTextContent('2025-06-10')
+    expect(screen.getByTestId('appointment-detail-date')).toHaveTextContent('10/06/2025')
     expect(screen.getByTestId('appointment-detail-time')).toHaveTextContent('09:00')
     expect(screen.getByTestId('appointment-detail-status')).toHaveTextContent('Agendada')
   })

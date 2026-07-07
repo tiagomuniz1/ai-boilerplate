@@ -4,6 +4,16 @@
 
 ### Added
 
+#### Assinatura configurável em receitas, atestados e exames
+- Campos opcionais `crmId` e `specialtyId` nos DTOs de criação de receita, atestado e exame — permitem assinar o documento com um **CRM** e uma **especialidade/RQE** diferentes dos principais. Default preservado: CRM primário + especialidade da consulta
+- Helper puro `resolveDoctorSigningIdentity` (módulo doctors) resolve CRM, RQE e título da especialidade; rejeita com `422` quando o `crmId`/`specialtyId` informado não pertence ao médico
+- `rqe` incluído no snapshot dos três documentos e renderizado ao lado do CRM no PDF (`CRM 12345/SP · RQE 222`)
+
+#### Título do especialista na especialidade (`/specialties`)
+- Coluna `title_name` (opcional) em `specialties` — nome da profissão exibido nos documentos (ex.: "mastologista" para a especialidade "Mastologia"); migration `add_title_name_to_specialties`
+- Quando preenchido, substitui o nome da especialidade em receitas/atestados/exames; quando vazio, mantém o nome da especialidade
+- `titleName` exposto em `SpecialtyResponseDto` e aceito em `CreateSpecialtyDto`/`UpdateSpecialtyDto`
+
 #### Validação de Receita com QR Code (`/prescriptions`)
 - Coluna `verification_token` (aleatória/opaca, `randomBytes(32).toString('hex')`) em `prescriptions`, gerada na emissão; migration `add-verification-token-to-prescriptions` com backfill dos registros existentes + índice único
 - Endpoint **público** `GET /prescriptions/verify/:token` (`@Public`, rate limit 60/60s) que retorna os dados autoritativos da receita com **nome e CPF do paciente mascarados** — sem `instructions`, `notes` nem IDs internos; receita soft-deleted retorna `404`

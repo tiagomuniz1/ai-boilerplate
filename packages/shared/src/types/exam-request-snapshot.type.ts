@@ -13,7 +13,7 @@ export interface ExamRequestSnapshot {
     } | null
     logoUrl: string | null
   }
-  doctor: { name: string; crmNumber: string; specialtyName: string | null }
+  doctor: { name: string; crmNumber: string; rqe: string | null; specialtyName: string | null }
   patient: { name: string; documentNumber: string }
   items: Array<{ name: string; observations: string | null }>
   notes: string | null

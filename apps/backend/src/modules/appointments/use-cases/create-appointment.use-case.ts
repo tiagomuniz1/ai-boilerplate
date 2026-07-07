@@ -74,7 +74,10 @@ export class CreateAppointmentUseCase extends BaseUseCase {
     }
     if (!doctor) throw new NotFoundException('Doctor not found')
 
-    const chosenSpecialty = this.resolveSpecialty(doctor.specialties, dto.specialtyId)
+    const chosenSpecialty = this.resolveSpecialty(
+      doctor.doctorSpecialties.map((ds) => ({ id: ds.specialtyId, name: ds.specialty.name })),
+      dto.specialtyId,
+    )
 
     const patient = await this.patientsRepository.findById(dto.patientId, clinicId)
     if (!patient) throw new NotFoundException('Patient not found')

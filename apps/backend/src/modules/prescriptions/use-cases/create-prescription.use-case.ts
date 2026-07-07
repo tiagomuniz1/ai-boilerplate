@@ -19,6 +19,7 @@ import { CacheService } from '../../../cache/cache.service'
 import { ICurrentUser } from '../../auth/types/current-user.type'
 import { IAppointmentsRepository } from '../../appointments/repositories/appointments.repository.interface'
 import { IDoctorsRepository } from '../../doctors/repositories/doctors.repository.interface'
+import { resolveDoctorSigningIdentity } from '../../doctors/utils/resolve-doctor-signing-identity'
 import { IPatientsRepository } from '../../patients/repositories/patients.repository.interface'
 import { IMedicationsRepository } from '../../medications/repositories/medications.repository.interface'
 import { FindClinicByIdUseCase } from '../../clinics/use-cases/find-clinic-by-id.use-case'
@@ -116,9 +117,12 @@ export class CreatePrescriptionUseCase extends BaseUseCase {
     const doctor = doctorForRbac ?? (await this.doctorsRepository.findById(appointment.doctorId, clinicId))
     if (!doctor) throw new NotFoundException('Doctor not found')
 
-    const specialtyName = appointment.specialtyId
-      ? (doctor.specialties.find((s) => s.id === appointment.specialtyId)?.name ?? null)
-      : null
+    const { crmNumber, rqe, specialtyName } = resolveDoctorSigningIdentity(
+      doctor,
+      appointment.specialtyId,
+      dto.crmId,
+      dto.specialtyId,
+    )
 
     const patient = await this.patientsRepository.findById(appointment.patientId, clinicId)
     if (!patient) throw new NotFoundException('Patient not found')
@@ -144,7 +148,8 @@ export class CreatePrescriptionUseCase extends BaseUseCase {
       },
       doctor: {
         name: doctor.user.fullName,
-        crmNumber: doctor.crmNumber,
+        crmNumber,
+        rqe,
         specialtyName,
       },
       patient: {

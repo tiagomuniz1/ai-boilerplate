@@ -24,7 +24,7 @@ function makeExamRequestData(): CreateExamRequestData {
     snapshot: {
       issuedAt: new Date().toISOString(),
       clinic: { name: 'Clinic', address: null, logoUrl: null },
-      doctor: { name: 'Doctor', crmNumber: '12345/SP', specialtyName: null },
+      doctor: { name: 'Doctor', crmNumber: '12345/SP', rqe: null, specialtyName: null },
       patient: { name: 'Patient', documentNumber: '12345678900' },
       items: [{ name: 'Hemograma', observations: null }],
       notes: null,

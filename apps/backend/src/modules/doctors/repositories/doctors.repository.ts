@@ -1,10 +1,18 @@
 import { Injectable } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
 import { QueryRunner, Repository } from 'typeorm'
-import { CreateDoctorDto, UpdateDoctorDto } from '@app/shared'
+import { UpdateDoctorDto } from '@app/shared'
 import { Doctor } from '../entities/doctor.entity'
-import { Specialty } from '../../specialties/entities/specialty.entity'
-import { IDoctorsRepository } from './doctors.repository.interface'
+import { DoctorCrm } from '../entities/doctor-crm.entity'
+import { DoctorSpecialty } from '../entities/doctor-specialty.entity'
+import {
+  CreateDoctorData,
+  DoctorCrmAssignment,
+  DoctorSpecialtyAssignment,
+  IDoctorsRepository,
+} from './doctors.repository.interface'
+
+const DOCTOR_RELATIONS = ['user', 'crms', 'doctorSpecialties', 'doctorSpecialties.specialty']
 
 @Injectable()
 export class DoctorsRepository implements IDoctorsRepository {
@@ -17,7 +25,9 @@ export class DoctorsRepository implements IDoctorsRepository {
     const qb = this.repository
       .createQueryBuilder('doctor')
       .innerJoinAndSelect('doctor.user', 'user')
-      .leftJoinAndSelect('doctor.specialties', 'specialty')
+      .leftJoinAndSelect('doctor.crms', 'crm')
+      .leftJoinAndSelect('doctor.doctorSpecialties', 'doctorSpecialty')
+      .leftJoinAndSelect('doctorSpecialty.specialty', 'specialty')
       .where('user.clinicId = :clinicId', { clinicId })
       .orderBy('doctor.createdAt', 'DESC')
       .take(limit)
@@ -36,7 +46,9 @@ export class DoctorsRepository implements IDoctorsRepository {
     return this.repository
       .createQueryBuilder('doctor')
       .innerJoinAndSelect('doctor.user', 'user')
-      .leftJoinAndSelect('doctor.specialties', 'specialty')
+      .leftJoinAndSelect('doctor.crms', 'crm')
+      .leftJoinAndSelect('doctor.doctorSpecialties', 'doctorSpecialty')
+      .leftJoinAndSelect('doctorSpecialty.specialty', 'specialty')
       .where('doctor.id = :id', { id })
       .andWhere('user.clinicId = :clinicId', { clinicId })
       .getOne()
@@ -46,49 +58,94 @@ export class DoctorsRepository implements IDoctorsRepository {
     return this.repository
       .createQueryBuilder('doctor')
       .innerJoinAndSelect('doctor.user', 'user')
-      .leftJoinAndSelect('doctor.specialties', 'specialty')
+      .leftJoinAndSelect('doctor.crms', 'crm')
+      .leftJoinAndSelect('doctor.doctorSpecialties', 'doctorSpecialty')
+      .leftJoinAndSelect('doctorSpecialty.specialty', 'specialty')
       .where('doctor.userId = :userId', { userId })
       .andWhere('user.clinicId = :clinicId', { clinicId })
       .getOne()
   }
 
-  async findByCrmNumber(crmNumber: string, clinicId: string): Promise<Doctor | null> {
+  async findByCrm(number: string, state: string, clinicId: string): Promise<Doctor | null> {
     return this.repository
       .createQueryBuilder('doctor')
-      .innerJoin('doctor.user', 'user')
-      .where('doctor.crmNumber = :crmNumber', { crmNumber })
-      .andWhere('user.clinicId = :clinicId', { clinicId })
+      .innerJoin('doctor.crms', 'crm')
+      .where('crm.number = :number', { number })
+      .andWhere('crm.state = :state', { state })
+      .andWhere('crm.clinicId = :clinicId', { clinicId })
+      .andWhere('crm.deletedAt IS NULL')
       .getOne()
   }
 
-  async create(data: CreateDoctorDto & { userId: string }, clinicId: string, specialties: Specialty[], queryRunner?: QueryRunner): Promise<Doctor> {
+  async create(
+    data: CreateDoctorData,
+    clinicId: string,
+    crms: DoctorCrmAssignment[],
+    specialties: DoctorSpecialtyAssignment[],
+    queryRunner?: QueryRunner,
+  ): Promise<Doctor> {
     const manager = queryRunner ? queryRunner.manager : this.repository.manager
     const repo = manager.getRepository(Doctor)
+    const crmRepo = manager.getRepository(DoctorCrm)
+    const doctorSpecialtyRepo = manager.getRepository(DoctorSpecialty)
+
     const doctor = repo.create({
       userId: data.userId,
       clinicId,
-      crmNumber: data.crmNumber,
-      bio: data.bio,
+      bio: data.bio ?? null,
     })
-    doctor.specialties = specialties
+    doctor.crms = crms.map((crm) =>
+      crmRepo.create({ clinicId, number: crm.number, state: crm.state, isPrimary: crm.isPrimary }),
+    )
+    doctor.doctorSpecialties = specialties.map((assignment) =>
+      doctorSpecialtyRepo.create({ specialtyId: assignment.specialty.id, rqe: assignment.rqe }),
+    )
+
     const saved = await repo.save(doctor)
-    return repo.findOne({ where: { id: saved.id }, relations: ['user', 'specialties'] }) as Promise<Doctor>
+    return repo.findOne({ where: { id: saved.id }, relations: DOCTOR_RELATIONS }) as Promise<Doctor>
   }
 
-  async update(id: string, data: UpdateDoctorDto, specialties: Specialty[] | null, queryRunner?: QueryRunner): Promise<Doctor> {
+  async update(
+    id: string,
+    data: UpdateDoctorDto,
+    crms: DoctorCrmAssignment[] | null,
+    specialties: DoctorSpecialtyAssignment[] | null,
+    queryRunner?: QueryRunner,
+  ): Promise<Doctor> {
     const manager = queryRunner ? queryRunner.manager : this.repository.manager
     const repo = manager.getRepository(Doctor)
-    const doctor = await repo.findOne({ where: { id }, relations: ['specialties'] })
+    const crmRepo = manager.getRepository(DoctorCrm)
+    const doctorSpecialtyRepo = manager.getRepository(DoctorSpecialty)
+
+    const doctor = await repo.findOne({ where: { id }, relations: ['crms', 'doctorSpecialties'] })
     if (!doctor) throw new Error(`Doctor ${id} not found`)
-    if (data.crmNumber !== undefined) doctor.crmNumber = data.crmNumber
+
     if (data.bio !== undefined) doctor.bio = data.bio
-    if (specialties !== null) doctor.specialties = specialties
-    const saved = await repo.save(doctor)
-    return repo.findOne({ where: { id: saved.id }, relations: ['user', 'specialties'] }) as Promise<Doctor>
+    await repo.save(doctor)
+
+    if (crms !== null) {
+      await crmRepo.delete({ doctorId: id })
+      await crmRepo.save(
+        crms.map((crm) =>
+          crmRepo.create({ doctorId: id, clinicId: doctor.clinicId, number: crm.number, state: crm.state, isPrimary: crm.isPrimary }),
+        ),
+      )
+    }
+    if (specialties !== null) {
+      await doctorSpecialtyRepo.delete({ doctorId: id })
+      await doctorSpecialtyRepo.save(
+        specialties.map((assignment) =>
+          doctorSpecialtyRepo.create({ doctorId: id, specialtyId: assignment.specialty.id, rqe: assignment.rqe }),
+        ),
+      )
+    }
+
+    return repo.findOne({ where: { id }, relations: DOCTOR_RELATIONS }) as Promise<Doctor>
   }
 
   async delete(id: string, queryRunner?: QueryRunner): Promise<void> {
-    const repo = queryRunner ? queryRunner.manager.getRepository(Doctor) : this.repository
-    await repo.softDelete(id)
+    const manager = queryRunner ? queryRunner.manager : this.repository.manager
+    await manager.getRepository(DoctorCrm).softDelete({ doctorId: id })
+    await manager.getRepository(Doctor).softDelete(id)
   }
 }

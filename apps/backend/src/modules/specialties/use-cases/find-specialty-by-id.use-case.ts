@@ -48,6 +48,7 @@ export class FindSpecialtyByIdUseCase extends BaseUseCase {
       id: specialty.id,
       name: specialty.name,
       description: specialty.description,
+      titleName: specialty.titleName,
       clinicCount,
       createdAt: specialty.createdAt,
       updatedAt: specialty.updatedAt,

@@ -5,15 +5,23 @@ export class DoctorUserDto {
   isActive!: boolean
 }
 
+export class DoctorCrmDto {
+  id!: string
+  number!: string
+  state!: string
+  isPrimary!: boolean
+}
+
 export class DoctorSpecialtyDto {
   id!: string
   name!: string
+  rqe!: string | null
 }
 
 export class DoctorResponseDto {
   id!: string
   user!: DoctorUserDto
-  crmNumber!: string
+  crms!: DoctorCrmDto[]
   specialties!: DoctorSpecialtyDto[]
   bio!: string | null
   createdAt!: Date

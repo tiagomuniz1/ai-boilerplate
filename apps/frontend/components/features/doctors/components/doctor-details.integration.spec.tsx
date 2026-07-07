@@ -12,9 +12,9 @@ const mockPush = jest.fn()
 
 const doctor: IDoctorModel = {
   id: 'uuid-1',
-  user: { id: 'user-uuid-1', fullName: 'Dr. João Silva', email: 'joao@example.com' },
-  crmNumber: '12345/SP',
-  specialties: [{ id: 'spec-uuid-1', name: 'Cardiologia' }],
+  user: { id: 'user-uuid-1', fullName: 'Dr. João Silva', email: 'joao@example.com', isActive: true },
+  crms: [{ id: 'crm-uuid-1', number: '12345', state: 'SP', isPrimary: true }],
+  specialties: [{ id: 'spec-uuid-1', name: 'Cardiologia', rqe: '6789' }],
   bio: 'Especialista em cardiologia.',
   createdAt: new Date('2024-01-15'),
   updatedAt: new Date('2024-01-16'),

@@ -10,6 +10,7 @@ import { cn } from '@/lib/cn'
 import { useAppointment } from '../hooks/use-appointment.hook'
 import { APPOINTMENT_STATUS_LABELS } from '../types/appointment-model.types'
 import { APPOINTMENT_STATUS_BADGE_CLASS } from '@/lib/appointment-status'
+import { formatDateToBR } from '@/lib/format-date'
 
 interface AppointmentDetailsDialogProps {
   appointmentId: string | null
@@ -78,7 +79,7 @@ export function AppointmentDetailsDialog({
             <dd data-testid="details-doctor">{appointment.doctorName}</dd>
 
             <dt className="text-text/50">Data</dt>
-            <dd data-testid="details-date">{appointment.date}</dd>
+            <dd data-testid="details-date">{formatDateToBR(appointment.date)}</dd>
 
             <dt className="text-text/50">Horário</dt>
             <dd data-testid="details-time">

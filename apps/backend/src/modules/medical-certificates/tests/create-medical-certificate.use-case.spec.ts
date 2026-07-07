@@ -29,13 +29,16 @@ const makeAppointment = (overrides = {}) => ({
   ...overrides,
 })
 
-const makeDoctor = (overrides = {}) => ({
-  id: doctorId,
-  user: { fullName: 'Doctor Smith' },
-  crmNumber: '12345/SP',
-  specialties: [{ id: specialtyId, name: 'Cardiologia' }],
-  ...overrides,
-})
+const makeDoctor = (overrides: any = {}) => {
+  const { specialties = [{ id: specialtyId, name: 'Cardiologia' }], ...rest } = overrides
+  return {
+    id: doctorId,
+    user: { fullName: 'Doctor Smith' },
+    crms: [{ id: 'crm-1', number: '12345', state: 'SP', isPrimary: true }],
+    doctorSpecialties: specialties.map((s: any) => ({ specialtyId: s.id, specialty: { id: s.id, name: s.name } })),
+    ...rest,
+  }
+}
 
 const makePatient = () => ({
   id: patientId,
@@ -70,7 +73,7 @@ const makeSavedCertificate = (overrides = {}) => ({
     issuedAt: new Date().toISOString(),
     type: MedicalCertificateType.LEAVE,
     clinic: { name: 'Test Clinic', address: null, logoUrl: null },
-    doctor: { name: 'Doctor Smith', crmNumber: '12345/SP', specialtyName: 'Cardiologia' },
+    doctor: { name: 'Doctor Smith', crmNumber: '12345/SP', rqe: null, specialtyName: 'Cardiologia' },
     patient: { name: 'Patient Jones', documentNumber: '12345678900' },
     daysOff: 3,
     startDate: '2026-01-05',
@@ -107,7 +110,7 @@ const mockDoctorsRepository: jest.Mocked<IDoctorsRepository> = {
   findAll: jest.fn(),
   findById: jest.fn(),
   findByUserId: jest.fn(),
-  findByCrmNumber: jest.fn(),
+  findByCrm: jest.fn(),
   create: jest.fn(),
   update: jest.fn(),
   delete: jest.fn(),

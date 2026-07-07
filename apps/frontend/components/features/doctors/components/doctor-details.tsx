@@ -57,7 +57,23 @@ export function DoctorDetails({ doctor, onDeleteClick }: DoctorDetailsProps) {
       <div className="overflow-hidden rounded-xl border border-line bg-surface shadow-sm">
         <div className="grid grid-cols-1 gap-px bg-line sm:grid-cols-2">
           <div className="bg-surface px-6 py-4">
-            <DetailRow label="CRM" value={doctor.crmNumber} testId="doctor-details-crm" />
+            <div className="flex flex-col gap-0.5">
+              <span className="text-xs font-medium uppercase tracking-wider text-text-mute">CRM</span>
+              <div data-testid="doctor-details-crm" className="flex flex-wrap gap-1 pt-0.5">
+                {doctor.crms.map((crm) => (
+                  <span
+                    key={crm.id}
+                    data-testid={`doctor-details-crm-badge-${crm.id}`}
+                    className="inline-flex items-center gap-1 rounded-full border border-line bg-surface-2 px-2 py-0.5 text-xs text-text"
+                  >
+                    {crm.number}/{crm.state}
+                    {crm.isPrimary && (
+                      <span className="text-[10px] font-medium uppercase tracking-wide text-accent">principal</span>
+                    )}
+                  </span>
+                ))}
+              </div>
+            </div>
           </div>
           <div className="bg-surface px-6 py-4">
             <div className="flex flex-col gap-0.5">
@@ -75,6 +91,7 @@ export function DoctorDetails({ doctor, onDeleteClick }: DoctorDetailsProps) {
                     className="inline-flex items-center rounded-full border border-line bg-surface-2 px-2 py-0.5 text-xs text-text"
                   >
                     {s.name}
+                    {s.rqe && <span className="ml-1 text-text-mute">— RQE {s.rqe}</span>}
                   </span>
                 ))}
               </div>

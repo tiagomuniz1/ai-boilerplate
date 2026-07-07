@@ -21,7 +21,7 @@ const mockDoctorsRepository: jest.Mocked<IDoctorsRepository> = {
   findAll: jest.fn(),
   findById: jest.fn(),
   findByUserId: jest.fn(),
-  findByCrmNumber: jest.fn(),
+  findByCrm: jest.fn(),
   create: jest.fn(),
   update: jest.fn(),
   delete: jest.fn(),
@@ -82,19 +82,37 @@ const makeSpecialty = (overrides = {}) => ({
   ...overrides,
 })
 
-const makeDoctor = (overrides = {}) => ({
+const makeCrm = (overrides = {}) => ({
   id: faker.string.uuid(),
-  userId: faker.string.uuid(),
-  user: { id: faker.string.uuid(), fullName: faker.person.fullName(), email: faker.internet.email(), isActive: true } as any,
-  crmNumber: '12345/SP',
-  specialties: [makeSpecialty()],
-  bio: null,
-  version: 1,
-  createdAt: new Date(),
-  updatedAt: new Date(),
-  deletedAt: null,
+  number: '12345',
+  state: 'SP',
+  isPrimary: true,
   ...overrides,
 })
+
+const makeDoctorSpecialty = (specialty = makeSpecialty(), rqe: string | null = null) => ({
+  id: faker.string.uuid(),
+  specialtyId: specialty.id,
+  specialty,
+  rqe,
+})
+
+const makeDoctor = (overrides: any = {}) => {
+  const { specialties, crms, ...rest } = overrides
+  return {
+    id: faker.string.uuid(),
+    userId: faker.string.uuid(),
+    user: { id: faker.string.uuid(), fullName: faker.person.fullName(), email: faker.internet.email(), isActive: true } as any,
+    crms: crms ?? [makeCrm()],
+    doctorSpecialties: (specialties ?? [makeSpecialty()]).map((specialty: any) => makeDoctorSpecialty(specialty)),
+    bio: null,
+    version: 1,
+    createdAt: new Date(),
+    updatedAt: new Date(),
+    deletedAt: null,
+    ...rest,
+  }
+}
 
 const CLINIC_ID = 'fixed-clinic-uuid'
 const adminUser: ICurrentUser = { id: faker.string.uuid(), role: UserRole.ADMIN, clinicId: CLINIC_ID }
@@ -113,25 +131,28 @@ describe('UpdateDoctorUseCase', () => {
     )
   })
 
-  it('updates doctor and returns response', async () => {
+  it('updates doctor specialties and returns response', async () => {
     const doctor = makeDoctor()
     const newSpecialty = makeSpecialty({ name: 'Neurologia' })
     const updated = makeDoctor({ id: doctor.id, specialties: [newSpecialty] })
 
     mockDoctorsRepository.findById.mockResolvedValue(doctor as any)
-    mockDoctorsRepository.findByCrmNumber.mockResolvedValue(null)
+    mockDoctorsRepository.findByCrm.mockResolvedValue(null)
     mockSpecialtiesRepository.findByIds.mockResolvedValue([newSpecialty] as any)
     mockDoctorsRepository.update.mockResolvedValue(updated as any)
     mockCacheService.del.mockResolvedValue(undefined)
     mockCacheService.delByPattern.mockResolvedValue(undefined)
 
-    const result = await useCase.execute(doctor.id, { specialtyIds: [newSpecialty.id] }, adminUser)
+    const result = await useCase.execute(doctor.id, { specialties: [{ specialtyId: newSpecialty.id, rqe: '4455' }] }, adminUser)
 
     expect(result.id).toBe(doctor.id)
     expect(result.specialties[0].name).toBe('Neurologia')
+    expect(mockDoctorsRepository.update).toHaveBeenCalledWith(doctor.id, expect.anything(), null, [
+      { specialty: newSpecialty, rqe: '4455' },
+    ])
   })
 
-  it('does not call findByIds when specialtyIds is not provided', async () => {
+  it('does not call findByIds when specialties is not provided', async () => {
     const doctor = makeDoctor()
     const updated = makeDoctor({ id: doctor.id, bio: 'Updated bio' })
 
@@ -143,7 +164,7 @@ describe('UpdateDoctorUseCase', () => {
     await useCase.execute(doctor.id, { bio: 'Updated bio' }, adminUser)
 
     expect(mockSpecialtiesRepository.findByIds).not.toHaveBeenCalled()
-    expect(mockDoctorsRepository.update).toHaveBeenCalledWith(doctor.id, { bio: 'Updated bio' }, null)
+    expect(mockDoctorsRepository.update).toHaveBeenCalledWith(doctor.id, { bio: 'Updated bio' }, null, null)
   })
 
   it('throws NotFoundException when doctor does not exist', async () => {
@@ -154,32 +175,51 @@ describe('UpdateDoctorUseCase', () => {
     )
   })
 
-  it('throws ConflictException when new CRM is already in use by another doctor', async () => {
-    const doctor = makeDoctor({ crmNumber: '11111/SP' })
-    const otherDoctor = makeDoctor({ crmNumber: '22222/SP' })
-
+  it('throws UnprocessableEntityException when not exactly one primary CRM', async () => {
+    const doctor = makeDoctor()
     mockDoctorsRepository.findById.mockResolvedValue(doctor as any)
-    mockDoctorsRepository.findByCrmNumber.mockResolvedValue(otherDoctor as any)
 
     await expect(
-      useCase.execute(doctor.id, { crmNumber: '22222/SP' }, adminUser),
+      useCase.execute(
+        doctor.id,
+        {
+          crms: [
+            { number: '11111', state: 'SP', isPrimary: false },
+            { number: '22222', state: 'RJ', isPrimary: false },
+          ],
+        },
+        adminUser,
+      ),
+    ).rejects.toThrow(UnprocessableEntityException)
+    expect(mockDoctorsRepository.update).not.toHaveBeenCalled()
+  })
+
+  it('throws ConflictException when a new CRM is already in use by another doctor', async () => {
+    const doctor = makeDoctor()
+    const otherDoctor = makeDoctor()
+
+    mockDoctorsRepository.findById.mockResolvedValue(doctor as any)
+    mockDoctorsRepository.findByCrm.mockResolvedValue(otherDoctor as any)
+
+    await expect(
+      useCase.execute(doctor.id, { crms: [{ number: '22222', state: 'SP', isPrimary: true }] }, adminUser),
     ).rejects.toThrow(ConflictException)
     expect(mockDoctorsRepository.update).not.toHaveBeenCalled()
   })
 
-  it('allows updating with the same CRM number (no conflict with self)', async () => {
-    const doctor = makeDoctor({ crmNumber: '12345/SP' })
-    const updated = makeDoctor({ id: doctor.id, crmNumber: '12345/SP' })
+  it('allows keeping a CRM that belongs to the same doctor (no self conflict)', async () => {
+    const doctor = makeDoctor()
+    const updated = makeDoctor({ id: doctor.id })
 
     mockDoctorsRepository.findById.mockResolvedValue(doctor as any)
+    mockDoctorsRepository.findByCrm.mockResolvedValue(doctor as any)
     mockDoctorsRepository.update.mockResolvedValue(updated as any)
     mockCacheService.del.mockResolvedValue(undefined)
     mockCacheService.delByPattern.mockResolvedValue(undefined)
 
-    const result = await useCase.execute(doctor.id, { crmNumber: '12345/SP' }, adminUser)
+    const result = await useCase.execute(doctor.id, { crms: [{ number: '12345', state: 'SP', isPrimary: true }] }, adminUser)
 
-    expect(mockDoctorsRepository.findByCrmNumber).not.toHaveBeenCalled()
-    expect(result.crmNumber).toBe('12345/SP')
+    expect(result.crms[0]).toMatchObject({ number: '12345', state: 'SP', isPrimary: true })
   })
 
   it('throws UnprocessableEntityException when a specialtyId is not found', async () => {
@@ -188,25 +228,20 @@ describe('UpdateDoctorUseCase', () => {
     mockSpecialtiesRepository.findByIds.mockResolvedValue([])
 
     await expect(
-      useCase.execute(doctor.id, { specialtyIds: [faker.string.uuid()] }, adminUser),
+      useCase.execute(doctor.id, { specialties: [{ specialtyId: faker.string.uuid() }] }, adminUser),
     ).rejects.toThrow(UnprocessableEntityException)
     expect(mockDoctorsRepository.update).not.toHaveBeenCalled()
   })
 
-  it('deduplicates specialtyIds before calling findByIds', async () => {
+  it('throws UnprocessableEntityException when the specialty list has duplicates', async () => {
     const doctor = makeDoctor()
     const specialty = makeSpecialty()
-    const updated = makeDoctor({ id: doctor.id, specialties: [specialty] })
-
     mockDoctorsRepository.findById.mockResolvedValue(doctor as any)
-    mockSpecialtiesRepository.findByIds.mockResolvedValue([specialty] as any)
-    mockDoctorsRepository.update.mockResolvedValue(updated as any)
-    mockCacheService.del.mockResolvedValue(undefined)
-    mockCacheService.delByPattern.mockResolvedValue(undefined)
 
-    await useCase.execute(doctor.id, { specialtyIds: [specialty.id, specialty.id] }, adminUser)
-
-    expect(mockSpecialtiesRepository.findByIds).toHaveBeenCalledWith([specialty.id])
+    await expect(
+      useCase.execute(doctor.id, { specialties: [{ specialtyId: specialty.id }, { specialtyId: specialty.id }] }, adminUser),
+    ).rejects.toThrow(UnprocessableEntityException)
+    expect(mockDoctorsRepository.update).not.toHaveBeenCalled()
   })
 
   it('throws ConflictException on optimistic lock version mismatch', async () => {
@@ -224,10 +259,12 @@ describe('UpdateDoctorUseCase', () => {
   it('throws ConflictException when DB CRM unique constraint fires (race condition)', async () => {
     const doctor = makeDoctor()
     mockDoctorsRepository.findById.mockResolvedValue(doctor as any)
-    mockDoctorsRepository.findByCrmNumber.mockResolvedValue(null)
-    mockDoctorsRepository.update.mockRejectedValue(makeUniqueViolation(DB_UNIQUE_CONSTRAINTS.DOCTORS_CRM))
+    mockDoctorsRepository.findByCrm.mockResolvedValue(null)
+    mockDoctorsRepository.update.mockRejectedValue(makeUniqueViolation(DB_UNIQUE_CONSTRAINTS.DOCTOR_CRMS))
 
-    await expect(useCase.execute(doctor.id, { crmNumber: '99999/SP' }, adminUser)).rejects.toThrow(ConflictException)
+    await expect(
+      useCase.execute(doctor.id, { crms: [{ number: '99999', state: 'SP', isPrimary: true }] }, adminUser),
+    ).rejects.toThrow(ConflictException)
   })
 
   it('rethrows non-OptimisticLock errors from repository update', async () => {

@@ -16,6 +16,7 @@ const makeResponse = (overrides = {}) => ({
   id: 'uuid-1',
   name: 'Cardiologia',
   description: null,
+  titleName: null,
   clinicCount: 0,
   createdAt: new Date(),
   updatedAt: new Date(),

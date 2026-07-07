@@ -5,15 +5,23 @@ export interface IDoctorUserModel {
   isActive: boolean
 }
 
+export interface IDoctorCrmModel {
+  id: string
+  number: string
+  state: string
+  isPrimary: boolean
+}
+
 export interface IDoctorSpecialtyModel {
   id: string
   name: string
+  rqe: string | null
 }
 
 export interface IDoctorModel {
   id: string
   user: IDoctorUserModel
-  crmNumber: string
+  crms: IDoctorCrmModel[]
   specialties: IDoctorSpecialtyModel[]
   bio: string | null
   createdAt: Date

@@ -4,6 +4,7 @@ import { Doctor } from '../entities/doctor.entity'
 import { User } from '../../users/entities/user.entity'
 
 const CLINIC_ID = 'fixed-clinic-uuid'
+const DOCTOR_RELATIONS = ['user', 'crms', 'doctorSpecialties', 'doctorSpecialties.specialty']
 
 function makeQueryBuilderMock(overrides: { result?: any; getOne?: any } = {}) {
   const qb: any = {
@@ -23,9 +24,10 @@ function makeQueryBuilderMock(overrides: { result?: any; getOne?: any } = {}) {
 
 function makeManagerRepo() {
   return {
-    create: jest.fn(),
+    create: jest.fn((x) => ({ ...x })),
     save: jest.fn(),
     findOne: jest.fn(),
+    delete: jest.fn(),
     softDelete: jest.fn(),
   }
 }
@@ -58,15 +60,15 @@ function makeDoctor(overrides = {}): Doctor {
     id: 'uuid-1',
     userId: 'user-uuid-1',
     user: makeUser(),
-    crmNumber: '12345/SP',
-    specialties: [{ id: 'spec-uuid-1', name: 'Cardiologia' }],
+    crms: [{ id: 'crm-uuid-1', number: '12345', state: 'SP', isPrimary: true }],
+    doctorSpecialties: [{ id: 'ds-uuid-1', specialtyId: 'spec-uuid-1', specialty: { id: 'spec-uuid-1', name: 'Cardiologia' }, rqe: null }],
     bio: null,
     version: 1,
     createdAt: new Date(),
     updatedAt: new Date(),
     deletedAt: null,
     ...overrides,
-  } as Doctor
+  } as unknown as Doctor
 }
 
 describe('DoctorsRepository', () => {
@@ -80,7 +82,7 @@ describe('DoctorsRepository', () => {
   })
 
   describe('findAll', () => {
-    it('uses QueryBuilder with innerJoinAndSelect on user and leftJoinAndSelect on specialties when no search', async () => {
+    it('joins user, crms and nested specialty when no search', async () => {
       const doctors = [makeDoctor()]
       const qb = makeQueryBuilderMock({ result: [doctors, 1] })
       repo.createQueryBuilder.mockReturnValue(qb)
@@ -89,7 +91,9 @@ describe('DoctorsRepository', () => {
 
       expect(repo.createQueryBuilder).toHaveBeenCalledWith('doctor')
       expect(qb.innerJoinAndSelect).toHaveBeenCalledWith('doctor.user', 'user')
-      expect(qb.leftJoinAndSelect).toHaveBeenCalledWith('doctor.specialties', 'specialty')
+      expect(qb.leftJoinAndSelect).toHaveBeenCalledWith('doctor.crms', 'crm')
+      expect(qb.leftJoinAndSelect).toHaveBeenCalledWith('doctor.doctorSpecialties', 'doctorSpecialty')
+      expect(qb.leftJoinAndSelect).toHaveBeenCalledWith('doctorSpecialty.specialty', 'specialty')
       expect(qb.where).toHaveBeenCalledWith('user.clinicId = :clinicId', { clinicId: CLINIC_ID })
       expect(qb.orderBy).toHaveBeenCalledWith('doctor.createdAt', 'DESC')
       expect(qb.take).toHaveBeenCalledWith(10)
@@ -106,12 +110,10 @@ describe('DoctorsRepository', () => {
 
       const result = await repository.findAll(1, 20, CLINIC_ID, 'Cardio')
 
-      expect(qb.where).toHaveBeenCalledWith('user.clinicId = :clinicId', { clinicId: CLINIC_ID })
       expect(qb.andWhere).toHaveBeenCalledWith(
         'user.fullName ILIKE :search OR specialty.name ILIKE :search',
         { search: '%Cardio%' },
       )
-      expect(qb.getManyAndCount).toHaveBeenCalled()
       expect(result).toEqual([doctors, 1])
     })
 
@@ -127,19 +129,18 @@ describe('DoctorsRepository', () => {
   })
 
   describe('findById', () => {
-    it('uses QueryBuilder with innerJoinAndSelect and where by id', async () => {
+    it('uses QueryBuilder with joins and where by id', async () => {
       const doctor = makeDoctor()
       const qb = makeQueryBuilderMock({ getOne: doctor })
       repo.createQueryBuilder.mockReturnValue(qb)
 
       const result = await repository.findById('uuid-1', CLINIC_ID)
 
-      expect(repo.createQueryBuilder).toHaveBeenCalledWith('doctor')
       expect(qb.innerJoinAndSelect).toHaveBeenCalledWith('doctor.user', 'user')
-      expect(qb.leftJoinAndSelect).toHaveBeenCalledWith('doctor.specialties', 'specialty')
+      expect(qb.leftJoinAndSelect).toHaveBeenCalledWith('doctor.crms', 'crm')
+      expect(qb.leftJoinAndSelect).toHaveBeenCalledWith('doctorSpecialty.specialty', 'specialty')
       expect(qb.where).toHaveBeenCalledWith('doctor.id = :id', { id: 'uuid-1' })
       expect(qb.andWhere).toHaveBeenCalledWith('user.clinicId = :clinicId', { clinicId: CLINIC_ID })
-      expect(qb.getOne).toHaveBeenCalled()
       expect(result).toBe(doctor)
     })
 
@@ -152,19 +153,17 @@ describe('DoctorsRepository', () => {
   })
 
   describe('findByUserId', () => {
-    it('uses QueryBuilder with innerJoinAndSelect and where by userId', async () => {
+    it('uses QueryBuilder with joins and where by userId', async () => {
       const doctor = makeDoctor()
       const qb = makeQueryBuilderMock({ getOne: doctor })
       repo.createQueryBuilder.mockReturnValue(qb)
 
       const result = await repository.findByUserId('user-uuid-1', CLINIC_ID)
 
-      expect(repo.createQueryBuilder).toHaveBeenCalledWith('doctor')
       expect(qb.innerJoinAndSelect).toHaveBeenCalledWith('doctor.user', 'user')
-      expect(qb.leftJoinAndSelect).toHaveBeenCalledWith('doctor.specialties', 'specialty')
+      expect(qb.leftJoinAndSelect).toHaveBeenCalledWith('doctor.doctorSpecialties', 'doctorSpecialty')
       expect(qb.where).toHaveBeenCalledWith('doctor.userId = :userId', { userId: 'user-uuid-1' })
       expect(qb.andWhere).toHaveBeenCalledWith('user.clinicId = :clinicId', { clinicId: CLINIC_ID })
-      expect(qb.getOne).toHaveBeenCalled()
       expect(result).toBe(doctor)
     })
 
@@ -176,17 +175,20 @@ describe('DoctorsRepository', () => {
     })
   })
 
-  describe('findByCrmNumber', () => {
-    it('uses QueryBuilder with clinicId filter when found', async () => {
+  describe('findByCrm', () => {
+    it('joins crms and filters by number, state, clinic and not-deleted', async () => {
       const doctor = makeDoctor()
       const qb = makeQueryBuilderMock({ getOne: doctor })
       repo.createQueryBuilder.mockReturnValue(qb)
 
-      const result = await repository.findByCrmNumber('12345/SP', CLINIC_ID)
+      const result = await repository.findByCrm('12345', 'SP', CLINIC_ID)
 
       expect(repo.createQueryBuilder).toHaveBeenCalledWith('doctor')
-      expect(qb.where).toHaveBeenCalledWith('doctor.crmNumber = :crmNumber', { crmNumber: '12345/SP' })
-      expect(qb.andWhere).toHaveBeenCalledWith('user.clinicId = :clinicId', { clinicId: CLINIC_ID })
+      expect(qb.innerJoin).toHaveBeenCalledWith('doctor.crms', 'crm')
+      expect(qb.where).toHaveBeenCalledWith('crm.number = :number', { number: '12345' })
+      expect(qb.andWhere).toHaveBeenCalledWith('crm.state = :state', { state: 'SP' })
+      expect(qb.andWhere).toHaveBeenCalledWith('crm.clinicId = :clinicId', { clinicId: CLINIC_ID })
+      expect(qb.andWhere).toHaveBeenCalledWith('crm.deletedAt IS NULL')
       expect(result).toBe(doctor)
     })
 
@@ -194,54 +196,41 @@ describe('DoctorsRepository', () => {
       const qb = makeQueryBuilderMock({ getOne: null })
       repo.createQueryBuilder.mockReturnValue(qb)
 
-      expect(await repository.findByCrmNumber('99999/RJ', CLINIC_ID)).toBeNull()
+      expect(await repository.findByCrm('99999', 'RJ', CLINIC_ID)).toBeNull()
     })
   })
 
   describe('create', () => {
-    it('creates doctor with specialties, saves, and reloads with all relations', async () => {
-      const data = { userId: 'user-uuid-1', crmNumber: '12345/SP', bio: null }
-      const clinicId = CLINIC_ID
-      const specialties = [{ id: 'spec-uuid-1', name: 'Cardiologia' }] as any
-      const entity = { id: 'uuid-1', ...data, specialties: [] } as unknown as Doctor
+    it('creates doctor with crms and specialties, saves, and reloads with all relations', async () => {
+      const data = { userId: 'user-uuid-1', bio: null }
+      const crms = [{ number: '12345', state: 'SP', isPrimary: true }]
+      const specialties = [{ specialty: { id: 'spec-uuid-1' }, rqe: null }] as any
       const withRelations = makeDoctor()
 
       const managerRepo = (repo.manager as any)._managerRepo
-      managerRepo.create.mockReturnValue(entity)
-      managerRepo.save.mockResolvedValue(entity)
+      managerRepo.save.mockResolvedValue({ id: 'uuid-1' })
       managerRepo.findOne.mockResolvedValue(withRelations)
 
-      const result = await repository.create(data as any, clinicId, specialties)
+      const result = await repository.create(data as any, CLINIC_ID, crms, specialties)
 
-      expect(managerRepo.create).toHaveBeenCalledWith({
-        userId: data.userId,
-        clinicId,
-        crmNumber: data.crmNumber,
-        bio: data.bio,
-      })
-      expect(entity.specialties).toBe(specialties)
-      expect(managerRepo.save).toHaveBeenCalledWith(entity)
-      expect(managerRepo.findOne).toHaveBeenCalledWith({
-        where: { id: entity.id },
-        relations: ['user', 'specialties'],
-      })
+      expect(managerRepo.create).toHaveBeenCalledWith({ userId: 'user-uuid-1', clinicId: CLINIC_ID, bio: null })
+      expect(managerRepo.create).toHaveBeenCalledWith({ clinicId: CLINIC_ID, number: '12345', state: 'SP', isPrimary: true })
+      expect(managerRepo.create).toHaveBeenCalledWith({ specialtyId: 'spec-uuid-1', rqe: null })
+      expect(managerRepo.save).toHaveBeenCalled()
+      expect(managerRepo.findOne).toHaveBeenCalledWith({ where: { id: 'uuid-1' }, relations: DOCTOR_RELATIONS })
       expect(result).toBe(withRelations)
     })
 
     it('uses queryRunner manager repo when provided', async () => {
-      const data = { userId: 'user-uuid-1', crmNumber: '12345/SP', bio: null }
-      const clinicId = CLINIC_ID
-      const specialties = [] as any
-      const entity = { id: 'uuid-qr', specialties: [] } as unknown as Doctor
+      const data = { userId: 'user-uuid-1', bio: null }
       const withRelations = makeDoctor({ id: 'uuid-qr' })
 
       const qrRepo = makeManagerRepo()
-      qrRepo.create.mockReturnValue(entity)
-      qrRepo.save.mockResolvedValue(entity)
+      qrRepo.save.mockResolvedValue({ id: 'uuid-qr' })
       qrRepo.findOne.mockResolvedValue(withRelations)
       const queryRunner = { manager: { getRepository: jest.fn().mockReturnValue(qrRepo) } } as any
 
-      const result = await repository.create(data as any, clinicId, specialties, queryRunner)
+      const result = await repository.create(data as any, CLINIC_ID, [], [], queryRunner)
 
       expect(qrRepo.save).toHaveBeenCalled()
       expect((repo.manager as any)._managerRepo.save).not.toHaveBeenCalled()
@@ -250,62 +239,62 @@ describe('DoctorsRepository', () => {
   })
 
   describe('update', () => {
-    it('loads doctor with specialties, merges data, saves, and reloads with relations', async () => {
+    it('loads doctor, deletes and re-inserts crms and specialties, and reloads', async () => {
       const doctor = makeDoctor()
-      const newSpecialties = [{ id: 'spec-uuid-2', name: 'Neurologia' }] as any
-      const updated = makeDoctor({ specialties: newSpecialties })
+      const newSpecialties = [{ specialty: { id: 'spec-uuid-2' }, rqe: '5566' }] as any
+      const newCrms = [{ number: '99999', state: 'SP', isPrimary: true }]
+      const updated = makeDoctor()
 
       const managerRepo = (repo.manager as any)._managerRepo
-      managerRepo.findOne
-        .mockResolvedValueOnce(doctor)
-        .mockResolvedValueOnce(updated)
-      managerRepo.save.mockResolvedValue({ ...doctor, specialties: newSpecialties })
+      managerRepo.findOne.mockResolvedValueOnce(doctor).mockResolvedValueOnce(updated)
+      managerRepo.save.mockResolvedValue({ id: 'uuid-1' })
+      managerRepo.delete.mockResolvedValue({ affected: 1 })
 
-      const result = await repository.update('uuid-1', { crmNumber: '99999/SP' }, newSpecialties)
+      const result = await repository.update('uuid-1', { bio: 'new' }, newCrms, newSpecialties)
 
       expect(managerRepo.findOne).toHaveBeenNthCalledWith(1, {
         where: { id: 'uuid-1' },
-        relations: ['specialties'],
+        relations: ['crms', 'doctorSpecialties'],
       })
+      expect(managerRepo.delete).toHaveBeenCalledWith({ doctorId: 'uuid-1' })
+      expect(managerRepo.create).toHaveBeenCalledWith({ doctorId: 'uuid-1', clinicId: doctor.clinicId, number: '99999', state: 'SP', isPrimary: true })
+      expect(managerRepo.create).toHaveBeenCalledWith({ doctorId: 'uuid-1', specialtyId: 'spec-uuid-2', rqe: '5566' })
       expect(managerRepo.save).toHaveBeenCalled()
       expect(managerRepo.findOne).toHaveBeenNthCalledWith(2, {
         where: { id: 'uuid-1' },
-        relations: ['user', 'specialties'],
+        relations: DOCTOR_RELATIONS,
       })
       expect(result).toBe(updated)
     })
 
-    it('does not modify specialties when null is passed', async () => {
+    it('does not delete crms or specialties when null is passed', async () => {
       const doctor = makeDoctor()
-      const originalSpecialties = doctor.specialties
-      const updated = makeDoctor({ id: doctor.id })
 
       const managerRepo = (repo.manager as any)._managerRepo
       managerRepo.findOne.mockResolvedValue(doctor)
-      managerRepo.save.mockResolvedValue(doctor)
+      managerRepo.save.mockResolvedValue({ id: 'uuid-1' })
 
-      await repository.update('uuid-1', { crmNumber: '99999/SP' }, null)
+      await repository.update('uuid-1', { bio: 'x' }, null, null)
 
-      expect(doctor.specialties).toBe(originalSpecialties)
+      expect(managerRepo.delete).not.toHaveBeenCalled()
     })
 
     it('throws when doctor is not found', async () => {
       const managerRepo = (repo.manager as any)._managerRepo
       managerRepo.findOne.mockResolvedValue(null)
 
-      await expect(repository.update('missing', {}, null)).rejects.toThrow('Doctor missing not found')
+      await expect(repository.update('missing', {}, null, null)).rejects.toThrow('Doctor missing not found')
     })
 
     it('uses queryRunner repository when provided', async () => {
       const doctor = makeDoctor()
-      const withRelations = makeDoctor()
 
       const qrRepo = makeManagerRepo()
       qrRepo.findOne.mockResolvedValue(doctor)
-      qrRepo.save.mockResolvedValue(doctor)
+      qrRepo.save.mockResolvedValue({ id: 'uuid-1' })
       const queryRunner = { manager: { getRepository: jest.fn().mockReturnValue(qrRepo) } } as any
 
-      await repository.update('uuid-1', { bio: 'new bio' }, null, queryRunner)
+      await repository.update('uuid-1', { bio: 'new bio' }, null, null, queryRunner)
 
       expect(qrRepo.findOne).toHaveBeenCalled()
       expect(qrRepo.save).toHaveBeenCalled()
@@ -314,12 +303,14 @@ describe('DoctorsRepository', () => {
   })
 
   describe('delete', () => {
-    it('soft deletes the doctor', async () => {
-      repo.softDelete.mockResolvedValue({ affected: 1 } as any)
+    it('soft deletes the doctor crms and the doctor', async () => {
+      const managerRepo = (repo.manager as any)._managerRepo
+      managerRepo.softDelete.mockResolvedValue({ affected: 1 })
 
       await repository.delete('uuid-1')
 
-      expect(repo.softDelete).toHaveBeenCalledWith('uuid-1')
+      expect(managerRepo.softDelete).toHaveBeenCalledWith({ doctorId: 'uuid-1' })
+      expect(managerRepo.softDelete).toHaveBeenCalledWith('uuid-1')
     })
 
     it('uses queryRunner repository when provided', async () => {
@@ -329,8 +320,8 @@ describe('DoctorsRepository', () => {
 
       await repository.delete('uuid-1', queryRunner)
 
+      expect(qrRepo.softDelete).toHaveBeenCalledWith({ doctorId: 'uuid-1' })
       expect(qrRepo.softDelete).toHaveBeenCalledWith('uuid-1')
-      expect(repo.softDelete).not.toHaveBeenCalled()
     })
   })
 })

@@ -40,8 +40,8 @@ const makePatientsResponse = (patients: { id: string; fullName: string }[] = [])
 const makeDoctorResponse = (specialties: { id: string; name: string }[]) => ({
   id: 'doctor-uuid',
   user: { id: 'user-uuid', fullName: 'Dr. Test', email: 'doc@test.com', isActive: true },
-  crmNumber: '12345/SP',
-  specialties,
+  crms: [{ id: 'crm-1', number: '12345', state: 'SP', isPrimary: true }],
+  specialties: specialties.map((s) => ({ ...s, rqe: null })),
   bio: null,
   createdAt: new Date().toISOString(),
   updatedAt: new Date().toISOString(),
@@ -89,7 +89,7 @@ describe('BookAppointmentDialog (integration)', () => {
   it('renders dialog with date and time info', () => {
     renderWithProviders(<BookAppointmentDialog {...defaultProps} />)
     expect(screen.getByTestId('book-appointment-dialog')).toBeInTheDocument()
-    expect(screen.getByTestId('book-dialog-date')).toHaveTextContent('2025-07-04')
+    expect(screen.getByTestId('book-dialog-date')).toHaveTextContent('04/07/2025')
     expect(screen.getByTestId('book-dialog-time')).toHaveTextContent('09:00')
   })
 

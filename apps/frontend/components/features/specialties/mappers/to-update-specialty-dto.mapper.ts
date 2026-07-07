@@ -5,5 +5,6 @@ export function toUpdateSpecialtyDto(input: IUpdateSpecialtyInput): UpdateSpecia
   return {
     name: input.name,
     description: input.description,
+    titleName: input.titleName,
   }
 }

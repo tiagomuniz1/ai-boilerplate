@@ -154,19 +154,19 @@ describe('AppointmentsController (integration)', () => {
 
     const doctorEntity = doctorRepository.create({
       userId: doctorUser.id,
-      crmNumber: '12345/SP',
       clinicId: SEED_CLINIC_ID,
     })
-    doctorEntity.specialties = [specialty]
+    doctorEntity.crms = [{ clinicId: SEED_CLINIC_ID, number: '12345', state: 'SP', isPrimary: true }] as any
+    doctorEntity.doctorSpecialties = [{ specialtyId: specialty.id, rqe: null }] as any
     const doctorProfile = await doctorRepository.save(doctorEntity)
     doctorId = doctorProfile.id
 
     const otherDoctorEntity = doctorRepository.create({
       userId: otherDoctorUser.id,
-      crmNumber: '99999/SP',
       clinicId: SEED_CLINIC_ID,
     })
-    otherDoctorEntity.specialties = [specialty]
+    otherDoctorEntity.crms = [{ clinicId: SEED_CLINIC_ID, number: '99999', state: 'SP', isPrimary: true }] as any
+    otherDoctorEntity.doctorSpecialties = [{ specialtyId: specialty.id, rqe: null }] as any
     const otherDoctorProfile = await doctorRepository.save(otherDoctorEntity)
     otherDoctorId = otherDoctorProfile.id
 
@@ -334,9 +334,9 @@ describe('AppointmentsController (integration)', () => {
       )
       const doctor = await doctorRepository.findOne({
         where: { id: doctorId },
-        relations: ['specialties'],
+        relations: ['doctorSpecialties'],
       })
-      doctor!.specialties = [...doctor!.specialties, extra]
+      doctor!.doctorSpecialties = [...doctor!.doctorSpecialties, { specialtyId: extra.id, rqe: null } as any]
       await doctorRepository.save(doctor!)
 
       await request(app.getHttpServer())

@@ -1,16 +1,19 @@
 jest.mock('../services/atestados.service')
 jest.mock('../use-cases/download-atestado-pdf.use-case')
+jest.mock('@/components/features/doctors/hooks/use-doctor.hook')
 
 import { screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MedicalCertificateType, UserRole } from '@app/shared'
 import { atestadosService } from '../services/atestados.service'
 import { downloadAtestadoPdfUseCase } from '../use-cases/download-atestado-pdf.use-case'
+import { useDoctor } from '@/components/features/doctors/hooks/use-doctor.hook'
 import { renderWithProviders } from '@/tests/utils/render-with-providers'
 import { AtestadoSection } from './atestado-section'
 
 const mockAtestadosService = atestadosService as jest.Mocked<typeof atestadosService>
 const mockDownload = downloadAtestadoPdfUseCase as jest.Mock
+const mockUseDoctor = useDoctor as jest.Mock
 
 const makeAtestadoDto = (overrides: object = {}) => ({
   id: 'cert-uuid',
@@ -32,13 +35,14 @@ const makeAtestadoDto = (overrides: object = {}) => ({
   ...overrides,
 })
 
-const doctorProps = { appointmentId: 'appt-uuid', canManage: true, userRole: UserRole.DOCTOR }
-const adminProps = { appointmentId: 'appt-uuid', canManage: true, userRole: UserRole.ADMIN }
+const doctorProps = { appointmentId: 'appt-uuid', doctorId: 'doctor-uuid', canManage: true, userRole: UserRole.DOCTOR }
+const adminProps = { appointmentId: 'appt-uuid', doctorId: 'doctor-uuid', canManage: true, userRole: UserRole.ADMIN }
 
 describe('AtestadoSection (integration)', () => {
   beforeEach(() => {
     jest.clearAllMocks()
     mockDownload.mockResolvedValue(undefined)
+    mockUseDoctor.mockReturnValue({ data: undefined })
   })
 
   it('shows skeleton while loading', () => {

@@ -1,10 +1,16 @@
+jest.mock('@/components/features/doctors/hooks/use-doctor.hook')
+
 import { screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
+import { useDoctor } from '@/components/features/doctors/hooks/use-doctor.hook'
 import { renderWithProviders } from '@/tests/utils/render-with-providers'
 import { ExameForm } from './exame-form'
 
+const mockUseDoctor = useDoctor as jest.Mock
+
 const defaultProps = {
   appointmentId: 'appt-uuid',
+  doctorId: 'doctor-uuid',
   isPending: false,
   globalError: null,
   onSubmit: jest.fn(),
@@ -13,6 +19,7 @@ const defaultProps = {
 describe('ExameForm (integration)', () => {
   beforeEach(() => {
     jest.clearAllMocks()
+    mockUseDoctor.mockReturnValue({ data: undefined })
   })
 
   it('renders one item by default and the submit button', () => {
@@ -67,6 +74,36 @@ describe('ExameForm (integration)', () => {
       items: [{ name: 'Hemograma completo' }],
     })
     expect(onSubmit.mock.calls[0][0].notes).toBeUndefined()
+  })
+
+  it('includes the chosen CRM and specialty in the payload when the doctor has options', async () => {
+    mockUseDoctor.mockReturnValue({
+      data: {
+        id: 'doctor-uuid',
+        user: { id: 'user-uuid', fullName: 'Dr. Test', email: 'dr@example.com', isActive: true },
+        crms: [
+          { id: 'crm-1', number: '12345', state: 'SP', isPrimary: true },
+          { id: 'crm-2', number: '67890', state: 'RJ', isPrimary: false },
+        ],
+        specialties: [
+          { id: 'spec-1', name: 'Cardiologia', rqe: '111' },
+          { id: 'spec-2', name: 'Mastologia', rqe: '222' },
+        ],
+        bio: null,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      },
+    })
+    const onSubmit = jest.fn()
+    renderWithProviders(<ExameForm {...defaultProps} onSubmit={onSubmit} />)
+
+    await userEvent.type(screen.getByTestId('exame-form-item-name-0'), 'Hemograma completo')
+    await userEvent.selectOptions(screen.getByTestId('doctor-signature-crm'), 'crm-2')
+    await userEvent.selectOptions(screen.getByTestId('doctor-signature-specialty'), 'spec-2')
+    await userEvent.click(screen.getByTestId('exame-form-submit'))
+
+    await waitFor(() => expect(onSubmit).toHaveBeenCalled())
+    expect(onSubmit.mock.calls[0][0]).toMatchObject({ crmId: 'crm-2', specialtyId: 'spec-2' })
   })
 
   it('includes observations for an item when filled', async () => {

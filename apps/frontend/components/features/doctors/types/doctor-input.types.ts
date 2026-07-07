@@ -1,15 +1,26 @@
+export interface IDoctorCrmInput {
+  number: string
+  state: string
+  isPrimary: boolean
+}
+
+export interface IDoctorSpecialtyInput {
+  specialtyId: string
+  rqe?: string
+}
+
 export interface ICreateDoctorInput {
   userId?: string
   fullName?: string
   email?: string
-  crmNumber: string
-  specialtyIds: string[]
+  crms: IDoctorCrmInput[]
+  specialties: IDoctorSpecialtyInput[]
   bio?: string
 }
 
 export interface IUpdateDoctorInput {
-  crmNumber?: string
-  specialtyIds?: string[]
+  crms?: IDoctorCrmInput[]
+  specialties?: IDoctorSpecialtyInput[]
   bio?: string
   isActive?: boolean
 }

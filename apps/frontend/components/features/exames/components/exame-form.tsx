@@ -1,10 +1,12 @@
 'use client'
 
+import { useState } from 'react'
 import { useForm, useFieldArray } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { Button } from '@/components/ui/atoms/button/button'
 import { Alert } from '@/components/ui/molecules/alert/alert'
+import { DoctorSignatureSelect } from '@/components/features/doctors/components/doctor-signature-select'
 import type { ICreateExamRequestInput } from '../types/exam-request-input.types'
 
 const itemSchema = z.object({
@@ -21,12 +23,15 @@ type FormValues = z.infer<typeof schema>
 
 export interface ExameFormProps {
   appointmentId: string
+  doctorId: string
   isPending: boolean
   globalError: string | null
   onSubmit: (input: ICreateExamRequestInput) => void
 }
 
-export function ExameForm({ appointmentId, isPending, globalError, onSubmit }: ExameFormProps) {
+export function ExameForm({ appointmentId, doctorId, isPending, globalError, onSubmit }: ExameFormProps) {
+  const [crmId, setCrmId] = useState('')
+  const [specialtyId, setSpecialtyId] = useState('')
   const { control, register, handleSubmit, formState: { errors } } = useForm<FormValues>({
     resolver: zodResolver(schema),
     defaultValues: { items: [{ name: '', observations: '' }], notes: '' },
@@ -37,6 +42,8 @@ export function ExameForm({ appointmentId, isPending, globalError, onSubmit }: E
   function onFormSubmit(values: FormValues) {
     onSubmit({
       appointmentId,
+      ...(crmId ? { crmId } : {}),
+      ...(specialtyId ? { specialtyId } : {}),
       items: values.items.map((item) => ({
         name: item.name,
         ...(item.observations ? { observations: item.observations } : {}),
@@ -146,6 +153,14 @@ export function ExameForm({ appointmentId, isPending, globalError, onSubmit }: E
           <p role="alert" className="text-danger text-xs mt-0.5">{errors.notes.message}</p>
         )}
       </div>
+
+      <DoctorSignatureSelect
+        doctorId={doctorId}
+        crmId={crmId}
+        specialtyId={specialtyId}
+        onCrmIdChange={setCrmId}
+        onSpecialtyIdChange={setSpecialtyId}
+      />
 
       {globalError && (
         <Alert variant="error" data-testid="exame-form-error">
