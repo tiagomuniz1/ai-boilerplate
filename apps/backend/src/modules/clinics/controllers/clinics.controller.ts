@@ -66,6 +66,10 @@ export class ClinicsController {
       'Content-Type': contentType,
       'Content-Length': buffer.length,
       'Cache-Control': 'public, max-age=300',
+      // Public branding assets are embedded cross-origin by the frontend (<img> from
+      // localhost:3000). Helmet's default Cross-Origin-Resource-Policy is same-origin,
+      // which the browser enforces on embed — override it for these public assets.
+      'Cross-Origin-Resource-Policy': 'cross-origin',
     })
     res.end(buffer)
   }

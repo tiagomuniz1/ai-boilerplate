@@ -317,6 +317,7 @@ describe('ClinicsController', () => {
         'Content-Type': 'image/png',
         'Content-Length': buffer.length,
         'Cache-Control': 'public, max-age=300',
+        'Cross-Origin-Resource-Policy': 'cross-origin',
       })
       expect(res.end).toHaveBeenCalledWith(buffer)
     })
