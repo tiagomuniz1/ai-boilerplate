@@ -1,7 +1,9 @@
 import { DataSource } from 'typeorm'
 import { faker } from '@faker-js/faker'
 import { CacheService } from '../../../cache/cache.service'
+import { ClinicAssetUrlService } from '../../../common/services/clinic-asset-url.service'
 import { IClinicsRepository } from '../repositories/clinics.repository.interface'
+import { ClinicResponseMapper } from '../mappers/clinic-response.mapper'
 import { FindAllClinicsUseCase } from '../use-cases/find-all-clinics.use-case'
 
 const mockClinicsRepository: jest.Mocked<IClinicsRepository> = {
@@ -48,7 +50,13 @@ describe('FindAllClinicsUseCase', () => {
 
   beforeEach(() => {
     jest.clearAllMocks()
-    useCase = new FindAllClinicsUseCase({} as DataSource, mockClinicsRepository, mockCacheService)
+    const assetUrlService = { build: jest.fn().mockReturnValue('https://api.test/asset') } as unknown as ClinicAssetUrlService
+    useCase = new FindAllClinicsUseCase(
+      {} as DataSource,
+      mockClinicsRepository,
+      mockCacheService,
+      new ClinicResponseMapper(assetUrlService),
+    )
     mockCacheService.get.mockResolvedValue(null)
     mockCacheService.set.mockResolvedValue(undefined)
   })

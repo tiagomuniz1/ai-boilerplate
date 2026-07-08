@@ -2,7 +2,9 @@ import { ConflictException, NotFoundException } from '@nestjs/common'
 import { DataSource, OptimisticLockVersionMismatchError } from 'typeorm'
 import { faker } from '@faker-js/faker'
 import { CacheService } from '../../../cache/cache.service'
+import { ClinicAssetUrlService } from '../../../common/services/clinic-asset-url.service'
 import { IClinicsRepository } from '../repositories/clinics.repository.interface'
+import { ClinicResponseMapper } from '../mappers/clinic-response.mapper'
 import { UpdateClinicUseCase } from '../use-cases/update-clinic.use-case'
 
 const mockClinicsRepository: jest.Mocked<IClinicsRepository> = {
@@ -61,7 +63,13 @@ describe('UpdateClinicUseCase', () => {
 
   beforeEach(() => {
     jest.clearAllMocks()
-    useCase = new UpdateClinicUseCase({} as DataSource, mockClinicsRepository, mockCacheService)
+    const assetUrlService = { build: jest.fn().mockReturnValue('https://api.test/asset') } as unknown as ClinicAssetUrlService
+    useCase = new UpdateClinicUseCase(
+      {} as DataSource,
+      mockClinicsRepository,
+      mockCacheService,
+      new ClinicResponseMapper(assetUrlService),
+    )
     mockCacheService.del.mockResolvedValue(undefined)
     mockCacheService.delByPattern.mockResolvedValue(undefined)
   })

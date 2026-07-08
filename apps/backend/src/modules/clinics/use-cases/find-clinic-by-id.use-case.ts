@@ -4,7 +4,7 @@ import { ClinicResponseDto } from '@app/shared'
 import { BaseUseCase } from '../../../common/base.use-case'
 import { CacheService } from '../../../cache/cache.service'
 import { IClinicsRepository } from '../repositories/clinics.repository.interface'
-import { Clinic } from '../entities/clinic.entity'
+import { ClinicResponseMapper } from '../mappers/clinic-response.mapper'
 
 @Injectable()
 export class FindClinicByIdUseCase extends BaseUseCase {
@@ -14,6 +14,7 @@ export class FindClinicByIdUseCase extends BaseUseCase {
     dataSource: DataSource,
     private readonly clinicsRepository: IClinicsRepository,
     private readonly cacheService: CacheService,
+    private readonly clinicResponseMapper: ClinicResponseMapper,
   ) {
     super(dataSource)
   }
@@ -31,7 +32,7 @@ export class FindClinicByIdUseCase extends BaseUseCase {
     const clinic = await this.clinicsRepository.findById(id)
     if (!clinic) throw new NotFoundException('Clinic not found')
 
-    const response = this.toResponse(clinic)
+    const response = this.clinicResponseMapper.toResponse(clinic)
 
     try {
       await this.cacheService.set(cacheKey, response, 300)
@@ -40,32 +41,5 @@ export class FindClinicByIdUseCase extends BaseUseCase {
     }
 
     return response
-  }
-
-  private toResponse(clinic: Clinic): ClinicResponseDto {
-    return {
-      id: clinic.id,
-      name: clinic.name,
-      slug: clinic.slug,
-      isActive: clinic.isActive,
-      themeId: clinic.themeId ?? null,
-      logoUrl: clinic.logoUrl ?? null,
-      logoDarkUrl: clinic.logoDarkUrl ?? null,
-      faviconUrl: clinic.faviconUrl ?? null,
-      address: clinic.addressStreet != null
-        ? {
-            street: clinic.addressStreet,
-            number: clinic.addressNumber!,
-            complement: clinic.addressComplement,
-            neighborhood: clinic.addressNeighborhood!,
-            city: clinic.addressCity!,
-            state: clinic.addressState!,
-            zipCode: clinic.addressZipCode!,
-            country: clinic.addressCountry!,
-          }
-        : null,
-      createdAt: clinic.createdAt,
-      updatedAt: clinic.updatedAt,
-    }
   }
 }

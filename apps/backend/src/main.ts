@@ -1,6 +1,5 @@
 import 'reflect-metadata'
 import * as dotenv from 'dotenv'
-import * as fs from 'fs'
 import * as path from 'path'
 dotenv.config({ path: path.resolve(process.cwd(), '.env.local') })
 
@@ -19,12 +18,6 @@ async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule, {
     logger: WinstonModule.createLogger(createWinstonConfig()),
   })
-
-  if (!process.env.AWS_S3_BUCKET || !process.env.AWS_REGION) {
-    const uploadsDir = path.join(process.cwd(), 'uploads')
-    fs.mkdirSync(uploadsDir, { recursive: true })
-    app.useStaticAssets(uploadsDir, { prefix: '/uploads' })
-  }
 
   app.use(helmet())
   app.use(cookieParser())

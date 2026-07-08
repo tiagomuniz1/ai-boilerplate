@@ -7,12 +7,14 @@ import {
   Patch,
   Post,
   Query,
+  Res,
   UnauthorizedException,
   UploadedFile,
   UseInterceptors,
 } from '@nestjs/common'
 import { FileInterceptor } from '@nestjs/platform-express'
 import { Throttle } from '@nestjs/throttler'
+import { Response } from 'express'
 import { memoryStorage } from 'multer'
 import {
   ClinicResponseDto,
@@ -37,6 +39,7 @@ import { UpdateClinicUseCase } from '../use-cases/update-clinic.use-case'
 import { UploadClinicLogoUseCase } from '../use-cases/upload-clinic-logo.use-case'
 import { UploadClinicLogoDarkUseCase } from '../use-cases/upload-clinic-logo-dark.use-case'
 import { UploadClinicFaviconUseCase } from '../use-cases/upload-clinic-favicon.use-case'
+import { StreamClinicAssetUseCase } from '../use-cases/stream-clinic-asset.use-case'
 
 @Controller('clinics')
 export class ClinicsController {
@@ -50,7 +53,40 @@ export class ClinicsController {
     private readonly uploadClinicLogoUseCase: UploadClinicLogoUseCase,
     private readonly uploadClinicLogoDarkUseCase: UploadClinicLogoDarkUseCase,
     private readonly uploadClinicFaviconUseCase: UploadClinicFaviconUseCase,
+    private readonly streamClinicAssetUseCase: StreamClinicAssetUseCase,
   ) {}
+
+  private async streamAsset(
+    slug: string,
+    type: 'logo' | 'logo-dark' | 'favicon',
+    res: Response,
+  ): Promise<void> {
+    const { buffer, contentType } = await this.streamClinicAssetUseCase.execute(slug, type)
+    res.set({
+      'Content-Type': contentType,
+      'Content-Length': buffer.length,
+      'Cache-Control': 'public, max-age=300',
+    })
+    res.end(buffer)
+  }
+
+  @Get(':slug/logo')
+  @Public()
+  async streamLogo(@Param('slug') slug: string, @Res({ passthrough: false }) res: Response): Promise<void> {
+    await this.streamAsset(slug, 'logo', res)
+  }
+
+  @Get(':slug/logo-dark')
+  @Public()
+  async streamLogoDark(@Param('slug') slug: string, @Res({ passthrough: false }) res: Response): Promise<void> {
+    await this.streamAsset(slug, 'logo-dark', res)
+  }
+
+  @Get(':slug/favicon')
+  @Public()
+  async streamFavicon(@Param('slug') slug: string, @Res({ passthrough: false }) res: Response): Promise<void> {
+    await this.streamAsset(slug, 'favicon', res)
+  }
 
   @Post('register')
   @Roles(UserRole.PLATFORM_ADMIN)

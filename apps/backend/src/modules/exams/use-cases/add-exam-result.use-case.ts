@@ -70,7 +70,7 @@ export class AddExamResultUseCase extends BaseUseCase {
         const resultId = randomUUID()
         const ext = MIME_TO_EXT[file.mimetype]
         const path = `exam-results/${clinicId}/${examRequestId}/${resultId}.${ext}`
-        const filePath = await this.storageAdapter.upload(file.buffer, path, file.mimetype, false)
+        const filePath = await this.storageAdapter.upload(file.buffer, path, file.mimetype)
         return { resultId, file, filePath }
       }),
     )

@@ -10,6 +10,7 @@ import { UpdateClinicUseCase } from '../use-cases/update-clinic.use-case'
 import { UploadClinicLogoUseCase } from '../use-cases/upload-clinic-logo.use-case'
 import { UploadClinicLogoDarkUseCase } from '../use-cases/upload-clinic-logo-dark.use-case'
 import { UploadClinicFaviconUseCase } from '../use-cases/upload-clinic-favicon.use-case'
+import { StreamClinicAssetUseCase } from '../use-cases/stream-clinic-asset.use-case'
 import { ListClinicsQueryDto } from '../dto/list-clinics-query.dto'
 import type { ICurrentUser } from '../../auth/types/current-user.type'
 
@@ -22,6 +23,7 @@ const mockUpdate = { execute: jest.fn() } as unknown as jest.Mocked<UpdateClinic
 const mockUploadLogo = { execute: jest.fn() } as unknown as jest.Mocked<UploadClinicLogoUseCase>
 const mockUploadLogoDark = { execute: jest.fn() } as unknown as jest.Mocked<UploadClinicLogoDarkUseCase>
 const mockUploadFavicon = { execute: jest.fn() } as unknown as jest.Mocked<UploadClinicFaviconUseCase>
+const mockStreamAsset = { execute: jest.fn() } as unknown as jest.Mocked<StreamClinicAssetUseCase>
 
 const makeClinicResponse = (overrides = {}) => ({
   id: 'clinic-uuid-1',
@@ -66,6 +68,7 @@ describe('ClinicsController', () => {
       mockUploadLogo,
       mockUploadLogoDark,
       mockUploadFavicon,
+      mockStreamAsset,
     )
   })
 
@@ -294,5 +297,48 @@ describe('ClinicsController', () => {
   it('uploadLogoDark throws UnauthorizedException when file is undefined', () => {
     expect(() => controller.uploadLogoDark('clinic-uuid-1', undefined as any)).toThrow(UnauthorizedException)
     expect(mockUploadLogoDark.execute).not.toHaveBeenCalled()
+  })
+
+  describe('branding asset streaming', () => {
+    const makeRes = () => {
+      const res: any = { set: jest.fn(), end: jest.fn() }
+      return res
+    }
+
+    it('streamLogo sets headers and streams the logo buffer', async () => {
+      const buffer = Buffer.from('logo-bytes')
+      mockStreamAsset.execute.mockResolvedValue({ buffer, contentType: 'image/png' })
+      const res = makeRes()
+
+      await controller.streamLogo('acme', res)
+
+      expect(mockStreamAsset.execute).toHaveBeenCalledWith('acme', 'logo')
+      expect(res.set).toHaveBeenCalledWith({
+        'Content-Type': 'image/png',
+        'Content-Length': buffer.length,
+        'Cache-Control': 'public, max-age=300',
+      })
+      expect(res.end).toHaveBeenCalledWith(buffer)
+    })
+
+    it('streamLogoDark delegates with the logo-dark type', async () => {
+      mockStreamAsset.execute.mockResolvedValue({ buffer: Buffer.from('x'), contentType: 'image/svg+xml' })
+      const res = makeRes()
+
+      await controller.streamLogoDark('acme', res)
+
+      expect(mockStreamAsset.execute).toHaveBeenCalledWith('acme', 'logo-dark')
+      expect(res.end).toHaveBeenCalled()
+    })
+
+    it('streamFavicon delegates with the favicon type', async () => {
+      mockStreamAsset.execute.mockResolvedValue({ buffer: Buffer.from('x'), contentType: 'image/x-icon' })
+      const res = makeRes()
+
+      await controller.streamFavicon('acme', res)
+
+      expect(mockStreamAsset.execute).toHaveBeenCalledWith('acme', 'favicon')
+      expect(res.end).toHaveBeenCalled()
+    })
   })
 })

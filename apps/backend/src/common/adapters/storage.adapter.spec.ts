@@ -45,7 +45,7 @@ describe('StorageAdapter', () => {
       ;(getEnvConfig as jest.Mock).mockReturnValue({ AWS_S3_BUCKET: undefined, AWS_REGION: 'us-east-1' })
       const adapter = new StorageAdapter()
 
-      await expect(adapter.upload(Buffer.from('data'), 'path/file.jpg', 'image/jpeg', true)).rejects.toThrow(
+      await expect(adapter.upload(Buffer.from('data'), 'path/file.jpg', 'image/jpeg')).rejects.toThrow(
         InternalServerErrorException,
       )
       expect(mockSend).not.toHaveBeenCalled()
@@ -55,30 +55,29 @@ describe('StorageAdapter', () => {
       ;(getEnvConfig as jest.Mock).mockReturnValue({ AWS_S3_BUCKET: 'test-bucket', AWS_REGION: undefined })
       const adapter = new StorageAdapter()
 
-      await expect(adapter.upload(Buffer.from('data'), 'path/file.jpg', 'image/jpeg', true)).rejects.toThrow(
+      await expect(adapter.upload(Buffer.from('data'), 'path/file.jpg', 'image/jpeg')).rejects.toThrow(
         InternalServerErrorException,
       )
       expect(mockSend).not.toHaveBeenCalled()
     })
 
-    it('uploads public file to S3 with public-read ACL and returns public URL', async () => {
+    it('uploads to S3 privately (no ACL) and returns the object key', async () => {
       const adapter = new StorageAdapter()
 
-      const url = await adapter.upload(Buffer.from('image-data'), 'clinics/uuid/logo.jpg', 'image/jpeg', true)
+      const key = await adapter.upload(Buffer.from('image-data'), 'clinics/uuid/logo.jpg', 'image/jpeg')
 
       expect(mockSend).toHaveBeenCalled()
-      expect(mockSend.mock.calls[0][0]).toMatchObject({ ACL: 'public-read' })
-      expect(url).toBe('https://test-bucket.s3.us-east-1.amazonaws.com/clinics/uuid/logo.jpg')
+      expect(mockSend.mock.calls[0][0]).not.toHaveProperty('ACL')
+      expect(key).toBe('clinics/uuid/logo.jpg')
     })
 
-    it('uploads private file to S3 without any ACL and returns the object key', async () => {
+    it('uploads exam results privately and returns the object key', async () => {
       const adapter = new StorageAdapter()
 
       const key = await adapter.upload(
         Buffer.from('exam-data'),
         'exam-results/clinic/request/result.pdf',
         'application/pdf',
-        false,
       )
 
       expect(mockSend).toHaveBeenCalled()
@@ -90,7 +89,7 @@ describe('StorageAdapter', () => {
       mockSend.mockRejectedValue(new Error('S3 failure'))
       const adapter = new StorageAdapter()
 
-      await expect(adapter.upload(Buffer.from('data'), 'path/file.jpg', 'image/jpeg', true)).rejects.toThrow(
+      await expect(adapter.upload(Buffer.from('data'), 'path/file.jpg', 'image/jpeg')).rejects.toThrow(
         'S3 failure',
       )
     })

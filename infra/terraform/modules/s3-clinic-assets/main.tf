@@ -42,32 +42,25 @@ resource "aws_s3_bucket_lifecycle_configuration" "clinic_assets" {
 
 # ── Public access ─────────────────────────────────────────────────────────────
 
-# AWS changed the default to BucketOwnerEnforced (ACLs disabled) in Apr 2023.
-# Set to BucketOwnerPreferred to allow per-object public-read ACLs.
+# The bucket is fully private. Branding assets are streamed by the backend (ECS) — nothing is
+# served directly from S3, so ACLs are disabled and all public access is blocked.
 resource "aws_s3_bucket_ownership_controls" "clinic_assets" {
   bucket = aws_s3_bucket.clinic_assets.id
 
   rule {
-    object_ownership = "BucketOwnerPreferred"
+    object_ownership = "BucketOwnerEnforced"
   }
 }
 
 resource "aws_s3_bucket_public_access_block" "clinic_assets" {
   bucket = aws_s3_bucket.clinic_assets.id
 
-  block_public_acls       = false
-  block_public_policy     = false
-  ignore_public_acls      = false
-  restrict_public_buckets = false
+  block_public_acls       = true
+  block_public_policy     = true
+  ignore_public_acls      = true
+  restrict_public_buckets = true
 
   depends_on = [aws_s3_bucket_ownership_controls.clinic_assets]
-}
-
-resource "aws_s3_bucket_acl" "clinic_assets" {
-  bucket = aws_s3_bucket.clinic_assets.id
-  acl    = "public-read"
-
-  depends_on = [aws_s3_bucket_public_access_block.clinic_assets]
 }
 
 # ── CORS ──────────────────────────────────────────────────────────────────────
@@ -85,24 +78,8 @@ resource "aws_s3_bucket_cors_configuration" "clinic_assets" {
 
 # ── Bucket policy ─────────────────────────────────────────────────────────────
 
-resource "aws_s3_bucket_policy" "clinic_assets" {
-  bucket = aws_s3_bucket.clinic_assets.id
-
-  policy = jsonencode({
-    Version = "2012-10-17"
-    Statement = [
-      {
-        Sid       = "PublicReadClinicAssets"
-        Effect    = "Allow"
-        Principal = "*"
-        Action    = "s3:GetObject"
-        Resource  = "${aws_s3_bucket.clinic_assets.arn}/clinics/*"
-      }
-    ]
-  })
-
-  depends_on = [aws_s3_bucket_public_access_block.clinic_assets]
-}
+# No public bucket policy. Access is granted exclusively to the ECS backend via the IAM policy
+# below; the backend streams objects to clients.
 
 # ── IAM policy for ECS backend ────────────────────────────────────────────────
 

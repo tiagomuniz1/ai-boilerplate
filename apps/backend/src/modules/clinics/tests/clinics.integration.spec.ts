@@ -788,4 +788,40 @@ describe('ClinicsController (integration)', () => {
         .expect(403)
     })
   })
+
+  describe('clinic branding (private bucket, served by the backend)', () => {
+    it('uploads a logo and returns a backend delivery URL (not a public S3 URL)', async () => {
+      const { body } = await request(app.getHttpServer())
+        .post(`/clinics/${SEED_CLINIC_ID}/logo`)
+        .set('Authorization', `Bearer ${platformAdminToken}`)
+        .attach('logo', Buffer.from('fake-png-bytes'), { filename: 'logo.png', contentType: 'image/png' })
+        .expect(201)
+
+      expect(body.logoUrl).toContain('/clinics/seed-clinic/logo')
+      expect(body.logoUrl).not.toContain('amazonaws.com')
+    })
+
+    it('streams the uploaded logo publicly (no auth) with an image content-type', async () => {
+      await request(app.getHttpServer())
+        .post(`/clinics/${SEED_CLINIC_ID}/logo`)
+        .set('Authorization', `Bearer ${platformAdminToken}`)
+        .attach('logo', Buffer.from('fake-png-bytes'), { filename: 'logo.png', contentType: 'image/png' })
+        .expect(201)
+
+      const response = await request(app.getHttpServer())
+        .get('/clinics/seed-clinic/logo')
+        .expect(200)
+
+      expect(response.headers['content-type']).toContain('image/png')
+      expect(response.headers['cache-control']).toContain('max-age=300')
+    })
+
+    it('returns 404 when the requested asset was never uploaded', async () => {
+      await request(app.getHttpServer()).get('/clinics/seed-clinic/favicon').expect(404)
+    })
+
+    it('returns 404 when the clinic slug does not exist', async () => {
+      await request(app.getHttpServer()).get('/clinics/does-not-exist/logo').expect(404)
+    })
+  })
 })

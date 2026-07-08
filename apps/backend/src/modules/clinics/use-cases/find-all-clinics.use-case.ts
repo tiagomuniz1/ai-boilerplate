@@ -1,11 +1,11 @@
 import { Injectable, Logger } from '@nestjs/common'
 import { DataSource } from 'typeorm'
-import { ClinicResponseDto, PaginatedClinicsResponseDto } from '@app/shared'
+import { PaginatedClinicsResponseDto } from '@app/shared'
 import { BaseUseCase } from '../../../common/base.use-case'
 import { CacheService } from '../../../cache/cache.service'
 import { IClinicsRepository } from '../repositories/clinics.repository.interface'
 import { ListClinicsQueryDto } from '../dto/list-clinics-query.dto'
-import { Clinic } from '../entities/clinic.entity'
+import { ClinicResponseMapper } from '../mappers/clinic-response.mapper'
 
 @Injectable()
 export class FindAllClinicsUseCase extends BaseUseCase {
@@ -15,6 +15,7 @@ export class FindAllClinicsUseCase extends BaseUseCase {
     dataSource: DataSource,
     private readonly clinicsRepository: IClinicsRepository,
     private readonly cacheService: CacheService,
+    private readonly clinicResponseMapper: ClinicResponseMapper,
   ) {
     super(dataSource)
   }
@@ -32,7 +33,7 @@ export class FindAllClinicsUseCase extends BaseUseCase {
 
     const [clinics, total] = await this.clinicsRepository.findAll(page, limit, search)
     const result: PaginatedClinicsResponseDto = {
-      data: clinics.map((c) => this.toResponse(c)),
+      data: clinics.map((c) => this.clinicResponseMapper.toResponse(c)),
       total,
       page,
       limit,
@@ -45,32 +46,5 @@ export class FindAllClinicsUseCase extends BaseUseCase {
     }
 
     return result
-  }
-
-  private toResponse(clinic: Clinic): ClinicResponseDto {
-    return {
-      id: clinic.id,
-      name: clinic.name,
-      slug: clinic.slug,
-      isActive: clinic.isActive,
-      themeId: clinic.themeId ?? null,
-      logoUrl: clinic.logoUrl ?? null,
-      logoDarkUrl: clinic.logoDarkUrl ?? null,
-      faviconUrl: clinic.faviconUrl ?? null,
-      address: clinic.addressStreet != null
-        ? {
-            street: clinic.addressStreet,
-            number: clinic.addressNumber!,
-            complement: clinic.addressComplement,
-            neighborhood: clinic.addressNeighborhood!,
-            city: clinic.addressCity!,
-            state: clinic.addressState!,
-            zipCode: clinic.addressZipCode!,
-            country: clinic.addressCountry!,
-          }
-        : null,
-      createdAt: clinic.createdAt,
-      updatedAt: clinic.updatedAt,
-    }
   }
 }

@@ -5,7 +5,7 @@ import { BaseUseCase } from '../../../common/base.use-case'
 import { IStorageAdapter } from '../../../common/adapters/storage.adapter.interface'
 import { CacheService } from '../../../cache/cache.service'
 import { IClinicsRepository } from '../repositories/clinics.repository.interface'
-import { Clinic } from '../entities/clinic.entity'
+import { ClinicResponseMapper } from '../mappers/clinic-response.mapper'
 
 const ALLOWED_MIME_TYPES = ['image/x-icon', 'image/png', 'image/svg+xml']
 const MAX_SIZE_BYTES = 512 * 1024
@@ -25,6 +25,7 @@ export class UploadClinicFaviconUseCase extends BaseUseCase {
     private readonly clinicsRepository: IClinicsRepository,
     private readonly storageAdapter: IStorageAdapter,
     private readonly cacheService: CacheService,
+    private readonly clinicResponseMapper: ClinicResponseMapper,
   ) {
     super(dataSource)
   }
@@ -43,9 +44,9 @@ export class UploadClinicFaviconUseCase extends BaseUseCase {
 
     const ext = MIME_TO_EXT[file.mimetype]
     const path = `clinics/${clinicId}/favicon.${ext}`
-    const faviconUrl = await this.storageAdapter.upload(file.buffer, path, file.mimetype, true)
+    const faviconPath = await this.storageAdapter.upload(file.buffer, path, file.mimetype)
 
-    await this.clinicsRepository.updateFavicon(clinicId, faviconUrl)
+    await this.clinicsRepository.updateFavicon(clinicId, faviconPath)
 
     try {
       await this.cacheService.del(`clinic:${clinicId}`)
@@ -54,33 +55,7 @@ export class UploadClinicFaviconUseCase extends BaseUseCase {
       this.logger.warn('Cache invalidation failed', { context: UploadClinicFaviconUseCase.name })
     }
 
-    return this.toResponse({ ...clinic, faviconUrl })
-  }
-
-  private toResponse(clinic: Clinic & { faviconUrl: string }): ClinicResponseDto {
-    return {
-      id: clinic.id,
-      name: clinic.name,
-      slug: clinic.slug,
-      isActive: clinic.isActive,
-      themeId: clinic.themeId ?? null,
-      logoUrl: clinic.logoUrl ?? null,
-      logoDarkUrl: clinic.logoDarkUrl ?? null,
-      faviconUrl: clinic.faviconUrl,
-      address: clinic.addressStreet != null
-        ? {
-            street: clinic.addressStreet,
-            number: clinic.addressNumber!,
-            complement: clinic.addressComplement,
-            neighborhood: clinic.addressNeighborhood!,
-            city: clinic.addressCity!,
-            state: clinic.addressState!,
-            zipCode: clinic.addressZipCode!,
-            country: clinic.addressCountry!,
-          }
-        : null,
-      createdAt: clinic.createdAt,
-      updatedAt: clinic.updatedAt,
-    }
+    // Fresh updatedAt so the returned URL's cache-buster (?v=) reflects this upload.
+    return this.clinicResponseMapper.toResponse({ ...clinic, faviconPath, updatedAt: new Date() })
   }
 }

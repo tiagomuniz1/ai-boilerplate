@@ -13,6 +13,7 @@ export interface IEnvConfig {
   JWT_EXPIRATION: string
   JWT_REFRESH_EXPIRATION: string
   FRONTEND_URL: string
+  PUBLIC_API_URL: string
   AWS_S3_BUCKET: string | undefined
   AWS_REGION: string | undefined
   SMTP_HOST: string | undefined
@@ -48,6 +49,9 @@ export function getEnvConfig(): IEnvConfig {
     JWT_EXPIRATION: process.env.JWT_EXPIRATION!,
     JWT_REFRESH_EXPIRATION: process.env.JWT_REFRESH_EXPIRATION!,
     FRONTEND_URL: process.env.FRONTEND_URL!,
+    // Public base URL of this API — used to build clinic branding URLs served by the backend.
+    // Falls back to localhost for local/dev; production must set it (Parameter Store).
+    PUBLIC_API_URL: process.env.PUBLIC_API_URL ?? `http://localhost:${process.env.PORT ?? '3001'}`,
     AWS_S3_BUCKET: process.env.AWS_S3_BUCKET,
     AWS_REGION: process.env.AWS_REGION,
     SMTP_HOST: process.env.SMTP_HOST,

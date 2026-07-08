@@ -8,12 +8,12 @@ terraform {
     }
   }
 
-  # State stored in the DevOps account (500905575906) — profile: pessoal
-  # Resources are created in the Workload account (796669927752) — profile: umi-homologation
+  # State stored in the DevOps account (500905575906) — profile: pulso-devops
+  # Resources are created in the Workload account (796669927752) — profile: pulso-workload
   #
   # Backend auth cannot use Terraform variables — pass the DevOps profile via flag:
   #
-  #   terraform init -backend-config="profile=pessoal"
+  #   terraform init -backend-config="profile=pulso-devops"
   #
   # In CI/CD, set AWS_ACCESS_KEY_ID / AWS_SECRET_ACCESS_KEY for the DevOps account
   # as GitHub Actions secrets and omit the profile.

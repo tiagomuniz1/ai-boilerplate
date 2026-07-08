@@ -5,7 +5,7 @@ variable "aws_region" {
 }
 
 variable "aws_profile" {
-  description = "AWS CLI profile for the Workload account (796669927752). Locally: umi-homologation. Leave empty in CI/CD."
+  description = "AWS CLI profile for the Workload account (796669927752). Locally: pulso-workload. Leave empty in CI/CD."
   type        = string
   default     = ""
 }

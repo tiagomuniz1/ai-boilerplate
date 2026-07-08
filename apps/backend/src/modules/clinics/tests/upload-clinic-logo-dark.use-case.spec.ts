@@ -5,6 +5,8 @@ import { UploadClinicLogoDarkUseCase } from '../use-cases/upload-clinic-logo-dar
 import { IClinicsRepository } from '../repositories/clinics.repository.interface'
 import { IStorageAdapter } from '../../../common/adapters/storage.adapter.interface'
 import { CacheService } from '../../../cache/cache.service'
+import { ClinicAssetUrlService } from '../../../common/services/clinic-asset-url.service'
+import { ClinicResponseMapper } from '../mappers/clinic-response.mapper'
 import { Clinic } from '../entities/clinic.entity'
 
 const mockClinicsRepository: jest.Mocked<IClinicsRepository> = {
@@ -35,9 +37,9 @@ function makeClinic(overrides: Partial<Clinic> = {}): Clinic {
     slug: faker.lorem.slug(),
     isActive: true,
     themeId: null,
-    logoUrl: null,
-    logoDarkUrl: null,
-    faviconUrl: null,
+    logoPath: null,
+    logoDarkPath: null,
+    faviconPath: null,
     addressStreet: null,
     addressNumber: null,
     addressComplement: null,
@@ -75,21 +77,25 @@ describe('UploadClinicLogoDarkUseCase', () => {
 
   beforeEach(() => {
     jest.clearAllMocks()
+    const assetUrlService = {
+      build: jest.fn((slug: string, type: string) => `https://api.test/clinics/${slug}/${type}`),
+    } as unknown as ClinicAssetUrlService
     useCase = new UploadClinicLogoDarkUseCase(
       {} as DataSource,
       mockClinicsRepository,
       mockStorageAdapter,
       mockCacheService,
+      new ClinicResponseMapper(assetUrlService),
     )
   })
 
-  it('uploads dark logo and returns updated ClinicResponseDto', async () => {
+  it('uploads dark logo, stores the object key and returns the built delivery URL', async () => {
     const clinic = makeClinic()
-    const logoDarkUrl = `https://bucket.s3.us-east-1.amazonaws.com/clinics/${clinic.id}/logo-dark.jpg`
+    const logoDarkPath = `clinics/${clinic.id}/logo-dark.jpg`
     const file = makeFile()
 
     mockClinicsRepository.findById.mockResolvedValue(clinic)
-    mockStorageAdapter.upload.mockResolvedValue(logoDarkUrl)
+    mockStorageAdapter.upload.mockResolvedValue(logoDarkPath)
     mockClinicsRepository.updateLogoDark.mockResolvedValue(undefined)
 
     const result = await useCase.execute(clinic.id, file)
@@ -98,10 +104,9 @@ describe('UploadClinicLogoDarkUseCase', () => {
       file.buffer,
       `clinics/${clinic.id}/logo-dark.jpg`,
       'image/jpeg',
-      true,
     )
-    expect(mockClinicsRepository.updateLogoDark).toHaveBeenCalledWith(clinic.id, logoDarkUrl)
-    expect(result.logoDarkUrl).toBe(logoDarkUrl)
+    expect(mockClinicsRepository.updateLogoDark).toHaveBeenCalledWith(clinic.id, logoDarkPath)
+    expect(result.logoDarkUrl).toBe(`https://api.test/clinics/${clinic.slug}/logo-dark`)
     expect(result.id).toBe(clinic.id)
   })
 
@@ -110,7 +115,7 @@ describe('UploadClinicLogoDarkUseCase', () => {
     const file = makeFile({ mimetype: 'image/png', originalname: 'logo-dark.png' })
 
     mockClinicsRepository.findById.mockResolvedValue(clinic)
-    mockStorageAdapter.upload.mockResolvedValue('https://bucket.s3.us-east-1.amazonaws.com/clinics/id/logo-dark.png')
+    mockStorageAdapter.upload.mockResolvedValue(`clinics/${clinic.id}/logo-dark.png`)
     mockClinicsRepository.updateLogoDark.mockResolvedValue(undefined)
 
     await useCase.execute(clinic.id, file)
@@ -119,7 +124,6 @@ describe('UploadClinicLogoDarkUseCase', () => {
       file.buffer,
       `clinics/${clinic.id}/logo-dark.png`,
       'image/png',
-      true,
     )
   })
 
@@ -128,7 +132,7 @@ describe('UploadClinicLogoDarkUseCase', () => {
     const file = makeFile({ mimetype: 'image/svg+xml', originalname: 'logo-dark.svg' })
 
     mockClinicsRepository.findById.mockResolvedValue(clinic)
-    mockStorageAdapter.upload.mockResolvedValue(`https://bucket.s3.us-east-1.amazonaws.com/clinics/${clinic.id}/logo-dark.svg`)
+    mockStorageAdapter.upload.mockResolvedValue(`clinics/${clinic.id}/logo-dark.svg`)
     mockClinicsRepository.updateLogoDark.mockResolvedValue(undefined)
 
     await useCase.execute(clinic.id, file)
@@ -137,7 +141,6 @@ describe('UploadClinicLogoDarkUseCase', () => {
       file.buffer,
       `clinics/${clinic.id}/logo-dark.svg`,
       'image/svg+xml',
-      true,
     )
   })
 
@@ -194,32 +197,30 @@ describe('UploadClinicLogoDarkUseCase', () => {
     expect(mockCacheService.delByPattern).toHaveBeenCalledWith('clinics:list*')
   })
 
-  it('preserves existing logoUrl in response', async () => {
-    const existingLogoUrl = 'https://bucket.s3.us-east-1.amazonaws.com/clinics/id/logo.jpg'
-    const clinic = makeClinic({ logoUrl: existingLogoUrl })
+  it('preserves the existing logo (returns its built URL) in response', async () => {
+    const clinic = makeClinic({ logoPath: 'clinics/id/logo.jpg' })
     const file = makeFile()
 
     mockClinicsRepository.findById.mockResolvedValue(clinic)
-    mockStorageAdapter.upload.mockResolvedValue('https://bucket.s3.us-east-1.amazonaws.com/url')
+    mockStorageAdapter.upload.mockResolvedValue(`clinics/${clinic.id}/logo-dark.jpg`)
     mockClinicsRepository.updateLogoDark.mockResolvedValue(undefined)
 
     const result = await useCase.execute(clinic.id, file)
 
-    expect(result.logoUrl).toBe(existingLogoUrl)
+    expect(result.logoUrl).toBe(`https://api.test/clinics/${clinic.slug}/logo`)
   })
 
-  it('preserves existing faviconUrl in response', async () => {
-    const existingFaviconUrl = 'https://bucket.s3.us-east-1.amazonaws.com/clinics/id/favicon.ico'
-    const clinic = makeClinic({ faviconUrl: existingFaviconUrl })
+  it('preserves the existing favicon (returns its built URL) in response', async () => {
+    const clinic = makeClinic({ faviconPath: 'clinics/id/favicon.ico' })
     const file = makeFile()
 
     mockClinicsRepository.findById.mockResolvedValue(clinic)
-    mockStorageAdapter.upload.mockResolvedValue('https://bucket.s3.us-east-1.amazonaws.com/url')
+    mockStorageAdapter.upload.mockResolvedValue(`clinics/${clinic.id}/logo-dark.jpg`)
     mockClinicsRepository.updateLogoDark.mockResolvedValue(undefined)
 
     const result = await useCase.execute(clinic.id, file)
 
-    expect(result.faviconUrl).toBe(existingFaviconUrl)
+    expect(result.faviconUrl).toBe(`https://api.test/clinics/${clinic.slug}/favicon`)
   })
 
   it('does not fail when cache invalidation throws', async () => {

@@ -2,7 +2,9 @@ import { ConflictException } from '@nestjs/common'
 import { DataSource } from 'typeorm'
 import { faker } from '@faker-js/faker'
 import { CacheService } from '../../../cache/cache.service'
+import { ClinicAssetUrlService } from '../../../common/services/clinic-asset-url.service'
 import { IClinicsRepository } from '../repositories/clinics.repository.interface'
+import { ClinicResponseMapper } from '../mappers/clinic-response.mapper'
 import { CreateClinicUseCase } from '../use-cases/create-clinic.use-case'
 
 const mockClinicsRepository: jest.Mocked<IClinicsRepository> = {
@@ -61,7 +63,13 @@ describe('CreateClinicUseCase', () => {
 
   beforeEach(() => {
     jest.clearAllMocks()
-    useCase = new CreateClinicUseCase({} as DataSource, mockClinicsRepository, mockCacheService)
+    const assetUrlService = { build: jest.fn().mockReturnValue('https://api.test/asset') } as unknown as ClinicAssetUrlService
+    useCase = new CreateClinicUseCase(
+      {} as DataSource,
+      mockClinicsRepository,
+      mockCacheService,
+      new ClinicResponseMapper(assetUrlService),
+    )
     mockCacheService.delByPattern.mockResolvedValue(undefined)
   })
 

@@ -14,7 +14,15 @@
     "dev:carga": "yarn workspace @app/shared build && concurrently \"yarn workspace @app/frontend dev\" \"yarn workspace @app/backend dev:carga\"",
     "build": "yarn workspace @app/frontend build && yarn workspace @app/backend build",
     "test": "yarn workspace @app/frontend test && yarn workspace @app/backend test",
-    "ai": "yarn workspace @app/ai-cli ai"
+    "ai": "yarn workspace @app/ai-cli ai",
+    "infra:staging:plan": "bash infra/scripts/deploy.sh staging plan",
+    "infra:staging:apply": "bash infra/scripts/deploy.sh staging apply",
+    "infra:staging:destroy": "bash infra/scripts/deploy.sh staging destroy",
+    "infra:staging:output": "bash infra/scripts/deploy.sh staging output",
+    "infra:production:plan": "bash infra/scripts/deploy.sh production plan",
+    "infra:production:apply": "bash infra/scripts/deploy.sh production apply",
+    "infra:production:destroy": "bash infra/scripts/deploy.sh production destroy",
+    "infra:production:output": "bash infra/scripts/deploy.sh production output"
   },
   "devDependencies": {
     "concurrently": "^9.1.2",

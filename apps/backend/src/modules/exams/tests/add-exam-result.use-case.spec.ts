@@ -164,20 +164,18 @@ describe('AddExamResultUseCase', () => {
   it('builds storage path using clinicId, examRequestId and file extension', async () => {
     await useCase.execute(examRequestId, [makeFile({ mimetype: 'image/png' })], doctorUser)
 
-    const [, path, mimeType, isPublic] = mockStorageAdapter.upload.mock.calls[0]
+    const [, path, mimeType] = mockStorageAdapter.upload.mock.calls[0]
     expect(path).toMatch(new RegExp(`^exam-results/${clinicId}/${examRequestId}/.+\\.png$`))
     expect(mimeType).toBe('image/png')
-    expect(isPublic).toBe(false)
   })
 
-  it('uploads exam result files privately, never with public-read visibility', async () => {
+  it('uploads exam result files to the private bucket (no visibility flag)', async () => {
     await useCase.execute(examRequestId, [makeFile()], doctorUser)
 
     expect(mockStorageAdapter.upload).toHaveBeenCalledWith(
       expect.any(Buffer),
       expect.any(String),
       expect.any(String),
-      false,
     )
   })
 

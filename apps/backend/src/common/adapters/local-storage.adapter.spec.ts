@@ -15,59 +15,35 @@ describe('LocalStorageAdapter', () => {
     adapter = new LocalStorageAdapter()
   })
 
-  describe('upload — public', () => {
-    it('creates the directory and writes the file under uploads/', async () => {
+  describe('upload', () => {
+    it('creates the directory and writes the file under uploads-private/', async () => {
       const buffer = Buffer.from('image-data')
-      await adapter.upload(buffer, 'clinics/uuid-1/logo.png', 'image/png', true)
+      await adapter.upload(buffer, 'clinics/uuid-1/logo.png', 'image/png')
 
       expect(mockFs.mkdirSync).toHaveBeenCalledWith(
-        expect.stringContaining(path.join('uploads', 'clinics', 'uuid-1')),
+        expect.stringContaining(path.join('uploads-private', 'clinics', 'uuid-1')),
         { recursive: true },
       )
       expect(mockFs.writeFileSync).toHaveBeenCalledWith(
-        expect.stringContaining(path.join('uploads', 'clinics', 'uuid-1', 'logo.png')),
+        expect.stringContaining(path.join('uploads-private', 'clinics', 'uuid-1', 'logo.png')),
         buffer,
       )
     })
 
-    it('returns a localhost URL with the file path', async () => {
-      const url = await adapter.upload(Buffer.from(''), 'clinics/uuid-1/logo.jpg', 'image/jpeg', true)
+    it('returns the object key (path), not a URL', async () => {
+      const key = await adapter.upload(Buffer.from(''), 'clinics/uuid-1/logo.jpg', 'image/jpeg')
 
-      expect(url).toMatch(/^http:\/\/localhost:\d+\/uploads\/clinics\/uuid-1\/logo\.jpg$/)
+      expect(key).toBe('clinics/uuid-1/logo.jpg')
     })
 
-    it('uses PORT env variable in the returned URL', async () => {
-      process.env.PORT = '4000'
-      const url = await adapter.upload(Buffer.from(''), 'clinics/uuid-1/logo.jpg', 'image/jpeg', true)
-      delete process.env.PORT
-
-      expect(url).toContain('localhost:4000')
-    })
-  })
-
-  describe('upload — private', () => {
-    it('writes the file under uploads-private/ instead of uploads/', async () => {
+    it('writes exam results under uploads-private/ and returns the key', async () => {
       const buffer = Buffer.from('exam-data')
-      await adapter.upload(buffer, 'exam-results/clinic/request/result.pdf', 'application/pdf', false)
+      const key = await adapter.upload(buffer, 'exam-results/clinic/request/result.pdf', 'application/pdf')
 
-      expect(mockFs.mkdirSync).toHaveBeenCalledWith(
-        expect.stringContaining(path.join('uploads-private', 'exam-results', 'clinic', 'request')),
-        { recursive: true },
-      )
       expect(mockFs.writeFileSync).toHaveBeenCalledWith(
         expect.stringContaining(path.join('uploads-private', 'exam-results', 'clinic', 'request', 'result.pdf')),
         buffer,
       )
-    })
-
-    it('returns the raw file path instead of a public URL', async () => {
-      const key = await adapter.upload(
-        Buffer.from(''),
-        'exam-results/clinic/request/result.pdf',
-        'application/pdf',
-        false,
-      )
-
       expect(key).toBe('exam-results/clinic/request/result.pdf')
     })
   })

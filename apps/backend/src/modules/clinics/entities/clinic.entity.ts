@@ -49,14 +49,16 @@ export class Clinic {
   @Column({ name: 'theme_id', type: 'uuid', nullable: true })
   themeId: string | null
 
-  @Column({ name: 'logo_url', type: 'varchar', length: 500, nullable: true, default: null })
-  logoUrl: string | null
+  // Object keys in the private S3 bucket (e.g. `clinics/{id}/logo.png`). Delivery URLs are built
+  // on read and streamed by the backend — see ClinicAssetUrlService.
+  @Column({ name: 'logo_path', type: 'varchar', length: 500, nullable: true, default: null })
+  logoPath: string | null
 
-  @Column({ name: 'logo_dark_url', type: 'varchar', length: 500, nullable: true, default: null })
-  logoDarkUrl: string | null
+  @Column({ name: 'logo_dark_path', type: 'varchar', length: 500, nullable: true, default: null })
+  logoDarkPath: string | null
 
-  @Column({ name: 'favicon_url', type: 'varchar', length: 500, nullable: true, default: null })
-  faviconUrl: string | null
+  @Column({ name: 'favicon_path', type: 'varchar', length: 500, nullable: true, default: null })
+  faviconPath: string | null
 
   @VersionColumn()
   version: number

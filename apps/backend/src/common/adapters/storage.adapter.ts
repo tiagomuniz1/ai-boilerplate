@@ -15,10 +15,9 @@ export class StorageAdapter implements IStorageAdapter {
     this.region = config.AWS_REGION
   }
 
-  // Files that are not public are uploaded with no ACL, which defaults to private
-  // (bucket-owner-only) — the bucket policy only grants public read on `clinics/*`,
-  // so anything else stays inaccessible without going through `download()` below.
-  async upload(buffer: Buffer, path: string, mimeType: string, isPublic: boolean): Promise<string> {
+  // The bucket is private: objects are uploaded with no ACL (bucket-owner-only) and are only
+  // reachable through `download()` below. Returns the object key.
+  async upload(buffer: Buffer, path: string, mimeType: string): Promise<string> {
     if (!this.bucket || !this.region) {
       throw new InternalServerErrorException(
         'AWS_S3_BUCKET and AWS_REGION environment variables are required for file uploads',
@@ -34,7 +33,6 @@ export class StorageAdapter implements IStorageAdapter {
           Key: path,
           Body: buffer,
           ContentType: mimeType,
-          ...(isPublic ? { ACL: 'public-read' as const } : {}),
         }),
       )
     } catch (error) {
@@ -42,7 +40,7 @@ export class StorageAdapter implements IStorageAdapter {
       throw error
     }
 
-    return isPublic ? `https://${this.bucket}.s3.${this.region}.amazonaws.com/${path}` : path
+    return path
   }
 
   async download(path: string): Promise<Buffer> {
