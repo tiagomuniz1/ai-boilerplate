@@ -30,8 +30,9 @@ export class FindAllMedicalRecordTemplatesUseCase extends BaseUseCase {
     currentUser: ICurrentUser,
   ): Promise<PaginatedMedicalRecordTemplatesResponseDto> {
     const clinicId = currentUser.clinicId!
-    const { page = 1, limit = 20, specialtyId } = query
-    const cacheKey = `medical_record_templates:list:${clinicId}:${page}:${limit}:${specialtyId ?? 'all'}`
+    const { page = 1, limit = 20, specialtyId, generalist } = query
+    const filterKey = generalist ? 'generalist' : specialtyId ?? 'all'
+    const cacheKey = `medical_record_templates:list:${clinicId}:${page}:${limit}:${filterKey}`
 
     try {
       const cached =
@@ -48,15 +49,25 @@ export class FindAllMedicalRecordTemplatesUseCase extends BaseUseCase {
       page,
       limit,
       specialtyId,
+      generalist,
     )
 
-    const specialtyIds = [...new Set(templates.map((template) => template.specialtyId))]
+    const specialtyIds = [
+      ...new Set(
+        templates
+          .map((template) => template.specialtyId)
+          .filter((id): id is string => id !== null),
+      ),
+    ]
     const specialties = await this.specialtiesRepository.findByIds(specialtyIds)
     const nameMap = new Map(specialties.map((specialty) => [specialty.id, specialty.name]))
 
     const result: PaginatedMedicalRecordTemplatesResponseDto = {
       data: templates.map((template) =>
-        this.toResponse(template, nameMap.get(template.specialtyId) ?? ''),
+        this.toResponse(
+          template,
+          template.specialtyId ? nameMap.get(template.specialtyId) ?? null : null,
+        ),
       ),
       total,
       page,
@@ -76,7 +87,7 @@ export class FindAllMedicalRecordTemplatesUseCase extends BaseUseCase {
 
   private toResponse(
     template: MedicalRecordTemplate,
-    specialtyName: string,
+    specialtyName: string | null,
   ): MedicalRecordTemplateResponseDto {
     return {
       id: template.id,

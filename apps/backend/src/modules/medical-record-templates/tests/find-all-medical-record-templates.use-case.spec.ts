@@ -73,7 +73,7 @@ describe('FindAllMedicalRecordTemplatesUseCase', () => {
 
     const result = await useCase.execute({ specialtyId: 'spec-1' } as any, currentUser)
 
-    expect(mockTemplatesRepository.findAll).toHaveBeenCalledWith(clinicId, 1, 20, 'spec-1')
+    expect(mockTemplatesRepository.findAll).toHaveBeenCalledWith(clinicId, 1, 20, 'spec-1', undefined)
     expect(result.data[0].specialtyName).toBe('Cardiologia')
     expect(result.total).toBe(1)
     expect(mockCacheService.set).toHaveBeenCalledWith(
@@ -83,7 +83,40 @@ describe('FindAllMedicalRecordTemplatesUseCase', () => {
     )
   })
 
-  it('uses "all" cache key and empty name when specialty is missing', async () => {
+  it('returns null specialtyName for a generalist template (null specialtyId)', async () => {
+    mockCacheService.get.mockResolvedValue(null)
+    const generalistTemplate = makeTemplate({ specialtyId: null })
+    mockTemplatesRepository.findAll.mockResolvedValue([[generalistTemplate] as any, 1])
+    mockSpecialtiesRepository.findByIds.mockResolvedValue([])
+
+    const result = await useCase.execute({} as any, currentUser)
+
+    expect(mockSpecialtiesRepository.findByIds).toHaveBeenCalledWith([])
+    expect(result.data[0].specialtyId).toBeNull()
+    expect(result.data[0].specialtyName).toBeNull()
+  })
+
+  it('forwards the generalist flag and uses a "generalist" cache key', async () => {
+    mockCacheService.get.mockResolvedValue(null)
+    const generalistTemplate = makeTemplate({ specialtyId: null })
+    mockTemplatesRepository.findAll.mockResolvedValue([[generalistTemplate] as any, 1])
+    mockSpecialtiesRepository.findByIds.mockResolvedValue([])
+
+    const result = await useCase.execute({ generalist: true } as any, currentUser)
+
+    expect(mockTemplatesRepository.findAll).toHaveBeenCalledWith(clinicId, 1, 20, undefined, true)
+    expect(mockCacheService.get).toHaveBeenCalledWith(
+      `medical_record_templates:list:${clinicId}:1:20:generalist`,
+    )
+    expect(mockCacheService.set).toHaveBeenCalledWith(
+      `medical_record_templates:list:${clinicId}:1:20:generalist`,
+      result,
+      60,
+    )
+    expect(result.data[0].specialtyId).toBeNull()
+  })
+
+  it('uses "all" cache key and null name when specialty is missing', async () => {
     mockCacheService.get.mockResolvedValue(null)
     const template = makeTemplate()
     mockTemplatesRepository.findAll.mockResolvedValue([[template] as any, 1])
@@ -94,7 +127,7 @@ describe('FindAllMedicalRecordTemplatesUseCase', () => {
     expect(mockCacheService.get).toHaveBeenCalledWith(
       `medical_record_templates:list:${clinicId}:2:10:all`,
     )
-    expect(result.data[0].specialtyName).toBe('')
+    expect(result.data[0].specialtyName).toBeNull()
   })
 
   it('continues when cache read fails', async () => {

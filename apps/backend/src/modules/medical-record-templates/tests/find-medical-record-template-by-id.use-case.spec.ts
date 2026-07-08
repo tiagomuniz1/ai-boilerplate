@@ -90,14 +90,25 @@ describe('FindMedicalRecordTemplateByIdUseCase', () => {
     )
   })
 
-  it('returns empty specialtyName when specialty is missing', async () => {
+  it('returns null specialtyName when specialty is missing', async () => {
     mockCacheService.get.mockResolvedValue(null)
     mockTemplatesRepository.findById.mockResolvedValue(makeTemplate() as any)
     mockSpecialtiesRepository.findById.mockResolvedValue(null)
 
     const result = await useCase.execute('tpl-1', currentUser)
 
-    expect(result.specialtyName).toBe('')
+    expect(result.specialtyName).toBeNull()
+  })
+
+  it('skips the specialty lookup for a generalist template (null specialtyId)', async () => {
+    mockCacheService.get.mockResolvedValue(null)
+    mockTemplatesRepository.findById.mockResolvedValue(makeTemplate({ specialtyId: null }) as any)
+
+    const result = await useCase.execute('tpl-1', currentUser)
+
+    expect(mockSpecialtiesRepository.findById).not.toHaveBeenCalled()
+    expect(result.specialtyId).toBeNull()
+    expect(result.specialtyName).toBeNull()
   })
 
   it('continues when cache read fails', async () => {

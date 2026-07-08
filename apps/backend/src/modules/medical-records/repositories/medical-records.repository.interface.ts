@@ -7,7 +7,7 @@ export interface CreateMedicalRecordData {
   appointmentId: string
   patientId: string
   doctorId: string
-  specialtyId: string
+  specialtyId: string | null
   templateId: string
   templateSchemaSnapshot: MedicalRecordTemplateField[]
   data: Record<string, unknown>

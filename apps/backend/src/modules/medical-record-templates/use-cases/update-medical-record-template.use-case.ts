@@ -82,8 +82,10 @@ export class UpdateMedicalRecordTemplateUseCase extends BaseUseCase {
       })
     }
 
-    const specialty = await this.specialtiesRepository.findById(updated.specialtyId)
-    return this.toResponse(updated, specialty?.name ?? '')
+    const specialty = updated.specialtyId
+      ? await this.specialtiesRepository.findById(updated.specialtyId)
+      : null
+    return this.toResponse(updated, specialty?.name ?? null)
   }
 
   private resolveSections(
@@ -198,7 +200,7 @@ export class UpdateMedicalRecordTemplateUseCase extends BaseUseCase {
 
   private toResponse(
     template: MedicalRecordTemplate,
-    specialtyName: string,
+    specialtyName: string | null,
   ): MedicalRecordTemplateResponseDto {
     return {
       id: template.id,

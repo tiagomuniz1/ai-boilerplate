@@ -36,4 +36,14 @@ describe('FindTemplateByClinicAndSpecialtyUseCase', () => {
 
     expect(result).toBeNull()
   })
+
+  it('passes a null specialtyId through to resolve the generalist template', async () => {
+    const template = { id: 'tpl-generalist' }
+    mockTemplatesRepository.findByClinicAndSpecialty.mockResolvedValue(template as any)
+
+    const result = await useCase.execute('clinic-1', null)
+
+    expect(mockTemplatesRepository.findByClinicAndSpecialty).toHaveBeenCalledWith('clinic-1', null)
+    expect(result).toBe(template as any)
+  })
 })

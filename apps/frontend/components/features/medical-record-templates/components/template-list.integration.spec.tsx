@@ -83,6 +83,19 @@ describe('TemplateList (integration)', () => {
       )
     })
 
+    it('labels a generalist template (null specialty) as "Generalista" in table and card', async () => {
+      ;(medicalRecordTemplatesService.getAll as jest.Mock).mockResolvedValue(
+        makePaginated([makeDto({ specialtyId: null, specialtyName: null })]),
+      )
+
+      renderWithProviders(<TemplateList />)
+
+      await waitFor(() => expect(screen.getByTestId('template-list-table')).toBeInTheDocument())
+
+      expect(screen.getByTestId('template-specialty-uuid-1')).toHaveTextContent('Generalista')
+      expect(screen.getByTestId('template-card-uuid-1')).toHaveTextContent('Generalista')
+    })
+
     it('renders Inativo status for inactive template', async () => {
       ;(medicalRecordTemplatesService.getAll as jest.Mock).mockResolvedValue(makePaginated([makeDto({ isActive: false })]))
 

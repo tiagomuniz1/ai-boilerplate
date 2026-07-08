@@ -46,25 +46,32 @@ export class CreateMedicalRecordTemplateUseCase extends BaseUseCase {
     currentUser: ICurrentUser,
   ): Promise<MedicalRecordTemplateResponseDto> {
     const clinicId = currentUser.clinicId!
+    const specialtyId = dto.specialtyId ?? null
 
-    const link = await this.clinicSpecialtiesRepository.findByClinicAndSpecialty(
-      clinicId,
-      dto.specialtyId,
-    )
-    if (!link) throw new UnprocessableEntityException('Specialty is not linked to this clinic')
+    // Generalist template (no specialty) has no clinic-specialty link to validate.
+    if (specialtyId) {
+      const link = await this.clinicSpecialtiesRepository.findByClinicAndSpecialty(
+        clinicId,
+        specialtyId,
+      )
+      if (!link) throw new UnprocessableEntityException('Specialty is not linked to this clinic')
+    }
 
-    const existing = await this.templatesRepository.findByClinicAndSpecialty(
-      clinicId,
-      dto.specialtyId,
-    )
-    if (existing) throw new ConflictException('A template already exists for this specialty')
+    const existing = await this.templatesRepository.findByClinicAndSpecialty(clinicId, specialtyId)
+    if (existing) {
+      throw new ConflictException(
+        specialtyId
+          ? 'A template already exists for this specialty'
+          : 'A generalist template already exists',
+      )
+    }
 
     const sections = this.resolveSections(dto.sections ?? [])
     const validSectionKeys = new Set(sections.map((s) => s.key))
     const fields = await this.resolveFields(dto.fields, validSectionKeys)
 
     const created = await this.templatesRepository.create(
-      { specialtyId: dto.specialtyId, name: dto.name, fields, sections },
+      { specialtyId, name: dto.name, fields, sections },
       clinicId,
     )
 
@@ -76,8 +83,10 @@ export class CreateMedicalRecordTemplateUseCase extends BaseUseCase {
       })
     }
 
-    const specialty = await this.specialtiesRepository.findById(dto.specialtyId)
-    return this.toResponse(created, specialty?.name ?? '')
+    const specialty = specialtyId
+      ? await this.specialtiesRepository.findById(specialtyId)
+      : null
+    return this.toResponse(created, specialty?.name ?? null)
   }
 
   private resolveSections(
@@ -186,7 +195,7 @@ export class CreateMedicalRecordTemplateUseCase extends BaseUseCase {
 
   private toResponse(
     template: MedicalRecordTemplate,
-    specialtyName: string,
+    specialtyName: string | null,
   ): MedicalRecordTemplateResponseDto {
     return {
       id: template.id,

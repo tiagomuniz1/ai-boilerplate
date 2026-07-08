@@ -7,11 +7,12 @@ export abstract class IMedicalRecordTemplatesRepository {
     page: number,
     limit: number,
     specialtyId?: string,
+    generalist?: boolean,
   ): Promise<[MedicalRecordTemplate[], number]>
   abstract findById(id: string, clinicId: string): Promise<MedicalRecordTemplate | null>
   abstract findByClinicAndSpecialty(
     clinicId: string,
-    specialtyId: string,
+    specialtyId: string | null,
   ): Promise<MedicalRecordTemplate | null>
   abstract create(
     data: Partial<MedicalRecordTemplate>,

@@ -106,6 +106,35 @@ describe('CreateMedicalRecordTemplateUseCase', () => {
     expect(mockTemplatesRepository.create).not.toHaveBeenCalled()
   })
 
+  it('creates a generalist template without checking a clinic-specialty link', async () => {
+    mockTemplatesRepository.create.mockImplementation((data: any) =>
+      Promise.resolve(makeTemplate({ ...data }) as any),
+    )
+
+    const result = await useCase.execute(
+      { name: 'Prontuário clínico geral', fields: [freeField] },
+      currentUser,
+    )
+
+    expect(mockClinicSpecialtiesRepository.findByClinicAndSpecialty).not.toHaveBeenCalled()
+    expect(mockTemplatesRepository.findByClinicAndSpecialty).toHaveBeenCalledWith(clinicId, null)
+    const createArg = mockTemplatesRepository.create.mock.calls[0][0] as any
+    expect(createArg.specialtyId).toBeNull()
+    expect(result.specialtyId).toBeNull()
+    expect(result.specialtyName).toBeNull()
+  })
+
+  it('throws Conflict when a generalist template already exists for the clinic', async () => {
+    mockTemplatesRepository.findByClinicAndSpecialty.mockResolvedValue(
+      makeTemplate({ specialtyId: null }) as any,
+    )
+
+    await expect(
+      useCase.execute({ name: 'Outro clínico geral', fields: [freeField] }, currentUser),
+    ).rejects.toThrow(ConflictException)
+    expect(mockTemplatesRepository.create).not.toHaveBeenCalled()
+  })
+
   it('generates field keys and ignores any client-provided key', async () => {
     mockTemplatesRepository.create.mockImplementation((data: any) =>
       Promise.resolve(makeTemplate({ ...data }) as any),
@@ -252,13 +281,13 @@ describe('CreateMedicalRecordTemplateUseCase', () => {
     expect(result.fields[0].canonicalKey).toBe('allergies')
   })
 
-  it('returns empty specialtyName when specialty is not found', async () => {
+  it('returns null specialtyName when specialty is not found', async () => {
     mockSpecialtiesRepository.findById.mockResolvedValue(null)
     mockTemplatesRepository.create.mockResolvedValue(makeTemplate() as any)
 
     const result = await useCase.execute(baseDto, currentUser)
 
-    expect(result.specialtyName).toBe('')
+    expect(result.specialtyName).toBeNull()
   })
 
   it('continues when cache invalidation fails', async () => {

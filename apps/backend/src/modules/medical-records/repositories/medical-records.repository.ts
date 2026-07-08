@@ -22,7 +22,8 @@ export class MedicalRecordsRepository implements IMedicalRecordsRepository {
       .innerJoinAndSelect('patient.user', 'patientUser')
       .innerJoinAndSelect('mr.doctor', 'doctor')
       .innerJoinAndSelect('doctor.user', 'doctorUser')
-      .innerJoinAndSelect('mr.specialty', 'specialty')
+      // LEFT JOIN: generalist records have specialty_id NULL — an inner join would drop them.
+      .leftJoinAndSelect('mr.specialty', 'specialty')
   }
 
   async findById(id: string, clinicId: string): Promise<MedicalRecord | null> {

@@ -162,9 +162,22 @@ describe('CreateMedicalRecordUseCase', () => {
     await expect(useCase.execute({ appointmentId, data: {} }, adminUser)).rejects.toThrow(NotFoundException)
   })
 
-  it('throws UnprocessableEntityException when appointment has no specialtyId', async () => {
+  it('creates a generalist record when the appointment has no specialty (null)', async () => {
     mockAppointmentsRepository.findById.mockResolvedValue(makeAppointment({ specialtyId: null }) as any)
-    await expect(useCase.execute({ appointmentId, data: {} }, adminUser)).rejects.toThrow(UnprocessableEntityException)
+    ;(mockFindTemplate.execute as jest.Mock).mockResolvedValue(makeTemplate({ specialtyId: null }))
+    mockMedicalRecordsRepository.create.mockResolvedValue({
+      ...makeRecord(),
+      specialtyId: null,
+      specialty: null,
+    } as any)
+
+    const result = await useCase.execute({ appointmentId, data: {} }, adminUser)
+
+    expect(mockFindTemplate.execute).toHaveBeenCalledWith(clinicId, null)
+    const createArg = mockMedicalRecordsRepository.create.mock.calls[0][0]
+    expect(createArg.specialtyId).toBeNull()
+    expect(result.specialtyId).toBeNull()
+    expect(result.specialtyName).toBeNull()
   })
 
   it('throws NotFoundException when template not found', async () => {

@@ -68,7 +68,7 @@ export default function EditMedicalRecordTemplatePage({ params }: EditMedicalRec
       <TemplateForm
         mode="edit"
         template={template}
-        specialtyId={template.specialtyId}
+        specialtyId={template.specialtyId ?? undefined}
         isPending={isSaving}
         globalError={globalError}
         onSubmit={handleSubmit}

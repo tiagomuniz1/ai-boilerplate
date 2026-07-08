@@ -101,7 +101,8 @@ function addRefinements<T extends z.ZodObject<any>>(schema: T) {
 
 const formSchemaCreate = addRefinements(
   baseObjectSchema.extend({
-    specialtyId: z.string().min(1, 'Selecione uma especialidade'),
+    // Optional: an empty value creates a generalist template (no specialty).
+    specialtyId: z.string().optional(),
   }),
 )
 
@@ -142,7 +143,7 @@ interface TemplateFormProps {
 interface TemplateFormEditProps {
   mode: 'edit'
   template: ITemplateModel
-  specialtyId: string
+  specialtyId?: string
   onSubmit: (data: IUpdateTemplateInput) => void
   isPending: boolean
   error?: IApiError | null
@@ -256,7 +257,7 @@ export function TemplateForm(props: Props) {
       })
     } else {
       ;(props as TemplateFormProps).onSubmit({
-        specialtyId: values.specialtyId!,
+        specialtyId: values.specialtyId || undefined,
         name: values.name,
         fields: allFields,
         sections: sectionInputs,
@@ -385,7 +386,7 @@ export function TemplateForm(props: Props) {
       {!isEdit && (
         <div className="flex flex-col gap-1">
           <label className="text-sm font-medium text-text" htmlFor="template-specialty">
-            Especialidade <span className="text-error">*</span>
+            Especialidade
           </label>
           <select
             id="template-specialty"
@@ -394,7 +395,7 @@ export function TemplateForm(props: Props) {
             data-testid="template-form-specialty"
             className="h-10 w-full rounded-md px-3 text-base bg-surface border border-line text-text transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-bg aria-[invalid=true]:border-danger"
           >
-            <option value="">Selecione uma especialidade</option>
+            <option value="">Generalista (sem especialidade)</option>
             {specialties.map((s) => (
               <option key={s.id} value={s.id}>
                 {s.name}

@@ -145,7 +145,7 @@ export function TemplateDetails({ templateId }: TemplateDetailsProps) {
             {template.name}
           </h1>
           <p className="mt-0.5 text-sm text-text-dim">
-            Especialidade: <span data-testid="template-details-specialty">{template.specialtyName}</span>
+            Especialidade: <span data-testid="template-details-specialty">{template.specialtyName ?? 'Generalista'}</span>
           </p>
           <span
             className={`mt-2 inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${

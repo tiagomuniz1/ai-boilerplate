@@ -7,8 +7,8 @@ export class MedicalRecordResponseDto {
   patientName!: string
   doctorId!: string
   doctorName!: string
-  specialtyId!: string
-  specialtyName!: string
+  specialtyId!: string | null
+  specialtyName!: string | null
   templateId!: string
   templateSchemaSnapshot!: MedicalRecordTemplateFieldDto[]
   data!: Record<string, unknown>

@@ -22,8 +22,8 @@ export interface ITemplateFieldModel {
 
 export interface ITemplateModel {
   id: string
-  specialtyId: string
-  specialtyName: string
+  specialtyId: string | null
+  specialtyName: string | null
   name: string
   fields: ITemplateFieldModel[]
   sections: ITemplateSectionModel[]

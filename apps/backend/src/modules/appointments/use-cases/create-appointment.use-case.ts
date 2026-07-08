@@ -128,7 +128,7 @@ export class CreateAppointmentUseCase extends BaseUseCase {
               clinicId,
               doctorId,
               patientId: dto.patientId,
-              specialtyId: chosenSpecialty.id,
+              specialtyId: chosenSpecialty?.id ?? null,
               scheduleId,
               date: dateStr,
               startTime: timeStr,
@@ -160,13 +160,13 @@ export class CreateAppointmentUseCase extends BaseUseCase {
       this.fetchPatientName(dto.patientId),
     ])
 
-    return this.toResponse(appointment, doctorName, patientName, chosenSpecialty.name)
+    return this.toResponse(appointment, doctorName, patientName, chosenSpecialty?.name ?? null)
   }
 
   private resolveSpecialty(
     specialties: Array<{ id: string; name: string }>,
     requestedSpecialtyId?: string,
-  ): { id: string; name: string } {
+  ): { id: string; name: string } | null {
     if (requestedSpecialtyId) {
       const matched = specialties.find((specialty) => specialty.id === requestedSpecialtyId)
       if (!matched) {
@@ -175,8 +175,9 @@ export class CreateAppointmentUseCase extends BaseUseCase {
       return matched
     }
 
+    // Generalist doctor: no specialties linked → appointment has no specialty.
     if (specialties.length === 0) {
-      throw new UnprocessableEntityException('Doctor has no active specialty')
+      return null
     }
 
     if (specialties.length > 1) {

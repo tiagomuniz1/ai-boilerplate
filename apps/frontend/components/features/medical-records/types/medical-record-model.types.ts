@@ -19,8 +19,8 @@ export interface IMedicalRecordModel {
   patientName: string
   doctorId: string
   doctorName: string
-  specialtyId: string
-  specialtyName: string
+  specialtyId: string | null
+  specialtyName: string | null
   schema: IRecordFieldModel[]
   data: Record<string, unknown>
   notes: string | null

@@ -85,9 +85,10 @@ describe('TemplateForm (integration)', () => {
       })
     })
 
-    it('shows validation error when no specialty selected', async () => {
+    it('submits a generalist template (no specialty selected) with specialtyId undefined', async () => {
+      const onSubmit = jest.fn()
       renderWithProviders(
-        <TemplateForm mode="create" specialtyId="" onSubmit={jest.fn()} isPending={false} />,
+        <TemplateForm mode="create" specialtyId="" onSubmit={onSubmit} isPending={false} />,
       )
       await userEvent.type(screen.getByTestId('template-form-name'), 'Anamnese')
       await userEvent.click(screen.getByTestId('template-form-add-field'))
@@ -95,7 +96,9 @@ describe('TemplateForm (integration)', () => {
       await userEvent.click(screen.getByTestId('template-form-submit'))
 
       await waitFor(() => {
-        expect(screen.getByTestId('template-form-specialty-error')).toBeInTheDocument()
+        expect(onSubmit).toHaveBeenCalledWith(
+          expect.objectContaining({ name: 'Anamnese', specialtyId: undefined }),
+        )
       })
     })
 

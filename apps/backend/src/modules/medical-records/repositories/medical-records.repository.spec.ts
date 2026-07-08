@@ -5,6 +5,7 @@ import { CreateMedicalRecordData } from './medical-records.repository.interface'
 
 const mockQueryBuilder = {
   innerJoinAndSelect: jest.fn().mockReturnThis(),
+  leftJoinAndSelect: jest.fn().mockReturnThis(),
   where: jest.fn().mockReturnThis(),
   andWhere: jest.fn().mockReturnThis(),
   orderBy: jest.fn().mockReturnThis(),

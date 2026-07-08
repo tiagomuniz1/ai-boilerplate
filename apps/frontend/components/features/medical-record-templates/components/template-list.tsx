@@ -93,7 +93,7 @@ export function TemplateList() {
                       className="px-6 py-4 text-sm text-text-dim"
                       data-testid={`template-specialty-${template.id}`}
                     >
-                      {template.specialtyName}
+                      {template.specialtyName ?? 'Generalista'}
                     </td>
                     <td
                       className="px-6 py-4 text-sm text-text-dim"
@@ -137,7 +137,7 @@ export function TemplateList() {
                 data-testid={`template-card-${template.id}`}
                 title={template.name}
                 rows={[
-                  { label: 'Especialidade', value: template.specialtyName },
+                  { label: 'Especialidade', value: template.specialtyName ?? 'Generalista' },
                   { label: 'Campos', value: template.fields.length },
                   {
                     label: 'Status',

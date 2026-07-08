@@ -111,12 +111,28 @@ describe('MedicalRecordSection (integration)', () => {
     })
   })
 
-  it('does not fetch templates when specialtyId is null', async () => {
+  it('fetches the generalist template when specialtyId is null', async () => {
+    mockTemplatesService.getAll.mockResolvedValue({
+      data: [makeTemplateDto({ specialtyId: null, specialtyName: null }) as any],
+      total: 1,
+      page: 1,
+      limit: 1,
+    })
+
     renderWithProviders(<MedicalRecordSection {...defaultProps} specialtyId={null} />)
+
     await waitFor(() => {
       expect(screen.getByTestId('fill-medical-record-button')).toBeInTheDocument()
     })
-    expect(mockTemplatesService.getAll).not.toHaveBeenCalled()
+
+    expect(mockTemplatesService.getAll).toHaveBeenCalledWith({ generalist: true, limit: 1 })
+
+    await userEvent.click(screen.getByTestId('fill-medical-record-button'))
+
+    await waitFor(() => {
+      expect(screen.getByTestId('medical-record-form-modal')).toBeInTheDocument()
+    })
+    expect(screen.queryByTestId('no-template-alert')).not.toBeInTheDocument()
   })
 
   it('shows medical record view inline when record exists', async () => {

@@ -118,7 +118,7 @@ export function BookAppointmentDialog({
           ? 'Ocorreu um erro ao agendar. Tente novamente.'
           : null
 
-  const isSubmitBlocked = isPending || isDoctorLoading || (doctorLoaded && specialtyCount === 0)
+  const isSubmitBlocked = isPending || isDoctorLoading
 
   return (
     <Modal
@@ -148,8 +148,8 @@ export function BookAppointmentDialog({
         )}
 
         {doctorLoaded && specialtyCount === 0 && (
-          <Alert variant="error" data-testid="book-dialog-no-specialty">
-            Este médico não possui especialidade cadastrada.
+          <Alert variant="info" data-testid="book-dialog-no-specialty">
+            Médico sem especialidade — a consulta será registrada como clínica geral.
           </Alert>
         )}
 

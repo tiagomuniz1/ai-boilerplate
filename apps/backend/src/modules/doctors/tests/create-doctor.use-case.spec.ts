@@ -189,6 +189,30 @@ describe('CreateDoctorUseCase', () => {
     expect(result.specialties[0].rqe).toBeNull()
   })
 
+  it('creates a generalist doctor with no specialties', async () => {
+    const user = makeUser()
+    const dto = makeDto(user.id, [])
+    const created = makeDoctor({ userId: user.id, user, specialties: [] })
+
+    mockUsersRepository.findById.mockResolvedValue(user)
+    mockDoctorsRepository.findByUserId.mockResolvedValue(null)
+    mockDoctorsRepository.findByCrm.mockResolvedValue(null)
+    mockSpecialtiesRepository.findByIds.mockResolvedValue([] as any)
+    mockDoctorsRepository.create.mockResolvedValue(created as any)
+    mockCacheService.delByPattern.mockResolvedValue(undefined)
+
+    const result = await useCase.execute(dto, adminCurrentUser)
+
+    expect(result.crms).toHaveLength(1)
+    expect(result.specialties).toHaveLength(0)
+    expect(mockDoctorsRepository.create).toHaveBeenCalledWith(
+      expect.objectContaining({ userId: user.id }),
+      CLINIC_ID,
+      dto.crms,
+      [],
+    )
+  })
+
   it('persists the rqe provided per specialty', async () => {
     const user = makeUser()
     const specialty = makeSpecialty()

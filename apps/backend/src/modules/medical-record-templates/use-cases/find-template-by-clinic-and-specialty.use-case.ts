@@ -13,7 +13,10 @@ export class FindTemplateByClinicAndSpecialtyUseCase extends BaseUseCase {
     super(dataSource)
   }
 
-  async execute(clinicId: string, specialtyId: string): Promise<MedicalRecordTemplate | null> {
+  async execute(
+    clinicId: string,
+    specialtyId: string | null,
+  ): Promise<MedicalRecordTemplate | null> {
     return this.templatesRepository.findByClinicAndSpecialty(clinicId, specialtyId)
   }
 }

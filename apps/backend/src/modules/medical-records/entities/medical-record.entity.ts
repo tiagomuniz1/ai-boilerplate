@@ -41,10 +41,10 @@ export class MedicalRecord {
 
   @ManyToOne(() => Specialty, { eager: false })
   @JoinColumn({ name: 'specialty_id' })
-  specialty: Specialty
+  specialty: Specialty | null
 
-  @Column({ name: 'specialty_id', type: 'uuid' })
-  specialtyId: string
+  @Column({ name: 'specialty_id', type: 'uuid', nullable: true })
+  specialtyId: string | null
 
   @Column({ name: 'template_id', type: 'uuid' })
   templateId: string

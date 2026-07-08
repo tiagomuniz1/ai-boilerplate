@@ -60,7 +60,6 @@ export class CreateDoctorDto {
   crms!: DoctorCrmInputDto[]
 
   @IsArray()
-  @ArrayMinSize(1)
   @ValidateNested({ each: true })
   @Type(() => DoctorSpecialtyInputDto)
   specialties!: DoctorSpecialtyInputDto[]

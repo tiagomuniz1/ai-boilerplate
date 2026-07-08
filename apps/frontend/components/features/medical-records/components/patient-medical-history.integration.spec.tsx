@@ -81,6 +81,21 @@ describe('PatientMedicalHistory', () => {
     expect(screen.getByTestId('history-card-doctor')).toHaveTextContent('Dr. João')
   })
 
+  it('labels a generalist record (null specialty) as "Clínica geral"', () => {
+    mockUseHistory.mockReturnValue({
+      data: {
+        data: [makeRecord('r1', { specialtyId: null, specialtyName: null })],
+        total: 1,
+        page: 1,
+        limit: 10,
+      },
+      isLoading: false,
+      isError: false,
+    })
+    renderWithProviders(<PatientMedicalHistory patientId="patient-uuid" />)
+    expect(screen.getByTestId('history-card-specialty')).toHaveTextContent('Clínica geral')
+  })
+
   it('opens record detail modal when card is clicked', async () => {
     const record = makeRecord('r1')
     mockUseHistory.mockReturnValue({

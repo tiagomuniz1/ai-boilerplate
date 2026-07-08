@@ -432,13 +432,21 @@ describe('CreateAppointmentUseCase', () => {
       expect(mockAppointmentsRepository.create).not.toHaveBeenCalled()
     })
 
-    it('throws 422 when the doctor has no active specialty', async () => {
+    it('books a generalist appointment (null specialty) when the doctor has no specialty', async () => {
       mockDoctorsRepository.findByUserId.mockResolvedValue(makeDoctor({ specialties: [] }) as any)
+      mockAppointmentsRepository.create.mockResolvedValue(
+        makeAppointment({ specialtyId: null }) as any,
+      )
 
-      await expect(
-        useCase.execute({ patientId: faker.string.uuid(), date: tomorrowStr, startTime: '08:00' }, doctorUser),
-      ).rejects.toThrow(UnprocessableEntityException)
-      expect(mockAppointmentsRepository.create).not.toHaveBeenCalled()
+      const result = await useCase.execute(
+        { patientId: faker.string.uuid(), date: tomorrowStr, startTime: '08:00' },
+        doctorUser,
+      )
+
+      expect(result.specialtyId).toBeNull()
+      expect(result.specialtyName).toBeNull()
+      const createArg = mockAppointmentsRepository.create.mock.calls[0][0]
+      expect(createArg.specialtyId).toBeNull()
     })
   })
 })

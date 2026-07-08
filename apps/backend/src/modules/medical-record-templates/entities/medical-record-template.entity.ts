@@ -37,8 +37,8 @@ export class MedicalRecordTemplate {
   @Column({ name: 'clinic_id', type: 'uuid' })
   clinicId: string
 
-  @Column({ name: 'specialty_id', type: 'uuid' })
-  specialtyId: string
+  @Column({ name: 'specialty_id', type: 'uuid', nullable: true })
+  specialtyId: string | null
 
   @Column()
   name: string

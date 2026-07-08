@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
-import { QueryRunner, Repository } from 'typeorm'
+import { IsNull, QueryRunner, Repository } from 'typeorm'
 import { MedicalRecordTemplate } from '../entities/medical-record-template.entity'
 import { IMedicalRecordTemplatesRepository } from './medical-record-templates.repository.interface'
 
@@ -16,12 +16,15 @@ export class MedicalRecordTemplatesRepository implements IMedicalRecordTemplates
     page: number,
     limit: number,
     specialtyId?: string,
+    generalist?: boolean,
   ): Promise<[MedicalRecordTemplate[], number]> {
     const queryBuilder = this.repository
       .createQueryBuilder('template')
       .where('template.clinicId = :clinicId', { clinicId })
 
-    if (specialtyId) {
+    if (generalist) {
+      queryBuilder.andWhere('template.specialtyId IS NULL')
+    } else if (specialtyId) {
       queryBuilder.andWhere('template.specialtyId = :specialtyId', { specialtyId })
     }
 
@@ -38,9 +41,11 @@ export class MedicalRecordTemplatesRepository implements IMedicalRecordTemplates
 
   async findByClinicAndSpecialty(
     clinicId: string,
-    specialtyId: string,
+    specialtyId: string | null,
   ): Promise<MedicalRecordTemplate | null> {
-    return this.repository.findOneBy({ clinicId, specialtyId })
+    // A raw null generates `specialty_id = NULL` which never matches — use IsNull() so the
+    // generalist template (specialty_id IS NULL) is resolvable.
+    return this.repository.findOneBy({ clinicId, specialtyId: specialtyId ?? IsNull() })
   }
 
   async create(

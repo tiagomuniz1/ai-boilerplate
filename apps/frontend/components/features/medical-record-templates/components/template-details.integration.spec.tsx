@@ -85,6 +85,18 @@ describe('TemplateDetails (integration)', () => {
       expect(screen.getByText('Sintoma principal')).toBeInTheDocument()
     })
 
+    it('labels a generalist template (null specialty) as "Generalista"', async () => {
+      ;(medicalRecordTemplatesService.getById as jest.Mock).mockResolvedValue(
+        makeDto({ specialtyId: null, specialtyName: null }),
+      )
+
+      renderWithProviders(<TemplateDetails templateId="uuid-1" />)
+
+      await waitFor(() => expect(screen.getByTestId('template-details')).toBeInTheDocument())
+
+      expect(screen.getByTestId('template-details-specialty')).toHaveTextContent('Generalista')
+    })
+
     it('renders error state when fetch fails', async () => {
       ;(medicalRecordTemplatesService.getById as jest.Mock).mockRejectedValue(new Error('Not found'))
 

@@ -37,8 +37,10 @@ export class FindMedicalRecordTemplateByIdUseCase extends BaseUseCase {
     const template = await this.templatesRepository.findById(id, clinicId)
     if (!template) throw new NotFoundException('Template not found')
 
-    const specialty = await this.specialtiesRepository.findById(template.specialtyId)
-    const response = this.toResponse(template, specialty?.name ?? '')
+    const specialty = template.specialtyId
+      ? await this.specialtiesRepository.findById(template.specialtyId)
+      : null
+    const response = this.toResponse(template, specialty?.name ?? null)
 
     try {
       await this.cacheService.set(cacheKey, response, 300)
@@ -53,7 +55,7 @@ export class FindMedicalRecordTemplateByIdUseCase extends BaseUseCase {
 
   private toResponse(
     template: MedicalRecordTemplate,
-    specialtyName: string,
+    specialtyName: string | null,
   ): MedicalRecordTemplateResponseDto {
     return {
       id: template.id,

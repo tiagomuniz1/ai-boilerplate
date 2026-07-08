@@ -160,6 +160,27 @@ describe('MedicalRecordTemplatesController (integration)', () => {
       await createTemplate(adminToken, freeFieldsPayload()).expect(409)
     })
 
+    it('returns 201 for a generalist template (no specialtyId) without a clinic-specialty link', async () => {
+      const { specialtyId: _omit, ...generalistPayload } = freeFieldsPayload()
+
+      const { body } = await createTemplate(adminToken, {
+        ...generalistPayload,
+        name: 'Prontuário clínico geral',
+      }).expect(201)
+
+      expect(body.specialtyId).toBeNull()
+      expect(body.specialtyName).toBeNull()
+    })
+
+    it('returns 409 when a generalist template already exists for the clinic', async () => {
+      const { specialtyId: _omit, ...generalistPayload } = freeFieldsPayload()
+
+      await createTemplate(adminToken, { ...generalistPayload, name: 'Clínico geral' }).expect(201)
+      await createTemplate(adminToken, { ...generalistPayload, name: 'Outro clínico geral' }).expect(
+        409,
+      )
+    })
+
     it('returns 422 when a select field has no options', async () => {
       await createTemplate(adminToken, {
         specialtyId,
@@ -269,6 +290,34 @@ describe('MedicalRecordTemplatesController (integration)', () => {
         .expect(200)
 
       expect(body.total).toBe(0)
+    })
+
+    it('returns only the generalist template when generalist=true', async () => {
+      const { specialtyId: _omit, ...generalistPayload } = freeFieldsPayload()
+      await createTemplate(adminToken, freeFieldsPayload()).expect(201)
+      await createTemplate(adminToken, { ...generalistPayload, name: 'Clínico geral' }).expect(201)
+
+      const { body } = await request(app.getHttpServer())
+        .get('/medical-record-templates?generalist=true')
+        .set('Authorization', `Bearer ${adminToken}`)
+        .expect(200)
+
+      expect(body.total).toBe(1)
+      expect(body.data[0].specialtyId).toBeNull()
+      expect(body.data[0].specialtyName).toBeNull()
+    })
+
+    it('allows a DOCTOR to fetch the generalist template', async () => {
+      const { specialtyId: _omit, ...generalistPayload } = freeFieldsPayload()
+      await createTemplate(adminToken, { ...generalistPayload, name: 'Clínico geral' }).expect(201)
+
+      const { body } = await request(app.getHttpServer())
+        .get('/medical-record-templates?generalist=true')
+        .set('Authorization', `Bearer ${doctorToken}`)
+        .expect(200)
+
+      expect(body.total).toBe(1)
+      expect(body.data[0].specialtyId).toBeNull()
     })
   })
 

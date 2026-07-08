@@ -1,5 +1,5 @@
 import * as bcrypt from 'bcrypt'
-import { DataSource, ILike } from 'typeorm'
+import { DataSource, ILike, IsNull } from 'typeorm'
 import { AppointmentInsuranceType, AppointmentStatus, DayOfWeek, MedicalRecordFieldType, PatientGender, ThemeBorderRadius, UserRole } from '@app/shared'
 import { Theme } from '../../../modules/themes/entities/theme.entity'
 import { Clinic } from '../../../modules/clinics/entities/clinic.entity'
@@ -148,7 +148,38 @@ export async function devSeed(dataSource: DataSource): Promise<void> {
   await seedClinicAdmin(dataSource.getRepository(User))
   await seedCanonicalFields(dataSource)
   await seedMedicalRecordTemplates(dataSource)
+  await seedGeneralistDoctor(dataSource)
   await seedMedicalRecords(dataSource)
+}
+
+async function seedGeneralistDoctor(dataSource: DataSource): Promise<void> {
+  const userRepository = dataSource.getRepository(User)
+  const doctorRepository = dataSource.getRepository(Doctor)
+
+  const existingUser = await userRepository.findOneBy({ email: 'generalista@pulso.center' })
+  if (existingUser) return
+
+  const password = await bcrypt.hash('123123123', 10)
+  const doctorUser = await userRepository.save(
+    userRepository.create({
+      fullName: 'Dra. Ana Generalista',
+      email: 'generalista@pulso.center',
+      password,
+      role: UserRole.DOCTOR,
+      clinicId: SEED_CLINIC_ID,
+    }),
+  )
+
+  const doctorEntity = doctorRepository.create({ userId: doctorUser.id, clinicId: SEED_CLINIC_ID })
+  doctorEntity.crms = [
+    dataSource
+      .getRepository(DoctorCrm)
+      .create({ clinicId: SEED_CLINIC_ID, number: '99999', state: 'SP', isPrimary: true }),
+  ]
+  // Generalist: no specialties linked.
+  doctorEntity.doctorSpecialties = []
+  await doctorRepository.save(doctorEntity)
+  console.log('Dev seed: generalist doctor created.')
 }
 
 async function seedCanonicalFields(dataSource: DataSource): Promise<void> {
@@ -246,6 +277,45 @@ async function seedMedicalRecordTemplates(dataSource: DataSource): Promise<void>
       }),
     )
     console.log(`Dev seed: medical record template for specialty ${clinicSpecialty.specialtyId} created.`)
+  }
+
+  // Generalist template (no specialty) — used by generalist doctors' appointments.
+  const existingGeneralist = await templateRepository.findOneBy({
+    clinicId: SEED_CLINIC_ID,
+    specialtyId: IsNull(),
+  })
+  if (!existingGeneralist) {
+    const usedKeys = new Set<string>()
+    const fields: MedicalRecordTemplateField[] = []
+    let order = 1
+    for (const canonicalKey of ['weight', 'height', 'chief_complaint']) {
+      const canonical = await canonicalRepository.findOneBy({ canonicalKey })
+      if (!canonical) continue
+      fields.push({
+        key: generateFieldKey(canonical.label, usedKeys),
+        label: canonical.label,
+        type: canonical.type,
+        required: false,
+        order,
+        options: canonical.options,
+        placeholder: null,
+        helpText: null,
+        canonical: true,
+        canonicalKey: canonical.canonicalKey,
+        sectionKey: null,
+      })
+      order += 1
+    }
+
+    await templateRepository.save(
+      templateRepository.create({
+        clinicId: SEED_CLINIC_ID,
+        specialtyId: null,
+        name: 'Prontuário clínico geral',
+        fields,
+      }),
+    )
+    console.log('Dev seed: generalist medical record template created.')
   }
 }
 

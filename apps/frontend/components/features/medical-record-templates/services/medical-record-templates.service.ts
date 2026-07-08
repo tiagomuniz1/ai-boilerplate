@@ -10,6 +10,7 @@ export interface ITemplateListParams {
   page?: number
   limit?: number
   specialtyId?: string
+  generalist?: boolean
 }
 
 export const medicalRecordTemplatesService = {
@@ -18,6 +19,7 @@ export const medicalRecordTemplatesService = {
     if (params?.page) searchParams.set('page', String(params.page))
     if (params?.limit) searchParams.set('limit', String(params.limit))
     if (params?.specialtyId) searchParams.set('specialtyId', params.specialtyId)
+    if (params?.generalist) searchParams.set('generalist', 'true')
     const query = searchParams.toString()
     return apiClient.get<PaginatedMedicalRecordTemplatesResponseDto>(
       `/medical-record-templates${query ? `?${query}` : ''}`,

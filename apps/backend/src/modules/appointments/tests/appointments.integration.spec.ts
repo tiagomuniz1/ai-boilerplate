@@ -310,6 +310,21 @@ describe('AppointmentsController (integration)', () => {
       expect(body.specialtyName).toBe('Clínica Geral')
     })
 
+    it('books a generalist appointment (null specialty) when the doctor has no specialty', async () => {
+      await doctorRepository.query('DELETE FROM test.doctor_specialties WHERE doctor_id = $1', [
+        doctorId,
+      ])
+
+      const { body } = await request(app.getHttpServer())
+        .post('/appointments')
+        .set('Cookie', `access_token=${doctorToken}`)
+        .send({ patientId, date: futureDate, startTime: '08:00' })
+        .expect(201)
+
+      expect(body.specialtyId).toBeNull()
+      expect(body.specialtyName).toBeNull()
+    })
+
     it('accepts an explicit specialtyId that belongs to the doctor', async () => {
       const { body } = await request(app.getHttpServer())
         .post('/appointments')

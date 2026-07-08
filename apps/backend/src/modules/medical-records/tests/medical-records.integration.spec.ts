@@ -392,7 +392,7 @@ describe('MedicalRecordsController (integration)', () => {
         .expect(409)
     })
 
-    it('returns 422 when appointment has no specialtyId', async () => {
+    it('returns 404 for a generalist appointment when no generalist template exists', async () => {
       const noSpecAppt = await appointmentRepository.save(
         appointmentRepository.create({
           clinicId: SEED_CLINIC_ID,
@@ -412,7 +412,44 @@ describe('MedicalRecordsController (integration)', () => {
         .post('/medical-records')
         .set('Cookie', `access_token=${adminToken}`)
         .send({ appointmentId: noSpecAppt.id, data: {} })
-        .expect(422)
+        .expect(404)
+    })
+
+    it('creates a generalist record (null specialty) via the clinic generalist template', async () => {
+      await templateRepository.save(
+        templateRepository.create({
+          clinicId: SEED_CLINIC_ID,
+          specialtyId: null,
+          name: 'Prontuário clínico geral',
+          fields: templateFields,
+          isActive: true,
+        }),
+      )
+
+      const generalistAppt = await appointmentRepository.save(
+        appointmentRepository.create({
+          clinicId: SEED_CLINIC_ID,
+          doctorId,
+          patientId,
+          specialtyId: null,
+          scheduleId: (await scheduleRepository.findOneByOrFail({ doctorId })).id,
+          date: '2026-01-07',
+          startTime: '09:30',
+          endTime: '10:00',
+          status: AppointmentStatus.SCHEDULED,
+          reason: null,
+          cancellationReason: null,
+        }),
+      )
+
+      const { body } = await request(app.getHttpServer())
+        .post('/medical-records')
+        .set('Cookie', `access_token=${adminToken}`)
+        .send({ appointmentId: generalistAppt.id, data: {} })
+        .expect(201)
+
+      expect(body.specialtyId).toBeNull()
+      expect(body.specialtyName).toBeNull()
     })
 
     it('returns 403 for USER role', async () => {

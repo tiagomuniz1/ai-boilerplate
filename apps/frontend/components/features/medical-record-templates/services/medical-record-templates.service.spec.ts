@@ -39,6 +39,12 @@ describe('medicalRecordTemplatesService', () => {
       expect(mockApiClient.get).toHaveBeenCalledWith('/medical-record-templates?specialtyId=spec-uuid')
     })
 
+    it('calls GET with generalist=true param', async () => {
+      mockApiClient.get.mockResolvedValue({ data: [], total: 0, page: 1, limit: 1 })
+      await medicalRecordTemplatesService.getAll({ generalist: true, limit: 1 })
+      expect(mockApiClient.get).toHaveBeenCalledWith('/medical-record-templates?limit=1&generalist=true')
+    })
+
     it('returns API response', async () => {
       const response = { data: [makeDto()], total: 1, page: 1, limit: 20 }
       mockApiClient.get.mockResolvedValue(response)

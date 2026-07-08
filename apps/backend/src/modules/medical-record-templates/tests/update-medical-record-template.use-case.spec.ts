@@ -346,7 +346,7 @@ describe('UpdateMedicalRecordTemplateUseCase', () => {
     await expect(useCase.execute(template.id, { name: 'X2' }, currentUser)).rejects.toThrow('db down')
   })
 
-  it('returns empty specialtyName when specialty is not found', async () => {
+  it('returns null specialtyName when specialty is not found', async () => {
     const template = makeTemplate()
     mockTemplatesRepository.findById.mockResolvedValue(template as any)
     mockTemplatesRepository.update.mockResolvedValue(template as any)
@@ -354,7 +354,19 @@ describe('UpdateMedicalRecordTemplateUseCase', () => {
 
     const result = await useCase.execute(template.id, { name: 'X2' }, currentUser)
 
-    expect(result.specialtyName).toBe('')
+    expect(result.specialtyName).toBeNull()
+  })
+
+  it('skips the specialty lookup for a generalist template (null specialtyId)', async () => {
+    const template = makeTemplate({ specialtyId: null })
+    mockTemplatesRepository.findById.mockResolvedValue(template as any)
+    mockTemplatesRepository.update.mockResolvedValue(template as any)
+
+    const result = await useCase.execute(template.id, { name: 'X2' }, currentUser)
+
+    expect(mockSpecialtiesRepository.findById).not.toHaveBeenCalled()
+    expect(result.specialtyId).toBeNull()
+    expect(result.specialtyName).toBeNull()
   })
 
   it('continues when cache invalidation fails', async () => {

@@ -119,7 +119,7 @@ export function MedicalRecordView({ record, sections = [] }: MedicalRecordViewPr
         <div>
           <p className="text-xs font-medium uppercase tracking-wider text-text-mute">Especialidade</p>
           <p className="mt-0.5 text-sm font-medium text-text" data-testid="record-specialty-name">
-            {record.specialtyName}
+            {record.specialtyName ?? 'Clínica geral'}
           </p>
         </div>
       </div>

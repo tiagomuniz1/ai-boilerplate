@@ -3,8 +3,8 @@ import { MedicalRecordTemplateSectionDto } from './medical-record-template-secti
 
 export class MedicalRecordTemplateResponseDto {
   id!: string
-  specialtyId!: string
-  specialtyName!: string
+  specialtyId!: string | null
+  specialtyName!: string | null
   name!: string
   fields!: MedicalRecordTemplateFieldDto[]
   sections!: MedicalRecordTemplateSectionDto[]

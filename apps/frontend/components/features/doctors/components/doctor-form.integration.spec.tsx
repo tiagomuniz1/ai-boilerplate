@@ -270,8 +270,9 @@ describe('DoctorForm (integration) — create mode', () => {
     })
   })
 
-  it('shows validation error when no specialty is selected', async () => {
-    renderWithProviders(<DoctorForm mode="create" isPending={false} onSubmit={jest.fn()} />)
+  it('submits a generalist doctor (no specialty selected)', async () => {
+    const onSubmit = jest.fn()
+    renderWithProviders(<DoctorForm mode="create" isPending={false} onSubmit={onSubmit} />)
 
     await userEvent.type(screen.getByTestId('doctor-form-user-search'), 'João')
     await waitFor(
@@ -284,7 +285,10 @@ describe('DoctorForm (integration) — create mode', () => {
     await userEvent.click(screen.getByTestId('doctor-form-submit'))
 
     await waitFor(() => {
-      expect(screen.getByText('Selecione ao menos uma especialidade')).toBeInTheDocument()
+      expect(onSubmit).toHaveBeenCalledWith(
+        expect.objectContaining({ specialties: [] }),
+        expect.any(Function),
+      )
     })
   })
 
@@ -642,9 +646,10 @@ describe('DoctorForm (integration) — edit mode', () => {
     })
   })
 
-  it('shows specialty validation error when all specialties are deselected and form is submitted', async () => {
+  it('allows submitting after deselecting all specialties (doctor becomes generalist)', async () => {
+    const onSubmit = jest.fn()
     renderWithProviders(
-      <DoctorForm mode="edit" defaultValues={existingDoctor} isPending={false} onSubmit={jest.fn()} />,
+      <DoctorForm mode="edit" defaultValues={existingDoctor} isPending={false} onSubmit={onSubmit} />,
     )
 
     await waitFor(() => {
@@ -655,7 +660,10 @@ describe('DoctorForm (integration) — edit mode', () => {
     await userEvent.click(screen.getByTestId('doctor-form-submit'))
 
     await waitFor(() => {
-      expect(screen.getByText('Selecione ao menos uma especialidade')).toBeInTheDocument()
+      expect(onSubmit).toHaveBeenCalledWith(
+        expect.objectContaining({ specialties: [] }),
+        expect.any(Function),
+      )
     })
   })
 

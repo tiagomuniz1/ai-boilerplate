@@ -21,7 +21,7 @@ export interface ITemplateFieldInput {
 }
 
 export interface ICreateTemplateInput {
-  specialtyId: string
+  specialtyId?: string
   name: string
   fields: ITemplateFieldInput[]
   sections: ITemplateSectionInput[]

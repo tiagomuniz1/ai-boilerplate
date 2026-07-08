@@ -13,8 +13,9 @@ import { MedicalRecordTemplateFieldDto } from './medical-record-template-field.d
 import { MedicalRecordTemplateSectionDto } from './medical-record-template-section.dto'
 
 export class CreateMedicalRecordTemplateDto {
+  @IsOptional()
   @IsUUID()
-  specialtyId!: string
+  specialtyId?: string
 
   @IsString()
   @MinLength(2)

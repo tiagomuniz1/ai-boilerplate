@@ -61,6 +61,11 @@ describe('MedicalRecordView', () => {
     expect(screen.getByTestId('record-specialty-name')).toHaveTextContent('Cardiologia')
   })
 
+  it('labels a generalist record (null specialty) as "Clínica geral"', () => {
+    render(<MedicalRecordView record={makeRecord({ specialtyId: null, specialtyName: null })} />)
+    expect(screen.getByTestId('record-specialty-name')).toHaveTextContent('Clínica geral')
+  })
+
   // --- flat layout (no sections) ---
 
   it('renders field labels and values in flat layout', () => {

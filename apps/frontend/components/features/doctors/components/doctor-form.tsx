@@ -46,7 +46,6 @@ const specialtiesField = z
         .or(z.literal('')),
     }),
   )
-  .min(1, 'Selecione ao menos uma especialidade')
 
 const bioField = z.string().max(500, 'Bio deve ter no máximo 500 caracteres').optional()
 
@@ -269,7 +268,6 @@ function DoctorFormCreate({ isPending, globalError, onSubmit }: DoctorFormCreate
           specialties={specialties}
           value={specialtyField.value as SpecialtyValue[]}
           isLoading={isLoadingSpecialties}
-          error={fieldArrayError(errors.specialties)}
           onToggle={toggleSpecialty}
           onRqeChange={changeRqe}
         />
@@ -398,7 +396,6 @@ function DoctorFormEdit({ defaultValues, isPending, globalError, onSubmit }: Doc
           specialties={specialties}
           value={specialtyField.value as SpecialtyValue[]}
           isLoading={isLoadingSpecialties}
-          error={fieldArrayError(errors.specialties)}
           onToggle={toggleSpecialty}
           onRqeChange={changeRqe}
         />
@@ -547,14 +544,12 @@ function SpecialtyCheckboxGroup({
   specialties,
   value,
   isLoading,
-  error,
   onToggle,
   onRqeChange,
 }: {
   specialties: Array<{ id: string; name: string }>
   value: SpecialtyValue[]
   isLoading: boolean
-  error?: string
   onToggle: (id: string) => void
   onRqeChange: (id: string, value: string) => void
 }) {
@@ -571,11 +566,7 @@ function SpecialtyCheckboxGroup({
         </p>
       ) : (
         <div
-          className={cn(
-            'max-h-64 overflow-y-auto rounded-md border p-3',
-            'bg-surface',
-            error ? 'border-danger' : 'border-line',
-          )}
+          className={cn('max-h-64 overflow-y-auto rounded-md border p-3', 'bg-surface', 'border-line')}
         >
           {specialties.length === 0 ? (
             <p className="text-sm text-text-mute">Nenhuma especialidade cadastrada.</p>
@@ -612,11 +603,6 @@ function SpecialtyCheckboxGroup({
             })
           )}
         </div>
-      )}
-      {error && (
-        <span role="alert" className="text-xs text-danger">
-          {error}
-        </span>
       )}
     </div>
   )

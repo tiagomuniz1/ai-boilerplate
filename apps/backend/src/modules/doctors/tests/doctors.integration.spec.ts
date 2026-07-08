@@ -216,6 +216,15 @@ describe('DoctorsController (integration)', () => {
       expect(body.updatedAt).toBeDefined()
     })
 
+    it('returns 201 for a generalist doctor with no specialties', async () => {
+      const targetUser = await createTargetUser()
+
+      const { body } = await createDoctor(targetUser.id, { specialtyIds: [] }).expect(201)
+
+      expect(body.crms).toHaveLength(1)
+      expect(body.specialties).toHaveLength(0)
+    })
+
     it('response never contains version, deletedAt or password', async () => {
       const targetUser = await createTargetUser()
       const { body } = await createDoctor(targetUser.id).expect(201)
@@ -251,11 +260,6 @@ describe('DoctorsController (integration)', () => {
     it('returns 400 when CRM format is invalid', async () => {
       const targetUser = await createTargetUser()
       await createDoctor(targetUser.id, { crmNumber: '123-SP' }).expect(400)
-    })
-
-    it('returns 400 when specialtyIds is empty', async () => {
-      const targetUser = await createTargetUser()
-      await createDoctor(targetUser.id, { specialtyIds: [] }).expect(400)
     })
 
     it('returns 400 when unknown field is sent', async () => {

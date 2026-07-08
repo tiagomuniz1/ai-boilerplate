@@ -323,7 +323,7 @@ describe('BookAppointmentDialog (integration)', () => {
       })
     })
 
-    it('shows no-specialty alert and disables submit when doctor has 0 specialties', async () => {
+    it('shows a neutral generalist note and keeps submit enabled when doctor has 0 specialties', async () => {
       mockDoctorsService.getById.mockResolvedValue(makeDoctorResponse([]))
 
       renderWithProviders(<BookAppointmentDialog {...defaultProps} />)
@@ -333,9 +333,28 @@ describe('BookAppointmentDialog (integration)', () => {
       })
 
       expect(screen.getByTestId('book-dialog-no-specialty')).toHaveTextContent(
-        'Este médico não possui especialidade cadastrada',
+        'a consulta será registrada como clínica geral',
       )
-      expect(screen.getByTestId('book-dialog-submit')).toBeDisabled()
+      expect(screen.getByTestId('book-dialog-submit')).not.toBeDisabled()
+    })
+
+    it('books a generalist appointment (no specialtyId) when doctor has 0 specialties', async () => {
+      mockDoctorsService.getById.mockResolvedValue(makeDoctorResponse([]))
+
+      renderWithProviders(<BookAppointmentDialog {...defaultProps} />)
+
+      await waitFor(() => {
+        expect(screen.getByRole('option', { name: 'Patient One' })).toBeInTheDocument()
+      })
+
+      await userEvent.selectOptions(screen.getByTestId('book-dialog-patient'), PATIENT_UUID)
+      await userEvent.click(screen.getByTestId('book-dialog-submit'))
+
+      await waitFor(() => {
+        expect(mockAppointmentsService.book).toHaveBeenCalled()
+      })
+
+      expect(mockAppointmentsService.book.mock.calls[0][0].specialtyId).toBeUndefined()
     })
 
     it('shows 422 specialty error alert when backend rejects specialty', async () => {

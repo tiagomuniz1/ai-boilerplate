@@ -1,4 +1,4 @@
-import { Repository } from 'typeorm'
+import { IsNull, Repository } from 'typeorm'
 import { faker } from '@faker-js/faker'
 import { MedicalRecordTemplate } from '../entities/medical-record-template.entity'
 import { MedicalRecordTemplatesRepository } from './medical-record-templates.repository'
@@ -80,6 +80,30 @@ describe('MedicalRecordTemplatesRepository', () => {
         specialtyId: 'spec-1',
       })
     })
+
+    it('filters for the generalist template (specialtyId IS NULL) when generalist is set', async () => {
+      const qb = makeQueryBuilder()
+      qb.getManyAndCount.mockResolvedValue([[makeTemplate({ specialtyId: null })], 1])
+      repo.createQueryBuilder.mockReturnValue(qb as any)
+
+      await repository.findAll(clinicId, 1, 20, undefined, true)
+
+      expect(qb.andWhere).toHaveBeenCalledWith('template.specialtyId IS NULL')
+      expect(qb.andWhere).toHaveBeenCalledTimes(1)
+    })
+
+    it('ignores specialtyId when generalist is set (generalist wins)', async () => {
+      const qb = makeQueryBuilder()
+      qb.getManyAndCount.mockResolvedValue([[], 0])
+      repo.createQueryBuilder.mockReturnValue(qb as any)
+
+      await repository.findAll(clinicId, 1, 20, 'spec-1', true)
+
+      expect(qb.andWhere).toHaveBeenCalledWith('template.specialtyId IS NULL')
+      expect(qb.andWhere).not.toHaveBeenCalledWith('template.specialtyId = :specialtyId', {
+        specialtyId: 'spec-1',
+      })
+    })
   })
 
   describe('findById', () => {
@@ -102,6 +126,16 @@ describe('MedicalRecordTemplatesRepository', () => {
       const result = await repository.findByClinicAndSpecialty(clinicId, 'spec-1')
 
       expect(repo.findOneBy).toHaveBeenCalledWith({ clinicId, specialtyId: 'spec-1' })
+      expect(result).toBe(template)
+    })
+
+    it('resolves the generalist template with IsNull() when specialtyId is null', async () => {
+      const template = makeTemplate()
+      repo.findOneBy.mockResolvedValue(template)
+
+      const result = await repository.findByClinicAndSpecialty(clinicId, null)
+
+      expect(repo.findOneBy).toHaveBeenCalledWith({ clinicId, specialtyId: IsNull() })
       expect(result).toBe(template)
     })
   })

@@ -27,7 +27,7 @@ export function toMedicalRecordResponse(record: MedicalRecord): MedicalRecordRes
     doctorId: record.doctorId,
     doctorName: record.doctor.user.fullName,
     specialtyId: record.specialtyId,
-    specialtyName: record.specialty.name,
+    specialtyName: record.specialty?.name ?? null,
     templateId: record.templateId,
     templateSchemaSnapshot: record.templateSchemaSnapshot,
     data: record.data,
@@ -66,10 +66,7 @@ export class CreateMedicalRecordUseCase extends BaseUseCase {
       }
     }
 
-    if (!appointment.specialtyId) {
-      throw new UnprocessableEntityException('Appointment has no specialty defined')
-    }
-
+    // Generalist appointment carries a null specialty → resolves the clinic's generalist template.
     const specialtyId = appointment.specialtyId
 
     const template = await this.findTemplateByClinicAndSpecialtyUseCase.execute(clinicId, specialtyId)
