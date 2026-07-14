@@ -50,6 +50,9 @@ aws ecr get-login-password --region ${AWS_REGION} | docker login --username AWS 
 cd "\$APP_DIR"
 docker compose --env-file deploy.env -f docker-compose.prod.yml pull --quiet
 docker compose --env-file deploy.env -f docker-compose.prod.yml up -d
+# nginx.conf is bind-mounted, so `up -d` won't recreate the proxy when only the
+# file changed. Reload gracefully so routing changes take effect (no-op on first boot).
+docker compose --env-file deploy.env -f docker-compose.prod.yml exec -T proxy nginx -s reload || true
 docker image prune -f
 docker compose --env-file deploy.env -f docker-compose.prod.yml ps
 REMOTE_EOF
