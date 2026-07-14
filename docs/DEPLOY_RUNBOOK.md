@@ -112,6 +112,23 @@ No repositório (`Settings → Environments`), crie o Environment **`staging`**
 > Não há secret de AWS no GitHub — a autenticação é por **OIDC** (a role é assumível
 > só pelo Environment correspondente).
 
+### 3.4. Primeiro admin da plataforma (backoffice)
+
+A plataforma é fechada (`POST /users` não é público) e **seeds não rodam em
+produção**, então o primeiro `PLATFORM_ADMIN` é criado uma vez com um script. Ele
+roda um container backend efêmero no EC2 via SSM (sem SSH), reusando a imagem já
+deployada e o carregamento de env do SSM. A senha é **hasheada localmente** (bcrypt),
+então o texto puro nunca passa pelo SSM. Idempotente.
+
+```bash
+ADMIN_EMAIL=admin@pulso.center ADMIN_PASSWORD='uma-senha-forte' \
+  bash infra/scripts/seed-platform-admin.sh staging
+```
+
+Depois, logar em `https://backoffice.staging.pulso.center` (staging) ou
+`https://backoffice.pulso.center` (produção) com esse e-mail/senha. A senha pode ser
+trocada depois pelo próprio app.
+
 ---
 
 ## 4. Deploy de rotina
