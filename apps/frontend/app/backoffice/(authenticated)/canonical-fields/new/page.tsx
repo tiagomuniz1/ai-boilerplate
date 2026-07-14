@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
-import { useSlug } from '@/lib/slug-context'
+import { useBasePath } from '@/lib/slug-context'
 import { Button } from '@/components/ui/atoms/button/button'
 import { Typography } from '@/components/ui/atoms/typography/typography'
 import { CanonicalFieldForm } from '@/components/features/canonical-fields/components/canonical-field-form'
@@ -11,7 +11,7 @@ import type { ICreateCanonicalFieldInput } from '@/components/features/canonical
 import type { IApiError } from '@/types/api.types'
 
 export default function NewCanonicalFieldPage() {
-  const slug = useSlug()
+  const basePath = useBasePath()
   const { mutate, isPending } = useCreateCanonicalField()
   const [globalError, setGlobalError] = useState<string | null>(null)
 
@@ -38,7 +38,7 @@ export default function NewCanonicalFieldPage() {
   return (
     <main className="p-6 max-w-lg" data-testid="new-canonical-field-page">
       <div className="flex items-center gap-4 mb-6">
-        <Link href={`/${slug}/canonical-fields`}>
+        <Link href={`${basePath}/canonical-fields`}>
           <Button variant="ghost" size="sm" data-testid="new-canonical-field-back-button">
             ← Voltar
           </Button>

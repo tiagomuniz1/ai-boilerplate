@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
-import { useSlug } from '@/lib/slug-context'
+import { useBasePath } from '@/lib/slug-context'
 import { Button } from '@/components/ui/atoms/button/button'
 import { Typography } from '@/components/ui/atoms/typography/typography'
 import { MedicationForm } from '@/components/features/medications/components/medication-form'
@@ -11,7 +11,7 @@ import type { ICreateMedicationInput } from '@/components/features/medications/t
 import type { IApiError } from '@/types/api.types'
 
 export default function NewMedicationPage() {
-  const slug = useSlug()
+  const basePath = useBasePath()
   const { mutate, isPending } = useCreateMedication()
   const [globalError, setGlobalError] = useState<string | null>(null)
 
@@ -36,7 +36,7 @@ export default function NewMedicationPage() {
   return (
     <main className="p-6 max-w-lg" data-testid="new-medication-page">
       <div className="flex items-center gap-4 mb-6">
-        <Link href={`/${slug}/medications`}>
+        <Link href={`${basePath}/medications`}>
           <Button variant="ghost" size="sm" data-testid="new-medication-back-button">
             ← Voltar
           </Button>

@@ -11,6 +11,7 @@ jest.mock('next/navigation', () => ({
 
 jest.mock('@/lib/slug-context', () => ({
   useSlug: () => 'test-clinic',
+  useBasePath: () => '/test-clinic',
 }))
 
 function setRole(role: UserRole) {

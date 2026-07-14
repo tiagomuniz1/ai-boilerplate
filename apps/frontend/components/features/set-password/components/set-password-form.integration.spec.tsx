@@ -2,7 +2,7 @@ jest.mock('next/navigation', () => ({
   useRouter: jest.fn(),
   useSearchParams: jest.fn(),
 }))
-jest.mock('@/lib/slug-context', () => ({ useSlug: () => 'test-clinic' }))
+jest.mock('@/lib/slug-context', () => ({ useSlug: () => 'test-clinic', useBasePath: () => '/test-clinic' }))
 jest.mock('../services/set-password.service')
 
 import { screen, waitFor } from '@testing-library/react'

@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useRouter } from 'next/navigation'
 import { useAuthStore } from '@/stores/auth.store'
-import { useSlug } from '@/lib/slug-context'
+import { useSlug, useBasePath } from '@/lib/slug-context'
 import { authService } from '@/components/features/auth/services/auth.service'
 
 export interface IUseLogoutResult {
@@ -18,6 +18,7 @@ export function useLogout(): IUseLogoutResult {
   const setUser = useAuthStore((state) => state.setUser)
   const queryClient = useQueryClient()
   const slug = useSlug()
+  const basePath = useBasePath()
   const [error, setError] = useState<string | null>(null)
 
   const mutation = useMutation({
@@ -26,7 +27,7 @@ export function useLogout(): IUseLogoutResult {
       setUser(null)
       queryClient.clear()
       try { localStorage.removeItem('clinic-theme-vars') } catch {}
-      router.push(`/${slug}/login`)
+      router.push(`${basePath}/login`)
     },
     onError: () => {
       setError('Ocorreu um erro ao sair. Tente novamente.')

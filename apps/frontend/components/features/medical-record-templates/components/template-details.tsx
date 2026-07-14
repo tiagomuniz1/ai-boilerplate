@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
-import { useSlug } from '@/lib/slug-context'
+import { useBasePath } from '@/lib/slug-context'
 import { Button } from '@/components/ui/atoms/button/button'
 import { Alert } from '@/components/ui/molecules/alert/alert'
 import { useAuthStore } from '@/stores/auth.store'
@@ -97,7 +97,7 @@ interface TemplateDetailsProps {
 }
 
 export function TemplateDetails({ templateId }: TemplateDetailsProps) {
-  const slug = useSlug()
+  const basePath = useBasePath()
   const role = useAuthStore((s) => s.user?.role)
   const isAdmin = role === UserRole.ADMIN
 
@@ -159,7 +159,7 @@ export function TemplateDetails({ templateId }: TemplateDetailsProps) {
 
         {isAdmin && (
           <div className="flex items-center gap-3">
-            <Link href={`/${slug}/medical-record-templates/${templateId}/edit`}>
+            <Link href={`${basePath}/medical-record-templates/${templateId}/edit`}>
               <Button variant="ghost" size="sm" data-testid="template-details-edit-button">
                 Editar
               </Button>

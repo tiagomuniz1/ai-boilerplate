@@ -1,5 +1,5 @@
 jest.mock('next/navigation', () => ({ useRouter: jest.fn() }))
-jest.mock('@/lib/slug-context', () => ({ useSlug: jest.fn(() => 'clinic-slug') }))
+jest.mock('@/lib/slug-context', () => ({ useSlug: jest.fn(() => 'clinic-slug'), useBasePath: () => '/clinic-slug' }))
 jest.mock('@/stores/auth.store')
 jest.mock('../services/medical-record-templates.service')
 

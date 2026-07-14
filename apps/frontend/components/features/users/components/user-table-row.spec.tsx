@@ -1,5 +1,5 @@
 jest.mock('next/navigation', () => ({ useRouter: jest.fn() }))
-jest.mock('@/lib/slug-context', () => ({ useSlug: () => 'test-clinic' }))
+jest.mock('@/lib/slug-context', () => ({ useSlug: () => 'test-clinic', useBasePath: () => '/test-clinic' }))
 
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'

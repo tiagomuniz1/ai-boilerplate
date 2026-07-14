@@ -1,7 +1,7 @@
 jest.mock('next/navigation', () => ({ useRouter: jest.fn(), useSearchParams: jest.fn() }))
 jest.mock('@/stores/auth.store')
 jest.mock('../services/auth.service')
-jest.mock('@/lib/slug-context', () => ({ useSlug: () => 'test-clinic' }))
+jest.mock('@/lib/slug-context', () => ({ useSlug: () => 'test-clinic', useBasePath: () => '/test-clinic' }))
 
 import { screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'

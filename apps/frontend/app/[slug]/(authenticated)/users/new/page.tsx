@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
-import { useSlug } from '@/lib/slug-context'
+import { useBasePath } from '@/lib/slug-context'
 import { UserRole } from '@app/shared'
 import { Button } from '@/components/ui/atoms/button/button'
 import { Typography } from '@/components/ui/atoms/typography/typography'
@@ -16,7 +16,7 @@ const CLINIC_ROLES = [UserRole.USER, UserRole.ADMIN]
 const PLATFORM_ROLES = [UserRole.USER, UserRole.ADMIN, UserRole.PLATFORM_ADMIN]
 
 export default function NewUserPage() {
-  const slug = useSlug()
+  const basePath = useBasePath()
   const { mutate, isPending } = useCreateUser()
   const [globalError, setGlobalError] = useState<string | null>(null)
   const currentUser = useAuthStore((state) => state.user)
@@ -43,7 +43,7 @@ export default function NewUserPage() {
   return (
     <main className="p-6 max-w-lg" data-testid="new-user-page">
       <div className="flex items-center gap-4 mb-6">
-        <Link href={`/${slug}/users`}>
+        <Link href={`${basePath}/users`}>
           <Button variant="ghost" size="sm" data-testid="new-user-back-button">
             ← Voltar
           </Button>

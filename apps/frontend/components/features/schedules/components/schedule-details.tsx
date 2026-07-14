@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import { useSlug } from '@/lib/slug-context'
+import { useBasePath } from '@/lib/slug-context'
 import { Button } from '@/components/ui/atoms/button/button'
 import { Typography } from '@/components/ui/atoms/typography/typography'
 import { DAY_OF_WEEK_LABELS } from '../types/schedule-model.types'
@@ -25,7 +25,7 @@ function DetailRow({ label, value, testId }: { label: string; value: string; tes
 }
 
 export function ScheduleDetails({ schedule, canManageSchedules, onDeleteClick }: ScheduleDetailsProps) {
-  const slug = useSlug()
+  const basePath = useBasePath()
   const dayLabel = DAY_OF_WEEK_LABELS[schedule.dayOfWeek]
 
   return (
@@ -41,7 +41,7 @@ export function ScheduleDetails({ schedule, canManageSchedules, onDeleteClick }:
         </div>
         {canManageSchedules && (
           <div className="flex items-center gap-2">
-            <Link href={`/${slug}/schedules/${schedule.id}/edit`}>
+            <Link href={`${basePath}/schedules/${schedule.id}/edit`}>
               <Button variant="ghost" size="sm" data-testid="schedule-details-edit-button">
                 Editar
               </Button>

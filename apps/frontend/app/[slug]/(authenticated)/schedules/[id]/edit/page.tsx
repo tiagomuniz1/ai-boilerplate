@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { useParams } from 'next/navigation'
 import Link from 'next/link'
+import { useBasePath } from '@/lib/slug-context'
 import { Skeleton } from '@/components/ui/atoms/skeleton/skeleton'
 import { Alert } from '@/components/ui/molecules/alert/alert'
 import { Button } from '@/components/ui/atoms/button/button'
@@ -13,7 +14,8 @@ import type { IUpdateScheduleInput } from '@/components/features/schedules/types
 import type { IApiError } from '@/types/api.types'
 
 export default function EditSchedulePage() {
-  const { slug, id } = useParams<{ slug: string; id: string }>()
+  const { id } = useParams<{ id: string }>()
+  const basePath = useBasePath()
   const { data: schedule, isPending, isError } = useSchedule(id)
   const { mutate: updateSchedule, isPending: isUpdating } = useUpdateSchedule()
   const [globalError, setGlobalError] = useState<string | null>(null)
@@ -44,7 +46,7 @@ export default function EditSchedulePage() {
   return (
     <main className="p-6 max-w-2xl" data-testid="edit-schedule-page">
       <div className="flex items-center gap-4 mb-6">
-        <Link href={`/${slug}/schedules/${id}`}>
+        <Link href={`${basePath}/schedules/${id}`}>
           <Button variant="ghost" size="sm" data-testid="edit-schedule-back-button">
             ← Voltar
           </Button>

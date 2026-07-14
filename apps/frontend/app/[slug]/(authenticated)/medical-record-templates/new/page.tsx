@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
-import { useSlug } from '@/lib/slug-context'
+import { useBasePath } from '@/lib/slug-context'
 import { Button } from '@/components/ui/atoms/button/button'
 import { Typography } from '@/components/ui/atoms/typography/typography'
 import { TemplateForm } from '@/components/features/medical-record-templates/components/template-form'
@@ -15,7 +15,7 @@ interface NewMedicalRecordTemplatePageProps {
 }
 
 export default function NewMedicalRecordTemplatePage({ searchParams }: NewMedicalRecordTemplatePageProps) {
-  const slug = useSlug()
+  const basePath = useBasePath()
   const specialtyId = searchParams.specialtyId ?? ''
   const { mutate, isPending } = useCreateTemplate()
   const [globalError, setGlobalError] = useState<string | null>(null)
@@ -37,7 +37,7 @@ export default function NewMedicalRecordTemplatePage({ searchParams }: NewMedica
   return (
     <main className="p-6 max-w-3xl" data-testid="new-medical-record-template-page">
       <div className="flex items-center gap-4 mb-6">
-        <Link href={`/${slug}/medical-record-templates`}>
+        <Link href={`${basePath}/medical-record-templates`}>
           <Button variant="ghost" size="sm" data-testid="new-template-back-button">
             ← Voltar
           </Button>

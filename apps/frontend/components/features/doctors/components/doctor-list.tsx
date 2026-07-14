@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
-import { useSlug } from '@/lib/slug-context'
+import { useBasePath } from '@/lib/slug-context'
 import { useAuthStore } from '@/stores/auth.store'
 import { UserRole } from '@app/shared'
 import { Alert } from '@/components/ui/molecules/alert/alert'
@@ -23,7 +23,7 @@ function primaryCrmLabel(crms: IDoctorCrmModel[]): string {
 }
 
 export function DoctorList() {
-  const slug = useSlug()
+  const basePath = useBasePath()
   const role = useAuthStore((s) => s.user?.role)
   const canCreate = role === UserRole.ADMIN
   const canViewAppointments =
@@ -82,7 +82,7 @@ export function DoctorList() {
           )}
         </div>
         {canCreate && (
-          <Link href={`/${slug}/doctors/new`} className="block sm:inline-block">
+          <Link href={`${basePath}/doctors/new`} className="block sm:inline-block">
             <Button variant="primary" data-testid="doctor-list-new-button" className="w-full sm:w-auto">
               + Novo médico
             </Button>
@@ -205,7 +205,7 @@ export function DoctorList() {
                           Excluir
                         </Button>
                         <Link
-                          href={`/${slug}/doctors/${doctor.id}/edit`}
+                          href={`${basePath}/doctors/${doctor.id}/edit`}
                           data-testid={`doctor-edit-link-${doctor.id}`}
                           className="text-xs text-text-mute hover:text-text transition-colors"
                         >
@@ -213,7 +213,7 @@ export function DoctorList() {
                         </Link>
                         {canViewAppointments && (
                           <Link
-                            href={`/${slug}/appointments?doctor=${doctor.id}`}
+                            href={`${basePath}/appointments?doctor=${doctor.id}`}
                             data-testid={`doctor-appointments-link-${doctor.id}`}
                             className="text-xs text-text-mute hover:text-text transition-colors"
                           >
@@ -221,7 +221,7 @@ export function DoctorList() {
                           </Link>
                         )}
                         <Link
-                          href={`/${slug}/doctors/${doctor.id}`}
+                          href={`${basePath}/doctors/${doctor.id}`}
                           data-testid={`doctor-view-link-${doctor.id}`}
                           className="flex items-center justify-center rounded-md p-1.5 text-text-mute transition-colors hover:bg-line hover:text-text"
                           aria-label={`Ver detalhes de ${doctor.user.fullName}`}
@@ -288,7 +288,7 @@ export function DoctorList() {
                       Excluir
                     </Button>
                     <Link
-                      href={`/${slug}/doctors/${doctor.id}/edit`}
+                      href={`${basePath}/doctors/${doctor.id}/edit`}
                       data-testid={`doctor-card-edit-link-${doctor.id}`}
                       className="text-xs text-text-mute hover:text-text transition-colors"
                     >
@@ -296,7 +296,7 @@ export function DoctorList() {
                     </Link>
                     {canViewAppointments && (
                       <Link
-                        href={`/${slug}/appointments?doctor=${doctor.id}`}
+                        href={`${basePath}/appointments?doctor=${doctor.id}`}
                         data-testid={`doctor-card-appointments-link-${doctor.id}`}
                         className="text-xs text-text-mute hover:text-text transition-colors"
                       >
@@ -304,7 +304,7 @@ export function DoctorList() {
                       </Link>
                     )}
                     <Link
-                      href={`/${slug}/doctors/${doctor.id}`}
+                      href={`${basePath}/doctors/${doctor.id}`}
                       data-testid={`doctor-card-view-link-${doctor.id}`}
                       className="ml-auto flex items-center gap-1 text-xs text-text-mute transition-colors hover:text-text"
                     >

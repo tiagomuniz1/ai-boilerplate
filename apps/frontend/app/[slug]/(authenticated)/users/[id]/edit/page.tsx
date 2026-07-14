@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { useParams } from 'next/navigation'
-import { useSlug } from '@/lib/slug-context'
+import { useBasePath } from '@/lib/slug-context'
 import Link from 'next/link'
 import { Skeleton } from '@/components/ui/atoms/skeleton/skeleton'
 import { Alert } from '@/components/ui/molecules/alert/alert'
@@ -17,7 +17,7 @@ import type { IApiError } from '@/types/api.types'
 export default function EditUserPage() {
   const { id } = useParams<{ id: string }>()
   const { data: user, isPending: isLoadingUser, isError: isLoadError } = useUser(id)
-  const slug = useSlug()
+  const basePath = useBasePath()
   const { mutate: updateUser, isPending: isUpdating } = useUpdateUser()
   const [globalError, setGlobalError] = useState<string | null>(null)
 
@@ -47,7 +47,7 @@ export default function EditUserPage() {
   return (
     <main className="p-6 max-w-lg" data-testid="edit-user-page">
       <div className="flex items-center gap-4 mb-6">
-        <Link href={`/${slug}/users`}>
+        <Link href={`${basePath}/users`}>
           <Button variant="ghost" size="sm" data-testid="edit-user-back-button">
             ← Voltar
           </Button>

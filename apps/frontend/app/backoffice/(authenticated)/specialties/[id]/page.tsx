@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
-import { useSlug } from '@/lib/slug-context'
+import { useBasePath } from '@/lib/slug-context'
 import Link from 'next/link'
 import { Skeleton } from '@/components/ui/atoms/skeleton/skeleton'
 import { Alert } from '@/components/ui/molecules/alert/alert'
@@ -16,7 +16,7 @@ import type { IApiError } from '@/types/api.types'
 export default function SpecialtyDetailsPage() {
   const { id } = useParams<{ id: string }>()
   const router = useRouter()
-  const slug = useSlug()
+  const basePath = useBasePath()
   const { data: specialty, isPending, isError } = useSpecialty(id)
   const { mutate: deleteSpecialty, isPending: isDeleting } = useDeleteSpecialty()
   const [showDeleteDialog, setShowDeleteDialog] = useState(false)
@@ -25,7 +25,7 @@ export default function SpecialtyDetailsPage() {
   function handleDeleteConfirm() {
     deleteSpecialty(id, {
       onSuccess: () => {
-        router.push(`/${slug}/specialties`)
+        router.push(`${basePath}/specialties`)
       },
       onError: (error: IApiError) => {
         setShowDeleteDialog(false)
@@ -41,7 +41,7 @@ export default function SpecialtyDetailsPage() {
   return (
     <main className="p-6 max-w-2xl" data-testid="specialty-details-page">
       <div className="flex items-center gap-4 mb-6">
-        <Link href={`/${slug}/specialties`}>
+        <Link href={`${basePath}/specialties`}>
           <Button variant="ghost" size="sm" data-testid="specialty-details-back-button">
             ← Voltar
           </Button>

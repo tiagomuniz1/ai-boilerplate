@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { UserRole } from '@app/shared'
-import { useSlug } from '@/lib/slug-context'
+import { useBasePath } from '@/lib/slug-context'
 import { Button } from '@/components/ui/atoms/button/button'
 import { Typography } from '@/components/ui/atoms/typography/typography'
 import { cn } from '@/lib/cn'
@@ -34,7 +34,7 @@ function DetailRow({ label, value, testId }: { label: string; value: string; tes
 }
 
 export function UserDetails({ user, canDelete, onDeleteClick }: UserDetailsProps) {
-  const slug = useSlug()
+  const basePath = useBasePath()
 
   return (
     <div className="flex flex-col gap-6" data-testid="user-details">
@@ -48,7 +48,7 @@ export function UserDetails({ user, canDelete, onDeleteClick }: UserDetailsProps
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <Link href={`/${slug}/users/${user.id}/edit`}>
+          <Link href={`${basePath}/users/${user.id}/edit`}>
             <Button variant="ghost" size="sm" data-testid="user-details-edit-button">
               Editar
             </Button>

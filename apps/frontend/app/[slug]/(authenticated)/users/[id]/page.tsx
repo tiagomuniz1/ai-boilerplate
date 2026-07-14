@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
-import { useSlug } from '@/lib/slug-context'
+import { useBasePath } from '@/lib/slug-context'
 import Link from 'next/link'
 import { UserRole } from '@app/shared'
 import { useAuthStore } from '@/stores/auth.store'
@@ -17,7 +17,7 @@ import { useDeleteUser } from '@/components/features/users/hooks/use-delete-user
 export default function UserDetailsPage() {
   const { id } = useParams<{ id: string }>()
   const router = useRouter()
-  const slug = useSlug()
+  const basePath = useBasePath()
   const currentUser = useAuthStore((state) => state.user)
   const isAdmin = currentUser?.role === UserRole.ADMIN
   const { data: user, isPending, isError } = useUser(id)
@@ -27,7 +27,7 @@ export default function UserDetailsPage() {
   function handleDeleteConfirm() {
     deleteUser(id, {
       onSuccess: () => {
-        router.push(`/${slug}/users`)
+        router.push(`${basePath}/users`)
       },
       onError: () => {
         setShowDeleteDialog(false)
@@ -39,7 +39,7 @@ export default function UserDetailsPage() {
     <main className="p-6 max-w-2xl" data-testid="user-details-page">
       {isAdmin && (
         <div className="flex items-center gap-4 mb-6">
-          <Link href={`/${slug}/users`}>
+          <Link href={`${basePath}/users`}>
             <Button variant="ghost" size="sm" data-testid="user-details-back-button">
               ← Voltar
             </Button>

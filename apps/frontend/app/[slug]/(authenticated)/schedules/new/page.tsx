@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import { useSlug } from '@/lib/slug-context'
+import { useBasePath } from '@/lib/slug-context'
 import { Button } from '@/components/ui/atoms/button/button'
 import { Alert } from '@/components/ui/molecules/alert/alert'
 import { useAuthStore } from '@/stores/auth.store'
@@ -18,7 +18,7 @@ export default function NewSchedulePage() {
   const isAdmin = user?.role === UserRole.ADMIN
   const [globalError, setGlobalError] = useState<string | null>(null)
 
-  const slug = useSlug()
+  const basePath = useBasePath()
   const { mutate: createSchedule, isPending } = useCreateSchedule()
   const { data: doctorsList } = useDoctors({ limit: 100 })
   const doctors = doctorsList ?? []
@@ -48,7 +48,7 @@ export default function NewSchedulePage() {
   return (
     <main className="p-6 max-w-2xl" data-testid="new-schedule-page">
       <div className="flex items-center gap-4 mb-6">
-        <Link href={`/${slug}/schedules`}>
+        <Link href={`${basePath}/schedules`}>
           <Button variant="ghost" size="sm" data-testid="new-schedule-back-button">
             ← Voltar
           </Button>

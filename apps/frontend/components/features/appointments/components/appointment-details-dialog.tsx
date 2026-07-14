@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import { Modal } from '@/components/ui/organisms/modal/modal'
 import { Button } from '@/components/ui/atoms/button/button'
 import { Alert } from '@/components/ui/molecules/alert/alert'
-import { useSlug } from '@/lib/slug-context'
+import { useBasePath } from '@/lib/slug-context'
 import { cn } from '@/lib/cn'
 import { useAppointment } from '../hooks/use-appointment.hook'
 import { APPOINTMENT_STATUS_LABELS } from '../types/appointment-model.types'
@@ -28,13 +28,13 @@ export function AppointmentDetailsDialog({
   currentDoctorId: _currentDoctorId,
 }: AppointmentDetailsDialogProps) {
   const router = useRouter()
-  const slug = useSlug()
+  const basePath = useBasePath()
   const { data: appointment, isLoading, isError } = useAppointment(appointmentId ?? '')
 
   function handleGoToAppointment() {
     // Only reachable once `appointment` has loaded below, which requires a non-null appointmentId
     // (useAppointment is disabled otherwise), so appointmentId is guaranteed here.
-    router.push(`/${slug}/appointments/${appointmentId}`)
+    router.push(`${basePath}/appointments/${appointmentId}`)
     onClose()
   }
 

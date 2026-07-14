@@ -11,6 +11,7 @@ const mockUseSlug = jest.fn<string, []>()
 
 jest.mock('@/lib/slug-context', () => ({
   useSlug: () => mockUseSlug(),
+  useBasePath: () => '/' + mockUseSlug(),
 }))
 
 function wrapper({ children }: { children: React.ReactNode }) {

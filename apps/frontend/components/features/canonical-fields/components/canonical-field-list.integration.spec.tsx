@@ -1,5 +1,5 @@
 jest.mock('next/navigation', () => ({ useRouter: jest.fn() }))
-jest.mock('@/lib/slug-context', () => ({ useSlug: jest.fn(() => 'backoffice') }))
+jest.mock('@/lib/slug-context', () => ({ useSlug: jest.fn(() => 'backoffice'), useBasePath: () => '/backoffice' }))
 jest.mock('../services/canonical-fields-admin.service')
 jest.mock('../use-cases/update-canonical-field.use-case')
 

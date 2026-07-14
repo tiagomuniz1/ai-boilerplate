@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
-import { useSlug } from '@/lib/slug-context'
+import { useBasePath } from '@/lib/slug-context'
 import { Button } from '@/components/ui/atoms/button/button'
 import { Typography } from '@/components/ui/atoms/typography/typography'
 import { SpecialtyForm } from '@/components/features/specialties/components/specialty-form'
@@ -11,7 +11,7 @@ import type { ICreateSpecialtyInput } from '@/components/features/specialties/ty
 import type { IApiError } from '@/types/api.types'
 
 export default function NewSpecialtyPage() {
-  const slug = useSlug()
+  const basePath = useBasePath()
   const { mutate, isPending } = useCreateSpecialty()
   const [globalError, setGlobalError] = useState<string | null>(null)
 
@@ -38,7 +38,7 @@ export default function NewSpecialtyPage() {
   return (
     <main className="p-6 max-w-lg" data-testid="new-specialty-page">
       <div className="flex items-center gap-4 mb-6">
-        <Link href={`/${slug}/specialties`}>
+        <Link href={`${basePath}/specialties`}>
           <Button variant="ghost" size="sm" data-testid="new-specialty-back-button">
             ← Voltar
           </Button>

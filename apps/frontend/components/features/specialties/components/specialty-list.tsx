@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { UserRole } from '@app/shared'
-import { useSlug } from '@/lib/slug-context'
+import { useBasePath } from '@/lib/slug-context'
 import { Alert } from '@/components/ui/molecules/alert/alert'
 import { Button } from '@/components/ui/atoms/button/button'
 import { Input } from '@/components/ui/atoms/input/input'
@@ -17,7 +17,7 @@ import type { IApiError } from '@/types/api.types'
 import type { ISpecialtyModel } from '../types/specialty-model.types'
 
 export function SpecialtyList() {
-  const slug = useSlug()
+  const basePath = useBasePath()
   const user = useAuthStore((state) => state.user)
   const isAdmin = user?.role === UserRole.PLATFORM_ADMIN
 
@@ -83,7 +83,7 @@ export function SpecialtyList() {
           )}
         </div>
         {isAdmin && (
-          <Link href={`/${slug}/specialties/new`} className="block sm:inline-block">
+          <Link href={`${basePath}/specialties/new`} className="block sm:inline-block">
             <Button variant="primary" data-testid="specialty-list-new-button" className="w-full sm:w-auto">
               + Nova especialidade
             </Button>
@@ -204,7 +204,7 @@ export function SpecialtyList() {
                               Excluir
                             </Button>
                             <Link
-                              href={`/${slug}/specialties/${specialty.id}/edit`}
+                              href={`${basePath}/specialties/${specialty.id}/edit`}
                               data-testid={`specialty-edit-link-${specialty.id}`}
                               className="text-xs text-text-mute hover:text-text transition-colors"
                             >
@@ -213,7 +213,7 @@ export function SpecialtyList() {
                           </>
                         )}
                         <Link
-                          href={`/${slug}/specialties/${specialty.id}`}
+                          href={`${basePath}/specialties/${specialty.id}`}
                           data-testid={`specialty-view-link-${specialty.id}`}
                           className="flex items-center justify-center rounded-md p-1.5 text-text-mute transition-colors hover:bg-line hover:text-text"
                           aria-label={`Ver detalhes de ${specialty.name}`}
@@ -264,7 +264,7 @@ export function SpecialtyList() {
                           Excluir
                         </Button>
                         <Link
-                          href={`/${slug}/specialties/${specialty.id}/edit`}
+                          href={`${basePath}/specialties/${specialty.id}/edit`}
                           data-testid={`specialty-card-edit-link-${specialty.id}`}
                           className="text-xs text-text-mute hover:text-text transition-colors"
                         >
@@ -273,7 +273,7 @@ export function SpecialtyList() {
                       </>
                     )}
                     <Link
-                      href={`/${slug}/specialties/${specialty.id}`}
+                      href={`${basePath}/specialties/${specialty.id}`}
                       data-testid={`specialty-card-view-link-${specialty.id}`}
                       className="ml-auto flex items-center gap-1 text-xs text-text-mute transition-colors hover:text-text"
                     >

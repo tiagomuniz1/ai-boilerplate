@@ -1,5 +1,5 @@
 jest.mock('next/navigation', () => ({ useRouter: jest.fn() }))
-jest.mock('@/lib/slug-context', () => ({ useSlug: jest.fn(() => 'backoffice') }))
+jest.mock('@/lib/slug-context', () => ({ useSlug: jest.fn(() => 'backoffice'), useBasePath: () => '/backoffice' }))
 jest.mock('../use-cases/create-medication.use-case')
 
 import React from 'react'

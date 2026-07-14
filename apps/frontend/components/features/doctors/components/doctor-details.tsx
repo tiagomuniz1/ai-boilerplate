@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import { useSlug } from '@/lib/slug-context'
+import { useBasePath } from '@/lib/slug-context'
 import { Button } from '@/components/ui/atoms/button/button'
 import { Typography } from '@/components/ui/atoms/typography/typography'
 import type { IDoctorModel } from '../types/doctor-model.types'
@@ -23,7 +23,7 @@ function DetailRow({ label, value, testId }: { label: string; value: string; tes
 }
 
 export function DoctorDetails({ doctor, onDeleteClick }: DoctorDetailsProps) {
-  const slug = useSlug()
+  const basePath = useBasePath()
 
   return (
     <div className="flex flex-col gap-6" data-testid="doctor-details">
@@ -37,7 +37,7 @@ export function DoctorDetails({ doctor, onDeleteClick }: DoctorDetailsProps) {
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <Link href={`/${slug}/doctors/${doctor.id}/edit`}>
+          <Link href={`${basePath}/doctors/${doctor.id}/edit`}>
             <Button variant="ghost" size="sm" data-testid="doctor-details-edit-button">
               Editar
             </Button>

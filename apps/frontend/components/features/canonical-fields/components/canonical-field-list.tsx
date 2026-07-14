@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
-import { useSlug } from '@/lib/slug-context'
+import { useBasePath } from '@/lib/slug-context'
 import { Alert } from '@/components/ui/molecules/alert/alert'
 import { Button } from '@/components/ui/atoms/button/button'
 import { MobileListCard } from '@/components/ui/molecules/mobile-list-card/mobile-list-card'
@@ -24,7 +24,7 @@ const FIELD_TYPE_LABELS: Record<string, string> = {
 }
 
 export function CanonicalFieldList() {
-  const slug = useSlug()
+  const basePath = useBasePath()
   const [includeInactive, setIncludeInactive] = useState(false)
   const [fieldToToggle, setFieldToToggle] = useState<ICanonicalFieldModel | null>(null)
   const [successMessage, setSuccessMessage] = useState<string | null>(null)
@@ -75,7 +75,7 @@ export function CanonicalFieldList() {
             </p>
           )}
         </div>
-        <Link href={`/${slug}/canonical-fields/new`} className="block sm:inline-block">
+        <Link href={`${basePath}/canonical-fields/new`} className="block sm:inline-block">
           <Button variant="primary" data-testid="canonical-field-list-new-button" className="w-full sm:w-auto">
             + Novo campo
           </Button>
@@ -196,7 +196,7 @@ export function CanonicalFieldList() {
                           {field.isActive ? 'Desativar' : 'Ativar'}
                         </Button>
                         <Link
-                          href={`/${slug}/canonical-fields/${field.id}/edit`}
+                          href={`${basePath}/canonical-fields/${field.id}/edit`}
                           data-testid={`canonical-field-edit-link-${field.id}`}
                           className="text-xs text-text-mute hover:text-text transition-colors"
                         >
@@ -246,7 +246,7 @@ export function CanonicalFieldList() {
                       {field.isActive ? 'Desativar' : 'Ativar'}
                     </Button>
                     <Link
-                      href={`/${slug}/canonical-fields/${field.id}/edit`}
+                      href={`${basePath}/canonical-fields/${field.id}/edit`}
                       data-testid={`canonical-field-card-edit-link-${field.id}`}
                       className="text-xs text-text-mute hover:text-text transition-colors"
                     >

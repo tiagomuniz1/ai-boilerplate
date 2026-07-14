@@ -3,7 +3,7 @@
 import { usePathname } from 'next/navigation'
 import { NAVIGATION_ITEMS } from '@/lib/constants'
 import { useAuthStore } from '@/stores/auth.store'
-import { useSlug } from '@/lib/slug-context'
+import { useBasePath } from '@/lib/slug-context'
 import type { INavigationItemViewModel } from '@/types/navigation.types'
 
 interface UseSidebarNavigationReturn {
@@ -13,12 +13,12 @@ interface UseSidebarNavigationReturn {
 export function useSidebarNavigation(): UseSidebarNavigationReturn {
   const pathname = usePathname()
   const role = useAuthStore((state) => state.user?.role)
-  const slug = useSlug()
+  const basePath = useBasePath()
 
   const items: INavigationItemViewModel[] = NAVIGATION_ITEMS
     .filter((item) => !item.requiredRoles || (role && item.requiredRoles.includes(role)))
     .map((item) => {
-      const href = `/${slug}${item.href}`
+      const href = `${basePath}${item.href}`
       return {
         id: item.id,
         label: item.label,

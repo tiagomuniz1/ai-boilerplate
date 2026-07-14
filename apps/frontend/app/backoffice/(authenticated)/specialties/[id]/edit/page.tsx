@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { useParams } from 'next/navigation'
 import Link from 'next/link'
-import { useSlug } from '@/lib/slug-context'
+import { useBasePath } from '@/lib/slug-context'
 import { Skeleton } from '@/components/ui/atoms/skeleton/skeleton'
 import { Alert } from '@/components/ui/molecules/alert/alert'
 import { Button } from '@/components/ui/atoms/button/button'
@@ -16,7 +16,7 @@ import type { IApiError } from '@/types/api.types'
 
 export default function EditSpecialtyPage() {
   const { id } = useParams<{ id: string }>()
-  const slug = useSlug()
+  const basePath = useBasePath()
   const { data: specialty, isPending: isLoadingSpecialty, isError: isLoadError } = useSpecialty(id)
   const { mutate: updateSpecialty, isPending: isUpdating } = useUpdateSpecialty()
   const [globalError, setGlobalError] = useState<string | null>(null)
@@ -49,7 +49,7 @@ export default function EditSpecialtyPage() {
   return (
     <main className="p-6 max-w-lg" data-testid="edit-specialty-page">
       <div className="flex items-center gap-4 mb-6">
-        <Link href={id ? `/${slug}/specialties/${id}` : `/${slug}/specialties`}>
+        <Link href={id ? `${basePath}/specialties/${id}` : `${basePath}/specialties`}>
           <Button variant="ghost" size="sm" data-testid="edit-specialty-back-button">
             ← Voltar
           </Button>

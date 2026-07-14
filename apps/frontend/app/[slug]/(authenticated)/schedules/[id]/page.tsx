@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
-import { useSlug } from '@/lib/slug-context'
+import { useBasePath } from '@/lib/slug-context'
 import Link from 'next/link'
 import { UserRole } from '@app/shared'
 import { Skeleton } from '@/components/ui/atoms/skeleton/skeleton'
@@ -18,7 +18,7 @@ import type { IApiError } from '@/types/api.types'
 export default function ScheduleDetailsPage() {
   const { id } = useParams<{ id: string }>()
   const router = useRouter()
-  const slug = useSlug()
+  const basePath = useBasePath()
   const user = useAuthStore((state) => state.user)
   const canManageSchedules = user?.role === UserRole.ADMIN || user?.role === UserRole.DOCTOR
   const { data: schedule, isPending, isError, error } = useSchedule(id)
@@ -32,7 +32,7 @@ export default function ScheduleDetailsPage() {
   function handleDeleteConfirm() {
     deleteSchedule(id, {
       onSuccess: () => {
-        router.push(`/${slug}/schedules`)
+        router.push(`${basePath}/schedules`)
       },
       onError: () => {
         setShowDeleteDialog(false)
@@ -43,7 +43,7 @@ export default function ScheduleDetailsPage() {
   return (
     <main className="p-6 max-w-2xl" data-testid="schedule-details-page">
       <div className="flex items-center gap-4 mb-6">
-        <Link href={`/${slug}/schedules`}>
+        <Link href={`${basePath}/schedules`}>
           <Button variant="ghost" size="sm" data-testid="schedule-details-back-button">
             ← Voltar
           </Button>

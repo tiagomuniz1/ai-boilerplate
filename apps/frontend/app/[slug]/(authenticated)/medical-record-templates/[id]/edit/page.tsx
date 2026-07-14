@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
-import { useSlug } from '@/lib/slug-context'
+import { useBasePath } from '@/lib/slug-context'
 import { Button } from '@/components/ui/atoms/button/button'
 import { Typography } from '@/components/ui/atoms/typography/typography'
 import { Alert } from '@/components/ui/molecules/alert/alert'
@@ -18,7 +18,7 @@ interface EditMedicalRecordTemplatePageProps {
 }
 
 export default function EditMedicalRecordTemplatePage({ params }: EditMedicalRecordTemplatePageProps) {
-  const slug = useSlug()
+  const basePath = useBasePath()
   const { data: template, isPending: isLoadingTemplate, isError: isLoadError } = useTemplate(params.id)
   const { mutate, isPending: isSaving } = useUpdateTemplate(params.id)
   const [globalError, setGlobalError] = useState<string | null>(null)
@@ -58,7 +58,7 @@ export default function EditMedicalRecordTemplatePage({ params }: EditMedicalRec
   return (
     <main className="p-6 max-w-3xl" data-testid="edit-medical-record-template-page">
       <div className="flex items-center gap-4 mb-6">
-        <Link href={`/${slug}/medical-record-templates/${params.id}`}>
+        <Link href={`${basePath}/medical-record-templates/${params.id}`}>
           <Button variant="ghost" size="sm" data-testid="edit-template-back-button">
             ← Voltar
           </Button>

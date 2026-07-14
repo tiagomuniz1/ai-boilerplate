@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import { UserRole } from '@app/shared'
-import { useSlug } from '@/lib/slug-context'
+import { useBasePath } from '@/lib/slug-context'
 import { Alert } from '@/components/ui/molecules/alert/alert'
 import { Button } from '@/components/ui/atoms/button/button'
 import { MobileListCard } from '@/components/ui/molecules/mobile-list-card/mobile-list-card'
@@ -53,7 +53,7 @@ function scheduleValidityLabel(schedule: IScheduleModel): string {
 }
 
 export function ScheduleList() {
-  const slug = useSlug()
+  const basePath = useBasePath()
   const user = useAuthStore((state) => state.user)
   const isAdmin = user?.role === UserRole.ADMIN
   const canManageSchedules = user?.role === UserRole.ADMIN || user?.role === UserRole.DOCTOR
@@ -116,7 +116,7 @@ export function ScheduleList() {
           )}
         </div>
         {canManageSchedules && (
-          <Link href={`/${slug}/schedules/new`} className="block sm:inline-block">
+          <Link href={`${basePath}/schedules/new`} className="block sm:inline-block">
             <Button variant="primary" data-testid="schedule-list-new-button" className="w-full sm:w-auto">
               + Nova agenda
             </Button>
@@ -299,7 +299,7 @@ export function ScheduleList() {
                                 Excluir
                               </Button>
                               <Link
-                                href={`/${slug}/schedules/${schedule.id}/edit`}
+                                href={`${basePath}/schedules/${schedule.id}/edit`}
                                 data-testid={`schedule-edit-link-${schedule.id}`}
                                 className="text-xs text-text-mute hover:text-text transition-colors"
                               >
@@ -308,7 +308,7 @@ export function ScheduleList() {
                             </>
                           )}
                           <Link
-                            href={`/${slug}/schedules/${schedule.id}`}
+                            href={`${basePath}/schedules/${schedule.id}`}
                             data-testid={`schedule-view-link-${schedule.id}`}
                             className="flex items-center justify-center rounded-md p-1.5 text-text-mute transition-colors hover:bg-line hover:text-text"
                             aria-label="Ver detalhes"
@@ -356,7 +356,7 @@ export function ScheduleList() {
                           Excluir
                         </Button>
                         <Link
-                          href={`/${slug}/schedules/${schedule.id}/edit`}
+                          href={`${basePath}/schedules/${schedule.id}/edit`}
                           data-testid={`schedule-card-edit-link-${schedule.id}`}
                           className="text-xs text-text-mute hover:text-text transition-colors"
                         >
@@ -365,7 +365,7 @@ export function ScheduleList() {
                       </>
                     )}
                     <Link
-                      href={`/${slug}/schedules/${schedule.id}`}
+                      href={`${basePath}/schedules/${schedule.id}`}
                       data-testid={`schedule-card-view-link-${schedule.id}`}
                       className="ml-auto flex items-center gap-1 text-xs text-text-mute transition-colors hover:text-text"
                     >

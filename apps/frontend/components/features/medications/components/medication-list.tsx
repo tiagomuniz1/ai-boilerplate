@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
-import { useSlug } from '@/lib/slug-context'
+import { useBasePath } from '@/lib/slug-context'
 import { MedicationSource } from '@app/shared'
 import { Alert } from '@/components/ui/molecules/alert/alert'
 import { Button } from '@/components/ui/atoms/button/button'
@@ -25,7 +25,7 @@ const SOURCE_LABELS: Record<MedicationSource, string> = {
 }
 
 export function MedicationList() {
-  const slug = useSlug()
+  const basePath = useBasePath()
   const [searchTerm, setSearchTerm] = useState('')
   const [debouncedSearch, setDebouncedSearch] = useState('')
   const [includeInactive, setIncludeInactive] = useState(false)
@@ -117,7 +117,7 @@ export function MedicationList() {
             </p>
           )}
         </div>
-        <Link href={`/${slug}/medications/new`} className="block sm:inline-block">
+        <Link href={`${basePath}/medications/new`} className="block sm:inline-block">
           <Button variant="primary" data-testid="medication-list-new-button" className="w-full sm:w-auto">
             + Novo medicamento
           </Button>
@@ -236,7 +236,7 @@ export function MedicationList() {
                           {medication.isActive ? 'Desativar' : 'Ativar'}
                         </Button>
                         <Link
-                          href={`/${slug}/medications/${medication.id}/edit`}
+                          href={`${basePath}/medications/${medication.id}/edit`}
                           data-testid={`medication-edit-link-${medication.id}`}
                           className="text-xs text-text-mute hover:text-text transition-colors"
                         >
@@ -296,7 +296,7 @@ export function MedicationList() {
                       {medication.isActive ? 'Desativar' : 'Ativar'}
                     </Button>
                     <Link
-                      href={`/${slug}/medications/${medication.id}/edit`}
+                      href={`${basePath}/medications/${medication.id}/edit`}
                       data-testid={`medication-card-edit-link-${medication.id}`}
                       className="text-xs text-text-mute hover:text-text transition-colors"
                     >

@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { useParams } from 'next/navigation'
 import Link from 'next/link'
-import { useSlug } from '@/lib/slug-context'
+import { useBasePath } from '@/lib/slug-context'
 import { Skeleton } from '@/components/ui/atoms/skeleton/skeleton'
 import { Alert } from '@/components/ui/molecules/alert/alert'
 import { Button } from '@/components/ui/atoms/button/button'
@@ -16,7 +16,7 @@ import type { IApiError } from '@/types/api.types'
 
 export default function EditMedicationPage() {
   const { id } = useParams<{ id: string }>()
-  const slug = useSlug()
+  const basePath = useBasePath()
   const { data: medication, isPending: isLoading, isError: isLoadError } = useMedication(id)
   const { mutate: updateMedication, isPending: isUpdating } = useUpdateMedication()
   const [globalError, setGlobalError] = useState<string | null>(null)
@@ -52,7 +52,7 @@ export default function EditMedicationPage() {
   return (
     <main className="p-6 max-w-lg" data-testid="edit-medication-page">
       <div className="flex items-center gap-4 mb-6">
-        <Link href={`/${slug}/medications`}>
+        <Link href={`${basePath}/medications`}>
           <Button variant="ghost" size="sm" data-testid="edit-medication-back-button">
             ← Voltar
           </Button>

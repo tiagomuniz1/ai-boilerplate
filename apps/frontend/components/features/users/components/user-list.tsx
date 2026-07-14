@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
-import { useSlug } from '@/lib/slug-context'
+import { useBasePath } from '@/lib/slug-context'
 import { Skeleton } from '@/components/ui/atoms/skeleton/skeleton'
 import { Alert } from '@/components/ui/molecules/alert/alert'
 import { Button } from '@/components/ui/atoms/button/button'
@@ -17,7 +17,7 @@ import type { IUserModel } from '../types/user-model.types'
 import { cn } from '@/lib/cn'
 
 export function UserList() {
-  const slug = useSlug()
+  const basePath = useBasePath()
   const [searchTerm, setSearchTerm] = useState('')
   const [debouncedSearch, setDebouncedSearch] = useState('')
 
@@ -72,7 +72,7 @@ export function UserList() {
             </p>
           )}
         </div>
-        <Link href={`/${slug}/users/new`} className="block sm:inline-block">
+        <Link href={`${basePath}/users/new`} className="block sm:inline-block">
           <Button variant="primary" data-testid="user-list-new-button" className="w-full sm:w-auto">
             + Novo usuário
           </Button>
@@ -222,14 +222,14 @@ export function UserList() {
                         Excluir
                       </Button>
                       <Link
-                        href={`/${slug}/users/${user.id}/edit`}
+                        href={`${basePath}/users/${user.id}/edit`}
                         data-testid={`user-card-edit-link-${user.id}`}
                         className="text-xs text-text-mute hover:text-text transition-colors"
                       >
                         Editar
                       </Link>
                       <Link
-                        href={`/${slug}/users/${user.id}`}
+                        href={`${basePath}/users/${user.id}`}
                         data-testid={`user-card-view-link-${user.id}`}
                         className="ml-auto flex items-center gap-1 text-xs text-text-mute transition-colors hover:text-text"
                       >

@@ -6,7 +6,7 @@ jest.mock('@/components/features/prescriptions/services/prescriptions.service')
 jest.mock('@/components/features/atestados/services/atestados.service')
 jest.mock('@/components/features/exames/services/exams.service')
 jest.mock('@/stores/auth.store')
-jest.mock('@/lib/slug-context', () => ({ useSlug: jest.fn(() => 'clinic-slug') }))
+jest.mock('@/lib/slug-context', () => ({ useSlug: jest.fn(() => 'clinic-slug'), useBasePath: () => '/clinic-slug' }))
 jest.mock('next/navigation', () => ({
   useRouter: jest.fn(() => ({ push: jest.fn(), back: jest.fn() })),
   useParams: jest.fn(() => ({ id: 'appt-uuid', slug: 'clinic-slug' })),

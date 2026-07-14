@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
-import { useSlug } from '@/lib/slug-context'
+import { useBasePath } from '@/lib/slug-context'
 import { Button } from '@/components/ui/atoms/button/button'
 import { Typography } from '@/components/ui/atoms/typography/typography'
 import { DoctorForm } from '@/components/features/doctors/components/doctor-form'
@@ -11,7 +11,7 @@ import type { ICreateDoctorInput } from '@/components/features/doctors/types/doc
 import type { IApiError } from '@/types/api.types'
 
 export default function NewDoctorPage() {
-  const slug = useSlug()
+  const basePath = useBasePath()
   const { mutate, isPending } = useCreateDoctor()
   const [globalError, setGlobalError] = useState<string | null>(null)
 
@@ -38,7 +38,7 @@ export default function NewDoctorPage() {
   return (
     <main className="p-6 max-w-lg" data-testid="new-doctor-page">
       <div className="flex items-center gap-4 mb-6">
-        <Link href={`/${slug}/doctors`}>
+        <Link href={`${basePath}/doctors`}>
           <Button variant="ghost" size="sm" data-testid="new-doctor-back-button">
             ← Voltar
           </Button>

@@ -1,7 +1,7 @@
 jest.mock('../use-cases/login.use-case')
 jest.mock('next/navigation', () => ({ useRouter: jest.fn() }))
 jest.mock('@/stores/auth.store')
-jest.mock('@/lib/slug-context', () => ({ useSlug: () => 'test-clinic' }))
+jest.mock('@/lib/slug-context', () => ({ useSlug: () => 'test-clinic', useBasePath: () => '/test-clinic' }))
 
 import React from 'react'
 import { renderHook, act, waitFor } from '@testing-library/react'

@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { useParams } from 'next/navigation'
 import Link from 'next/link'
-import { useSlug } from '@/lib/slug-context'
+import { useBasePath } from '@/lib/slug-context'
 import { Skeleton } from '@/components/ui/atoms/skeleton/skeleton'
 import { Alert } from '@/components/ui/molecules/alert/alert'
 import { Button } from '@/components/ui/atoms/button/button'
@@ -16,7 +16,7 @@ import type { IApiError } from '@/types/api.types'
 
 export default function EditDoctorPage() {
   const { id } = useParams<{ id: string }>()
-  const slug = useSlug()
+  const basePath = useBasePath()
   const { data: doctor, isPending: isLoadingDoctor, isError: isLoadError } = useDoctor(id)
   const { mutate: updateDoctor, isPending: isUpdating } = useUpdateDoctor()
   const [globalError, setGlobalError] = useState<string | null>(null)
@@ -49,7 +49,7 @@ export default function EditDoctorPage() {
   return (
     <main className="p-6 max-w-lg" data-testid="edit-doctor-page">
       <div className="flex items-center gap-4 mb-6">
-        <Link href={id ? `/${slug}/doctors/${id}` : `/${slug}/doctors`}>
+        <Link href={id ? `${basePath}/doctors/${id}` : `${basePath}/doctors`}>
           <Button variant="ghost" size="sm" data-testid="edit-doctor-back-button">
             ← Voltar
           </Button>

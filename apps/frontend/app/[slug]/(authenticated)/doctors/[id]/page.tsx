@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
-import { useSlug } from '@/lib/slug-context'
+import { useBasePath } from '@/lib/slug-context'
 import Link from 'next/link'
 import { Skeleton } from '@/components/ui/atoms/skeleton/skeleton'
 import { Alert } from '@/components/ui/molecules/alert/alert'
@@ -15,7 +15,7 @@ import { useDeleteDoctor } from '@/components/features/doctors/hooks/use-delete-
 export default function DoctorDetailsPage() {
   const { id } = useParams<{ id: string }>()
   const router = useRouter()
-  const slug = useSlug()
+  const basePath = useBasePath()
   const { data: doctor, isPending, isError } = useDoctor(id)
   const { mutate: deleteDoctor, isPending: isDeleting } = useDeleteDoctor()
   const [showDeleteDialog, setShowDeleteDialog] = useState(false)
@@ -23,7 +23,7 @@ export default function DoctorDetailsPage() {
   function handleDeleteConfirm() {
     deleteDoctor(id, {
       onSuccess: () => {
-        router.push(`/${slug}/doctors`)
+        router.push(`${basePath}/doctors`)
       },
       onError: () => {
         setShowDeleteDialog(false)
@@ -34,7 +34,7 @@ export default function DoctorDetailsPage() {
   return (
     <main className="p-6 max-w-2xl" data-testid="doctor-details-page">
       <div className="flex items-center gap-4 mb-6">
-        <Link href={`/${slug}/doctors`}>
+        <Link href={`${basePath}/doctors`}>
           <Button variant="ghost" size="sm" data-testid="doctor-details-back-button">
             ← Voltar
           </Button>
