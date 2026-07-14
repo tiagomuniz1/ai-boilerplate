@@ -74,8 +74,10 @@ docker pull ${ECR_REGISTRY}/pulso-backend:latest >/dev/null
 # via the VPC resolver. On the default bridge that lookup can't reach the VPC
 # resolver and the DB connection hangs.
 NET=\$(docker inspect -f '{{range .NetworkSettings.Networks}}{{.NetworkID}}{{end}}' pulso-backend 2>/dev/null || true)
-docker run --rm \${NET:+--network \$NET} --env-file /tmp/seed-admin.env ${ECR_REGISTRY}/pulso-backend:latest \
-  sh -c 'node apps/backend/scripts/load-env.js && node -r dotenv/config apps/backend/scripts/seed-platform-admin.js'
+# --entrypoint sh is required: the image ENTRYPOINT (docker-entrypoint.sh) would
+# otherwise ignore our command and boot the backend server (hangs forever).
+docker run --rm \${NET:+--network \$NET} --entrypoint sh --env-file /tmp/seed-admin.env ${ECR_REGISTRY}/pulso-backend:latest \
+  -c 'node apps/backend/scripts/load-env.js && node -r dotenv/config apps/backend/scripts/seed-platform-admin.js'
 rm -f /tmp/seed-admin.env
 REMOTE_EOF
 )
