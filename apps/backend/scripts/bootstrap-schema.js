@@ -14,12 +14,19 @@ async function bootstrapSchema() {
     throw new Error(`Invalid DB_SCHEMA "${schema}" — expected a plain identifier`)
   }
 
+  // RDS enforces TLS (rds.force_ssl). Enable SSL when DB_SSL is set, otherwise
+  // default to on in production (RDS) and off locally (docker-compose Postgres).
+  const useSsl = process.env.DB_SSL
+    ? process.env.DB_SSL === 'true'
+    : process.env.NODE_ENV === 'production'
+
   const client = new Client({
     host: process.env.DB_HOST ?? 'localhost',
     port: parseInt(process.env.DB_PORT ?? '5432', 10),
     user: process.env.DB_USER ?? 'postgres',
     password: process.env.DB_PASS ?? 'postgres',
     database: process.env.DB_NAME ?? 'app',
+    ssl: useSsl ? { rejectUnauthorized: false } : false,
   })
 
   await client.connect()

@@ -3,6 +3,12 @@ import * as path from 'path'
 
 const isTest = process.env.NODE_ENV === 'test'
 
+// RDS enforces TLS (rds.force_ssl). Enable SSL when DB_SSL is set, otherwise
+// default to on in production (RDS) and off locally (docker-compose Postgres).
+const useSsl = process.env.DB_SSL
+  ? process.env.DB_SSL === 'true'
+  : process.env.NODE_ENV === 'production'
+
 export const databaseConfig: DataSourceOptions = {
   type: 'postgres',
   host: process.env.DB_HOST ?? 'localhost',
@@ -15,6 +21,7 @@ export const databaseConfig: DataSourceOptions = {
   migrations: [path.join(__dirname, './migrations/*{.ts,.js}')],
   synchronize: false,
   logging: process.env.NODE_ENV === 'development',
+  ssl: useSsl ? { rejectUnauthorized: false } : false,
 }
 
 export default new DataSource(databaseConfig)
