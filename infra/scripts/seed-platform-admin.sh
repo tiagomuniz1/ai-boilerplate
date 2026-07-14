@@ -55,10 +55,13 @@ if [[ -z "$INSTANCE_ID" || "$INSTANCE_ID" == "None" ]]; then
 fi
 echo "Target instance: $INSTANCE_ID"
 
-# ── Pack the seed script + env into one base64 env-file (no per-value quoting) ─
-SEED_B64=$(base64 < "$SEED_JS" | tr -d '\n')
-ENVFILE=$(printf 'AWS_REGION=%s\nPARAMETER_STORE_ENV=%s\nNODE_ENV=production\nDOTENV_CONFIG_PATH=.env.local\nADMIN_EMAIL=%s\nADMIN_NAME=%s\nADMIN_PASSWORD_HASH=%s\nSEED_B64=%s\n' \
-  "$AWS_REGION" "$ENVIRONMENT" "$ADMIN_EMAIL" "$ADMIN_NAME" "$HASH" "$SEED_B64")
+# ── Pass the admin config via a base64 env-file (no per-value quoting) ─────────
+# The seed script itself is baked into the backend image (apps/backend/scripts),
+# so it runs by its real path — where Node resolves pg/dotenv from node_modules,
+# exactly like migrate.sh runs bootstrap-schema.js. Requires the image to be built
+# from a commit that includes seed-platform-admin.js (run a Deploy first).
+ENVFILE=$(printf 'AWS_REGION=%s\nPARAMETER_STORE_ENV=%s\nNODE_ENV=production\nDOTENV_CONFIG_PATH=.env.local\nADMIN_EMAIL=%s\nADMIN_NAME=%s\nADMIN_PASSWORD_HASH=%s\n' \
+  "$AWS_REGION" "$ENVIRONMENT" "$ADMIN_EMAIL" "$ADMIN_NAME" "$HASH")
 ENVFILE_B64=$(printf '%s' "$ENVFILE" | base64 | tr -d '\n')
 
 # ── Remote script: run a one-off backend container that loads SSM env + seeds ──
@@ -72,7 +75,7 @@ docker pull ${ECR_REGISTRY}/pulso-backend:latest >/dev/null
 # resolver and the DB connection hangs.
 NET=\$(docker inspect -f '{{range .NetworkSettings.Networks}}{{.NetworkID}}{{end}}' pulso-backend 2>/dev/null || true)
 docker run --rm \${NET:+--network \$NET} --env-file /tmp/seed-admin.env ${ECR_REGISTRY}/pulso-backend:latest \
-  sh -c 'node apps/backend/scripts/load-env.js && echo "\$SEED_B64" | base64 -d > /tmp/seed-admin.js && node -r dotenv/config /tmp/seed-admin.js'
+  sh -c 'node apps/backend/scripts/load-env.js && node -r dotenv/config apps/backend/scripts/seed-platform-admin.js'
 rm -f /tmp/seed-admin.env
 REMOTE_EOF
 )

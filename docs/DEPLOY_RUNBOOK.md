@@ -120,6 +120,10 @@ roda um container backend efêmero no EC2 via SSM (sem SSH), reusando a imagem j
 deployada e o carregamento de env do SSM. A senha é **hasheada localmente** (bcrypt),
 então o texto puro nunca passa pelo SSM. Idempotente.
 
+> O seed roda pelo caminho `apps/backend/scripts/seed-platform-admin.js` **dentro
+> da imagem**, então a imagem deployada precisa ter sido buildada de um commit que
+> já inclui esse arquivo — ou seja, rode um **Deploy** uma vez antes do primeiro seed.
+
 ```bash
 ADMIN_EMAIL=admin@pulso.center ADMIN_PASSWORD='uma-senha-forte' \
   bash infra/scripts/seed-platform-admin.sh staging
