@@ -24,9 +24,10 @@ async function bootstrap() {
 
   // In production the frontend runs on N clinic subdomains (slug.pulso.center) plus
   // backoffice.pulso.center, calling the API on api.pulso.center. Accept any
-  // *.pulso.center (and the apex) over https, echoing the exact origin — `*` is
-  // forbidden with credentials. Keep localhost working for local dev.
-  const productionOriginPattern = /^https:\/\/([a-z0-9-]+\.)?pulso\.center$/
+  // subdomain of pulso.center at any depth (covers staging: slug.staging.pulso.center)
+  // and the apex, over https, echoing the exact origin — `*` is forbidden with
+  // credentials. Keep localhost working for local dev.
+  const productionOriginPattern = /^https:\/\/([a-z0-9-]+\.)*pulso\.center$/
   const localhostOriginPattern = /^http:\/\/localhost(:\d+)?$/
   const devFallbackOrigin = process.env.FRONTEND_URL
 
