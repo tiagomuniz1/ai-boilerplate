@@ -44,6 +44,7 @@ cat > "\$APP_DIR/deploy.env" <<ENV
 ECR_REGISTRY=${ECR_REGISTRY}
 IMAGE_TAG=${IMAGE_TAG}
 AWS_REGION=${AWS_REGION}
+PARAMETER_STORE_ENV=${ENVIRONMENT}
 ENV
 aws ecr get-login-password --region ${AWS_REGION} | docker login --username AWS --password-stdin ${ECR_REGISTRY}
 cd "\$APP_DIR"

@@ -28,6 +28,8 @@ services:
     container_name: pulso-frontend
     environment:
       NODE_ENV: production
+      AWS_REGION: ${AWS_REGION:-us-east-1}
+      PARAMETER_STORE_ENV: ${PARAMETER_STORE_ENV:-production} # deploy env for the SSM path (staging|production)
     depends_on:
       backend:
         condition: service_healthy
@@ -40,6 +42,7 @@ services:
       NODE_ENV: production
       PORT: 3001
       AWS_REGION: ${AWS_REGION:-us-east-1} # lets load-env.js find /pulso/<env>/backend/
+      PARAMETER_STORE_ENV: ${PARAMETER_STORE_ENV:-production} # deploy env for the SSM path (staging|production)
     depends_on:
       migrate:
         condition: service_completed_successfully
@@ -61,6 +64,7 @@ services:
     environment:
       NODE_ENV: production
       AWS_REGION: ${AWS_REGION:-us-east-1}
+      PARAMETER_STORE_ENV: ${PARAMETER_STORE_ENV:-production} # deploy env for the SSM path (staging|production)
     restart: "no"
 
   redis:
