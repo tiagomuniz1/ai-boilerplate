@@ -48,7 +48,7 @@ PARAMETER_STORE_ENV=${ENVIRONMENT}
 ENV
 aws ecr get-login-password --region ${AWS_REGION} | docker login --username AWS --password-stdin ${ECR_REGISTRY}
 cd "\$APP_DIR"
-docker compose --env-file deploy.env -f docker-compose.prod.yml pull
+docker compose --env-file deploy.env -f docker-compose.prod.yml pull --quiet
 docker compose --env-file deploy.env -f docker-compose.prod.yml up -d
 docker image prune -f
 docker compose --env-file deploy.env -f docker-compose.prod.yml ps
