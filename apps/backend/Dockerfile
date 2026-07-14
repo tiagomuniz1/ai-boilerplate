@@ -33,5 +33,10 @@ COPY --from=deps /app/apps/backend/node_modules ./apps/backend/node_modules
 COPY --from=builder /app/apps/backend/dist ./apps/backend/dist
 COPY --from=builder /app/packages/shared/dist ./packages/shared/dist
 COPY --from=deps /app/packages/shared/package.json ./packages/shared/package.json
+COPY --chown=node:node apps/backend/scripts ./apps/backend/scripts
+# The entrypoint (as `node`) writes .env.local into /app from SSM — make the
+# workdir itself writable by node (files inside stay root-owned but readable).
+RUN chown node:node /app
+USER node
 EXPOSE 3001
-CMD ["node", "apps/backend/dist/main.js"]
+ENTRYPOINT ["sh", "apps/backend/scripts/docker-entrypoint.sh"]

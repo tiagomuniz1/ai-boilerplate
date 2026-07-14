@@ -14,9 +14,14 @@ import { RefreshTokenUseCase } from '../use-cases/refresh-token.use-case'
 import { SetPasswordUseCase } from '../use-cases/set-password.use-case'
 import { ValidateSetPasswordTokenUseCase } from '../use-cases/validate-set-password-token.use-case'
 import { ICurrentUser } from '../types/current-user.type'
+import { getEnvConfig } from '../../../config/env.config'
 
 @Controller('auth')
 export class AuthController {
+  // Empty in dev (host-only cookies on localhost), `.pulso.center` in prod so the
+  // cookie is shared between slug.pulso.center (middleware) and api.pulso.center (API).
+  private readonly cookieDomain = getEnvConfig().COOKIE_DOMAIN
+
   constructor(
     private readonly loginUseCase: LoginUseCase,
     private readonly refreshTokenUseCase: RefreshTokenUseCase,
@@ -31,6 +36,19 @@ export class AuthController {
     return { access: `access_token${suffix}`, refresh: `refresh_token${suffix}` }
   }
 
+  // Base attributes for auth cookies. `domain` is added only when COOKIE_DOMAIN is
+  // set (prod) — never in dev. Cookie NAMES stay per-slug (see cookieNames) so
+  // multiple clinics in the same browser never collide, even sharing a Domain.
+  private baseCookieOptions() {
+    return {
+      httpOnly: true,
+      secure: true,
+      sameSite: 'strict' as const,
+      path: '/',
+      ...(this.cookieDomain ? { domain: this.cookieDomain } : {}),
+    }
+  }
+
   @Post('login')
   @Public()
   @HttpCode(200)
@@ -43,12 +61,7 @@ export class AuthController {
       await this.loginUseCase.execute(dto)
 
     const names = this.cookieNames(dto.slug)
-    const cookieOptions = {
-      httpOnly: true,
-      secure: true,
-      sameSite: 'strict' as const,
-      path: '/',
-    }
+    const cookieOptions = this.baseCookieOptions()
 
     response.cookie(names.access, accessToken, { ...cookieOptions, maxAge: accessTokenMaxAge })
     response.cookie(names.refresh, refreshToken, { ...cookieOptions, maxAge: refreshTokenMaxAge })
@@ -72,12 +85,7 @@ export class AuthController {
     const { accessToken, refreshToken: newRefreshToken, expiresIn, refreshTokenExpiresIn } =
       await this.refreshTokenUseCase.execute({ refreshToken })
 
-    const cookieOptions = {
-      httpOnly: true,
-      secure: true,
-      sameSite: 'strict' as const,
-      path: '/',
-    }
+    const cookieOptions = this.baseCookieOptions()
 
     res.cookie(names.access, accessToken, { ...cookieOptions, maxAge: expiresIn * 1000 })
     res.cookie(names.refresh, newRefreshToken, { ...cookieOptions, maxAge: refreshTokenExpiresIn * 1000 })
@@ -93,7 +101,7 @@ export class AuthController {
     const names = this.cookieNames(body?.slug)
     const refreshToken = req.cookies?.[names.refresh] as string | undefined
 
-    const cookieOptions = { httpOnly: true, secure: true, sameSite: 'strict' as const, path: '/' }
+    const cookieOptions = this.baseCookieOptions()
     res.clearCookie(names.access, cookieOptions)
     res.clearCookie(names.refresh, cookieOptions)
 

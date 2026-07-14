@@ -339,4 +339,81 @@ describe('api-client', () => {
       expect(window.location.href).toBe('/backoffice/login')
     })
   })
+
+  describe('subdomain-mode (NEXT_PUBLIC_BASE_DOMAIN set)', () => {
+    const originalBaseDomain = process.env.NEXT_PUBLIC_BASE_DOMAIN
+
+    afterEach(() => {
+      if (originalBaseDomain === undefined) delete process.env.NEXT_PUBLIC_BASE_DOMAIN
+      else process.env.NEXT_PUBLIC_BASE_DOMAIN = originalBaseDomain
+    })
+
+    it('derives x-clinic-slug from the hostname, not the path', () => {
+      process.env.NEXT_PUBLIC_BASE_DOMAIN = 'pulso.center'
+      Object.defineProperty(window, 'location', {
+        value: { href: '', hostname: 'clinica-a.pulso.center', pathname: '/dashboard' },
+        configurable: true,
+        writable: true,
+      })
+      const config = { headers: {} as Record<string, string> }
+      expect(requestInterceptor(config).headers['x-clinic-slug']).toBe('clinica-a')
+    })
+
+    it('does not add x-clinic-slug for the backoffice subdomain', () => {
+      process.env.NEXT_PUBLIC_BASE_DOMAIN = 'pulso.center'
+      Object.defineProperty(window, 'location', {
+        value: { href: '', hostname: 'backoffice.pulso.center', pathname: '/users' },
+        configurable: true,
+        writable: true,
+      })
+      const config = { headers: {} as Record<string, string> }
+      expect(requestInterceptor(config).headers['x-clinic-slug']).toBeUndefined()
+    })
+
+    it('sends x-clinic-slug from the hostname on the 401 refresh call', async () => {
+      process.env.NEXT_PUBLIC_BASE_DOMAIN = 'pulso.center'
+      Object.defineProperty(window, 'location', {
+        value: { href: '', hostname: 'clinica-a.pulso.center', pathname: '/dashboard' },
+        configurable: true,
+        writable: true,
+      })
+      ;(axios.isAxiosError as jest.Mock).mockReturnValue(true)
+      ;(axios.post as jest.Mock).mockResolvedValue({})
+      axiosInstance.mockResolvedValue({ id: 1 })
+
+      const error = {
+        response: { status: 401, data: {} },
+        config: { _retry: false, url: '/protected' },
+        message: 'Unauthorized',
+      }
+
+      await onRejected(error)
+
+      expect(axios.post).toHaveBeenCalledWith(
+        expect.stringContaining('/auth/refresh'),
+        {},
+        expect.objectContaining({ headers: { 'x-clinic-slug': 'clinica-a' } }),
+      )
+    })
+
+    it('redirects to /login on the same subdomain when refresh fails', async () => {
+      process.env.NEXT_PUBLIC_BASE_DOMAIN = 'pulso.center'
+      Object.defineProperty(window, 'location', {
+        value: { href: '', hostname: 'clinica-a.pulso.center', pathname: '/dashboard' },
+        configurable: true,
+        writable: true,
+      })
+      ;(axios.isAxiosError as jest.Mock).mockReturnValue(true)
+      ;(axios.post as jest.Mock).mockRejectedValue(new Error('Refresh failed'))
+
+      const error = {
+        response: { status: 401, data: {} },
+        config: { _retry: false },
+        message: 'Unauthorized',
+      }
+
+      await expect(onRejected(error)).rejects.toBeDefined()
+      expect(window.location.href).toBe('/login')
+    })
+  })
 })

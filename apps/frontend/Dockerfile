@@ -16,7 +16,10 @@ COPY --from=deps /app/package.json ./package.json
 COPY --from=deps /app/.yarnrc.yml ./.yarnrc.yml
 COPY . .
 ARG NEXT_PUBLIC_API_URL
+ARG NEXT_PUBLIC_BASE_DOMAIN
 ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
+# Empty in dev (path-mode); `pulso.center` in prod (subdomain-mode). Build-time only.
+ENV NEXT_PUBLIC_BASE_DOMAIN=$NEXT_PUBLIC_BASE_DOMAIN
 ENV NEXT_TELEMETRY_DISABLED=1
 RUN corepack prepare --activate && yarn workspace @app/frontend build
 
@@ -24,8 +27,9 @@ FROM node:22-alpine AS runner
 WORKDIR /app
 ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
-COPY --from=builder /app/apps/frontend/.next/standalone ./
-COPY --from=builder /app/apps/frontend/.next/static ./apps/frontend/.next/static
-COPY --from=builder /app/apps/frontend/public ./apps/frontend/public
+COPY --from=builder --chown=node:node /app/apps/frontend/.next/standalone ./
+COPY --from=builder --chown=node:node /app/apps/frontend/.next/static ./apps/frontend/.next/static
+COPY --from=builder --chown=node:node /app/apps/frontend/public ./apps/frontend/public
+USER node
 EXPOSE 3000
 CMD ["node", "apps/frontend/server.js"]

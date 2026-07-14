@@ -1,0 +1,66 @@
+# Dependencies (reinstaladas no stage `deps` via yarn install)
+node_modules
+**/node_modules
+.yarn/cache
+.yarn/unplugged
+.yarn/build-state.yml
+.yarn/install-state.gz
+.pnp.*
+
+# Build outputs (recompilados dentro dos stages de build)
+dist
+**/dist
+.next
+**/.next
+out
+**/out
+*.tsbuildinfo
+
+# Secrets / env (NUNCA entram na imagem — Docker não lê o .gitignore)
+.env
+.env.local
+.env.*.local
+**/.env
+**/.env.local
+cypress.env.json
+
+# Coverage / testes
+coverage
+coverage-integration
+**/coverage
+**/coverage-integration
+
+# Git / CI
+.git
+.gitignore
+.github
+
+# Terraform (state e credenciais)
+infra/**/.terraform
+**/.terraform
+**/*.tfstate
+**/*.tfstate.*
+**/terraform.tfvars
+
+# Local file storage fallback do backend
+apps/backend/uploads
+apps/backend/uploads-private
+
+# Logs
+**/*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Docs / tasks / artefatos locais (não fazem parte do runtime)
+tasks
+docs
+frontend-code.html
+
+# IDE / OS
+.idea
+.vscode
+*.swp
+*.swo
+.DS_Store
+Thumbs.db

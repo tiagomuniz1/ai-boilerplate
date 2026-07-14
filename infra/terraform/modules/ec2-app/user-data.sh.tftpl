@@ -1,0 +1,71 @@
+#!/usr/bin/env bash
+# Bootstrap for the Pulso EC2 host (Amazon Linux 2023).
+# Prepares Docker + swap, logs into ECR and lays down a deploy helper. The actual
+# `docker compose up` runs on the first pipeline deploy (task 9) once images exist
+# in ECR; a best-effort attempt is made here so the box self-heals on reboot.
+set -euxo pipefail
+
+APP_DIR=/opt/pulso
+COMPOSE_DIR="$APP_DIR/app"
+ENV_FILE="$APP_DIR/deploy.env"
+
+# ── Packages: Docker, git, aws cli ────────────────────────────────────────────
+dnf update -y
+dnf install -y docker git
+systemctl enable --now docker
+usermod -aG docker ec2-user || true
+
+# Docker Compose v2 plugin (not in AL2023 default repos — install the binary).
+mkdir -p /usr/local/lib/docker/cli-plugins
+COMPOSE_VERSION=v2.29.7
+curl -fsSL "https://github.com/docker/compose/releases/download/$${COMPOSE_VERSION}/docker-compose-linux-x86_64" \
+  -o /usr/local/lib/docker/cli-plugins/docker-compose
+chmod +x /usr/local/lib/docker/cli-plugins/docker-compose
+
+# ── Swap (safety net for the 1GB t3.micro) ────────────────────────────────────
+if [ ! -f /swapfile ]; then
+  dd if=/dev/zero of=/swapfile bs=1M count=${swap_size_mb}
+  chmod 600 /swapfile
+  mkswap /swapfile
+  swapon /swapfile
+  echo '/swapfile none swap sw 0 0' >> /etc/fstab
+fi
+
+# ── Deploy env file (consumed by docker-compose.prod.yml) ─────────────────────
+mkdir -p "$APP_DIR"
+cat > "$ENV_FILE" <<EOF
+ECR_REGISTRY=${ecr_registry}
+IMAGE_TAG=${image_tag}
+AWS_REGION=${aws_region}
+EOF
+
+# ── Compose + proxy files ─────────────────────────────────────────────────────
+# Prefer a git clone; if no repo URL is provided, the pipeline (task 9) delivers
+# these files via SSM instead.
+REPO_URL="${repository_url}"
+if [ -n "$REPO_URL" ]; then
+  rm -rf "$COMPOSE_DIR"
+  git clone --depth 1 --branch "${repository_ref}" "$REPO_URL" "$COMPOSE_DIR"
+fi
+
+# ── Deploy helper ─────────────────────────────────────────────────────────────
+cat > /usr/local/bin/pulso-deploy <<'EOF'
+#!/usr/bin/env bash
+set -euo pipefail
+APP_DIR=/opt/pulso
+COMPOSE_DIR="$APP_DIR/app"
+ENV_FILE="$APP_DIR/deploy.env"
+# shellcheck disable=SC1090
+source "$ENV_FILE"
+aws ecr get-login-password --region "$AWS_REGION" \
+  | docker login --username AWS --password-stdin "$ECR_REGISTRY"
+cd "$COMPOSE_DIR"
+docker compose --env-file "$ENV_FILE" -f docker-compose.prod.yml pull
+docker compose --env-file "$ENV_FILE" -f docker-compose.prod.yml up -d
+EOF
+chmod +x /usr/local/bin/pulso-deploy
+
+# Best-effort first boot: only succeeds once images have been pushed to ECR.
+if [ -d "$COMPOSE_DIR" ]; then
+  /usr/local/bin/pulso-deploy || echo "pulso-deploy skipped (images not in ECR yet)"
+fi

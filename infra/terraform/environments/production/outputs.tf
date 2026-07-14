@@ -13,6 +13,50 @@ output "iam_policy_arn" {
   value       = module.clinic_assets.iam_policy_arn
 }
 
+# ── ECR / EC2 ─────────────────────────────────────────────────────────────────
+# ECR repositories are shared (owned by the staging state); referenced here by name.
+output "ecr_registry_url" {
+  description = "ECR registry host — used as ECR_REGISTRY by the deploy pipeline and compose."
+  value       = local.ecr_registry
+}
+
+output "ec2_public_ip" {
+  description = "Elastic IP of the EC2 host — CloudFront origin and DNS target."
+  value       = module.ec2_app.public_ip
+}
+
+output "ec2_instance_id" {
+  description = "EC2 instance id — target for SSM Run Command deploys."
+  value       = module.ec2_app.instance_id
+}
+
+output "ec2_security_group_id" {
+  description = "Security Group of the EC2 host (source allowed to reach RDS 5432)."
+  value       = module.ec2_app.security_group_id
+}
+
+# ── CDN ───────────────────────────────────────────────────────────────────────
+output "cloudfront_domain_name" {
+  description = "CloudFront distribution domain — Route 53 aliases point here."
+  value       = module.cdn.cloudfront_domain_name
+}
+
+output "cloudfront_distribution_id" {
+  description = "CloudFront distribution id — for cache invalidations in the deploy pipeline."
+  value       = module.cdn.cloudfront_distribution_id
+}
+
+output "acm_certificate_arn" {
+  description = "ARN of the validated ACM wildcard certificate."
+  value       = module.cdn.acm_certificate_arn
+}
+
+# ── CI/CD ─────────────────────────────────────────────────────────────────────
+output "github_actions_role_arn" {
+  description = "Set as the AWS_DEPLOY_ROLE_ARN variable of the GitHub 'production' Environment."
+  value       = module.github_oidc.role_arn
+}
+
 # ── SES ───────────────────────────────────────────────────────────────────────
 # After apply, copy these values to AWS Parameter Store:
 #

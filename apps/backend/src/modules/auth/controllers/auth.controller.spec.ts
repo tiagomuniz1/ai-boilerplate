@@ -1,6 +1,14 @@
 import { UnauthorizedException } from '@nestjs/common'
 import { Response } from 'express'
 import { UserRole } from '@app/shared'
+
+// The controller reads COOKIE_DOMAIN from env at construction; mock it so unit
+// tests don't require the full env (and so we can exercise the prod domain case).
+const mockGetEnvConfig = jest.fn(() => ({ COOKIE_DOMAIN: undefined as string | undefined }))
+jest.mock('../../../config/env.config', () => ({
+  getEnvConfig: () => mockGetEnvConfig(),
+}))
+
 import { AuthController } from './auth.controller'
 import { LoginUseCase } from '../use-cases/login.use-case'
 import { RefreshTokenUseCase } from '../use-cases/refresh-token.use-case'
@@ -25,6 +33,7 @@ describe('AuthController', () => {
 
   beforeEach(() => {
     jest.clearAllMocks()
+    mockGetEnvConfig.mockReturnValue({ COOKIE_DOMAIN: undefined })
     controller = new AuthController(mockLoginUseCase, mockRefreshTokenUseCase, mockLogoutUseCase, mockMeUseCase, mockValidateSetPasswordTokenUseCase, mockSetPasswordUseCase)
   })
 
@@ -134,6 +143,33 @@ describe('AuthController', () => {
 
       expect(mockResponse.cookie).toHaveBeenCalledWith('access_token', 'access-token-value', expect.any(Object))
       expect(mockResponse.cookie).toHaveBeenCalledWith('refresh_token', 'refresh-token-value', expect.any(Object))
+    })
+
+    it('does NOT set a cookie Domain when COOKIE_DOMAIN is empty (dev/localhost)', async () => {
+      mockLoginUseCase.execute.mockResolvedValue(useCaseResult)
+      const mockResponse = makeMockResponse()
+
+      await controller.login({ email: 'alice@example.com', password: 'password123' } as any, mockResponse as any)
+
+      const [, , options] = (mockResponse.cookie as jest.Mock).mock.calls[0]
+      expect(options).not.toHaveProperty('domain')
+    })
+
+    it('sets cookie Domain from COOKIE_DOMAIN when configured (prod)', async () => {
+      mockGetEnvConfig.mockReturnValue({ COOKIE_DOMAIN: '.pulso.center' })
+      const prodController = new AuthController(mockLoginUseCase, mockRefreshTokenUseCase, mockLogoutUseCase, mockMeUseCase, mockValidateSetPasswordTokenUseCase, mockSetPasswordUseCase)
+      mockLoginUseCase.execute.mockResolvedValue(useCaseResult)
+      const mockResponse = makeMockResponse()
+
+      await prodController.login({ email: 'alice@example.com', password: 'password123', slug: 'minha-clinica' } as any, mockResponse as any)
+
+      // Slug-scoped name preserved AND Domain added — the two together isolate
+      // multiple clinics in one browser while sharing the parent domain.
+      expect(mockResponse.cookie).toHaveBeenCalledWith(
+        'access_token_minha-clinica',
+        'access-token-value',
+        expect.objectContaining({ domain: '.pulso.center', httpOnly: true, secure: true, sameSite: 'strict', path: '/' }),
+      )
     })
   })
 

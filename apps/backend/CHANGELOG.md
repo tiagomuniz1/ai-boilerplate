@@ -4,6 +4,13 @@
 
 ### Added
 
+#### Preparação para deploy em produção (AWS EC2 + RDS + CloudFront)
+- **CORS dinâmico** refletindo qualquer origem `*.pulso.center` (e `*.staging.pulso.center`) com `credentials: true` — valida via allowlist/regex e ecoa a origem exata, cobrindo o preflight `OPTIONS`; substitui a origem única `FRONTEND_URL` (`main.ts`)
+- **Cookies de auth com `Domain` configurável** (`COOKIE_DOMAIN`), preservando os nomes por-slug (`access_token_${slug}` / `refresh_token_${slug}`) para o `middleware.ts` do frontend enxergar o cookie em `slug.<dominio>` mesmo com a API em host dedicado (`api.<dominio>`)
+- **Migrations em produção**: `migration:run:prod` (dataSource compilado) + `bootstrap-schema` (`CREATE SCHEMA` — o `init.sql` não roda no RDS) + `migrate.sh`, orquestrados pelo serviço `migrate` do `docker-compose.prod.yml` antes do backend subir
+- **Imagens Docker endurecidas**: `.dockerignore` (fecha vazamento de `.env`/`.git`/`node_modules` de dev), `USER node`, e entrypoint que carrega as variáveis do **AWS Parameter Store** no boot (`load-env.js` / `docker-entrypoint.sh`)
+- `env.config`: novas variáveis lidas do Parameter Store — `COOKIE_DOMAIN` e `PUBLIC_API_URL` (URL absoluta da API); continuam acessadas apenas em `env.config.ts`
+
 #### Assinatura configurável em receitas, atestados e exames
 - Campos opcionais `crmId` e `specialtyId` nos DTOs de criação de receita, atestado e exame — permitem assinar o documento com um **CRM** e uma **especialidade/RQE** diferentes dos principais. Default preservado: CRM primário + especialidade da consulta
 - Helper puro `resolveDoctorSigningIdentity` (módulo doctors) resolve CRM, RQE e título da especialidade; rejeita com `422` quando o `crmId`/`specialtyId` informado não pertence ao médico

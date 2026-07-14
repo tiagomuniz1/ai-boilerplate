@@ -1,17 +1,8 @@
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
+import { extractSlugFromSubdomain, getBaseDomain } from '@/lib/subdomain'
 
 const PUBLIC_SEGMENTS = ['/login', '/register', '/set-password', '/verify']
-const BASE_DOMAIN = process.env.NEXT_PUBLIC_BASE_DOMAIN // ex: 'umi.com' em prod, vazio em dev
-
-function extractSlugFromSubdomain(hostname: string): string | null {
-  if (!BASE_DOMAIN) return null
-  if (hostname === BASE_DOMAIN || hostname === `www.${BASE_DOMAIN}`) return null
-  if (hostname.endsWith(`.${BASE_DOMAIN}`)) {
-    return hostname.slice(0, hostname.length - BASE_DOMAIN.length - 1)
-  }
-  return null
-}
 
 function extractSlugFromPath(pathname: string): string | null {
   return pathname.split('/').filter(Boolean)[0] ?? null
@@ -30,7 +21,10 @@ function withSlugHeader(response: NextResponse, slug: string): NextResponse {
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
-  const hostname = request.nextUrl.hostname
+  // Derive the host from the Host header (what nginx/CloudFront forward), not
+  // request.nextUrl.hostname — in the standalone server behind a proxy the latter
+  // resolves to the bind host (localhost), breaking subdomain-mode. Strip any port.
+  const hostname = (request.headers.get('host') ?? request.nextUrl.hostname).split(':')[0]
 
   const subdomainSlug = extractSlugFromSubdomain(hostname)
   const isSubdomainMode = subdomainSlug !== null
@@ -40,7 +34,7 @@ export async function middleware(request: NextRequest) {
   // Rota raiz
   if (pathname === '/') {
     if (isSubdomainMode) {
-      return NextResponse.redirect(`https://backoffice.${BASE_DOMAIN}/login`)
+      return NextResponse.redirect(`https://backoffice.${getBaseDomain()}/login`)
     }
     return NextResponse.redirect(new URL('/backoffice/login', request.url))
   }

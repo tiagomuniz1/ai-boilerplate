@@ -1,5 +1,6 @@
 import axios, { type InternalAxiosRequestConfig } from 'axios'
 import type { IApiError } from '@/types/api.types'
+import { extractSlugFromSubdomain, isSubdomainMode } from '@/lib/subdomain'
 
 interface RetryableConfig extends InternalAxiosRequestConfig {
   _retry?: boolean
@@ -13,8 +14,13 @@ const client = axios.create({
 function getClinicSlug(): string | null {
   /* c8 ignore next */
   if (typeof window === 'undefined') return null
-  /* c8 ignore next */
-  const slug = (window.location.pathname ?? '').split('/').filter(Boolean)[0] ?? null
+  // Subdomain-mode (prod): the slug is in the hostname (clinica-a.pulso.center),
+  // NOT the path — the visible path has no slug. Path-mode (dev): fall back to
+  // the first path segment (/clinica-a/...). backoffice → null (generic cookie).
+  const slug =
+    extractSlugFromSubdomain(window.location.hostname) ??
+    /* c8 ignore next */
+    ((window.location.pathname ?? '').split('/').filter(Boolean)[0] ?? null)
   return slug && slug !== 'backoffice' ? slug : null
 }
 
@@ -68,9 +74,15 @@ client.interceptors.response.use(
       } catch {
         /* c8 ignore else */
         if (typeof window !== 'undefined') {
-          /* c8 ignore next */
-          const slug = (window.location.pathname ?? '').split('/').filter(Boolean)[0] ?? 'backoffice'
-          window.location.href = `/${slug}/login`
+          // Subdomain-mode: login lives at /login on the current subdomain (matches
+          // the middleware). Path-mode: /<slug>/login.
+          if (isSubdomainMode()) {
+            window.location.href = '/login'
+          } else {
+            /* c8 ignore next */
+            const slug = (window.location.pathname ?? '').split('/').filter(Boolean)[0] ?? 'backoffice'
+            window.location.href = `/${slug}/login`
+          }
         }
       }
     }

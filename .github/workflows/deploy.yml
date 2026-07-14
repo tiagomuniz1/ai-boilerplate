@@ -1,0 +1,109 @@
+name: Deploy
+
+# Manual only (project rule: never auto-deploy on push). The environment input
+# selects the GitHub Environment, which carries the per-env variables and the
+# OIDC role. develop→staging / main→production is a convention enforced by the
+# operator when dispatching, not by branch triggers.
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: Target environment
+        required: true
+        type: choice
+        options:
+          - staging
+          - production
+
+permissions:
+  contents: read
+  id-token: write # required for AWS OIDC federation
+
+env:
+  AWS_REGION: us-east-1
+
+jobs:
+  test:
+    name: Unit tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Enable Corepack (Yarn 4)
+        run: corepack enable
+      - name: Install dependencies
+        run: yarn install --immutable
+      - name: Run unit tests
+        run: |
+          yarn workspace @app/frontend test:unit
+          yarn workspace @app/backend test:unit
+
+  build-and-push:
+    name: Build & push images
+    needs: test
+    runs-on: ubuntu-latest
+    environment: ${{ inputs.environment }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.AWS_DEPLOY_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Log in to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Build & push backend
+        env:
+          REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          TAG: ${{ github.sha }}
+        run: |
+          docker build -f apps/backend/Dockerfile \
+            -t "$REGISTRY/pulso-backend:$TAG" \
+            -t "$REGISTRY/pulso-backend:latest" .
+          docker push "$REGISTRY/pulso-backend:$TAG"
+          docker push "$REGISTRY/pulso-backend:latest"
+
+      - name: Build & push frontend
+        env:
+          REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          TAG: ${{ github.sha }}
+          NEXT_PUBLIC_BASE_DOMAIN: ${{ vars.NEXT_PUBLIC_BASE_DOMAIN }}
+          NEXT_PUBLIC_API_URL: ${{ vars.NEXT_PUBLIC_API_URL }}
+        run: |
+          if [ -z "$NEXT_PUBLIC_BASE_DOMAIN" ] || [ -z "$NEXT_PUBLIC_API_URL" ]; then
+            echo "::error::NEXT_PUBLIC_BASE_DOMAIN and NEXT_PUBLIC_API_URL must be set as variables of the '${{ inputs.environment }}' GitHub Environment (they are baked into the frontend build)."
+            exit 1
+          fi
+          docker build -f apps/frontend/Dockerfile \
+            --build-arg NEXT_PUBLIC_BASE_DOMAIN="$NEXT_PUBLIC_BASE_DOMAIN" \
+            --build-arg NEXT_PUBLIC_API_URL="$NEXT_PUBLIC_API_URL" \
+            -t "$REGISTRY/pulso-frontend:$TAG" \
+            -t "$REGISTRY/pulso-frontend:latest" .
+          docker push "$REGISTRY/pulso-frontend:$TAG"
+          docker push "$REGISTRY/pulso-frontend:latest"
+
+  deploy:
+    name: Deploy to EC2
+    needs: build-and-push
+    runs-on: ubuntu-latest
+    environment: ${{ inputs.environment }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.AWS_DEPLOY_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Deploy via SSM Run Command
+        env:
+          ENVIRONMENT: ${{ inputs.environment }}
+          IMAGE_TAG: ${{ github.sha }}
+        run: bash .github/scripts/ssm-deploy.sh

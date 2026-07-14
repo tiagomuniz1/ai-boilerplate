@@ -1,0 +1,79 @@
+# Production stack for the EC2 host (single box). Images are pulled from ECR
+# (built in CI — never built here). Postgres lives in RDS; only Redis is stateful
+# on this box. Env comes from SSM Parameter Store at boot (backend/migrate
+# entrypoints) — NO secrets in this file. Only the proxy publishes a port.
+#
+# Required at deploy time (set by the pipeline / EC2 user-data, e.g. via --env-file):
+#   ECR_REGISTRY  = <account>.dkr.ecr.<region>.amazonaws.com
+#   IMAGE_TAG     = git sha (defaults to `latest`)
+#   AWS_REGION    = us-east-1 (so load-env.js resolves the SSM path)
+
+services:
+  proxy:
+    image: nginx:alpine
+    container_name: pulso-proxy
+    ports:
+      - "80:80" # the ONLY published port — Security Group restricts it to CloudFront
+    volumes:
+      - ./infra/proxy/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+    depends_on:
+      backend:
+        condition: service_healthy
+      frontend:
+        condition: service_started
+    restart: unless-stopped
+
+  frontend:
+    image: ${ECR_REGISTRY}/pulso-frontend:${IMAGE_TAG:-latest}
+    container_name: pulso-frontend
+    environment:
+      NODE_ENV: production
+    depends_on:
+      backend:
+        condition: service_healthy
+    restart: unless-stopped
+
+  backend:
+    image: ${ECR_REGISTRY}/pulso-backend:${IMAGE_TAG:-latest}
+    container_name: pulso-backend
+    environment:
+      NODE_ENV: production
+      PORT: 3001
+      AWS_REGION: ${AWS_REGION:-us-east-1} # lets load-env.js find /pulso/<env>/backend/
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:3001/health || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+    restart: unless-stopped
+
+  migrate:
+    image: ${ECR_REGISTRY}/pulso-backend:${IMAGE_TAG:-latest}
+    container_name: pulso-migrate
+    # load-env (SSM) → bootstrap-schema → migration:run against the compiled dataSource.
+    entrypoint: ["sh", "apps/backend/scripts/migrate.sh"]
+    environment:
+      NODE_ENV: production
+      AWS_REGION: ${AWS_REGION:-us-east-1}
+    restart: "no"
+
+  redis:
+    image: redis:7-alpine
+    container_name: pulso-redis
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+volumes:
+  redis_data:

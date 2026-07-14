@@ -13,6 +13,7 @@
     "test:unit:coverage": "jest --config jest.config.ts --coverage --passWithNoTests",
     "typeorm": "ts-node -r tsconfig-paths/register node_modules/.bin/typeorm --dataSource src/database/database.config.ts",
     "migration:run": "yarn typeorm migration:run",
+    "migration:run:prod": "node scripts/bootstrap-schema.js && typeorm migration:run -d dist/database/database.config.js",
     "migration:generate": "yarn typeorm migration:generate",
     "migration:revert": "yarn typeorm migration:revert",
     "migration:run:carga": "DB_SCHEMA=carga yarn typeorm migration:run",

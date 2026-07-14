@@ -14,6 +14,7 @@ export interface IEnvConfig {
   JWT_REFRESH_EXPIRATION: string
   FRONTEND_URL: string
   PUBLIC_API_URL: string
+  COOKIE_DOMAIN: string | undefined
   AWS_S3_BUCKET: string | undefined
   AWS_REGION: string | undefined
   SMTP_HOST: string | undefined
@@ -52,6 +53,10 @@ export function getEnvConfig(): IEnvConfig {
     // Public base URL of this API — used to build clinic branding URLs served by the backend.
     // Falls back to localhost for local/dev; production must set it (Parameter Store).
     PUBLIC_API_URL: process.env.PUBLIC_API_URL ?? `http://localhost:${process.env.PORT ?? '3001'}`,
+    // Cookie Domain for auth cookies. Empty in local dev (host-only cookies on
+    // localhost); set to `.pulso.center` in prod so the cookie is readable both
+    // on slug.pulso.center (middleware) and api.pulso.center (API).
+    COOKIE_DOMAIN: process.env.COOKIE_DOMAIN || undefined,
     AWS_S3_BUCKET: process.env.AWS_S3_BUCKET,
     AWS_REGION: process.env.AWS_REGION,
     SMTP_HOST: process.env.SMTP_HOST,

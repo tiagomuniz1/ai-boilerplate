@@ -4,6 +4,13 @@
 
 ### Added
 
+#### Preparação para deploy em produção (subdomain-mode multi-tenant)
+- **`api-client` deriva o `x-clinic-slug` do subdomínio** (`clinica.pulso.center` → `clinica`) em vez do path, com fallback path-mode em dev e redirect de 401 subdomain-aware — corrige o slug errado que quebrava a auth em produção
+- Helper puro `extractSlugFromSubdomain` compartilhado pelo `middleware.ts` e pelo `api-client` (`lib/subdomain.ts`), suportando base domain de múltiplos níveis (ex.: `staging.pulso.center`)
+- `middleware.ts` monta `${NEXT_PUBLIC_API_URL}/auth/refresh` absoluto, com a API em host dedicado (`api.<dominio>`)
+- **Build args de produção** `NEXT_PUBLIC_BASE_DOMAIN` e `NEXT_PUBLIC_API_URL` (inlined no build, por ambiente); `load-env.js` para carregar variáveis no boot
+- Imagem Docker de produção endurecida (`.dockerignore`, standalone output do Next)
+
 #### Seleção de CRM/especialidade ao emitir receita, atestado e exame
 - Componente reutilizável `DoctorSignatureSelect` nos formulários de receita, atestado e exame — seletor de **CRM** (default "CRM principal") e de **especialidade** ("assinar como", trazendo o RQE de cada uma); só aparece quando o médico tem mais de uma opção
 - Envia `crmId`/`specialtyId` ao backend apenas quando alterados; default mantém CRM primário + especialidade da consulta
