@@ -41,6 +41,7 @@ async function seedPlatformAdmin() {
     password: process.env.DB_PASS ?? 'postgres',
     database: process.env.DB_NAME ?? 'app',
     ssl: useSsl ? { rejectUnauthorized: false } : false,
+    connectionTimeoutMillis: 15000, // fail fast instead of hanging if RDS is unreachable
   })
 
   await client.connect()

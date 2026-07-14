@@ -67,7 +67,11 @@ set -e
 echo ${ENVFILE_B64} | base64 -d > /tmp/seed-admin.env
 aws ecr get-login-password --region ${AWS_REGION} | docker login --username AWS --password-stdin ${ECR_REGISTRY} >/dev/null
 docker pull ${ECR_REGISTRY}/pulso-backend:latest >/dev/null
-docker run --rm --env-file /tmp/seed-admin.env ${ECR_REGISTRY}/pulso-backend:latest \
+# Attach to the running app's Docker network so the private RDS endpoint resolves
+# via the VPC resolver. On the default bridge that lookup can't reach the VPC
+# resolver and the DB connection hangs.
+NET=\$(docker inspect -f '{{range .NetworkSettings.Networks}}{{.NetworkID}}{{end}}' pulso-backend 2>/dev/null || true)
+docker run --rm \${NET:+--network \$NET} --env-file /tmp/seed-admin.env ${ECR_REGISTRY}/pulso-backend:latest \
   sh -c 'node apps/backend/scripts/load-env.js && echo "\$SEED_B64" | base64 -d > /tmp/seed-admin.js && node -r dotenv/config /tmp/seed-admin.js'
 rm -f /tmp/seed-admin.env
 REMOTE_EOF
