@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://api.fontshare.com/v2/css?f[]=satoshi@400,500,700,900&display=swap">
+<style>
+  * { box-sizing: border-box; }
+  body { margin: 0; font-family: 'Satoshi', 'Helvetica Neue', Helvetica, Arial, sans-serif; }
+  a { color: #5B1027; text-decoration: none; }
+  a:hover { color: #C76D4D; }
+  html { scroll-behavior: smooth; }
+</style>
+</helmet>
+
+<div style="{{ pageStyle }}">
+
+  <!-- NAVBAR -->
+  <nav style="position:sticky;top:0;z-index:50;display:flex;align-items:center;justify-content:space-between;padding:16px 40px;background:#0B1120;border-bottom:1px solid rgba(255,255,255,0.08)">
+    <div style="display:flex;align-items:center;gap:10px">
+      <div style="position:relative;width:30px;height:30px">
+        <div style="position:absolute;top:0;right:0;width:20px;height:20px;border-radius:50%;border:5px solid #5B1027"></div>
+        <div style="position:absolute;bottom:0;left:0;width:18px;height:18px;border-radius:50%;border:5px solid #C76D4D"></div>
+      </div>
+      <span style="font-size:22px;font-weight:700;color:#FAF7F4;letter-spacing:-0.02em">pulso</span>
+    </div>
+    <div style="display:flex;align-items:center;gap:28px;flex-wrap:wrap">
+      <a href="#recursos" style="color:#e9e5e2;font-size:15px" style-hover="color:#C76D4D">Recursos</a>
+      <a href="#seguranca" style="color:#e9e5e2;font-size:15px" style-hover="color:#C76D4D">Segurança</a>
+      <a href="#como-funciona" style="color:#e9e5e2;font-size:15px" style-hover="color:#C76D4D">Como funciona</a>
+      <a href="#perguntas" style="color:#e9e5e2;font-size:15px" style-hover="color:#C76D4D">Perguntas</a>
+      <button onClick="{{ toggleTheme }}" style="{{ toggleBtnStyle }}">{{ toggleLabel }}</button>
+      <a href="{{ ctaUrl }}" style="background:#C76D4D;color:#fff;padding:10px 20px;border-radius:10px;font-size:15px;font-weight:600" style-hover="background:#b85f40;color:#fff">Criar clínica grátis</a>
+    </div>
+  </nav>
+
+  <!-- HERO -->
+  <section style="position:relative;background:#0B1120;color:#FAF7F4;overflow:hidden;padding:96px 40px 110px">
+    <div style="position:absolute;inset:0;opacity:0.35;background-image:repeating-linear-gradient(115deg, rgba(199,109,77,0.25) 0px, rgba(199,109,77,0.25) 1px, transparent 1px, transparent 26px);pointer-events:none"></div>
+    <div style="position:relative;max-width:1180px;margin:0 auto;display:grid;grid-template-columns:1.1fr 1fr;gap:60px;align-items:center">
+      <div>
+        <div style="display:inline-block;padding:6px 14px;border-radius:999px;background:rgba(199,109,77,0.16);border:1px solid rgba(199,109,77,0.4);color:#e3a98f;font-size:13px;font-weight:600;letter-spacing:0.02em;margin-bottom:24px">Feito para clínicas brasileiras</div>
+        <h1 style="font-size:52px;line-height:1.08;font-weight:700;letter-spacing:-0.02em;margin:0 0 22px;text-wrap:pretty">Gestão clínica com a confiança que a medicina exige.</h1>
+        <p style="font-size:19px;line-height:1.6;color:#c9c3c0;margin:0 0 34px;max-width:520px">Agenda, prontuário eletrônico, receitas e atestados em um só lugar — cada clínica com seu próprio espaço, sua marca e seus dados isolados.</p>
+        <div style="display:flex;align-items:center;gap:18px;flex-wrap:wrap">
+          <a href="{{ ctaUrl }}" style="background:#C76D4D;color:#fff;padding:16px 28px;border-radius:12px;font-size:16px;font-weight:700" style-hover="background:#b85f40;color:#fff">Criar minha clínica grátis</a>
+          <a href="#recursos" style="border:1px solid rgba(250,247,244,0.3);color:#FAF7F4;padding:16px 28px;border-radius:12px;font-size:16px;font-weight:600" style-hover="border-color:#C76D4D;color:#C76D4D">Ver recursos</a>
+        </div>
+        <p style="font-size:13px;color:#8f8985;margin-top:16px">Cadastro em minutos. Sem cartão de crédito.</p>
+      </div>
+      <div style="position:relative">
+        <div style="border-radius:18px;overflow:hidden;border:1px solid rgba(255,255,255,0.12);box-shadow:0 30px 70px rgba(0,0,0,0.45);background:repeating-linear-gradient(135deg,#141b2e,#141b2e 12px,#171f34 12px,#171f34 24px);aspect-ratio:16/11;display:flex;align-items:center;justify-content:center">
+          <span style="font-family:monospace;font-size:13px;color:#7e879c;text-align:center;padding:20px">[ screenshot do produto ]<br/>dashboard · agenda · KPIs</span>
+        </div>
+        <div style="position:absolute;bottom:-26px;left:-26px;background:#FAF7F4;border-radius:14px;padding:14px 18px;display:flex;align-items:center;gap:12px;box-shadow:0 18px 40px rgba(0,0,0,0.35);max-width:280px">
+          <div style="display:grid;grid-template-columns:repeat(6,6px);grid-template-rows:repeat(6,6px);gap:2px;flex-shrink:0">
+            <sc-for list="{{ qrPattern }}" as="cell" hint-placeholder-count="36">
+              <div style="{{ cell }}"></div>
+            </sc-for>
+          </div>
+          <span style="font-size:13px;font-weight:600;color:#181114;line-height:1.3">Receita autêntica<br/><span style="color:#5B1027">✓ verificada por QR</span></span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- TRUST BAR -->
+  <section style="background:#FAF7F4;padding:36px 40px;border-bottom:1px solid #E6E6E9">
+    <div style="max-width:1180px;margin:0 auto;display:flex;flex-wrap:wrap;gap:28px;justify-content:center">
+      <sc-for list="{{ trustItems }}" as="item" hint-placeholder-count="4">
+        <div style="display:flex;align-items:center;gap:10px;font-size:14px;font-weight:600;color:#463a3f">
+          <span style="width:7px;height:7px;border-radius:50%;background:#C76D4D;flex-shrink:0"></span>
+          {{ item }}
+        </div>
+      </sc-for>
+    </div>
+  </section>
+
+  <!-- FEATURES -->
+  <section id="recursos" style="{{ sectionStyle }}padding:96px 40px">
+    <div style="max-width:1180px;margin:0 auto">
+      <div style="max-width:640px;margin:0 auto 56px;text-align:center">
+        <h2 style="font-size:38px;font-weight:700;letter-spacing:-0.01em;margin:0 0 14px;text-wrap:pretty">Tudo que a clínica precisa, sem sistemas soltos.</h2>
+        <p style="{{ mutedTextStyle }}font-size:17px;line-height:1.6;margin:0">Um núcleo integrado que acompanha o paciente do agendamento à receita.</p>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:24px">
+        <sc-for list="{{ features }}" as="f" hint-placeholder-count="6">
+          <div style="{{ cardStyle }}padding:28px;border-radius:16px">
+            <div style="width:38px;height:38px;border-radius:10px;background:#5B1027;color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:15px;margin-bottom:18px">{{ f.n }}</div>
+            <h3 style="font-size:19px;font-weight:700;margin:0 0 10px;letter-spacing:-0.01em">{{ f.title }}</h3>
+            <p style="{{ mutedTextStyle }}font-size:15px;line-height:1.6;margin:0">{{ f.desc }}</p>
+          </div>
+        </sc-for>
+      </div>
+    </div>
+  </section>
+
+  <!-- DASHBOARD / ANALYTICS -->
+  <section style="{{ altSectionStyle }}padding:96px 40px">
+    <div style="max-width:1180px;margin:0 auto;display:grid;grid-template-columns:1fr 1fr;gap:60px;align-items:center">
+      <div style="border-radius:18px;overflow:hidden;border:1px solid #E6E6E9;background:repeating-linear-gradient(135deg,#f1ece9,#f1ece9 12px,#eae3df 12px,#eae3df 24px);aspect-ratio:16/11;display:flex;align-items:center;justify-content:center;order:2">
+        <span style="font-family:monospace;font-size:13px;color:#8a817c;text-align:center;padding:20px">[ screenshot do produto ]<br/>KPIs · gráficos · aniversariantes</span>
+      </div>
+      <div>
+        <h2 style="font-size:34px;font-weight:700;letter-spacing:-0.01em;margin:0 0 18px;text-wrap:pretty">Enxergue a clínica inteira em uma tela.</h2>
+        <p style="{{ mutedTextStyle }}font-size:17px;line-height:1.65;margin:0">Um painel com os números que importam — agendados, confirmados, atendidos e faltas — além de novos vs. recorrentes, mix convênio/particular, distribuição por idade e os aniversariantes do dia. Filtre por período e, se for médico, veja só o que é seu.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- WHITE LABEL -->
+  <section style="{{ sectionStyle }}padding:96px 40px">
+    <div style="max-width:1180px;margin:0 auto;display:grid;grid-template-columns:1fr 1fr;gap:60px;align-items:center">
+      <div>
+        <h2 style="font-size:34px;font-weight:700;letter-spacing:-0.01em;margin:0 0 18px;text-wrap:pretty">O sistema com a cara da sua clínica.</h2>
+        <p style="{{ mutedTextStyle }}font-size:17px;line-height:1.65;margin:0">Cada clínica ganha seu próprio endereço, logo (claro e escuro), favicon e cores. Da tela de login aos PDFs e e-mails, o paciente vê a marca da clínica — não a nossa. Modo claro e escuro incluídos.</p>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+        <div style="border-radius:16px;overflow:hidden;border:1px solid #E6E6E9;background:#0B1120;aspect-ratio:3/4;display:flex;align-items:center;justify-content:center">
+          <span style="font-family:monospace;font-size:12px;color:#7e879c;text-align:center;padding:14px">[ login clínica A ]<br/>tema escuro</span>
+        </div>
+        <div style="border-radius:16px;overflow:hidden;border:1px solid #E6E6E9;background:#FAF7F4;aspect-ratio:3/4;display:flex;align-items:center;justify-content:center">
+          <span style="font-family:monospace;font-size:12px;color:#8a817c;text-align:center;padding:14px">[ login clínica B ]<br/>tema claro</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- HOW IT WORKS -->
+  <section id="como-funciona" style="{{ altSectionStyle }}padding:96px 40px">
+    <div style="max-width:1180px;margin:0 auto">
+      <h2 style="font-size:36px;font-weight:700;letter-spacing:-0.01em;margin:0 0 56px;text-align:center">Comece hoje, em três passos.</h2>
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:32px;margin-bottom:48px">
+        <sc-for list="{{ steps }}" as="s" hint-placeholder-count="3">
+          <div style="text-align:center;padding:0 12px">
+            <div style="width:48px;height:48px;border-radius:50%;background:#C76D4D;color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:18px;margin:0 auto 20px">{{ s.n }}</div>
+            <h3 style="font-size:18px;font-weight:700;margin:0 0 10px">{{ s.title }}</h3>
+            <p style="{{ mutedTextStyle }}font-size:15px;line-height:1.6;margin:0">{{ s.desc }}</p>
+          </div>
+        </sc-for>
+      </div>
+      <div style="text-align:center">
+        <a href="{{ ctaUrl }}" style="background:#5B1027;color:#fff;padding:16px 30px;border-radius:12px;font-size:16px;font-weight:700;display:inline-block" style-hover="background:#450d1f;color:#fff">Criar minha clínica grátis</a>
+      </div>
+    </div>
+  </section>
+
+  <!-- SECURITY -->
+  <section id="seguranca" style="background:#0B1120;color:#FAF7F4;padding:96px 40px">
+    <div style="max-width:1180px;margin:0 auto">
+      <div style="max-width:640px;margin:0 auto 56px;text-align:center">
+        <h2 style="font-size:36px;font-weight:700;letter-spacing:-0.01em;margin:0 0 14px">Segurança não é recurso — é fundação.</h2>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:20px">
+        <sc-for list="{{ securityBullets }}" as="b" hint-placeholder-count="6">
+          <div style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:14px;padding:22px">
+            <h3 style="font-size:16px;font-weight:700;margin:0 0 8px;color:#e3a98f">{{ b.title }}</h3>
+            <p style="font-size:14.5px;line-height:1.6;margin:0;color:#c9c3c0">{{ b.desc }}</p>
+          </div>
+        </sc-for>
+      </div>
+    </div>
+  </section>
+
+  <!-- SOCIAL PROOF PLACEHOLDER -->
+  <sc-if value="{{ showTestimonials }}" hint-placeholder-val="{{ true }}">
+    <section style="{{ sectionStyle }}padding:80px 40px">
+      <div style="max-width:1180px;margin:0 auto;text-align:center">
+        <h2 style="font-size:30px;font-weight:700;letter-spacing:-0.01em;margin:0 0 40px">Clínicas que confiam no Pulso.</h2>
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:24px">
+          <div style="border:1px dashed #d8cfc9;border-radius:14px;padding:32px;font-family:monospace;font-size:13px;color:#9a8f8a">[ depoimento — em breve ]</div>
+          <div style="border:1px dashed #d8cfc9;border-radius:14px;padding:32px;font-family:monospace;font-size:13px;color:#9a8f8a">[ depoimento — em breve ]</div>
+          <div style="border:1px dashed #d8cfc9;border-radius:14px;padding:32px;font-family:monospace;font-size:13px;color:#9a8f8a">[ depoimento — em breve ]</div>
+        </div>
+      </div>
+    </section>
+  </sc-if>
+
+  <!-- FAQ -->
+  <section id="perguntas" style="{{ altSectionStyle }}padding:96px 40px">
+    <div style="max-width:800px;margin:0 auto">
+      <h2 style="font-size:36px;font-weight:700;letter-spacing:-0.01em;margin:0 0 40px;text-align:center">Perguntas frequentes</h2>
+      <sc-for list="{{ faqs }}" as="item" hint-placeholder-count="6">
+        <div style="{{ cardStyle }}border-radius:14px;margin-bottom:12px;overflow:hidden">
+          <div onClick="{{ item.toggle }}" style="padding:20px 24px;display:flex;justify-content:space-between;align-items:center;cursor:pointer;gap:16px">
+            <span style="font-weight:700;font-size:16px">{{ item.q }}</span>
+            <span style="font-size:20px;color:#C76D4D;flex-shrink:0">{{ item.sign }}</span>
+          </div>
+          <sc-if value="{{ item.open }}" hint-placeholder-val="{{ false }}">
+            <p style="{{ mutedTextStyle }}font-size:15px;line-height:1.6;margin:0;padding:0 24px 20px">{{ item.a }}</p>
+          </sc-if>
+        </div>
+      </sc-for>
+    </div>
+  </section>
+
+  <!-- FINAL CTA -->
+  <section style="background:#5B1027;color:#FAF7F4;padding:96px 40px;text-align:center">
+    <div style="max-width:680px;margin:0 auto">
+      <h2 style="font-size:38px;font-weight:700;letter-spacing:-0.01em;margin:0 0 18px;text-wrap:pretty">Sua clínica organizada, seus dados seguros. Comece agora.</h2>
+      <p style="font-size:18px;line-height:1.6;color:#e9c9d0;margin:0 0 32px">Crie sua clínica gratuitamente e veja o Pulso funcionando com o seu primeiro paciente.</p>
+      <a href="{{ ctaUrl }}" style="background:#FAF7F4;color:#5B1027;padding:17px 32px;border-radius:12px;font-size:16px;font-weight:700;display:inline-block" style-hover="background:#fff;color:#5B1027">Criar minha clínica grátis</a>
+      <p style="font-size:13px;color:#d19aa8;margin-top:16px">Sem cartão de crédito · Configuração em minutos</p>
+    </div>
+  </section>
+
+  <!-- FOOTER -->
+  <footer style="background:#0B1120;color:#a9a3a0;padding:56px 40px 32px">
+    <div style="max-width:1180px;margin:0 auto">
+      <div style="display:flex;justify-content:space-between;flex-wrap:wrap;gap:32px;margin-bottom:32px">
+        <div>
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
+            <div style="position:relative;width:26px;height:26px">
+              <div style="position:absolute;top:0;right:0;width:17px;height:17px;border-radius:50%;border:4px solid #5B1027"></div>
+              <div style="position:absolute;bottom:0;left:0;width:15px;height:15px;border-radius:50%;border:4px solid #C76D4D"></div>
+            </div>
+            <span style="font-size:19px;font-weight:700;color:#FAF7F4">pulso</span>
+          </div>
+          <p style="font-size:13px;margin:0;max-width:220px;color:#7e786f">Pulso — sistema de gestão para clínicas.</p>
+        </div>
+        <div style="display:flex;gap:56px;flex-wrap:wrap">
+          <div style="display:flex;flex-direction:column;gap:10px">
+            <span style="font-size:12px;font-weight:700;color:#c9c3c0;letter-spacing:0.04em;margin-bottom:4px">PRODUTO</span>
+            <a href="#recursos" style="color:#a9a3a0;font-size:14px" style-hover="color:#C76D4D">Recursos</a>
+            <a href="#seguranca" style="color:#a9a3a0;font-size:14px" style-hover="color:#C76D4D">Segurança</a>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:10px">
+            <span style="font-size:12px;font-weight:700;color:#c9c3c0;letter-spacing:0.04em;margin-bottom:4px">SUPORTE</span>
+            <a href="#perguntas" style="color:#a9a3a0;font-size:14px" style-hover="color:#C76D4D">Perguntas frequentes</a>
+            <a href="mailto:contato@pulso.center" style="color:#a9a3a0;font-size:14px" style-hover="color:#C76D4D">Contato</a>
+          </div>
+        </div>
+      </div>
+      <div style="border-top:1px solid rgba(255,255,255,0.08);padding-top:20px;font-size:13px;color:#6b655f">© Pulso. Todos os direitos reservados.</div>
+    </div>
+  </footer>
+
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;defaultTheme&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;default&quot;:&quot;light&quot;,&quot;options&quot;:[&quot;light&quot;,&quot;dark&quot;],&quot;tsType&quot;:&quot;string&quot;},&quot;ctaUrl&quot;:{&quot;editor&quot;:&quot;text&quot;,&quot;default&quot;:&quot;https://staging.pulso.center&quot;,&quot;tsType&quot;:&quot;string&quot;}}">
+class Component extends DCLogic {
+  state = {
+    isDark: this.props.defaultTheme === 'dark',
+    faqOpen: null
+  };
+
+  toggleTheme = () => this.setState(s => ({ isDark: !s.isDark }));
+  toggleFaq = (i) => this.setState(s => ({ faqOpen: s.faqOpen === i ? null : i }));
+
+  renderVals() {
+    const isDark = this.state.isDark;
+    const t = isDark
+      ? { bg: '#0B1120', bgAlt: '#0f1526', cardBg: '#131a2c', cardBorder: 'rgba(255,255,255,0.1)', text: '#FAF7F4', muted: '#b7b2b8' }
+      : { bg: '#FAF7F4', bgAlt: '#ffffff', cardBg: '#ffffff', cardBorder: '#E6E6E9', text: '#181114', muted: '#6b6470' };
+
+    const ctaUrl = this.props.ctaUrl || 'https://staging.pulso.center';
+
+    const features = [
+      { n: '01', title: 'Agenda inteligente', desc: 'Disponibilidade em tempo real a partir da agenda de cada médico, com duração de slot configurável, bloqueios de horário e visão por dia ou semana. Marque, confirme, conclua ou registre faltas.' },
+      { n: '02', title: 'Prontuário por especialidade', desc: 'Formulários que se adaptam à especialidade da consulta. Campos padronizados (peso, pressão, alergias…) garantem dados consistentes — e cada prontuário guarda a versão do modelo usada, para auditoria.' },
+      { n: '03', title: 'Receitas com verificação por QR', desc: 'Cada receita gera um PDF com a marca da clínica e um QR Code. Farmácia ou paciente escaneia e confirma a autenticidade numa página pública — com nome e CPF mascarados.' },
+      { n: '04', title: 'Atestados e exames', desc: 'Atestados de afastamento e comparecimento e solicitações de exame em PDF branded, com resultados anexados e guardados com segurança.' },
+      { n: '05', title: 'Base de medicamentos ANVISA', desc: 'Busca rápida na base oficial de medicamentos, com princípio ativo e classe terapêutica. Modelos de receita reutilizáveis para prescrever em um clique.' },
+      { n: '06', title: 'Prontos para o Brasil', desc: 'Múltiplos CRMs por médico (com estado e registro principal), especialidades com RQE, convênio vs. particular e ranking de CID nos atestados.' }
+    ];
+
+    const steps = [
+      { n: '1', title: 'Crie sua clínica', desc: 'Cadastro self-service em minutos. Sem burocracia.' },
+      { n: '2', title: 'Configure sua marca e equipe', desc: 'Suba seu logo, escolha as cores, convide médicos e recepção (cada um com seu acesso).' },
+      { n: '3', title: 'Atenda com tudo integrado', desc: 'Agenda, prontuário, receitas e relatórios funcionando desde o primeiro paciente.' }
+    ];
+
+    const securityBullets = [
+      { title: 'Isolamento total por clínica', desc: 'Cada tenant com seus dados estritamente separados.' },
+      { title: 'Papéis e permissões', desc: 'Administrador, recepcionista e médico, cada um vê só o que deve. Médico acessa apenas os próprios pacientes e consultas.' },
+      { title: 'Arquivos protegidos', desc: 'Logos e resultados de exame em armazenamento privado, servidos apenas por endpoints controlados. Nunca links públicos.' },
+      { title: 'Documentos auditáveis', desc: 'Receitas, atestados e prontuários guardados como registros imutáveis com data e autoria.' },
+      { title: 'Autenticação moderna', desc: 'Login com tokens, expiração e onboarding por link seguro (defina sua senha, sem senha trafegando).' },
+      { title: 'Pensado para a LGPD', desc: 'Dados sensíveis mascarados na verificação pública e minimizados por padrão.' }
+    ];
+
+    const trustItems = [
+      'Dados isolados por clínica (multi-tenant)',
+      'Receitas verificáveis por QR Code',
+      'Base de medicamentos ANVISA',
+      'Feito para o fluxo real da clínica brasileira'
+    ];
+
+    const faqData = [
+      { q: 'Preciso instalar algo?', a: 'Não. O Pulso é 100% web; cada clínica acessa pelo seu próprio endereço.' },
+      { q: 'Meus dados ficam separados dos de outras clínicas?', a: 'Sim. Cada clínica é um ambiente isolado — ninguém acessa dados de outra.' },
+      { q: 'Como funciona a verificação de receita por QR?', a: 'Cada receita traz um QR Code que leva a uma página pública de conferência. A farmácia ou o paciente confirma a autenticidade; dados sensíveis aparecem mascarados.' },
+      { q: 'Dá para usar a marca da minha clínica?', a: 'Sim. Logo, cores, favicon e endereço próprios — inclusive nos PDFs e e-mails.' },
+      { q: 'A base de medicamentos é atualizada?', a: 'Usamos a base pública da ANVISA, com busca rápida por nome e princípio ativo.' },
+      { q: 'Quais perfis de acesso existem?', a: 'Administrador, recepcionista e médico — cada um com as permissões adequadas ao seu papel.' }
+    ];
+
+    const faqs = faqData.map((f, i) => ({
+      q: f.q, a: f.a,
+      open: this.state.faqOpen === i,
+      sign: this.state.faqOpen === i ? '–' : '+',
+      toggle: () => this.toggleFaq(i)
+    }));
+
+    // deterministic checker pattern for QR placeholder
+    const qrBits = [1,0,1,1,0,1, 0,1,0,0,1,0, 1,1,1,0,1,1, 0,0,1,1,0,0, 1,0,0,1,1,1, 1,1,0,1,0,1];
+    const qrPattern = qrBits.map(b => ({ width: '6px', height: '6px', background: b ? '#181114' : 'transparent' }));
+
+    return {
+      pageStyle: { background: t.bg, color: t.text, minHeight: '100vh' },
+      sectionStyle: 'background:' + t.bg + ';color:' + t.text + ';',
+      altSectionStyle: 'background:' + t.bgAlt + ';color:' + t.text + ';',
+      cardStyle: 'background:' + t.cardBg + ';border:1px solid ' + t.cardBorder + ';color:' + t.text + ';',
+      mutedTextStyle: 'color:' + t.muted + ';',
+      toggleBtnStyle: { background: 'transparent', border: '1px solid rgba(250,247,244,0.3)', color: '#FAF7F4', padding: '8px 14px', borderRadius: '8px', fontSize: '13px', fontWeight: 600, cursor: 'pointer' },
+      toggleLabel: isDark ? 'Modo claro' : 'Modo escuro',
+      toggleTheme: this.toggleTheme,
+      ctaUrl,
+      features, steps, securityBullets, trustItems, faqs, qrPattern,
+      showTestimonials: true
+    };
+  }
+}
+
+</script>
+</body>
+</html>

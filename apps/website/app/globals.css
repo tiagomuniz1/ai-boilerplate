@@ -1,0 +1,53 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+    :root {
+        /* Content-section palette (light). Flipped to dark by the `.dark` class. */
+        --content-bg: #faf7f4;
+        --content-bg-alt: #ffffff;
+        --content-card: #ffffff;
+        --content-line: #e6e6e9;
+        --content-text: #181114;
+        --content-mute: #6b6470;
+
+        color-scheme: light;
+    }
+
+    .dark {
+        --content-bg: #0b1120;
+        --content-bg-alt: #0f1526;
+        --content-card: #131a2c;
+        --content-line: rgba(255, 255, 255, 0.1);
+        --content-text: #faf7f4;
+        --content-mute: #b7b2b8;
+
+        color-scheme: dark;
+    }
+
+    *,
+    *::before,
+    *::after {
+        box-sizing: border-box;
+    }
+
+    html {
+        -webkit-text-size-adjust: 100%;
+        scroll-behavior: smooth;
+    }
+
+    body {
+        @apply font-sans antialiased;
+
+        margin: 0;
+        background-color: var(--content-bg);
+        color: var(--content-text);
+    }
+
+    :focus-visible {
+        @apply outline-none ring-2 ring-offset-2 ring-terracotta;
+
+        --tw-ring-offset-color: var(--content-bg);
+    }
+}
