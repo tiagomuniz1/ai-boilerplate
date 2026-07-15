@@ -21,6 +21,8 @@ services:
         condition: service_healthy
       frontend:
         condition: service_started
+      website:
+        condition: service_started
     restart: unless-stopped
 
   frontend:
@@ -33,6 +35,16 @@ services:
     depends_on:
       backend:
         condition: service_healthy
+    restart: unless-stopped
+
+  # Institutional landing served on the base domain (staging.pulso.center /
+  # pulso.center). Fully static — no SSM/secrets; NEXT_PUBLIC_REGISTER_URL is baked
+  # into the image at build time by the pipeline.
+  website:
+    image: ${ECR_REGISTRY}/pulso-website:${IMAGE_TAG:-latest}
+    container_name: pulso-website
+    environment:
+      NODE_ENV: production
     restart: unless-stopped
 
   backend:

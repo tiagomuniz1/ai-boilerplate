@@ -9,9 +9,9 @@ variable "environment" {
 }
 
 variable "repository_names" {
-  description = "ECR repository names. Kept without an environment suffix on purpose: docker-compose.prod.yml references them as <registry>/pulso-backend and <registry>/pulso-frontend, and staging/production are distinguished by image tag, sharing the same repositories."
+  description = "ECR repository names. Kept without an environment suffix on purpose: docker-compose.prod.yml references them as <registry>/pulso-backend, <registry>/pulso-frontend and <registry>/pulso-website, and staging/production are distinguished by image tag, sharing the same repositories."
   type        = list(string)
-  default     = ["pulso-backend", "pulso-frontend"]
+  default     = ["pulso-backend", "pulso-frontend", "pulso-website"]
 }
 
 variable "image_retention_count" {

@@ -39,6 +39,7 @@ jobs:
         run: |
           yarn workspace @app/frontend test:unit
           yarn workspace @app/backend test:unit
+          yarn workspace @app/website test:unit
 
   build-and-push:
     name: Build & push images
@@ -87,6 +88,26 @@ jobs:
             -t "$REGISTRY/pulso-frontend:latest" .
           docker push "$REGISTRY/pulso-frontend:$TAG"
           docker push "$REGISTRY/pulso-frontend:latest"
+
+      - name: Build & push website
+        env:
+          REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          TAG: ${{ github.sha }}
+          NEXT_PUBLIC_BASE_DOMAIN: ${{ vars.NEXT_PUBLIC_BASE_DOMAIN }}
+        run: |
+          if [ -z "$NEXT_PUBLIC_BASE_DOMAIN" ]; then
+            echo "::error::NEXT_PUBLIC_BASE_DOMAIN must be set as a variable of the '${{ inputs.environment }}' GitHub Environment (used to derive the landing's register CTA)."
+            exit 1
+          fi
+          # The "Criar clínica grátis" CTA points at the clinic self-service
+          # registration, which the frontend serves at backoffice.<base-domain>/register.
+          REGISTER_URL="https://backoffice.${NEXT_PUBLIC_BASE_DOMAIN}/register"
+          docker build -f apps/website/Dockerfile \
+            --build-arg NEXT_PUBLIC_REGISTER_URL="$REGISTER_URL" \
+            -t "$REGISTRY/pulso-website:$TAG" \
+            -t "$REGISTRY/pulso-website:latest" .
+          docker push "$REGISTRY/pulso-website:$TAG"
+          docker push "$REGISTRY/pulso-website:latest"
 
   deploy:
     name: Deploy to EC2

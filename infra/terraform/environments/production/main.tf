@@ -40,7 +40,7 @@ data "aws_region" "current" {}
 
 locals {
   ecr_registry         = "${data.aws_caller_identity.current.account_id}.dkr.ecr.${data.aws_region.current.name}.amazonaws.com"
-  ecr_repository_names = ["pulso-backend", "pulso-frontend"]
+  ecr_repository_names = ["pulso-backend", "pulso-frontend", "pulso-website"]
   ecr_repository_arns = [
     for name in local.ecr_repository_names :
     "arn:aws:ecr:${data.aws_region.current.name}:${data.aws_caller_identity.current.account_id}:repository/${name}"
