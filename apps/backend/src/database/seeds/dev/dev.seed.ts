@@ -14,6 +14,7 @@ import { Patient } from '../../../modules/patients/entities/patient.entity'
 import { Schedule } from '../../../modules/schedules/entities/schedule.entity'
 import { Appointment } from '../../../modules/appointments/entities/appointment.entity'
 import { MedicalRecordCanonicalField } from '../../../modules/medical-record-canonical-fields/entities/medical-record-canonical-field.entity'
+import { CANONICAL_FIELDS } from '../canonical-fields/canonical-fields'
 import {
   MedicalRecordTemplate,
   MedicalRecordTemplateField,
@@ -23,22 +24,8 @@ import { generateFieldKey } from '../../../modules/medical-record-templates/util
 
 const SEED_CLINIC_ID = '10000000-0000-4000-8000-000000000000'
 
-
-const SEED_GENERAL_CANONICAL_FIELDS: Array<{
-  canonicalKey: string
-  label: string
-  type: MedicalRecordFieldType
-  unit?: string
-}> = [
-  { canonicalKey: 'weight', label: 'Peso', type: MedicalRecordFieldType.NUMBER, unit: 'kg' },
-  { canonicalKey: 'height', label: 'Altura', type: MedicalRecordFieldType.NUMBER, unit: 'cm' },
-  { canonicalKey: 'blood_pressure', label: 'Pressão arterial', type: MedicalRecordFieldType.TEXT, unit: 'mmHg' },
-  { canonicalKey: 'heart_rate', label: 'Frequência cardíaca', type: MedicalRecordFieldType.NUMBER, unit: 'bpm' },
-  { canonicalKey: 'temperature', label: 'Temperatura', type: MedicalRecordFieldType.NUMBER, unit: '°C' },
-  { canonicalKey: 'chief_complaint', label: 'Queixa principal', type: MedicalRecordFieldType.TEXTAREA },
-  { canonicalKey: 'allergies', label: 'Alergias', type: MedicalRecordFieldType.TEXTAREA },
-  { canonicalKey: 'smoker', label: 'Fumante', type: MedicalRecordFieldType.BOOLEAN },
-]
+// General (non specialty-scoped) canonical fields, sourced from the shared catalogue.
+const SEED_GENERAL_CANONICAL_FIELDS = CANONICAL_FIELDS.filter((field) => !field.specialtyName)
 
 export async function devSeed(dataSource: DataSource): Promise<void> {
   const defaultTheme = await seedThemes(dataSource)
@@ -102,29 +89,27 @@ async function seedCanonicalFields(dataSource: DataSource): Promise<void> {
     }
   }
 
-  const cardiology = await dataSource
-    .getRepository(Specialty)
-    .findOne({ where: { name: ILike('Cardiologia') } })
+  const specialtyFields = CANONICAL_FIELDS.filter((field) => field.specialtyName)
+  for (const data of specialtyFields) {
+    const specialty = await dataSource
+      .getRepository(Specialty)
+      .findOne({ where: { name: ILike(data.specialtyName as string) } })
+    if (!specialty) continue
 
-  if (cardiology) {
-    const existing = await repository.findOneBy({ canonicalKey: 'risk_level' })
+    const existing = await repository.findOneBy({ canonicalKey: data.canonicalKey })
     if (!existing) {
       await repository.save(
         repository.create({
-          canonicalKey: 'risk_level',
-          label: 'Nível de risco',
-          type: MedicalRecordFieldType.SELECT,
-          options: [
-            { value: 'low', label: 'Baixo' },
-            { value: 'moderate', label: 'Moderado' },
-            { value: 'high', label: 'Alto' },
-          ],
-          unit: null,
-          specialtyId: cardiology.id,
-          description: null,
+          canonicalKey: data.canonicalKey,
+          label: data.label,
+          type: data.type,
+          options: data.options ?? null,
+          unit: data.unit ?? null,
+          specialtyId: specialty.id,
+          description: data.description ?? null,
         }),
       )
-      console.log('Dev seed: canonical field "risk_level" (cardiology) created.')
+      console.log(`Dev seed: canonical field "${data.canonicalKey}" (${data.specialtyName}) created.`)
     }
   }
 }

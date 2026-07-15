@@ -3,22 +3,39 @@ set -euo pipefail
 
 # Publishes the canonical platform data into the environment's RDS, via a one-off
 # backend container on the EC2 host (SSM Run Command — no SSH):
-#   1. themes      — the platform theme catalogue (fast)
-#   2. medications — the ANVISA open-data base (~36k rows, downloaded on the host)
-# Both are idempotent (upsert), so it is safe to re-run.
+#   themes           — the platform theme catalogue (fast)
+#   canonical-fields — the medical-record canonical field catalogue (fast)
+#   medications      — the ANVISA open-data base (~36k rows, downloaded on the host)
+# All imports are idempotent (upsert), so it is safe to re-run.
 #
 # Usage:
-#   bash infra/scripts/publish-canonical-data.sh <environment>
+#   bash infra/scripts/publish-canonical-data.sh <environment> [dataset]
 #     environment : staging | production
+#     dataset     : all (default) | themes | canonical-fields | medications
 
 ENVIRONMENT="${1:-}"
+DATASET="${2:-all}"
 WORKLOAD_PROFILE="${WORKLOAD_PROFILE:-pulso-workload}"
 AWS_REGION="${AWS_REGION:-us-east-1}"
 
 if [[ "$ENVIRONMENT" != "staging" && "$ENVIRONMENT" != "production" ]]; then
-  echo "Usage: bash infra/scripts/publish-canonical-data.sh <staging|production>" >&2
+  echo "Usage: bash infra/scripts/publish-canonical-data.sh <staging|production> [all|themes|canonical-fields|medications]" >&2
   exit 1
 fi
+
+case "$DATASET" in
+  all)
+    SEED_STEPS='node apps/backend/dist/database/seeds/run-import-themes.js && node apps/backend/dist/database/seeds/run-import-canonical-fields.js && node apps/backend/dist/database/seeds/run-import-medications.js' ;;
+  themes)
+    SEED_STEPS='node apps/backend/dist/database/seeds/run-import-themes.js' ;;
+  canonical-fields)
+    SEED_STEPS='node apps/backend/dist/database/seeds/run-import-canonical-fields.js' ;;
+  medications)
+    SEED_STEPS='node apps/backend/dist/database/seeds/run-import-medications.js' ;;
+  *)
+    echo "Unknown dataset '$DATASET'. Use: all | themes | canonical-fields | medications" >&2
+    exit 1 ;;
+esac
 
 ACCOUNT_ID=$(aws sts get-caller-identity --profile "$WORKLOAD_PROFILE" --query Account --output text)
 ECR_REGISTRY="${ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com"
@@ -43,9 +60,7 @@ NET=\$(docker inspect -f '{{range .NetworkSettings.Networks}}{{.NetworkID}}{{end
 docker run --rm \${NET:+--network \$NET} \
   -e AWS_REGION=${AWS_REGION} -e PARAMETER_STORE_ENV=${ENVIRONMENT} -e NODE_ENV=production \
   --entrypoint sh ${ECR_REGISTRY}/pulso-backend:latest \
-  -c 'node apps/backend/scripts/load-env.js \
-      && node apps/backend/dist/database/seeds/run-import-themes.js \
-      && node apps/backend/dist/database/seeds/run-import-medications.js'
+  -c 'node apps/backend/scripts/load-env.js && ${SEED_STEPS}'
 REMOTE_EOF
 )
 
