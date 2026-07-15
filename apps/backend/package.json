@@ -20,6 +20,7 @@
     "seed:run": "ts-node -r tsconfig-paths/register src/database/seeds/run-seed.ts",
     "seed:carga": "ts-node -r tsconfig-paths/register src/database/seeds/run-carga-seed.ts",
     "import:medications": "ts-node -r tsconfig-paths/register src/database/seeds/run-import-medications.ts",
+    "import:themes": "ts-node -r tsconfig-paths/register src/database/seeds/run-import-themes.ts",
     "dev:carga": "node scripts/load-env.js && yarn workspace @app/shared build && DB_SCHEMA=carga nest start --watch"
   },
   "dependencies": {
