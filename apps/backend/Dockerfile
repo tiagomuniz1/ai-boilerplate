@@ -4,6 +4,7 @@ RUN corepack enable
 COPY package.json yarn.lock .yarnrc.yml ./
 COPY apps/backend/package.json ./apps/backend/
 COPY apps/frontend/package.json ./apps/frontend/
+COPY apps/website/package.json ./apps/website/
 COPY packages/shared/package.json ./packages/shared/
 COPY tools/ai-cli/package.json ./tools/ai-cli/
 RUN corepack prepare --activate && yarn install --immutable
