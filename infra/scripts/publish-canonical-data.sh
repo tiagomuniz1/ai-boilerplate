@@ -90,4 +90,4 @@ if [[ "$STATUS" != "Success" ]]; then
     --profile "$WORKLOAD_PROFILE" --region "$AWS_REGION" --query 'StandardErrorContent' --output text | tail -20 >&2 || true
   exit 1
 fi
-echo "Done. Canonical themes + medications published to ${ENVIRONMENT}."
+echo "Done. Canonical data (${DATASET}) published to ${ENVIRONMENT}."
