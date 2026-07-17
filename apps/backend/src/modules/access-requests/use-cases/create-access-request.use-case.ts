@@ -3,17 +3,20 @@ import { DataSource } from 'typeorm'
 import { CreateAccessRequestDto } from '@app/shared'
 import { BaseUseCase } from '../../../common/base.use-case'
 import { IAccessRequestEmailAdapter } from '../adapters/access-request-email.adapter.interface'
+import { IAccessRequestsRepository } from '../repositories/access-requests.repository.interface'
 
 @Injectable()
 export class CreateAccessRequestUseCase extends BaseUseCase {
   constructor(
     dataSource: DataSource,
+    private readonly accessRequestsRepository: IAccessRequestsRepository,
     private readonly accessRequestEmailAdapter: IAccessRequestEmailAdapter,
   ) {
     super(dataSource)
   }
 
   async execute(dto: CreateAccessRequestDto): Promise<void> {
+    await this.accessRequestsRepository.create(dto)
     await this.accessRequestEmailAdapter.sendAccessRequestEmail(dto)
   }
 }

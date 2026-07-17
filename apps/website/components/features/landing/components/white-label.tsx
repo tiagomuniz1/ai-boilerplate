@@ -1,4 +1,4 @@
-import Image from 'next/image'
+import { ScreenshotImage } from '@/components/ui/molecules/screenshot-image/screenshot-image'
 
 /** White-label — content section. Copy left, two branded login placeholders right (desktop). */
 export function WhiteLabel() {
@@ -16,14 +16,14 @@ export function WhiteLabel() {
           </p>
         </div>
         <div className="grid grid-cols-2 gap-4">
-          <Image
+          <ScreenshotImage
             src="/screenshots/login-dark.png"
             alt="Tela de login do Pulso com a marca da clínica em tema escuro."
             width={900}
             height={1200}
             className="w-full rounded-3xl border border-white/[0.12]"
           />
-          <Image
+          <ScreenshotImage
             src="/screenshots/login-light.png"
             alt="Tela de login do Pulso com a marca da clínica em tema claro."
             width={900}

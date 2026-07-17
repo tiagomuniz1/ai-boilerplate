@@ -1,4 +1,4 @@
-import { Body, Controller, HttpCode, Post } from '@nestjs/common'
+import { Body, Controller, Post } from '@nestjs/common'
 import { Throttle } from '@nestjs/throttler'
 import { CreateAccessRequestDto } from '@app/shared'
 import { Public } from '../../auth/decorators/public.decorator'
@@ -10,7 +10,6 @@ export class AccessRequestsController {
 
   @Post()
   @Public()
-  @HttpCode(202)
   @Throttle({ default: { limit: 5, ttl: 60000 } })
   create(@Body() dto: CreateAccessRequestDto): Promise<void> {
     return this.createAccessRequestUseCase.execute(dto)

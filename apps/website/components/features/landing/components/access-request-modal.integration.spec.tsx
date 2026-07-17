@@ -48,7 +48,17 @@ describe('AccessRequestModal (integration)', () => {
     })
   })
 
-  it('includes phone when filled in', async () => {
+  it('masks the phone number as the user types', async () => {
+    const user = userEvent.setup()
+    useAccessRequestModalStore.setState({ isOpen: true })
+    render(<AccessRequestModal />)
+
+    await user.type(screen.getByLabelText(/Telefone/), '11999998888')
+
+    expect(screen.getByLabelText(/Telefone/)).toHaveValue('(11) 99999-8888')
+  })
+
+  it('includes the masked phone when filled in', async () => {
     const user = userEvent.setup()
     mockCreate.mockResolvedValue(undefined)
     useAccessRequestModalStore.setState({ isOpen: true })
@@ -60,7 +70,7 @@ describe('AccessRequestModal (integration)', () => {
 
     await waitFor(() =>
       expect(mockCreate).toHaveBeenCalledWith(
-        expect.objectContaining({ phone: '11999998888' }),
+        expect.objectContaining({ phone: '(11) 99999-8888' }),
       ),
     )
   })

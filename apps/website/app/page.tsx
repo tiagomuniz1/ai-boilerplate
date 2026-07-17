@@ -7,11 +7,11 @@ import { AppointmentShowcase } from '@/components/features/landing/components/ap
 import { WhiteLabel } from '@/components/features/landing/components/white-label'
 import { HowItWorks } from '@/components/features/landing/components/how-it-works'
 import { Security } from '@/components/features/landing/components/security'
-import { SocialProof } from '@/components/features/landing/components/social-proof'
 import { Faq } from '@/components/features/landing/components/faq'
 import { FinalCta } from '@/components/features/landing/components/final-cta'
 import { Footer } from '@/components/features/landing/components/footer'
 import { AccessRequestModal } from '@/components/features/landing/components/access-request-modal'
+import { ImageLightbox } from '@/components/ui/molecules/image-lightbox/image-lightbox'
 
 export default function LandingPage() {
   return (
@@ -25,11 +25,12 @@ export default function LandingPage() {
       <WhiteLabel />
       <HowItWorks />
       <Security />
-      <SocialProof />
+      {/* SocialProof (depoimentos) temporarily hidden — no real testimonials to show yet. */}
       <Faq />
       <FinalCta />
       <Footer />
       <AccessRequestModal />
+      <ImageLightbox />
     </main>
   )
 }

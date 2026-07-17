@@ -1,4 +1,4 @@
-import Image from 'next/image'
+import { ScreenshotImage } from '@/components/ui/molecules/screenshot-image/screenshot-image'
 
 /** Consultation detail — content-bg section. Copy on the left, screenshot on the right (desktop). */
 export function AppointmentShowcase() {
@@ -16,7 +16,7 @@ export function AppointmentShowcase() {
           </p>
         </div>
         <div>
-          <Image
+          <ScreenshotImage
             src="/screenshots/consulta-detalhe.png"
             alt="Tela de detalhe de uma consulta no Pulso, com dados do paciente e abas de resumo, prontuário, receitas, atestados e exames."
             width={2930}

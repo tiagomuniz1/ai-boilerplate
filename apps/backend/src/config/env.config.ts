@@ -67,7 +67,7 @@ export function getEnvConfig(): IEnvConfig {
     SMTP_FROM: process.env.SMTP_FROM ?? 'noreply@pulso.center',
     // Inbox that receives every "solicitar acesso" submission from the institutional
     // website — whoever owns it decides whether to grant the requester a clinic.
-    ACCESS_REQUEST_TO_EMAIL: process.env.ACCESS_REQUEST_TO_EMAIL ?? 'tiagomuniz1@gmail.com',
+    ACCESS_REQUEST_TO_EMAIL: process.env.ACCESS_REQUEST_TO_EMAIL ?? 'contato@pulso.center',
   }
 }
 

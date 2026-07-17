@@ -1,5 +1,4 @@
 import { Logo } from '@/components/ui/atoms/logo/logo'
-import { ThemeToggle } from '@/components/ui/atoms/theme-toggle/theme-toggle'
 import { NAV_LINKS } from '@/lib/constants'
 import { RequestAccessCta } from './request-access-cta'
 
@@ -20,7 +19,6 @@ export function Navbar() {
             </a>
           ))}
         </div>
-        <ThemeToggle />
         <RequestAccessCta variant="primary" size="sm" data-testid="nav-cta">
           Solicitar acesso
         </RequestAccessCta>
