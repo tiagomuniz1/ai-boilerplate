@@ -2,11 +2,13 @@ import { cookies } from 'next/headers'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { RegisterClinicForm } from '@/components/features/clinics/components/register-clinic-form'
+import { isSubdomainMode } from '@/lib/subdomain'
 
 export default function RegisterPage({ params }: { params: { slug: string } }) {
   const cookieStore = cookies()
+  const basePath = isSubdomainMode() ? '' : `/${params.slug}`
   if (cookieStore.get('access_token')) {
-    redirect(`/${params.slug}/dashboard`)
+    redirect(`${basePath}/dashboard`)
   }
 
   return (
@@ -21,7 +23,7 @@ export default function RegisterPage({ params }: { params: { slug: string } }) {
         <RegisterClinicForm />
         <p className="text-center text-sm text-text-dim">
           Já tem uma conta?{' '}
-          <Link href={`/${params.slug}/login`} className="text-accent hover:underline">
+          <Link href={`${basePath}/login`} className="text-accent hover:underline">
             Fazer login
           </Link>
         </p>
