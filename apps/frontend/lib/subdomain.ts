@@ -25,3 +25,13 @@ export function extractSlugFromSubdomain(hostname: string): string | null {
   }
   return null
 }
+
+// Builds the URL to a clinic's own system from its slug, mirroring how the app
+// resolves the clinic at runtime:
+//   subdomain-mode (prod): absolute cross-origin URL `https://<slug>.<baseDomain>`
+//   path-mode (local dev): relative path `/<slug>` on the current host
+export function buildClinicSystemUrl(slug: string): string {
+  const baseDomain = getBaseDomain()
+  if (!baseDomain) return `/${slug}`
+  return `https://${slug}.${baseDomain}`
+}

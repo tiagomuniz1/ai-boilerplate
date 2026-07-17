@@ -173,6 +173,21 @@ describe('ClinicList (integration)', () => {
     expect(screen.getByTestId('clinic-add-user-link-uuid-1')).toBeInTheDocument()
   })
 
+  it('renders an "Abrir sistema" link pointing at the clinic system in a new tab', async () => {
+    ;(clinicsService.getAll as jest.Mock).mockResolvedValue(makePaginated())
+
+    renderWithProviders(<ClinicList />)
+
+    await waitFor(() => {
+      expect(screen.getByTestId('clinic-list-table')).toBeInTheDocument()
+    })
+
+    const link = screen.getByTestId('clinic-open-system-link-uuid-1')
+    expect(link).toHaveAttribute('href', '/clinica-do-coracao')
+    expect(link).toHaveAttribute('target', '_blank')
+    expect(link).toHaveAttribute('rel', 'noopener noreferrer')
+  })
+
   it('shows busca empty message when search yields no results', async () => {
     ;(clinicsService.getAll as jest.Mock).mockResolvedValue(makePaginated([]))
 
@@ -290,6 +305,10 @@ describe('ClinicList (integration)', () => {
     expect(screen.getByTestId('clinic-card-uuid-1')).toHaveTextContent('clinica-do-coracao')
     expect(screen.getByTestId('clinic-card-edit-link-uuid-1')).toBeInTheDocument()
     expect(screen.getByTestId('clinic-card-view-link-uuid-1')).toBeInTheDocument()
+    expect(screen.getByTestId('clinic-card-open-system-link-uuid-1')).toHaveAttribute(
+      'href',
+      '/clinica-do-coracao',
+    )
   })
 
   it('mobile card shows inactive badge for inactive clinics', async () => {
