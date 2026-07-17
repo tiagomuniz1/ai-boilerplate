@@ -1,7 +1,8 @@
 'use client'
 
-import { useEffect, useState, type FormEvent } from 'react'
+import { useEffect, useState, type ChangeEvent, type FormEvent } from 'react'
 import { useAccessRequestModalStore } from '@/stores/access-request-modal.store'
+import { applyPhoneMask } from '@/lib/format-phone'
 import { accessRequestsService } from '../services/access-requests.service'
 
 type Status = 'idle' | 'submitting' | 'success' | 'error'
@@ -11,6 +12,7 @@ export function AccessRequestModal() {
   const isOpen = useAccessRequestModalStore((s) => s.isOpen)
   const close = useAccessRequestModalStore((s) => s.close)
   const [status, setStatus] = useState<Status>('idle')
+  const [phone, setPhone] = useState('')
 
   useEffect(() => {
     if (!isOpen) return
@@ -23,15 +25,22 @@ export function AccessRequestModal() {
   }, [isOpen, close])
 
   useEffect(() => {
-    if (isOpen) setStatus('idle')
+    if (isOpen) {
+      setStatus('idle')
+      setPhone('')
+    }
   }, [isOpen])
 
   if (!isOpen) return null
 
+  function handlePhoneChange(event: ChangeEvent<HTMLInputElement>) {
+    setPhone(applyPhoneMask(event.target.value))
+  }
+
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     const form = new FormData(event.currentTarget)
-    const phone = String(form.get('phone') ?? '').trim()
+    const phoneValue = phone.trim()
 
     setStatus('submitting')
     try {
@@ -39,7 +48,7 @@ export function AccessRequestModal() {
         fullName: String(form.get('fullName') ?? '').trim(),
         email: String(form.get('email') ?? '').trim(),
         clinicName: String(form.get('clinicName') ?? '').trim(),
-        ...(phone ? { phone } : {}),
+        ...(phoneValue ? { phone: phoneValue } : {}),
       })
       setStatus('success')
     } catch {
@@ -147,6 +156,10 @@ export function AccessRequestModal() {
                 id="phone"
                 name="phone"
                 type="tel"
+                inputMode="tel"
+                placeholder="(11) 99999-9999"
+                value={phone}
+                onChange={handlePhoneChange}
                 disabled={status === 'submitting'}
                 className="w-full rounded-lg border border-soft-gray bg-content-card px-4 py-2.5 text-content-text outline-none focus:border-terracotta"
               />
