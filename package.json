@@ -10,8 +10,8 @@
     "tools/*"
   ],
   "scripts": {
-    "dev": "yarn workspace @app/shared build && concurrently \"yarn workspace @app/frontend dev\" \"yarn workspace @app/backend dev\"",
-    "dev:carga": "yarn workspace @app/shared build && concurrently \"yarn workspace @app/frontend dev\" \"yarn workspace @app/backend dev:carga\"",
+    "dev": "yarn workspace @app/shared build && concurrently -n frontend,backend,website \"yarn workspace @app/frontend dev\" \"yarn workspace @app/backend dev\" \"yarn workspace @app/website dev\"",
+    "dev:carga": "yarn workspace @app/shared build && concurrently -n frontend,backend,website \"yarn workspace @app/frontend dev\" \"yarn workspace @app/backend dev:carga\" \"yarn workspace @app/website dev\"",
     "build": "yarn workspace @app/frontend build && yarn workspace @app/backend build",
     "test": "yarn workspace @app/frontend test && yarn workspace @app/backend test",
     "ai": "yarn workspace @app/ai-cli ai",
