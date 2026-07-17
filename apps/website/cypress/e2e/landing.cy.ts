@@ -40,8 +40,23 @@ describe('Landing institucional', () => {
     })
   })
 
-  it('points the primary CTAs at the register flow', () => {
-    cy.get('[data-testid="hero-cta"]').should('have.attr', 'href').and('include', 'pulso.center')
-    cy.get('[data-testid="final-cta"]').should('have.attr', 'href').and('include', 'pulso.center')
+  it('opens and closes the access request modal from the hero CTA', () => {
+    cy.get('[data-testid="hero-cta"]').click()
+    cy.get('[data-testid="access-request-modal"]').should('be.visible')
+    cy.get('[data-testid="access-request-close"]').click()
+    cy.get('[data-testid="access-request-modal"]').should('not.exist')
+  })
+
+  it('submits an access request from the final CTA', () => {
+    cy.intercept('POST', '**/access-requests', { statusCode: 202 }).as('createAccessRequest')
+
+    cy.get('[data-testid="final-cta"]').click()
+    cy.get('#fullName').type('Ana Costa')
+    cy.get('#email').type('ana@clinica.com')
+    cy.get('#clinicName').type('Clínica do Vale')
+    cy.get('[data-testid="access-request-form"]').contains('button', 'Solicitar acesso').click()
+
+    cy.wait('@createAccessRequest')
+    cy.get('[data-testid="access-request-success"]').should('be.visible')
   })
 })

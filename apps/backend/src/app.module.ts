@@ -24,6 +24,7 @@ import { PrescriptionTemplatesModule } from './modules/prescription-templates/pr
 import { MedicalCertificatesModule } from './modules/medical-certificates/medical-certificates.module'
 import { ExamsModule } from './modules/exams/exams.module'
 import { DashboardModule } from './modules/dashboard/dashboard.module'
+import { AccessRequestsModule } from './modules/access-requests/access-requests.module'
 import { HttpExceptionFilter } from './common/filters/http-exception.filter'
 import { RequestIdInterceptor } from './common/interceptors/request-id.interceptor'
 import { JwtAuthGuard } from './modules/auth/guards/jwt-auth.guard'
@@ -57,6 +58,7 @@ import { RolesGuard } from './modules/auth/guards/roles.guard'
     MedicalCertificatesModule,
     ExamsModule,
     DashboardModule,
+    AccessRequestsModule,
   ],
   providers: [
     { provide: APP_FILTER, useClass: HttpExceptionFilter },

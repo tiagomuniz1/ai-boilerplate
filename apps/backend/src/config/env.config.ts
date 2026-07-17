@@ -22,6 +22,7 @@ export interface IEnvConfig {
   SMTP_USER: string | undefined
   SMTP_PASS: string | undefined
   SMTP_FROM: string
+  ACCESS_REQUEST_TO_EMAIL: string
 }
 
 export function getEnvConfig(): IEnvConfig {
@@ -64,6 +65,9 @@ export function getEnvConfig(): IEnvConfig {
     SMTP_USER: process.env.SMTP_USER,
     SMTP_PASS: process.env.SMTP_PASS,
     SMTP_FROM: process.env.SMTP_FROM ?? 'noreply@pulso.center',
+    // Inbox that receives every "solicitar acesso" submission from the institutional
+    // website — whoever owns it decides whether to grant the requester a clinic.
+    ACCESS_REQUEST_TO_EMAIL: process.env.ACCESS_REQUEST_TO_EMAIL ?? 'tiagomuniz1@gmail.com',
   }
 }
 

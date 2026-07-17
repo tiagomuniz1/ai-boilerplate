@@ -1,10 +1,5 @@
-/**
- * Public destination for every "Criar clínica grátis" CTA — the clinic self-service
- * registration flow (backed by `POST /clinics/register`). Configurable at build time via
- * `NEXT_PUBLIC_REGISTER_URL`; falls back to the staging environment.
- */
-export const REGISTER_URL =
-  process.env.NEXT_PUBLIC_REGISTER_URL || 'https://staging.pulso.center'
+/** Base URL of the Pulso API — used to submit "solicitar acesso" requests. */
+export const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://api.staging.pulso.center'
 
 export interface INavLink {
   href: string

@@ -16,8 +16,8 @@ COPY --from=deps /app/node_modules ./node_modules
 COPY --from=deps /app/package.json ./package.json
 COPY --from=deps /app/.yarnrc.yml ./.yarnrc.yml
 COPY . .
-ARG NEXT_PUBLIC_REGISTER_URL
-ENV NEXT_PUBLIC_REGISTER_URL=$NEXT_PUBLIC_REGISTER_URL
+ARG NEXT_PUBLIC_API_URL
+ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
 ENV NEXT_TELEMETRY_DISABLED=1
 RUN corepack prepare --activate && yarn workspace @app/website build
 
