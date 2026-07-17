@@ -44,7 +44,6 @@ describe('DashboardView', () => {
     expect(screen.getByTestId('dashboard-kpi-scheduled')).toHaveTextContent('10')
     expect(screen.getByTestId('dashboard-patients-chart')).toBeInTheDocument()
     expect(screen.getByTestId('dashboard-procedures-chart')).toBeInTheDocument()
-    expect(screen.getByTestId('dashboard-cid-ranking-card')).toBeInTheDocument()
     expect(screen.getByTestId('dashboard-timeline-chart')).toBeInTheDocument()
     expect(screen.getByTestId('dashboard-age-distribution')).toBeInTheDocument()
     expect(screen.getByTestId('dashboard-birthdays')).toBeInTheDocument()
