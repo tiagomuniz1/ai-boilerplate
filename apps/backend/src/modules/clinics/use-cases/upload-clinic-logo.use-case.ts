@@ -50,6 +50,7 @@ export class UploadClinicLogoUseCase extends BaseUseCase {
 
     try {
       await this.cacheService.del(`clinic:${clinicId}`)
+      await this.cacheService.del(`clinic:slug:${clinic.slug}`)
       await this.cacheService.delByPattern('clinics:list*')
     } catch {
       this.logger.warn('Cache invalidation failed', { context: UploadClinicLogoUseCase.name })

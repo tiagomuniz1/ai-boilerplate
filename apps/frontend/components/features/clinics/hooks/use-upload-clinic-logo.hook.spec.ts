@@ -65,6 +65,7 @@ describe('useUploadClinicLogo', () => {
     await waitFor(() => expect(result.current.isSuccess).toBe(true))
 
     expect(invalidate).toHaveBeenCalledWith({ queryKey: ['clinics', 'me'] })
+    expect(invalidate).toHaveBeenCalledWith({ queryKey: ['clinics', 'slug'] })
   })
 
   it('invalidates ["clinics", clinicId] on success with clinicId', async () => {
@@ -81,6 +82,7 @@ describe('useUploadClinicLogo', () => {
     await waitFor(() => expect(result.current.isSuccess).toBe(true))
 
     expect(invalidate).toHaveBeenCalledWith({ queryKey: ['clinics', 'clinic-uuid-1'] })
+    expect(invalidate).toHaveBeenCalledWith({ queryKey: ['clinics', 'slug'] })
   })
 
   it('does not invalidate queries on error', async () => {

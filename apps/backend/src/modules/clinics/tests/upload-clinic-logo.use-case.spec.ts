@@ -187,6 +187,7 @@ describe('UploadClinicLogoUseCase', () => {
     await useCase.execute(clinic.id, file)
 
     expect(mockCacheService.del).toHaveBeenCalledWith(`clinic:${clinic.id}`)
+    expect(mockCacheService.del).toHaveBeenCalledWith(`clinic:slug:${clinic.slug}`)
     expect(mockCacheService.delByPattern).toHaveBeenCalledWith('clinics:list*')
   })
 
