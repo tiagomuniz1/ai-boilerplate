@@ -1,6 +1,7 @@
 import { cookies } from 'next/headers'
 import { redirect } from 'next/navigation'
 import { LoginForm } from '@/components/features/auth/components/login-form'
+import { isSubdomainMode } from '@/lib/subdomain'
 
 interface ClinicBranding {
   name: string
@@ -25,7 +26,7 @@ async function getClinicBranding(slug: string): Promise<ClinicBranding | null> {
 export default async function LoginPage({ params }: { params: { slug: string } }) {
   const cookieStore = cookies()
   if (cookieStore.get(`access_token_${params.slug}`)) {
-    redirect(`/${params.slug}/dashboard`)
+    redirect(`${isSubdomainMode() ? '' : `/${params.slug}`}/dashboard`)
   }
 
   const branding = await getClinicBranding(params.slug)
