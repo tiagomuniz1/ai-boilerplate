@@ -1,12 +1,14 @@
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { Navbar } from './navbar'
-import { NAV_LINKS, REGISTER_URL } from '@/lib/constants'
+import { NAV_LINKS } from '@/lib/constants'
 import { useThemeStore } from '@/stores/theme.store'
+import { useAccessRequestModalStore } from '@/stores/access-request-modal.store'
 
 describe('Navbar (integration)', () => {
   beforeEach(() => {
     useThemeStore.setState({ theme: 'light' })
+    useAccessRequestModalStore.setState({ isOpen: false })
   })
 
   it('renders every anchor link pointing at its section', () => {
@@ -16,9 +18,11 @@ describe('Navbar (integration)', () => {
     })
   })
 
-  it('points the CTA at the register flow', () => {
+  it('opens the access request modal from the CTA', async () => {
+    const user = userEvent.setup()
     render(<Navbar />)
-    expect(screen.getByTestId('nav-cta')).toHaveAttribute('href', REGISTER_URL)
+    await user.click(screen.getByTestId('nav-cta'))
+    expect(useAccessRequestModalStore.getState().isOpen).toBe(true)
   })
 
   it('toggles the theme from the navbar', async () => {

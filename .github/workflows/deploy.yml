@@ -93,17 +93,14 @@ jobs:
         env:
           REGISTRY: ${{ steps.login-ecr.outputs.registry }}
           TAG: ${{ github.sha }}
-          NEXT_PUBLIC_BASE_DOMAIN: ${{ vars.NEXT_PUBLIC_BASE_DOMAIN }}
+          NEXT_PUBLIC_API_URL: ${{ vars.NEXT_PUBLIC_API_URL }}
         run: |
-          if [ -z "$NEXT_PUBLIC_BASE_DOMAIN" ]; then
-            echo "::error::NEXT_PUBLIC_BASE_DOMAIN must be set as a variable of the '${{ inputs.environment }}' GitHub Environment (used to derive the landing's register CTA)."
+          if [ -z "$NEXT_PUBLIC_API_URL" ]; then
+            echo "::error::NEXT_PUBLIC_API_URL must be set as a variable of the '${{ inputs.environment }}' GitHub Environment (baked into the website build — used by the 'Solicitar acesso' form)."
             exit 1
           fi
-          # The "Criar clínica grátis" CTA points at the clinic self-service
-          # registration, which the frontend serves at backoffice.<base-domain>/register.
-          REGISTER_URL="https://backoffice.${NEXT_PUBLIC_BASE_DOMAIN}/register"
           docker build -f apps/website/Dockerfile \
-            --build-arg NEXT_PUBLIC_REGISTER_URL="$REGISTER_URL" \
+            --build-arg NEXT_PUBLIC_API_URL="$NEXT_PUBLIC_API_URL" \
             -t "$REGISTRY/pulso-website:$TAG" \
             -t "$REGISTRY/pulso-website:latest" .
           docker push "$REGISTRY/pulso-website:$TAG"

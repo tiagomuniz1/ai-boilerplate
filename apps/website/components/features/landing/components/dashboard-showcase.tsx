@@ -1,4 +1,4 @@
-import { MediaPlaceholder } from '@/components/ui/atoms/media-placeholder/media-placeholder'
+import Image from 'next/image'
 
 /** Dashboard/analytics — content-alt section. Screenshot on the left, copy on the right (desktop). */
 export function DashboardShowcase() {
@@ -6,11 +6,13 @@ export function DashboardShowcase() {
     <section className="bg-content-alt px-10 py-section text-content-text">
       <div className="mx-auto grid max-w-content items-center gap-15 md:grid-cols-2">
         <div className="order-2 md:order-1">
-          <MediaPlaceholder tone="light" aspectClassName="aspect-[16/11]">
-            [ screenshot do produto ]
-            <br />
-            KPIs · gráficos · aniversariantes
-          </MediaPlaceholder>
+          <Image
+            src="/screenshots/dashboard.png"
+            alt="Dashboard do Pulso com KPIs de agendados, confirmados, atendidos e faltas, além de gráficos de pacientes, procedimentos e aniversariantes do dia."
+            width={2930}
+            height={1596}
+            className="w-full rounded-3xl border border-soft-gray"
+          />
         </div>
         <div className="order-1 md:order-2">
           <h2 className="mb-4 text-pretty text-6xl font-bold">

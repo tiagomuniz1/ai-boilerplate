@@ -1,4 +1,9 @@
-import { extractSlugFromSubdomain, getBaseDomain, isSubdomainMode } from './subdomain'
+import {
+  buildClinicSystemUrl,
+  extractSlugFromSubdomain,
+  getBaseDomain,
+  isSubdomainMode,
+} from './subdomain'
 
 describe('subdomain helpers', () => {
   const original = process.env.NEXT_PUBLIC_BASE_DOMAIN
@@ -25,6 +30,10 @@ describe('subdomain helpers', () => {
       expect(extractSlugFromSubdomain('clinica-a.pulso.center')).toBeNull()
     })
 
+    it('buildClinicSystemUrl returns a relative path', () => {
+      expect(buildClinicSystemUrl('clinica-a')).toBe('/clinica-a')
+    })
+
     it('treats an empty string base domain as path-mode', () => {
       process.env.NEXT_PUBLIC_BASE_DOMAIN = ''
       expect(isSubdomainMode()).toBe(false)
@@ -47,6 +56,10 @@ describe('subdomain helpers', () => {
 
     it('extracts a clinic slug from the subdomain', () => {
       expect(extractSlugFromSubdomain('clinica-a.pulso.center')).toBe('clinica-a')
+    })
+
+    it('buildClinicSystemUrl returns an absolute subdomain URL', () => {
+      expect(buildClinicSystemUrl('clinica-a')).toBe('https://clinica-a.pulso.center')
     })
 
     it('extracts the backoffice subdomain', () => {

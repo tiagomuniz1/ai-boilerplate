@@ -49,8 +49,8 @@ export const FEATURES: readonly IFeature[] = [
 export const STEPS: readonly IStep[] = [
   {
     number: '1',
-    title: 'Crie sua clínica',
-    description: 'Cadastro self-service em minutos. Sem burocracia.',
+    title: 'Solicite acesso',
+    description: 'Envie os dados da sua clínica — nossa equipe avalia e libera o acesso.',
   },
   {
     number: '2',

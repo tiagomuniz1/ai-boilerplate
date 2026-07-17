@@ -1,4 +1,4 @@
-import { MediaPlaceholder } from '@/components/ui/atoms/media-placeholder/media-placeholder'
+import Image from 'next/image'
 
 /** White-label — content section. Copy left, two branded login placeholders right (desktop). */
 export function WhiteLabel() {
@@ -16,16 +16,20 @@ export function WhiteLabel() {
           </p>
         </div>
         <div className="grid grid-cols-2 gap-4">
-          <MediaPlaceholder tone="dark" aspectClassName="aspect-[3/4]">
-            [ login clínica A ]
-            <br />
-            tema escuro
-          </MediaPlaceholder>
-          <MediaPlaceholder tone="light" aspectClassName="aspect-[3/4]">
-            [ login clínica B ]
-            <br />
-            tema claro
-          </MediaPlaceholder>
+          <Image
+            src="/screenshots/login-dark.png"
+            alt="Tela de login do Pulso com a marca da clínica em tema escuro."
+            width={900}
+            height={1200}
+            className="w-full rounded-3xl border border-white/[0.12]"
+          />
+          <Image
+            src="/screenshots/login-light.png"
+            alt="Tela de login do Pulso com a marca da clínica em tema claro."
+            width={900}
+            height={1200}
+            className="w-full rounded-3xl border border-soft-gray"
+          />
         </div>
       </div>
     </section>

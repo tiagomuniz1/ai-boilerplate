@@ -1,7 +1,7 @@
 import { Logo } from '@/components/ui/atoms/logo/logo'
-import { CtaLink } from '@/components/ui/atoms/cta-link/cta-link'
 import { ThemeToggle } from '@/components/ui/atoms/theme-toggle/theme-toggle'
-import { NAV_LINKS, REGISTER_URL } from '@/lib/constants'
+import { NAV_LINKS } from '@/lib/constants'
+import { RequestAccessCta } from './request-access-cta'
 
 /** Sticky top navbar — always dark by brand identity. */
 export function Navbar() {
@@ -21,9 +21,9 @@ export function Navbar() {
           ))}
         </div>
         <ThemeToggle />
-        <CtaLink href={REGISTER_URL} variant="primary" size="sm" data-testid="nav-cta">
-          Criar clínica grátis
-        </CtaLink>
+        <RequestAccessCta variant="primary" size="sm" data-testid="nav-cta">
+          Solicitar acesso
+        </RequestAccessCta>
       </div>
     </nav>
   )

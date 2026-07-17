@@ -155,6 +155,7 @@ export async function cargaSeed(dataSource: DataSource): Promise<void> {
 
   const specialtyEntities = await seedSpecialties(dataSource)
   await seedClinic(dataSource, specialtyEntities)
+  await seedPlatformAdminUser(dataSource)
   const adminUser = await seedAdminUser(dataSource)
   await seedCanonicalFields(dataSource)
   await seedTemplates(dataSource, specialtyEntities)
@@ -212,6 +213,22 @@ async function seedClinic(dataSource: DataSource, specialties: Specialty[]): Pro
     }
   }
   log(`${specialties.length} specialties linked to clinic.`)
+}
+
+async function seedPlatformAdminUser(dataSource: DataSource): Promise<User> {
+  const repo = dataSource.getRepository(User)
+  const email = 'platform@pulso-carga.center'
+  let user = await repo.findOneBy({ email })
+  if (!user) {
+    const password = await bcrypt.hash('carga123', 10)
+    user = await repo.save(
+      repo.create({ fullName: 'Platform Admin Carga', email, password, role: UserRole.PLATFORM_ADMIN, clinicId: null }),
+    )
+    log('Platform admin user created.')
+  } else {
+    log('Platform admin user already exists.')
+  }
+  return user
 }
 
 async function seedAdminUser(dataSource: DataSource): Promise<User> {

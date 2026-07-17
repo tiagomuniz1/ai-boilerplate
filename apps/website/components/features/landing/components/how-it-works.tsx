@@ -1,6 +1,5 @@
 import { StepCard } from '@/components/ui/molecules/step-card/step-card'
-import { CtaLink } from '@/components/ui/atoms/cta-link/cta-link'
-import { REGISTER_URL } from '@/lib/constants'
+import { RequestAccessCta } from './request-access-cta'
 import { STEPS } from '../constants/landing-content'
 
 /** Como funciona — content-alt section with three steps and a wine CTA. */
@@ -20,9 +19,9 @@ export function HowItWorks() {
           ))}
         </div>
         <div className="text-center">
-          <CtaLink href={REGISTER_URL} variant="wine" size="md">
-            Criar minha clínica grátis
-          </CtaLink>
+          <RequestAccessCta variant="wine" size="md">
+            Solicitar acesso ao sistema
+          </RequestAccessCta>
         </div>
       </div>
     </section>

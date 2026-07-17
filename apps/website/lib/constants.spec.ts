@@ -1,8 +1,8 @@
-import { NAV_LINKS, REGISTER_URL } from './constants'
+import { API_URL, NAV_LINKS } from './constants'
 
 describe('constants', () => {
-  it('exposes a register URL (falls back to staging without env override)', () => {
-    expect(REGISTER_URL).toBe('https://staging.pulso.center')
+  it('exposes an API URL (falls back to staging without env override)', () => {
+    expect(API_URL).toBe('https://api.staging.pulso.center')
   })
 
   it('lists the four navbar anchor links', () => {

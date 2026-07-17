@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/atoms/button/button'
 import { Input } from '@/components/ui/atoms/input/input'
 import { MobileListCard } from '@/components/ui/molecules/mobile-list-card/mobile-list-card'
 import { useThemes } from '@/components/features/themes/hooks/use-themes.hook'
+import { buildClinicSystemUrl } from '@/lib/subdomain'
 import { useClinics } from '../hooks/use-clinics.hook'
 import { ClinicListSkeleton } from './clinic-list-skeleton'
 
@@ -153,6 +154,15 @@ export function ClinicList() {
                       </td>
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-3">
+                          <a
+                            href={buildClinicSystemUrl(clinic.slug)}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            data-testid={`clinic-open-system-link-${clinic.id}`}
+                            className="text-xs text-text-mute hover:text-text transition-colors"
+                          >
+                            Abrir sistema
+                          </a>
                           <Link
                             href={`/backoffice/clinics/${clinic.id}/users/new`}
                             data-testid={`clinic-add-user-link-${clinic.id}`}
@@ -243,6 +253,15 @@ export function ClinicList() {
                   ]}
                   actions={
                     <>
+                      <a
+                        href={buildClinicSystemUrl(clinic.slug)}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        data-testid={`clinic-card-open-system-link-${clinic.id}`}
+                        className="text-xs text-text-mute hover:text-text transition-colors"
+                      >
+                        Abrir sistema
+                      </a>
                       <Link
                         href={`/backoffice/clinics/${clinic.id}/users/new`}
                         data-testid={`clinic-card-add-user-link-${clinic.id}`}

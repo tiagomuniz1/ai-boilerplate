@@ -1,5 +1,4 @@
-import { CtaLink } from '@/components/ui/atoms/cta-link/cta-link'
-import { REGISTER_URL } from '@/lib/constants'
+import { RequestAccessCta } from './request-access-cta'
 
 /** Closing CTA — solid wine, always fixed by brand identity. */
 export function FinalCta() {
@@ -10,14 +9,12 @@ export function FinalCta() {
           Sua clínica organizada, seus dados seguros. Comece agora.
         </h2>
         <p className="mb-8 text-xl text-wine-soft">
-          Crie sua clínica gratuitamente e veja o Pulso funcionando com o seu primeiro paciente.
+          Solicite acesso e veja o Pulso funcionando com o seu primeiro paciente.
         </p>
-        <CtaLink href={REGISTER_URL} variant="white" size="lg" data-testid="final-cta">
-          Criar minha clínica grátis
-        </CtaLink>
-        <p className="mt-4 text-xs text-wine-faint">
-          Sem cartão de crédito · Configuração em minutos
-        </p>
+        <RequestAccessCta variant="white" size="lg" data-testid="final-cta">
+          Solicitar acesso ao sistema
+        </RequestAccessCta>
+        <p className="mt-4 text-xs text-wine-faint">Acesso mediante aprovação prévia</p>
       </div>
     </section>
   )

@@ -7,6 +7,10 @@ describe('DashboardShowcase', () => {
     expect(
       screen.getByRole('heading', { name: 'Enxergue a clínica inteira em uma tela.' }),
     ).toBeInTheDocument()
-    expect(screen.getByText(/KPIs · gráficos · aniversariantes/)).toBeInTheDocument()
+    expect(
+      screen.getByAltText(
+        'Dashboard do Pulso com KPIs de agendados, confirmados, atendidos e faltas, além de gráficos de pacientes, procedimentos e aniversariantes do dia.',
+      ),
+    ).toBeInTheDocument()
   })
 })

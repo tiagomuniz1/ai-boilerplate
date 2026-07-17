@@ -14,6 +14,7 @@ export function useUploadClinicLogoDark(clinicId?: string) {
       queryClient.invalidateQueries({
         queryKey: clinicId ? ['clinics', clinicId] : ['clinics', 'me'],
       })
+      queryClient.invalidateQueries({ queryKey: ['clinics', 'slug'] })
     },
   })
 }

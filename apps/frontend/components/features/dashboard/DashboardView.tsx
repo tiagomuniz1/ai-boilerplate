@@ -7,7 +7,6 @@ import { DashboardKpiRow } from './components/DashboardKpiRow'
 import { PatientsChartCard } from './components/PatientsChartCard'
 import { ProceduresChartCard } from './components/ProceduresChartCard'
 import { InsuranceChartCard } from './components/InsuranceChartCard'
-import { CidRankingCard } from './components/CidRankingCard'
 import { AppointmentsTimelineCard } from './components/AppointmentsTimelineCard'
 import { AgeDistributionCard } from './components/AgeDistributionCard'
 import { BirthdayPanel } from './components/BirthdayPanel'
@@ -68,7 +67,6 @@ export function DashboardView() {
             <PatientsChartCard patients={data.patients} />
             <ProceduresChartCard procedures={data.procedures} />
             <InsuranceChartCard insurance={data.insurance} />
-            <CidRankingCard cidRanking={data.cidRanking} />
             <BirthdayPanel todayBirthdays={data.todayBirthdays} />
           </div>
 
