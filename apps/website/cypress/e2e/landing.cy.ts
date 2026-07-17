@@ -19,18 +19,6 @@ describe('Landing institucional', () => {
     cy.get('#perguntas').should('be.visible')
   })
 
-  it('toggles the content theme from the navbar', () => {
-    // The initial theme follows the browser's prefers-color-scheme, so assert the toggle
-    // flips the state relative to wherever it started rather than a fixed value.
-    cy.get('html').then(($html) => {
-      const startedDark = $html.hasClass('dark')
-      cy.get('[data-testid="theme-toggle"]').click()
-      cy.get('html').should(startedDark ? 'not.have.class' : 'have.class', 'dark')
-      cy.get('[data-testid="theme-toggle"]').click()
-      cy.get('html').should(startedDark ? 'have.class' : 'not.have.class', 'dark')
-    })
-  })
-
   it('expands and collapses a FAQ item', () => {
     cy.get('#perguntas').within(() => {
       cy.contains('button', 'Preciso instalar algo?').click()
@@ -48,7 +36,7 @@ describe('Landing institucional', () => {
   })
 
   it('submits an access request from the final CTA', () => {
-    cy.intercept('POST', '**/access-requests', { statusCode: 202 }).as('createAccessRequest')
+    cy.intercept('POST', '**/access-requests', { statusCode: 201 }).as('createAccessRequest')
 
     cy.get('[data-testid="final-cta"]').click()
     cy.get('#fullName').type('Ana Costa')
@@ -58,5 +46,20 @@ describe('Landing institucional', () => {
 
     cy.wait('@createAccessRequest')
     cy.get('[data-testid="access-request-success"]').should('be.visible')
+  })
+
+  it('does not show a light/dark theme toggle', () => {
+    cy.get('[data-testid="theme-toggle"]').should('not.exist')
+  })
+
+  it('does not render the testimonials section', () => {
+    cy.get('[data-testid="testimonial-placeholder"]').should('not.exist')
+  })
+
+  it('opens a screenshot in a lightbox and closes it', () => {
+    cy.get('[data-testid="screenshot-image-trigger"]').first().click()
+    cy.get('[data-testid="image-lightbox"]').should('be.visible')
+    cy.get('[data-testid="image-lightbox-close"]').click()
+    cy.get('[data-testid="image-lightbox"]').should('not.exist')
   })
 })

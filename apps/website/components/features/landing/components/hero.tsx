@@ -1,5 +1,5 @@
-import Image from 'next/image'
 import { CtaLink } from '@/components/ui/atoms/cta-link/cta-link'
+import { ScreenshotImage } from '@/components/ui/molecules/screenshot-image/screenshot-image'
 import { RequestAccessCta } from './request-access-cta'
 import { QrPattern } from './qr-pattern'
 
@@ -34,7 +34,7 @@ export function Hero() {
         </div>
 
         <div className="relative">
-          <Image
+          <ScreenshotImage
             src="/screenshots/agenda.png"
             alt="Agenda semanal do Pulso, com as consultas de cada médico organizadas por dia e status."
             width={2930}
