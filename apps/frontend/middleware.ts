@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
-import { extractSlugFromSubdomain, getBaseDomain } from '@/lib/subdomain'
+import { extractSlugFromSubdomain } from '@/lib/subdomain'
 
 const PUBLIC_SEGMENTS = ['/login', '/register', '/set-password', '/verify']
 
@@ -34,7 +34,9 @@ export async function middleware(request: NextRequest) {
   // Rota raiz
   if (pathname === '/') {
     if (isSubdomainMode) {
-      return NextResponse.redirect(`https://backoffice.${getBaseDomain()}/login`)
+      // Mantém o subdomínio atual (clínica ou backoffice) — nunca redireciona
+      // para backoffice a partir do subdomínio de outra clínica.
+      return NextResponse.redirect(new URL('/login', request.url))
     }
     return NextResponse.redirect(new URL('/backoffice/login', request.url))
   }
