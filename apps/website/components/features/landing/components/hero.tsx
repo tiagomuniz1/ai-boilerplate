@@ -6,7 +6,7 @@ import { QrPattern } from './qr-pattern'
 /** Hero — always dark, with a subtle terracotta diagonal texture. */
 export function Hero() {
   return (
-    <section className="relative overflow-hidden bg-midnight px-10 pb-hero-b pt-section text-warm-white">
+    <section className="relative overflow-hidden bg-midnight px-10 pb-hero-b pt-hero-t text-warm-white">
       <div
         className="pointer-events-none absolute inset-0 bg-hero-texture opacity-[0.35]"
         aria-hidden="true"
