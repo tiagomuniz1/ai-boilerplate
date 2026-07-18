@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/atoms/button/button'
 import { Typography } from '@/components/ui/atoms/typography/typography'
 import { UserForm } from '@/components/features/users/components/user-form'
 import { useCreateClinicAdminUser } from '@/components/features/users/hooks/use-create-clinic-admin-user.hook'
+import { useBasePath } from '@/lib/slug-context'
 import type { ICreateUserInput } from '@/components/features/users/types/user-input.types'
 import type { IApiError } from '@/types/api.types'
 
@@ -15,6 +16,7 @@ const CLINIC_ROLES = [UserRole.USER, UserRole.ADMIN]
 
 export default function NewClinicUserPage() {
   const { id: clinicId } = useParams<{ id: string }>()
+  const basePath = useBasePath()
   const { mutate, isPending } = useCreateClinicAdminUser(clinicId)
   const [globalError, setGlobalError] = useState<string | null>(null)
 
@@ -39,7 +41,7 @@ export default function NewClinicUserPage() {
   return (
     <main className="p-6 max-w-lg" data-testid="new-clinic-user-page">
       <div className="flex items-center gap-4 mb-6">
-        <Link href={`/backoffice/clinics/${clinicId}`}>
+        <Link href={`${basePath}/clinics/${clinicId}`}>
           <Button variant="ghost" size="sm" data-testid="new-clinic-user-back-button">
             ← Voltar
           </Button>

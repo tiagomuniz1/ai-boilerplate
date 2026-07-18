@@ -9,11 +9,13 @@ import { Alert } from '@/components/ui/molecules/alert/alert'
 import { ThemeForm } from '@/components/features/themes/components/theme-form'
 import { useTheme } from '@/components/features/themes/hooks/use-theme.hook'
 import { useUpdateTheme } from '@/components/features/themes/hooks/use-update-theme.hook'
+import { useBasePath } from '@/lib/slug-context'
 import type { IUpdateThemeInput } from '@/components/features/themes/types/theme-input.types'
 import type { IApiError } from '@/types/api.types'
 
 export default function EditThemePage() {
   const { id } = useParams<{ id: string }>()
+  const basePath = useBasePath()
   const { data: theme, isPending: isLoading, isError } = useTheme(id)
   const { mutate, isPending: isSaving } = useUpdateTheme(id)
   const [globalError, setGlobalError] = useState<string | null>(null)
@@ -37,7 +39,7 @@ export default function EditThemePage() {
   return (
     <main className="max-w-lg p-6" data-testid="edit-theme-page">
       <div className="mb-6 flex items-center gap-4">
-        <Link href="/backoffice/themes">
+        <Link href={`${basePath}/themes`}>
           <Button variant="ghost" size="sm" data-testid="edit-theme-back-button">
             ← Voltar
           </Button>

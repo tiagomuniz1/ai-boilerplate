@@ -7,6 +7,7 @@ import { Typography } from '@/components/ui/atoms/typography/typography'
 import { Alert } from '@/components/ui/molecules/alert/alert'
 import { useThemes } from '@/components/features/themes/hooks/use-themes.hook'
 import { useDeleteTheme } from '@/components/features/themes/hooks/use-delete-theme.hook'
+import { useBasePath } from '@/lib/slug-context'
 import type { IThemeModel } from '@/components/features/themes/types/theme-model.types'
 import type { IApiError } from '@/types/api.types'
 
@@ -33,6 +34,7 @@ function ThemeRow({
   onDelete: (id: string) => void
   isDeleting: boolean
 }) {
+  const basePath = useBasePath()
   return (
     <div
       data-testid={`theme-row-${theme.id}`}
@@ -64,7 +66,7 @@ function ThemeRow({
         </div>
       </div>
       <div className="flex items-center gap-2 shrink-0">
-        <Link href={`/backoffice/themes/${theme.id}/edit`}>
+        <Link href={`${basePath}/themes/${theme.id}/edit`}>
           <Button variant="ghost" size="sm" data-testid={`theme-edit-${theme.id}`}>
             Editar
           </Button>
@@ -87,6 +89,7 @@ function ThemeRow({
 }
 
 export default function ThemesPage() {
+  const basePath = useBasePath()
   const { data, isPending, isError } = useThemes()
   const { mutate: deleteTheme, isPending: isDeleting } = useDeleteTheme()
   const [deleteError, setDeleteError] = useState<string | null>(null)
@@ -105,7 +108,7 @@ export default function ThemesPage() {
     <main className="max-w-2xl p-6" data-testid="themes-page">
       <div className="mb-6 flex items-center justify-between">
         <Typography variant="h2">Temas</Typography>
-        <Link href="/backoffice/themes/new">
+        <Link href={`${basePath}/themes/new`}>
           <Button size="sm" data-testid="themes-new-button">
             + Novo tema
           </Button>

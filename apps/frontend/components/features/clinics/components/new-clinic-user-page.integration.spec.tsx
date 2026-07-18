@@ -1,5 +1,6 @@
 jest.mock('next/navigation', () => ({ useRouter: jest.fn(), useParams: jest.fn() }))
 jest.mock('@/components/features/users/hooks/use-create-clinic-admin-user.hook')
+jest.mock('@/lib/slug-context', () => ({ useBasePath: () => '/backoffice' }))
 
 import { screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'

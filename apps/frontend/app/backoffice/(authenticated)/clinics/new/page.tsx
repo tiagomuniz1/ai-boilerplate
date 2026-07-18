@@ -6,10 +6,12 @@ import { Button } from '@/components/ui/atoms/button/button'
 import { Typography } from '@/components/ui/atoms/typography/typography'
 import { ClinicForm } from '@/components/features/clinics/components/clinic-form'
 import { useCreateClinic } from '@/components/features/clinics/hooks/use-create-clinic.hook'
+import { useBasePath } from '@/lib/slug-context'
 import type { ICreateClinicInput } from '@/components/features/clinics/types/clinic.types'
 import type { IApiError } from '@/types/api.types'
 
 export default function NewClinicPage() {
+  const basePath = useBasePath()
   const { mutate, isPending } = useCreateClinic()
   const [globalError, setGlobalError] = useState<string | null>(null)
 
@@ -36,7 +38,7 @@ export default function NewClinicPage() {
   return (
     <main className="max-w-lg p-6" data-testid="new-clinic-page">
       <div className="mb-6 flex items-center gap-4">
-        <Link href="/backoffice/clinics">
+        <Link href={`${basePath}/clinics`}>
           <Button variant="ghost" size="sm" data-testid="new-clinic-back-button">
             ← Voltar
           </Button>

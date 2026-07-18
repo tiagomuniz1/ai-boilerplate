@@ -6,10 +6,12 @@ import { Button } from '@/components/ui/atoms/button/button'
 import { Typography } from '@/components/ui/atoms/typography/typography'
 import { ThemeForm } from '@/components/features/themes/components/theme-form'
 import { useCreateTheme } from '@/components/features/themes/hooks/use-create-theme.hook'
+import { useBasePath } from '@/lib/slug-context'
 import type { ICreateThemeInput } from '@/components/features/themes/types/theme-input.types'
 import type { IApiError } from '@/types/api.types'
 
 export default function NewThemePage() {
+  const basePath = useBasePath()
   const { mutate, isPending } = useCreateTheme()
   const [globalError, setGlobalError] = useState<string | null>(null)
 
@@ -32,7 +34,7 @@ export default function NewThemePage() {
   return (
     <main className="max-w-lg p-6" data-testid="new-theme-page">
       <div className="mb-6 flex items-center gap-4">
-        <Link href="/backoffice/themes">
+        <Link href={`${basePath}/themes`}>
           <Button variant="ghost" size="sm" data-testid="new-theme-back-button">
             ← Voltar
           </Button>

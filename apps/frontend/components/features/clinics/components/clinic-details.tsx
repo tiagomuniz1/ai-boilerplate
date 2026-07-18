@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { Button } from '@/components/ui/atoms/button/button'
 import { Typography } from '@/components/ui/atoms/typography/typography'
 import { useTheme } from '@/components/features/themes/hooks/use-theme.hook'
+import { useBasePath } from '@/lib/slug-context'
 import { ClinicUploadSection } from './clinic-upload-section'
 import { ClinicSpecialtySection } from '@/components/features/clinic-specialties/components/clinic-specialty-section'
 import type { IClinicModel } from '../types/clinic.types'
@@ -25,6 +26,7 @@ function DetailRow({ label, value, testId }: { label: string; value: string; tes
 
 export function ClinicDetails({ clinic }: ClinicDetailsProps) {
   const { data: theme } = useTheme(clinic.themeId ?? '')
+  const basePath = useBasePath()
 
   return (
     <div className="flex flex-col gap-6" data-testid="clinic-details">
@@ -38,12 +40,12 @@ export function ClinicDetails({ clinic }: ClinicDetailsProps) {
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <Link href={`/backoffice/clinics/${clinic.id}/users/new`}>
+          <Link href={`${basePath}/clinics/${clinic.id}/users/new`}>
             <Button variant="secondary" size="sm" data-testid="clinic-details-new-user-button">
               + Usuário
             </Button>
           </Link>
-          <Link href={`/backoffice/clinics/${clinic.id}/edit`}>
+          <Link href={`${basePath}/clinics/${clinic.id}/edit`}>
             <Button variant="ghost" size="sm" data-testid="clinic-details-edit-button">
               Editar
             </Button>
