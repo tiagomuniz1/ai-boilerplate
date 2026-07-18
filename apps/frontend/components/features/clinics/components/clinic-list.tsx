@@ -8,10 +8,12 @@ import { Input } from '@/components/ui/atoms/input/input'
 import { MobileListCard } from '@/components/ui/molecules/mobile-list-card/mobile-list-card'
 import { useThemes } from '@/components/features/themes/hooks/use-themes.hook'
 import { buildClinicSystemUrl } from '@/lib/subdomain'
+import { useBasePath } from '@/lib/slug-context'
 import { useClinics } from '../hooks/use-clinics.hook'
 import { ClinicListSkeleton } from './clinic-list-skeleton'
 
 export function ClinicList() {
+  const basePath = useBasePath()
   const [searchTerm, setSearchTerm] = useState('')
   const [debouncedSearch, setDebouncedSearch] = useState('')
 
@@ -42,7 +44,7 @@ export function ClinicList() {
             </p>
           )}
         </div>
-        <Link href="/backoffice/clinics/new" className="block sm:inline-block">
+        <Link href={`${basePath}/clinics/new`} className="block sm:inline-block">
           <Button variant="primary" data-testid="clinic-list-new-button" className="w-full sm:w-auto">
             + Nova clínica
           </Button>
@@ -164,21 +166,21 @@ export function ClinicList() {
                             Abrir sistema
                           </a>
                           <Link
-                            href={`/backoffice/clinics/${clinic.id}/users/new`}
+                            href={`${basePath}/clinics/${clinic.id}/users/new`}
                             data-testid={`clinic-add-user-link-${clinic.id}`}
                             className="text-xs text-text-mute hover:text-text transition-colors"
                           >
                             + Usuário
                           </Link>
                           <Link
-                            href={`/backoffice/clinics/${clinic.id}/edit`}
+                            href={`${basePath}/clinics/${clinic.id}/edit`}
                             data-testid={`clinic-edit-link-${clinic.id}`}
                             className="text-xs text-text-mute hover:text-text transition-colors"
                           >
                             Editar
                           </Link>
                           <Link
-                            href={`/backoffice/clinics/${clinic.id}`}
+                            href={`${basePath}/clinics/${clinic.id}`}
                             data-testid={`clinic-view-link-${clinic.id}`}
                             className="flex items-center justify-center rounded-md p-1.5 text-text-mute transition-colors hover:bg-line hover:text-text"
                             aria-label={`Ver detalhes de ${clinic.name}`}
@@ -263,21 +265,21 @@ export function ClinicList() {
                         Abrir sistema
                       </a>
                       <Link
-                        href={`/backoffice/clinics/${clinic.id}/users/new`}
+                        href={`${basePath}/clinics/${clinic.id}/users/new`}
                         data-testid={`clinic-card-add-user-link-${clinic.id}`}
                         className="text-xs text-text-mute hover:text-text transition-colors"
                       >
                         + Usuário
                       </Link>
                       <Link
-                        href={`/backoffice/clinics/${clinic.id}/edit`}
+                        href={`${basePath}/clinics/${clinic.id}/edit`}
                         data-testid={`clinic-card-edit-link-${clinic.id}`}
                         className="text-xs text-text-mute hover:text-text transition-colors"
                       >
                         Editar
                       </Link>
                       <Link
-                        href={`/backoffice/clinics/${clinic.id}`}
+                        href={`${basePath}/clinics/${clinic.id}`}
                         data-testid={`clinic-card-view-link-${clinic.id}`}
                         className="ml-auto flex items-center gap-1 text-xs text-text-mute transition-colors hover:text-text"
                       >

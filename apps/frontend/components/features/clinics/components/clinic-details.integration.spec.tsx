@@ -1,5 +1,6 @@
 jest.mock('next/navigation', () => ({ useRouter: jest.fn() }))
 jest.mock('@/components/features/themes/hooks/use-theme.hook')
+jest.mock('@/lib/slug-context', () => ({ useBasePath: () => '/backoffice' }))
 jest.mock('@/components/features/clinic-specialties/components/clinic-specialty-section', () => ({
   ClinicSpecialtySection: () => <div data-testid="clinic-specialty-section" />,
 }))

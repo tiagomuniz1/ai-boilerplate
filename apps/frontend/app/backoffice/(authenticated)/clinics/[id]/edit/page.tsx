@@ -10,11 +10,13 @@ import { ClinicForm } from '@/components/features/clinics/components/clinic-form
 import { ClinicDetailsSkeleton } from '@/components/features/clinics/components/clinic-details-skeleton'
 import { useClinic } from '@/components/features/clinics/hooks/use-clinic.hook'
 import { useUpdateClinic } from '@/components/features/clinics/hooks/use-update-clinic.hook'
+import { useBasePath } from '@/lib/slug-context'
 import type { IUpdateClinicInput } from '@/components/features/clinics/types/clinic.types'
 import type { IApiError } from '@/types/api.types'
 
 export default function EditClinicPage() {
   const { id } = useParams<{ id: string }>()
+  const basePath = useBasePath()
   const { data: clinic, isPending: isLoadingClinic, isError: isLoadError } = useClinic(id)
   const { mutate: updateClinic, isPending: isUpdating } = useUpdateClinic()
   const [globalError, setGlobalError] = useState<string | null>(null)
@@ -47,7 +49,7 @@ export default function EditClinicPage() {
   return (
     <main className="max-w-lg p-6" data-testid="edit-clinic-page">
       <div className="mb-6 flex items-center gap-4">
-        <Link href={id ? `/backoffice/clinics/${id}` : '/backoffice/clinics'}>
+        <Link href={id ? `${basePath}/clinics/${id}` : `${basePath}/clinics`}>
           <Button variant="ghost" size="sm" data-testid="edit-clinic-back-button">
             ← Voltar
           </Button>

@@ -1,11 +1,12 @@
 import { cookies } from 'next/headers'
 import { redirect } from 'next/navigation'
 import { LoginForm } from '@/components/features/auth/components/login-form'
+import { isSubdomainMode } from '@/lib/subdomain'
 
 export default function BackofficeLoginPage() {
   const cookieStore = cookies()
   if (cookieStore.get('access_token')) {
-    redirect('/backoffice/clinics')
+    redirect(`${isSubdomainMode() ? '' : '/backoffice'}/clinics`)
   }
 
   return (
