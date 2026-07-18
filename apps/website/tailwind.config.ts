@@ -107,7 +107,7 @@ const config: Config = {
                 '22': '5.5rem', // 88px
                 '26': '6.5rem', // 104px
                 section: '96px', // vertical section padding
-                'hero-t': '72px', // hero top padding — tighter than `section` to sit closer to the navbar
+                'hero-t': '88px', // hero top padding — slightly tighter than `section`
                 'hero-b': '110px', // hero bottom padding
             },
 
