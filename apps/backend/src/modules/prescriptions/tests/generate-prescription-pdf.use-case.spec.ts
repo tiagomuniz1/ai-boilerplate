@@ -1,6 +1,6 @@
 import { ForbiddenException, NotFoundException } from '@nestjs/common'
 import { DataSource } from 'typeorm'
-import { UserRole } from '@app/shared'
+import { CouncilType, UserRole } from '@app/shared'
 import { ICurrentUser } from '../../auth/types/current-user.type'
 import { IPrescriptionsRepository } from '../repositories/prescriptions.repository.interface'
 import { FindPrescriptionByIdUseCase } from '../use-cases/find-prescription-by-id.use-case'
@@ -33,7 +33,7 @@ const doctorUser: ICurrentUser = { id: 'doctor-user-id', role: UserRole.PROFESSI
 const makeSnapshot = () => ({
   issuedAt: '2026-01-05T10:00:00.000Z',
   clinic: { name: 'Clínica', address: null, logoUrl: null },
-  doctor: { name: 'Dr. Test', crmNumber: '12345/SP', rqe: null, specialtyName: null },
+  professional: { name: 'Dr. Test', councilType: CouncilType.CRM, registrationNumber: '12345/SP', registryNumber: null, specialtyName: null },
   patient: { name: 'Patient', documentNumber: '12345678901' },
   items: [{ medicationId: 'med', name: 'Dipirona', activeIngredient: null, instructions: 'Tomar 1 cp' }],
   notes: null,

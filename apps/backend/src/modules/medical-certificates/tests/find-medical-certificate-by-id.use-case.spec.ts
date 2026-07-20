@@ -1,6 +1,6 @@
 import { ForbiddenException, NotFoundException } from '@nestjs/common'
 import { DataSource } from 'typeorm'
-import { MedicalCertificateType, UserRole } from '@app/shared'
+import { CouncilType, MedicalCertificateType, UserRole } from '@app/shared'
 import { ICurrentUser } from '../../auth/types/current-user.type'
 import { IProfessionalsRepository } from '../../professionals/repositories/professionals.repository.interface'
 import { IMedicalCertificatesRepository } from '../repositories/medical-certificates.repository.interface'
@@ -24,7 +24,7 @@ const makeCertificate = (overrides = {}) => ({
     issuedAt: new Date().toISOString(),
     type: MedicalCertificateType.ATTENDANCE,
     clinic: { name: 'Clinic', address: null, logoUrl: null },
-    doctor: { name: 'Doctor', crmNumber: '12345/SP', rqe: null, specialtyName: null },
+    professional: { name: 'Doctor', councilType: CouncilType.CRM, registrationNumber: '12345/SP', registryNumber: null, specialtyName: null },
     patient: { name: 'Patient', documentNumber: '12345678900' },
     daysOff: null,
     startDate: null,

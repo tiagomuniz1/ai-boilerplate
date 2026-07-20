@@ -1,5 +1,6 @@
 import { NotFoundException } from '@nestjs/common'
 import { DataSource } from 'typeorm'
+import { CouncilType } from '@app/shared'
 import { IPrescriptionsRepository } from '../repositories/prescriptions.repository.interface'
 import { VerifyPrescriptionUseCase } from '../use-cases/verify-prescription.use-case'
 
@@ -14,7 +15,7 @@ const makePrescription = (overrides: Record<string, any> = {}) => ({
   snapshot: {
     issuedAt: '2026-01-05T10:00:00.000Z',
     clinic: { name: 'Clínica Saúde', address: null, logoUrl: null },
-    doctor: { name: 'Dr. João Silva', crmNumber: '12345/SP', rqe: null, specialtyName: 'Cardiologia' },
+    professional: { name: 'Dr. João Silva', councilType: CouncilType.CRM, registrationNumber: '12345/SP', registryNumber: null, specialtyName: 'Cardiologia' },
     patient: { name: 'Maria Santos', documentNumber: '12345678901' },
     items: [
       {
@@ -56,7 +57,8 @@ describe('VerifyPrescriptionUseCase', () => {
     expect(result).toEqual({
       clinicName: 'Clínica Saúde',
       professionalName: 'Dr. João Silva',
-      doctorCrmNumber: '12345/SP',
+      professionalCouncilType: CouncilType.CRM,
+      professionalRegistrationNumber: '12345/SP',
       specialtyName: 'Cardiologia',
       patientNameMasked: 'Maria S.',
       patientDocumentMasked: '***.***.789-**',
@@ -65,6 +67,32 @@ describe('VerifyPrescriptionUseCase', () => {
         { name: 'Dipirona', activeIngredient: 'dipirona sódica', dosage: '500mg', quantity: '1 caixa' },
       ],
     })
+  })
+
+  it('returns the correct council type for a non-CRM professional', async () => {
+    mockPrescriptionsRepository.findByVerificationToken.mockResolvedValue(
+      makePrescription({
+        snapshot: {
+          issuedAt: '2026-01-05T10:00:00.000Z',
+          clinic: { name: 'Clínica Saúde', address: null, logoUrl: null },
+          professional: {
+            name: 'Ana Nutricionista',
+            councilType: CouncilType.CRN,
+            registrationNumber: '9876543/SP',
+            registryNumber: null,
+            specialtyName: null,
+          },
+          patient: { name: 'Maria Santos', documentNumber: '12345678901' },
+          items: [],
+          notes: null,
+        },
+      }) as any,
+    )
+
+    const result = await useCase.execute('a'.repeat(64))
+
+    expect(result.professionalCouncilType).toBe(CouncilType.CRN)
+    expect(result.professionalRegistrationNumber).toBe('9876543/SP')
   })
 
   it('throws NotFoundException when token does not exist', async () => {
@@ -92,7 +120,7 @@ describe('VerifyPrescriptionUseCase', () => {
         snapshot: {
           issuedAt: '2026-01-05T10:00:00.000Z',
           clinic: { name: 'Clínica', address: null, logoUrl: null },
-          doctor: { name: 'Dr. X', crmNumber: '1/SP', rqe: null, specialtyName: null },
+          professional: { name: 'Dr. X', councilType: CouncilType.CRM, registrationNumber: '1/SP', registryNumber: null, specialtyName: null },
           patient: { name: 'Ana', documentNumber: '123' },
           items: [],
           notes: null,
@@ -111,7 +139,7 @@ describe('VerifyPrescriptionUseCase', () => {
         snapshot: {
           issuedAt: '2026-01-05T10:00:00.000Z',
           clinic: { name: 'Clínica', address: null, logoUrl: null },
-          doctor: { name: 'Dr. X', crmNumber: '1/SP', rqe: null, specialtyName: null },
+          professional: { name: 'Dr. X', councilType: CouncilType.CRM, registrationNumber: '1/SP', registryNumber: null, specialtyName: null },
           patient: { name: 'Cher', documentNumber: '12345678901' },
           items: [],
           notes: null,
@@ -130,7 +158,7 @@ describe('VerifyPrescriptionUseCase', () => {
         snapshot: {
           issuedAt: '2026-01-05T10:00:00.000Z',
           clinic: { name: 'Clínica', address: null, logoUrl: null },
-          doctor: { name: 'Dr. X', crmNumber: '1/SP', rqe: null, specialtyName: null },
+          professional: { name: 'Dr. X', councilType: CouncilType.CRM, registrationNumber: '1/SP', registryNumber: null, specialtyName: null },
           patient: { name: 'Ana Lima', documentNumber: '12345678901' },
           items: [{ medicationId: null, name: 'Amoxicilina', activeIngredient: null, instructions: 'Tomar' }],
           notes: null,

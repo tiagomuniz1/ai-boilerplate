@@ -1,6 +1,6 @@
 import { ForbiddenException, NotFoundException, UnprocessableEntityException } from '@nestjs/common'
 import { DataSource } from 'typeorm'
-import { AppointmentStatus, MedicalCertificateType, UserRole } from '@app/shared'
+import { CouncilType, AppointmentStatus, MedicalCertificateType, UserRole } from '@app/shared'
 import { ICurrentUser } from '../../auth/types/current-user.type'
 import { IAppointmentsRepository } from '../../appointments/repositories/appointments.repository.interface'
 import { IProfessionalsRepository } from '../../professionals/repositories/professionals.repository.interface'
@@ -73,7 +73,7 @@ const makeSavedCertificate = (overrides = {}) => ({
     issuedAt: new Date().toISOString(),
     type: MedicalCertificateType.LEAVE,
     clinic: { name: 'Test Clinic', address: null, logoUrl: null },
-    doctor: { name: 'Doctor Smith', crmNumber: '12345/SP', rqe: null, specialtyName: 'Cardiologia' },
+    professional: { name: 'Doctor Smith', councilType: CouncilType.CRM, registrationNumber: '12345/SP', registryNumber: null, specialtyName: 'Cardiologia' },
     patient: { name: 'Patient Jones', documentNumber: '12345678900' },
     daysOff: 3,
     startDate: '2026-01-05',
@@ -250,8 +250,8 @@ describe('CreateMedicalCertificateUseCase', () => {
 
     const createCall = mockMedicalCertificatesRepository.create.mock.calls[0][0]
     expect(createCall.snapshot.clinic.name).toBe('Test Clinic')
-    expect(createCall.snapshot.doctor.crmNumber).toBe('12345/SP')
-    expect(createCall.snapshot.doctor.specialtyName).toBe('Cardiologia')
+    expect(createCall.snapshot.professional.registrationNumber).toBe('12345/SP')
+    expect(createCall.snapshot.professional.specialtyName).toBe('Cardiologia')
     expect(createCall.snapshot.patient.documentNumber).toBe('12345678900')
   })
 
@@ -261,7 +261,7 @@ describe('CreateMedicalCertificateUseCase', () => {
     await useCase.execute(leaveDto as any, adminUser)
 
     const createCall = mockMedicalCertificatesRepository.create.mock.calls[0][0]
-    expect(createCall.snapshot.doctor.specialtyName).toBeNull()
+    expect(createCall.snapshot.professional.specialtyName).toBeNull()
   })
 
   it('sets specialtyName to null when doctor has no matching specialty', async () => {
@@ -270,7 +270,7 @@ describe('CreateMedicalCertificateUseCase', () => {
     await useCase.execute(leaveDto as any, adminUser)
 
     const createCall = mockMedicalCertificatesRepository.create.mock.calls[0][0]
-    expect(createCall.snapshot.doctor.specialtyName).toBeNull()
+    expect(createCall.snapshot.professional.specialtyName).toBeNull()
   })
 
   it('preserves observations in snapshot', async () => {

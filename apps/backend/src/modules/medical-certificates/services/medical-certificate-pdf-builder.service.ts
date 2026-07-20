@@ -1,6 +1,6 @@
 import { Injectable, OnModuleInit } from '@nestjs/common'
 import * as path from 'path'
-import { MedicalCertificateSnapshot, MedicalCertificateType } from '@app/shared'
+import { COUNCIL_TYPE_LABELS, MedicalCertificateSnapshot, MedicalCertificateType } from '@app/shared'
 
 // pdfmake 0.3.x server-side singleton — configured once at module init
 // eslint-disable-next-line @typescript-eslint/no-require-imports
@@ -38,7 +38,7 @@ export class MedicalCertificatePdfBuilderService implements OnModuleInit {
     const content: object[] = []
 
     content.push(...this.buildHeader(snapshot, logoBase64))
-    content.push({ text: 'Atestado Médico', style: 'title', alignment: 'center', margin: [0, 20, 0, 16] })
+    content.push({ text: 'Atestado', style: 'title', alignment: 'center', margin: [0, 20, 0, 16] })
     content.push(...this.buildBody(snapshot))
     if (snapshot.observations) content.push(...this.buildObservations(snapshot.observations))
     content.push(...this.buildFooter(snapshot))
@@ -132,16 +132,18 @@ export class MedicalCertificatePdfBuilderService implements OnModuleInit {
     const dateFormatted = `${issuedAt.getUTCDate()} de ${MONTHS_PT[issuedAt.getUTCMonth()]} de ${issuedAt.getUTCFullYear()}`
     const cityDateLine = city ? `${city}, ${dateFormatted}` : dateFormatted
 
-    const specialtyLine = snapshot.doctor.specialtyName
-      ? { text: snapshot.doctor.specialtyName, fontSize: 9 }
+    const specialtyLine = snapshot.professional.specialtyName
+      ? { text: snapshot.professional.specialtyName, fontSize: 9 }
       : null
+
+    const councilLabel = COUNCIL_TYPE_LABELS[snapshot.professional.councilType]
 
     const footerStack: object[] = [
       { text: cityDateLine, style: 'footerCity' },
       { canvas: [{ type: 'line', x1: 0, y1: 0, x2: 200, y2: 0, lineWidth: 0.5 }], margin: [0, 0, 0, 4] },
-      { text: snapshot.doctor.name, bold: true },
+      { text: snapshot.professional.name, bold: true },
       {
-        text: `CRM ${snapshot.doctor.crmNumber}${snapshot.doctor.rqe ? ` · RQE ${snapshot.doctor.rqe}` : ''}`,
+        text: `${councilLabel} ${snapshot.professional.registrationNumber}${snapshot.professional.registryNumber ? ` · RQE ${snapshot.professional.registryNumber}` : ''}`,
         fontSize: 9,
       },
     ]

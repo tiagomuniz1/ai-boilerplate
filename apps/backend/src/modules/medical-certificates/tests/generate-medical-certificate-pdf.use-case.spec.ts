@@ -1,6 +1,6 @@
 import { ForbiddenException, NotFoundException } from '@nestjs/common'
 import { DataSource } from 'typeorm'
-import { MedicalCertificateType, UserRole } from '@app/shared'
+import { CouncilType, MedicalCertificateType, UserRole } from '@app/shared'
 import { ICurrentUser } from '../../auth/types/current-user.type'
 import { IMedicalCertificatesRepository } from '../repositories/medical-certificates.repository.interface'
 import { FindMedicalCertificateByIdUseCase } from '../use-cases/find-medical-certificate-by-id.use-case'
@@ -18,7 +18,7 @@ const makeSnapshot = () => ({
   issuedAt: '2026-01-05T10:00:00.000Z',
   type: MedicalCertificateType.LEAVE,
   clinic: { name: 'Clínica', address: null, logoUrl: null },
-  doctor: { name: 'Dr. Test', crmNumber: '12345/SP', rqe: null, specialtyName: null },
+  professional: { name: 'Dr. Test', councilType: CouncilType.CRM, registrationNumber: '12345/SP', registryNumber: null, specialtyName: null },
   patient: { name: 'Patient', documentNumber: '12345678901' },
   daysOff: 3,
   startDate: '2026-01-05',

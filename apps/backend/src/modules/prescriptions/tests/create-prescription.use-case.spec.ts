@@ -1,6 +1,6 @@
 import { ForbiddenException, NotFoundException, UnprocessableEntityException } from '@nestjs/common'
 import { DataSource } from 'typeorm'
-import { AppointmentStatus, UserRole } from '@app/shared'
+import { CouncilType, AppointmentStatus, UserRole } from '@app/shared'
 import { ICurrentUser } from '../../auth/types/current-user.type'
 import { IAppointmentsRepository } from '../../appointments/repositories/appointments.repository.interface'
 import { IProfessionalsRepository } from '../../professionals/repositories/professionals.repository.interface'
@@ -81,7 +81,7 @@ const makeSavedPrescription = () => ({
   snapshot: {
     issuedAt: new Date().toISOString(),
     clinic: { name: 'Test Clinic', address: null, logoUrl: null },
-    doctor: { name: 'Doctor Smith', crmNumber: '12345/SP', rqe: null, specialtyName: 'Cardiologia' },
+    professional: { name: 'Doctor Smith', councilType: CouncilType.CRM, registrationNumber: '12345/SP', registryNumber: null, specialtyName: 'Cardiologia' },
     patient: { name: 'Patient Jones', documentNumber: '12345678900' },
     items: [{ medicationId, name: 'Dipirona', activeIngredient: 'dipirona sódica', dosage: null, quantity: null, instructions: 'Tomar 1 cp a cada 6h' }],
     notes: null,
@@ -216,8 +216,8 @@ describe('CreatePrescriptionUseCase', () => {
 
     const createCall = mockPrescriptionsRepository.create.mock.calls[0][0]
     expect(createCall.snapshot.clinic.name).toBe('Test Clinic')
-    expect(createCall.snapshot.doctor.crmNumber).toBe('12345/SP')
-    expect(createCall.snapshot.doctor.specialtyName).toBe('Cardiologia')
+    expect(createCall.snapshot.professional.registrationNumber).toBe('12345/SP')
+    expect(createCall.snapshot.professional.specialtyName).toBe('Cardiologia')
     expect(createCall.snapshot.patient.documentNumber).toBe('12345678900')
     expect(createCall.snapshot.items[0].name).toBe('Dipirona')
     expect(createCall.snapshot.items[0].activeIngredient).toBe('dipirona sódica')
@@ -242,9 +242,9 @@ describe('CreatePrescriptionUseCase', () => {
     await useCase.execute({ ...baseDto, crmId: 'crm-2', specialtyId: altSpecialtyId }, adminUser)
 
     const createCall = mockPrescriptionsRepository.create.mock.calls[0][0]
-    expect(createCall.snapshot.doctor.crmNumber).toBe('67890/RJ')
-    expect(createCall.snapshot.doctor.rqe).toBe('222')
-    expect(createCall.snapshot.doctor.specialtyName).toBe('mastologista')
+    expect(createCall.snapshot.professional.registrationNumber).toBe('67890/RJ')
+    expect(createCall.snapshot.professional.registryNumber).toBe('222')
+    expect(createCall.snapshot.professional.specialtyName).toBe('mastologista')
   })
 
   it('rejects an unknown specialtyId that does not belong to the doctor', async () => {
@@ -302,7 +302,7 @@ describe('CreatePrescriptionUseCase', () => {
     await useCase.execute(baseDto, adminUser)
 
     const createCall = mockPrescriptionsRepository.create.mock.calls[0][0]
-    expect(createCall.snapshot.doctor.specialtyName).toBeNull()
+    expect(createCall.snapshot.professional.specialtyName).toBeNull()
   })
 
   it('sets specialtyName to null when doctor has no matching specialty', async () => {
@@ -311,7 +311,7 @@ describe('CreatePrescriptionUseCase', () => {
     await useCase.execute(baseDto, adminUser)
 
     const createCall = mockPrescriptionsRepository.create.mock.calls[0][0]
-    expect(createCall.snapshot.doctor.specialtyName).toBeNull()
+    expect(createCall.snapshot.professional.specialtyName).toBeNull()
   })
 
   it('preserves notes in snapshot', async () => {

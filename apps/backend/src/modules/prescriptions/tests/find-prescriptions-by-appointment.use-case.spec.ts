@@ -1,6 +1,6 @@
 import { ForbiddenException, NotFoundException } from '@nestjs/common'
 import { DataSource } from 'typeorm'
-import { UserRole } from '@app/shared'
+import { CouncilType, UserRole } from '@app/shared'
 import { ICurrentUser } from '../../auth/types/current-user.type'
 import { IAppointmentsRepository } from '../../appointments/repositories/appointments.repository.interface'
 import { IProfessionalsRepository } from '../../professionals/repositories/professionals.repository.interface'
@@ -25,7 +25,7 @@ const makePrescription = () => ({
   snapshot: {
     issuedAt: new Date().toISOString(),
     clinic: { name: 'Clinic', address: null, logoUrl: null },
-    doctor: { name: 'Doctor', crmNumber: '12345/SP', rqe: null, specialtyName: null },
+    professional: { name: 'Doctor', councilType: CouncilType.CRM, registrationNumber: '12345/SP', registryNumber: null, specialtyName: null },
     patient: { name: 'Patient', documentNumber: '12345678900' },
     items: [],
     notes: null,

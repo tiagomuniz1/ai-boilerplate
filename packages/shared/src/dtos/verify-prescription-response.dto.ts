@@ -1,3 +1,5 @@
+import { CouncilType } from '../enums/council-type.enum'
+
 export class VerifyPrescriptionItemDto {
   name!: string
   activeIngredient!: string | null
@@ -8,7 +10,8 @@ export class VerifyPrescriptionItemDto {
 export class VerifyPrescriptionResponseDto {
   clinicName!: string
   professionalName!: string
-  doctorCrmNumber!: string
+  professionalCouncilType!: CouncilType
+  professionalRegistrationNumber!: string
   specialtyName!: string | null
   patientNameMasked!: string
   patientDocumentMasked!: string

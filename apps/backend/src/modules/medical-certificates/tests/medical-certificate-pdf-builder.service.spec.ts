@@ -1,5 +1,5 @@
 import { MedicalCertificatePdfBuilderService } from '../services/medical-certificate-pdf-builder.service'
-import { MedicalCertificateSnapshot, MedicalCertificateType } from '@app/shared'
+import { CouncilType, MedicalCertificateSnapshot, MedicalCertificateType } from '@app/shared'
 
 const makeSnapshot = (overrides: Partial<MedicalCertificateSnapshot> = {}): MedicalCertificateSnapshot => ({
   issuedAt: '2026-06-28T10:00:00.000Z',
@@ -17,7 +17,7 @@ const makeSnapshot = (overrides: Partial<MedicalCertificateSnapshot> = {}): Medi
     },
     logoUrl: null,
   },
-  doctor: { name: 'Dr. João Silva', crmNumber: '12345/SP', rqe: null, specialtyName: 'Clínica Geral' },
+  professional: { name: 'Dr. João Silva', councilType: CouncilType.CRM, registrationNumber: '12345/SP', registryNumber: null, specialtyName: 'Clínica Geral' },
   patient: { name: 'Maria Santos', documentNumber: '12345678901' },
   daysOff: 3,
   startDate: '2026-01-05',
@@ -97,7 +97,7 @@ describe('MedicalCertificatePdfBuilderService', () => {
 
   it('generates PDF without specialty when specialtyName is null', async () => {
     const buffer = await service.build(
-      makeSnapshot({ doctor: { name: 'Dr. Test', crmNumber: '99999/SP', rqe: null, specialtyName: null } }),
+      makeSnapshot({ professional: { name: 'Dr. Test', councilType: CouncilType.CRM, registrationNumber: '99999/SP', registryNumber: null, specialtyName: null } }),
       null,
     )
 
@@ -106,7 +106,24 @@ describe('MedicalCertificatePdfBuilderService', () => {
 
   it('generates PDF including the RQE next to the CRM when present', async () => {
     const buffer = await service.build(
-      makeSnapshot({ doctor: { name: 'Dr. Test', crmNumber: '12345/SP', rqe: '222', specialtyName: 'mastologista' } }),
+      makeSnapshot({ professional: { name: 'Dr. Test', councilType: CouncilType.CRM, registrationNumber: '12345/SP', registryNumber: '222', specialtyName: 'mastologista' } }),
+      null,
+    )
+
+    expect(buffer.slice(0, 4).toString('ascii')).toBe('%PDF')
+  })
+
+  it('generates PDF for a professional with a non-CRM council type (no RQE segment)', async () => {
+    const buffer = await service.build(
+      makeSnapshot({
+        professional: {
+          name: 'Ana Nutricionista',
+          councilType: CouncilType.CRN,
+          registrationNumber: '9876543/SP',
+          registryNumber: null,
+          specialtyName: null,
+        },
+      }),
       null,
     )
 

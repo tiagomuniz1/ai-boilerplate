@@ -19,7 +19,7 @@ import { CacheService } from '../../../cache/cache.service'
 import { ICurrentUser } from '../../auth/types/current-user.type'
 import { IAppointmentsRepository } from '../../appointments/repositories/appointments.repository.interface'
 import { IProfessionalsRepository } from '../../professionals/repositories/professionals.repository.interface'
-import { resolveDoctorSigningIdentity } from '../../professionals/utils/resolve-doctor-signing-identity'
+import { resolveProfessionalSigningIdentity } from '../../professionals/utils/resolve-professional-signing-identity'
 import { IPatientsRepository } from '../../patients/repositories/patients.repository.interface'
 import { FindClinicByIdUseCase } from '../../clinics/use-cases/find-clinic-by-id.use-case'
 import { IMedicalCertificatesRepository } from '../repositories/medical-certificates.repository.interface'
@@ -32,7 +32,7 @@ export function toMedicalCertificateResponse(certificate: MedicalCertificate): M
     patientId: certificate.patientId,
     patientName: certificate.snapshot.patient.name,
     professionalId: certificate.professionalId,
-    professionalName: certificate.snapshot.doctor.name,
+    professionalName: certificate.snapshot.professional.name,
     type: certificate.snapshot.type,
     daysOff: certificate.snapshot.daysOff,
     startDate: certificate.snapshot.startDate,
@@ -85,7 +85,7 @@ export class CreateMedicalCertificateUseCase extends BaseUseCase {
     const professional = doctorForRbac ?? (await this.professionalsRepository.findById(appointment.professionalId, clinicId))
     if (!professional) throw new NotFoundException('Professional not found')
 
-    const { crmNumber, rqe, specialtyName } = resolveDoctorSigningIdentity(
+    const { councilType, registrationNumber, registryNumber, specialtyName } = resolveProfessionalSigningIdentity(
       professional,
       appointment.specialtyId,
       dto.crmId,
@@ -116,10 +116,11 @@ export class CreateMedicalCertificateUseCase extends BaseUseCase {
           : null,
         logoUrl: clinic.logoUrl,
       },
-      doctor: {
+      professional: {
         name: professional.user.fullName,
-        crmNumber,
-        rqe,
+        councilType,
+        registrationNumber,
+        registryNumber,
         specialtyName,
       },
       patient: {

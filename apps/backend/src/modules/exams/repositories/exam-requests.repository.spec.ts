@@ -1,5 +1,5 @@
 import { QueryRunner, Repository } from 'typeorm'
-import { ExamRequestStatus } from '@app/shared'
+import { CouncilType, ExamRequestStatus } from '@app/shared'
 import { ExamRequest } from '../entities/exam-request.entity'
 import { ExamRequestsRepository } from './exam-requests.repository'
 import { CreateExamRequestData } from './exam-requests.repository.interface'
@@ -24,7 +24,7 @@ function makeExamRequestData(): CreateExamRequestData {
     snapshot: {
       issuedAt: new Date().toISOString(),
       clinic: { name: 'Clinic', address: null, logoUrl: null },
-      doctor: { name: 'Doctor', crmNumber: '12345/SP', rqe: null, specialtyName: null },
+      professional: { name: 'Doctor', councilType: CouncilType.CRM, registrationNumber: '12345/SP', registryNumber: null, specialtyName: null },
       patient: { name: 'Patient', documentNumber: '12345678900' },
       items: [{ name: 'Hemograma', observations: null }],
       notes: null,

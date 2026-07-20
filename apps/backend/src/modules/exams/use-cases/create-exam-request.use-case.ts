@@ -19,7 +19,7 @@ import { CacheService } from '../../../cache/cache.service'
 import { ICurrentUser } from '../../auth/types/current-user.type'
 import { IAppointmentsRepository } from '../../appointments/repositories/appointments.repository.interface'
 import { IProfessionalsRepository } from '../../professionals/repositories/professionals.repository.interface'
-import { resolveDoctorSigningIdentity } from '../../professionals/utils/resolve-doctor-signing-identity'
+import { resolveProfessionalSigningIdentity } from '../../professionals/utils/resolve-professional-signing-identity'
 import { IPatientsRepository } from '../../patients/repositories/patients.repository.interface'
 import { FindClinicByIdUseCase } from '../../clinics/use-cases/find-clinic-by-id.use-case'
 import { IExamRequestsRepository } from '../repositories/exam-requests.repository.interface'
@@ -44,7 +44,7 @@ export function toExamRequestResponse(examRequest: ExamRequest, results: ExamRes
     patientId: examRequest.patientId,
     patientName: examRequest.snapshot.patient.name,
     professionalId: examRequest.professionalId,
-    professionalName: examRequest.snapshot.doctor.name,
+    professionalName: examRequest.snapshot.professional.name,
     items: examRequest.snapshot.items.map((item) => ({
       name: item.name,
       observations: item.observations ?? null,
@@ -96,7 +96,7 @@ export class CreateExamRequestUseCase extends BaseUseCase {
     const professional = doctorForRbac ?? (await this.professionalsRepository.findById(appointment.professionalId, clinicId))
     if (!professional) throw new NotFoundException('Professional not found')
 
-    const { crmNumber, rqe, specialtyName } = resolveDoctorSigningIdentity(
+    const { councilType, registrationNumber, registryNumber, specialtyName } = resolveProfessionalSigningIdentity(
       professional,
       appointment.specialtyId,
       dto.crmId,
@@ -125,10 +125,11 @@ export class CreateExamRequestUseCase extends BaseUseCase {
           : null,
         logoUrl: clinic.logoUrl,
       },
-      doctor: {
+      professional: {
         name: professional.user.fullName,
-        crmNumber,
-        rqe,
+        councilType,
+        registrationNumber,
+        registryNumber,
         specialtyName,
       },
       patient: {

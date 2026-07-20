@@ -1,6 +1,6 @@
 import { ForbiddenException, NotFoundException } from '@nestjs/common'
 import { DataSource, QueryRunner } from 'typeorm'
-import { ExamRequestStatus, UserRole } from '@app/shared'
+import { CouncilType, ExamRequestStatus, UserRole } from '@app/shared'
 import { ICurrentUser } from '../../auth/types/current-user.type'
 import { IProfessionalsRepository } from '../../professionals/repositories/professionals.repository.interface'
 import { IExamRequestsRepository } from '../repositories/exam-requests.repository.interface'
@@ -42,7 +42,7 @@ const makeExamRequest = (overrides = {}) => ({
   snapshot: {
     issuedAt: new Date().toISOString(),
     clinic: { name: 'Clinic', address: null, logoUrl: null },
-    doctor: { name: 'Doctor', crmNumber: '12345/SP', rqe: null, specialtyName: null },
+    professional: { name: 'Doctor', councilType: CouncilType.CRM, registrationNumber: '12345/SP', registryNumber: null, specialtyName: null },
     patient: { name: 'Patient', documentNumber: '12345678900' },
     items: [],
     notes: null,

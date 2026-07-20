@@ -708,7 +708,8 @@ describe('PrescriptionsController (integration)', () => {
 
       expect(body.clinicName).toBe('Prescriptions Clinic')
       expect(body.professionalName).toBe('Doctor Smith')
-      expect(body.doctorCrmNumber).toBe('11111/SP')
+      expect(body.professionalCouncilType).toBe('crm')
+      expect(body.professionalRegistrationNumber).toBe('11111/SP')
       expect(body.items).toHaveLength(1)
       expect(body.items[0].name).toBe('Dipirona 500mg')
       expect(body.items[0].activeIngredient).toBe('dipirona sódica')

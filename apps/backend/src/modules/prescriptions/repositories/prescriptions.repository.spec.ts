@@ -1,4 +1,5 @@
 import { QueryRunner, Repository } from 'typeorm'
+import { CouncilType } from '@app/shared'
 import { Prescription } from '../entities/prescription.entity'
 import { PrescriptionsRepository } from './prescriptions.repository'
 import { CreatePrescriptionData } from './prescriptions.repository.interface'
@@ -22,7 +23,7 @@ function makePrescriptionData(): CreatePrescriptionData {
     snapshot: {
       issuedAt: new Date().toISOString(),
       clinic: { name: 'Clinic', address: null, logoUrl: null },
-      doctor: { name: 'Doctor', crmNumber: '12345/SP', rqe: null, specialtyName: null },
+      professional: { name: 'Doctor', councilType: CouncilType.CRM, registrationNumber: '12345/SP', registryNumber: null, specialtyName: null },
       patient: { name: 'Patient', documentNumber: '12345678900' },
       items: [{ medicationId: 'med-uuid', name: 'Dipirona', activeIngredient: null, instructions: 'Tomar 1 cp' }],
       notes: null,
