@@ -55,7 +55,7 @@ export default function ProfessionalDetailsPage() {
 
       {isError && (
         <Alert variant="error" data-testid="professional-details-error">
-          Não foi possível carregar os dados do médico. Verifique o ID e tente novamente.
+          Não foi possível carregar os dados do profissional. Verifique o ID e tente novamente.
         </Alert>
       )}
 

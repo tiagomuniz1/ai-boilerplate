@@ -9,7 +9,7 @@ import { Input } from '@/components/ui/atoms/input/input'
 import { Button } from '@/components/ui/atoms/button/button'
 import { Alert } from '@/components/ui/molecules/alert/alert'
 import { cn } from '@/lib/cn'
-import { CouncilType, UserRole } from '@app/shared'
+import { CouncilType, COUNCIL_REGISTRATION_FORMATS, COUNCIL_TYPE_LABELS, UserRole } from '@app/shared'
 import { useAuthStore } from '@/stores/auth.store'
 import { userService } from '@/components/features/users/services/users.service'
 import { clinicSpecialtiesService } from '@/components/features/clinic-specialties/services/clinic-specialties.service'
@@ -21,18 +21,34 @@ const BRAZILIAN_STATES = [
   'PA', 'PB', 'PR', 'PE', 'PI', 'RJ', 'RN', 'RS', 'RO', 'RR', 'SC', 'SP', 'SE', 'TO',
 ]
 
+const COUNCIL_TYPES = Object.values(CouncilType)
+
+// Permissive keystroke filter shared by every council format (digits, uppercase letters, "/" and "-").
+// The exact shape per councilType is enforced by COUNCIL_REGISTRATION_FORMATS[...].numberPattern at submit.
+function filterRegistrationNumber(raw: string, councilType: CouncilType): string {
+  const format = COUNCIL_REGISTRATION_FORMATS[councilType]
+  const sanitized = raw.toUpperCase().replace(/[^0-9A-Z/-]/g, '')
+  return sanitized.slice(0, format.numberMaxLength)
+}
+
 const registrationsField = z
   .array(
     z.object({
+      councilType: z.nativeEnum(CouncilType),
       number: z.string(),
       state: z.string(),
       isPrimary: z.boolean(),
     }),
   )
-  .min(1, 'Informe ao menos um CRM')
+  .min(1, 'Informe ao menos um registro profissional')
   .refine(
-    (registrations) => registrations.every((crm) => /^\d{1,6}$/.test(crm.number) && /^[A-Z]{2}$/.test(crm.state)),
-    'Preencha número e UF de todos os CRMs',
+    (registrations) =>
+      registrations.every(
+        (registration) =>
+          COUNCIL_REGISTRATION_FORMATS[registration.councilType].numberPattern.test(registration.number) &&
+          /^[A-Z]{2}$/.test(registration.state),
+      ),
+    'Preencha número e UF de todos os registros no formato esperado',
   )
 
 const specialtiesField = z
@@ -85,10 +101,6 @@ type UpdateFormValues = z.infer<typeof updateSchema>
 
 type SpecialtyValue = { specialtyId: string; registryNumber?: string }
 
-// The form only collects CRM registrations for now — the council-type selector is
-// introduced in the dedicated form rework task.
-type RegistrationDraft = { number: string; state: string; isPrimary: boolean }
-
 function fieldArrayError(error: unknown): string | undefined {
   const err = error as { message?: string; root?: { message?: string } } | undefined
   return err?.message ?? err?.root?.message
@@ -101,8 +113,10 @@ function toProfessionalSpecialtiesInput(specialties: SpecialtyValue[]) {
   }))
 }
 
-function toProfessionalRegistrationsInput(registrations: RegistrationDraft[]): IProfessionalRegistrationInput[] {
-  return registrations.map((registration) => ({ ...registration, councilType: CouncilType.CRM }))
+// RQE is exclusive to CRM — the specialty group only collects it when the professional's
+// primary registration is CRM, regardless of any other registrations they may also hold.
+function showsRegistryNumber(registrations: IProfessionalRegistrationInput[]): boolean {
+  return registrations.find((registration) => registration.isPrimary)?.councilType === CouncilType.CRM
 }
 
 interface ProfessionalFormCreateProps {
@@ -151,7 +165,7 @@ function ProfessionalFormCreate({ isPending, globalError, onSubmit }: Profession
     resolver: zodResolver(createSchema),
     defaultValues: {
       userMode: 'existing',
-      registrations: [{ number: '', state: '', isPrimary: true }],
+      registrations: [{ councilType: CouncilType.CRM, number: '', state: '', isPrimary: true }],
       specialties: [],
     },
   })
@@ -178,14 +192,14 @@ function ProfessionalFormCreate({ isPending, globalError, onSubmit }: Profession
       data.userMode === 'existing'
         ? {
             userId: data.userId,
-            registrations: toProfessionalRegistrationsInput(data.registrations),
+            registrations: data.registrations,
             specialties: toProfessionalSpecialtiesInput(data.specialties),
             bio: data.bio || undefined,
           }
         : {
             fullName: data.fullName,
             email: data.email,
-            registrations: toProfessionalRegistrationsInput(data.registrations),
+            registrations: data.registrations,
             specialties: toProfessionalSpecialtiesInput(data.specialties),
             bio: data.bio || undefined,
           }
@@ -267,7 +281,7 @@ function ProfessionalFormCreate({ isPending, globalError, onSubmit }: Profession
         )}
 
         <RegistrationListField
-          value={registrationsFieldCtl.value as RegistrationDraft[]}
+          value={registrationsFieldCtl.value as IProfessionalRegistrationInput[]}
           onChange={registrationsFieldCtl.onChange}
           error={fieldArrayError(errors.registrations)}
         />
@@ -276,6 +290,7 @@ function ProfessionalFormCreate({ isPending, globalError, onSubmit }: Profession
           specialties={specialties}
           value={specialtyField.value as SpecialtyValue[]}
           isLoading={isLoadingSpecialties}
+          showRegistryNumber={showsRegistryNumber(registrationsFieldCtl.value as IProfessionalRegistrationInput[])}
           onToggle={toggleSpecialty}
           onRqeChange={changeRqe}
         />
@@ -294,7 +309,7 @@ function ProfessionalFormCreate({ isPending, globalError, onSubmit }: Profession
           disabled={isPending}
           data-testid="professional-form-submit"
         >
-          {isPending ? 'Salvando...' : 'Criar médico'}
+          {isPending ? 'Salvando...' : 'Criar profissional'}
         </Button>
       </div>
     </form>
@@ -317,7 +332,12 @@ function ProfessionalFormEdit({ defaultValues, isPending, globalError, onSubmit 
   } = useForm<UpdateFormValues>({
     resolver: zodResolver(updateSchema),
     defaultValues: {
-      registrations: defaultValues.registrations.map((c) => ({ number: c.number, state: c.state, isPrimary: c.isPrimary })),
+      registrations: defaultValues.registrations.map((c) => ({
+        councilType: c.councilType,
+        number: c.number,
+        state: c.state,
+        isPrimary: c.isPrimary,
+      })),
       specialties: defaultValues.specialties.map((s) => ({ specialtyId: s.id, registryNumber: s.registryNumber ?? '' })),
       isActive: defaultValues.user.isActive,
     },
@@ -339,7 +359,12 @@ function ProfessionalFormEdit({ defaultValues, isPending, globalError, onSubmit 
 
   useEffect(() => {
     reset({
-      registrations: defaultValues.registrations.map((c) => ({ number: c.number, state: c.state, isPrimary: c.isPrimary })),
+      registrations: defaultValues.registrations.map((c) => ({
+        councilType: c.councilType,
+        number: c.number,
+        state: c.state,
+        isPrimary: c.isPrimary,
+      })),
       specialties: defaultValues.specialties.map((s) => ({ specialtyId: s.id, registryNumber: s.registryNumber ?? '' })),
       bio: defaultValues.bio ?? '',
       isActive: defaultValues.user.isActive,
@@ -348,7 +373,7 @@ function ProfessionalFormEdit({ defaultValues, isPending, globalError, onSubmit 
 
   function handleFormSubmit(data: UpdateFormValues) {
     const input: IUpdateProfessionalInput = {
-      registrations: toProfessionalRegistrationsInput(data.registrations),
+      registrations: data.registrations,
       specialties: toProfessionalSpecialtiesInput(data.specialties),
       bio: data.bio || undefined,
       isActive: isAdmin ? data.isActive : undefined,
@@ -395,7 +420,7 @@ function ProfessionalFormEdit({ defaultValues, isPending, globalError, onSubmit 
         </div>
 
         <RegistrationListField
-          value={registrationsFieldCtl.value as RegistrationDraft[]}
+          value={registrationsFieldCtl.value as IProfessionalRegistrationInput[]}
           onChange={registrationsFieldCtl.onChange}
           error={fieldArrayError(errors.registrations)}
         />
@@ -404,6 +429,7 @@ function ProfessionalFormEdit({ defaultValues, isPending, globalError, onSubmit 
           specialties={specialties}
           value={specialtyField.value as SpecialtyValue[]}
           isLoading={isLoadingSpecialties}
+          showRegistryNumber={showsRegistryNumber(registrationsFieldCtl.value as IProfessionalRegistrationInput[])}
           onToggle={toggleSpecialty}
           onRqeChange={changeRqe}
         />
@@ -425,7 +451,7 @@ function ProfessionalFormEdit({ defaultValues, isPending, globalError, onSubmit 
               className="h-4 w-4 rounded border-line accent-accent"
               {...register('isActive')}
             />
-            <span className="text-sm text-text">Médico ativo</span>
+            <span className="text-sm text-text">Profissional ativo</span>
           </label>
         )}
 
@@ -447,97 +473,128 @@ function RegistrationListField({
   onChange,
   error,
 }: {
-  value: RegistrationDraft[]
-  onChange: (value: RegistrationDraft[]) => void
+  value: IProfessionalRegistrationInput[]
+  onChange: (value: IProfessionalRegistrationInput[]) => void
   error?: string
 }) {
-  function setNumber(index: number, raw: string) {
-    const number = raw.replace(/\D/g, '').slice(0, 6)
-    onChange(value.map((crm, idx) => (idx === index ? { ...crm, number } : crm)))
+  function setCouncilType(index: number, councilType: CouncilType) {
+    onChange(value.map((registration, idx) => (idx === index ? { ...registration, councilType } : registration)))
+  }
+
+  function setNumber(index: number, raw: string, councilType: CouncilType) {
+    const number = filterRegistrationNumber(raw, councilType)
+    onChange(value.map((registration, idx) => (idx === index ? { ...registration, number } : registration)))
   }
 
   function setState(index: number, raw: string) {
     const state = raw.replace(/[^A-Za-z]/g, '').toUpperCase().slice(0, 2)
-    onChange(value.map((crm, idx) => (idx === index ? { ...crm, state } : crm)))
+    onChange(value.map((registration, idx) => (idx === index ? { ...registration, state } : registration)))
   }
 
   function setPrimary(index: number) {
-    onChange(value.map((crm, idx) => ({ ...crm, isPrimary: idx === index })))
+    onChange(value.map((registration, idx) => ({ ...registration, isPrimary: idx === index })))
   }
 
   function addRegistration() {
-    onChange([...value, { number: '', state: '', isPrimary: value.length === 0 }])
+    onChange([...value, { councilType: CouncilType.CRM, number: '', state: '', isPrimary: value.length === 0 }])
   }
 
   function removeRegistration(index: number) {
     const next = value.filter((_, idx) => idx !== index)
-    if (next.length > 0 && !next.some((crm) => crm.isPrimary)) {
+    if (next.length > 0 && !next.some((registration) => registration.isPrimary)) {
       next[0] = { ...next[0], isPrimary: true }
     }
     onChange(next)
   }
 
   return (
-    <div className="flex flex-col gap-1.5" data-testid="professional-form-crm-group">
-      <label className="text-sm font-medium text-text">CRM</label>
+    <div className="flex flex-col gap-1.5" data-testid="professional-form-registration-group">
+      <label className="text-sm font-medium text-text">Registros Profissionais</label>
       <div className="flex flex-col gap-2">
-        {value.map((crm, index) => (
-          <div key={index} className="flex items-center gap-2" data-testid={`professional-form-crm-row-${index}`}>
-            <input
-              type="text"
-              inputMode="numeric"
-              autoComplete="off"
-              maxLength={6}
-              placeholder="12345"
-              value={crm.number}
-              onChange={(e) => setNumber(index, e.target.value)}
-              data-testid={`professional-form-crm-number-${index}`}
-              className="h-10 w-28 rounded-md border border-line bg-surface px-3 text-base text-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
-            />
-            <select
-              value={crm.state}
-              onChange={(e) => setState(index, e.target.value)}
-              data-testid={`professional-form-crm-state-${index}`}
-              className="h-10 w-20 rounded-md border border-line bg-surface px-2 text-base text-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+        {value.map((registration, index) => {
+          const format = COUNCIL_REGISTRATION_FORMATS[registration.councilType]
+          return (
+            <div
+              key={index}
+              className="flex items-center gap-2"
+              data-testid={`professional-form-registration-row-${index}`}
             >
-              <option value="">UF</option>
-              {BRAZILIAN_STATES.map((uf) => (
-                <option key={uf} value={uf}>
-                  {uf}
-                </option>
-              ))}
-            </select>
-            <label className="flex cursor-pointer items-center gap-1.5 text-sm text-text">
-              <input
-                type="radio"
-                name="primary-crm"
-                checked={crm.isPrimary}
-                onChange={() => setPrimary(index)}
-                data-testid={`professional-form-crm-primary-${index}`}
-                className="accent-accent"
-              />
-              Principal
-            </label>
-            {value.length > 1 && (
-              <button
-                type="button"
-                onClick={() => removeRegistration(index)}
-                data-testid={`professional-form-crm-remove-${index}`}
-                className="text-sm text-danger hover:underline"
+              <select
+                value={registration.councilType}
+                onChange={(e) => setCouncilType(index, e.target.value as CouncilType)}
+                data-testid={`professional-form-registration-council-type-${index}`}
+                className="h-10 w-28 rounded-md border border-line bg-surface px-2 text-base text-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
               >
-                Remover
-              </button>
-            )}
-          </div>
-        ))}
+                {COUNCIL_TYPES.map((councilType) => (
+                  <option key={councilType} value={councilType}>
+                    {COUNCIL_TYPE_LABELS[councilType]}
+                  </option>
+                ))}
+              </select>
+              <div className="flex flex-col gap-0.5">
+                <label
+                  htmlFor={`professional-form-registration-number-${index}`}
+                  className="text-[10px] font-medium uppercase tracking-wide text-text-mute"
+                >
+                  {format.label}
+                </label>
+                <input
+                  id={`professional-form-registration-number-${index}`}
+                  type="text"
+                  autoComplete="off"
+                  maxLength={format.numberMaxLength}
+                  placeholder={format.numberPlaceholder}
+                  value={registration.number}
+                  onChange={(e) => setNumber(index, e.target.value, registration.councilType)}
+                  data-testid={`professional-form-registration-number-${index}`}
+                  className="h-10 w-32 rounded-md border border-line bg-surface px-3 text-base text-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+                />
+              </div>
+              <select
+                value={registration.state}
+                onChange={(e) => setState(index, e.target.value)}
+                data-testid={`professional-form-registration-state-${index}`}
+                className="h-10 w-20 rounded-md border border-line bg-surface px-2 text-base text-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+              >
+                <option value="">UF</option>
+                {BRAZILIAN_STATES.map((uf) => (
+                  <option key={uf} value={uf}>
+                    {uf}
+                  </option>
+                ))}
+              </select>
+              <label className="flex cursor-pointer items-center gap-1.5 text-sm text-text">
+                <input
+                  type="radio"
+                  name="primary-registration"
+                  checked={registration.isPrimary}
+                  onChange={() => setPrimary(index)}
+                  data-testid={`professional-form-registration-primary-${index}`}
+                  className="accent-accent"
+                />
+                Principal
+              </label>
+              {value.length > 1 && (
+                <button
+                  type="button"
+                  onClick={() => removeRegistration(index)}
+                  data-testid={`professional-form-registration-remove-${index}`}
+                  className="text-sm text-danger hover:underline"
+                >
+                  Remover
+                </button>
+              )}
+            </div>
+          )
+        })}
       </div>
       <button
         type="button"
         onClick={addRegistration}
-        data-testid="professional-form-crm-add"
+        data-testid="professional-form-registration-add"
         className="self-start text-sm text-accent hover:underline"
       >
-        + Adicionar CRM
+        + Adicionar registro
       </button>
       {error && (
         <span role="alert" className="text-xs text-danger">
@@ -552,12 +609,14 @@ function SpecialtyCheckboxGroup({
   specialties,
   value,
   isLoading,
+  showRegistryNumber,
   onToggle,
   onRqeChange,
 }: {
   specialties: Array<{ id: string; name: string }>
   value: SpecialtyValue[]
   isLoading: boolean
+  showRegistryNumber: boolean
   onToggle: (id: string) => void
   onRqeChange: (id: string, value: string) => void
 }) {
@@ -593,7 +652,7 @@ function SpecialtyCheckboxGroup({
                     />
                     {specialty.name}
                   </label>
-                  {checked && (
+                  {checked && showRegistryNumber && (
                     <input
                       type="text"
                       inputMode="numeric"

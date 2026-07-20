@@ -43,8 +43,8 @@ const existingProfessional: IProfessionalModel = {
 }
 
 function fillFirstRegistration(number = '12345', state = 'SP') {
-  fireEvent.change(screen.getByTestId('professional-form-crm-number-0'), { target: { value: number } })
-  fireEvent.change(screen.getByTestId('professional-form-crm-state-0'), { target: { value: state } })
+  fireEvent.change(screen.getByTestId('professional-form-registration-number-0'), { target: { value: number } })
+  fireEvent.change(screen.getByTestId('professional-form-registration-state-0'), { target: { value: state } })
 }
 
 describe('ProfessionalForm (integration) — create mode', () => {
@@ -63,9 +63,9 @@ describe('ProfessionalForm (integration) — create mode', () => {
 
     expect(screen.getByTestId('professional-form-user-mode')).toBeInTheDocument()
     expect(screen.getByTestId('professional-form-user-mode-existing')).toBeChecked()
-    expect(screen.getByTestId('professional-form-crm-group')).toBeInTheDocument()
-    expect(screen.getByTestId('professional-form-crm-number-0')).toBeInTheDocument()
-    expect(screen.getByTestId('professional-form-crm-primary-0')).toBeChecked()
+    expect(screen.getByTestId('professional-form-registration-group')).toBeInTheDocument()
+    expect(screen.getByTestId('professional-form-registration-number-0')).toBeInTheDocument()
+    expect(screen.getByTestId('professional-form-registration-primary-0')).toBeChecked()
     expect(screen.getByTestId('professional-form-specialty-group')).toBeInTheDocument()
     expect(screen.getByTestId('professional-form-bio')).toBeInTheDocument()
   })
@@ -108,36 +108,44 @@ describe('ProfessionalForm (integration) — create mode', () => {
     })
   })
 
-  it('filters non-digits from the CRM number field', async () => {
+  it('uppercases and strips disallowed characters from the registration number field', async () => {
     renderWithProviders(<ProfessionalForm mode="create" isPending={false} onSubmit={jest.fn()} />)
 
-    fireEvent.change(screen.getByTestId('professional-form-crm-number-0'), { target: { value: '12a3b4' } })
+    fireEvent.change(screen.getByTestId('professional-form-registration-number-0'), { target: { value: '1a2 3#b4' } })
 
-    expect(screen.getByTestId('professional-form-crm-number-0')).toHaveValue('1234')
+    expect(screen.getByTestId('professional-form-registration-number-0')).toHaveValue('1A23B4')
   })
 
-  it('adds and removes CRM rows', async () => {
+  it('truncates the registration number to the selected council type max length', async () => {
     renderWithProviders(<ProfessionalForm mode="create" isPending={false} onSubmit={jest.fn()} />)
 
-    await userEvent.click(screen.getByTestId('professional-form-crm-add'))
-    expect(screen.getByTestId('professional-form-crm-number-1')).toBeInTheDocument()
-    expect(screen.getByTestId('professional-form-crm-primary-1')).not.toBeChecked()
+    fireEvent.change(screen.getByTestId('professional-form-registration-number-0'), { target: { value: '1234567890' } })
 
-    await userEvent.click(screen.getByTestId('professional-form-crm-remove-1'))
-    expect(screen.queryByTestId('professional-form-crm-number-1')).not.toBeInTheDocument()
+    expect(screen.getByTestId('professional-form-registration-number-0')).toHaveValue('123456')
   })
 
-  it('promotes the first remaining CRM to primary when the primary row is removed', async () => {
+  it('adds and removes registration rows', async () => {
     renderWithProviders(<ProfessionalForm mode="create" isPending={false} onSubmit={jest.fn()} />)
 
-    await userEvent.click(screen.getByTestId('professional-form-crm-add'))
+    await userEvent.click(screen.getByTestId('professional-form-registration-add'))
+    expect(screen.getByTestId('professional-form-registration-number-1')).toBeInTheDocument()
+    expect(screen.getByTestId('professional-form-registration-primary-1')).not.toBeChecked()
+
+    await userEvent.click(screen.getByTestId('professional-form-registration-remove-1'))
+    expect(screen.queryByTestId('professional-form-registration-number-1')).not.toBeInTheDocument()
+  })
+
+  it('promotes the first remaining registration to primary when the primary row is removed', async () => {
+    renderWithProviders(<ProfessionalForm mode="create" isPending={false} onSubmit={jest.fn()} />)
+
+    await userEvent.click(screen.getByTestId('professional-form-registration-add'))
     // second row (index 1) becomes primary
-    await userEvent.click(screen.getByTestId('professional-form-crm-primary-1'))
-    expect(screen.getByTestId('professional-form-crm-primary-1')).toBeChecked()
+    await userEvent.click(screen.getByTestId('professional-form-registration-primary-1'))
+    expect(screen.getByTestId('professional-form-registration-primary-1')).toBeChecked()
 
     // remove the primary (index 1) -> row 0 becomes primary
-    await userEvent.click(screen.getByTestId('professional-form-crm-remove-1'))
-    expect(screen.getByTestId('professional-form-crm-primary-0')).toBeChecked()
+    await userEvent.click(screen.getByTestId('professional-form-registration-remove-1'))
+    expect(screen.getByTestId('professional-form-registration-primary-0')).toBeChecked()
   })
 
   it('calls onSubmit with userId, registrations and specialties in existing user mode', async () => {
@@ -259,16 +267,103 @@ describe('ProfessionalForm (integration) — create mode', () => {
     })
   })
 
-  it('shows validation error when the CRM is incomplete', async () => {
+  it('shows validation error when the registration is incomplete', async () => {
     renderWithProviders(<ProfessionalForm mode="create" isPending={false} onSubmit={jest.fn()} />)
 
     // number filled but no UF selected
-    fireEvent.change(screen.getByTestId('professional-form-crm-number-0'), { target: { value: '12345' } })
+    fireEvent.change(screen.getByTestId('professional-form-registration-number-0'), { target: { value: '12345' } })
     await userEvent.click(screen.getByTestId('professional-form-submit'))
 
     await waitFor(() => {
-      expect(screen.getByText('Preencha número e UF de todos os CRMs')).toBeInTheDocument()
+      expect(screen.getByText('Preencha número e UF de todos os registros no formato esperado')).toBeInTheDocument()
     })
+  })
+
+  it('shows validation error when the registration number does not match the selected council format', async () => {
+    renderWithProviders(<ProfessionalForm mode="create" isPending={false} onSubmit={jest.fn()} />)
+
+    await userEvent.selectOptions(screen.getByTestId('professional-form-registration-council-type-0'), 'crp')
+    fireEvent.change(screen.getByTestId('professional-form-registration-number-0'), { target: { value: '123456' } })
+    fireEvent.change(screen.getByTestId('professional-form-registration-state-0'), { target: { value: 'SP' } })
+    await userEvent.click(screen.getByTestId('professional-form-submit'))
+
+    await waitFor(() => {
+      expect(screen.getByText('Preencha número e UF de todos os registros no formato esperado')).toBeInTheDocument()
+    })
+  })
+
+  it('creates a professional with a CRN registration and hides the RQE field', async () => {
+    const onSubmit = jest.fn()
+    renderWithProviders(<ProfessionalForm mode="create" isPending={false} onSubmit={onSubmit} />)
+
+    await userEvent.type(screen.getByTestId('professional-form-user-search'), 'João')
+    await waitFor(
+      () => expect(screen.getByTestId('professional-form-user-option')).toBeInTheDocument(),
+      { timeout: 2000 },
+    )
+    await userEvent.click(screen.getByTestId('professional-form-user-option'))
+
+    await userEvent.selectOptions(screen.getByTestId('professional-form-registration-council-type-0'), 'crn')
+    fireEvent.change(screen.getByTestId('professional-form-registration-number-0'), { target: { value: '12345678' } })
+    fireEvent.change(screen.getByTestId('professional-form-registration-state-0'), { target: { value: 'SP' } })
+
+    await waitFor(() => {
+      expect(screen.getByTestId(`professional-form-specialty-${SPEC_ID_1}`)).toBeInTheDocument()
+    })
+    await userEvent.click(screen.getByTestId(`professional-form-specialty-${SPEC_ID_1}`))
+
+    expect(screen.queryByTestId(`professional-form-registryNumber-${SPEC_ID_1}`)).not.toBeInTheDocument()
+
+    await userEvent.click(screen.getByTestId('professional-form-submit'))
+
+    await waitFor(() => {
+      expect(onSubmit).toHaveBeenCalledWith(
+        expect.objectContaining({
+          registrations: [{ number: '12345678', state: 'SP', isPrimary: true, councilType: 'crn' }],
+          specialties: [{ specialtyId: SPEC_ID_1, registryNumber: undefined }],
+        }),
+        expect.any(Function),
+      )
+    })
+  })
+
+  it('creates a professional with a CRP registration accepting the slash format', async () => {
+    const onSubmit = jest.fn()
+    renderWithProviders(<ProfessionalForm mode="create" isPending={false} onSubmit={onSubmit} />)
+
+    await userEvent.type(screen.getByTestId('professional-form-user-search'), 'João')
+    await waitFor(
+      () => expect(screen.getByTestId('professional-form-user-option')).toBeInTheDocument(),
+      { timeout: 2000 },
+    )
+    await userEvent.click(screen.getByTestId('professional-form-user-option'))
+
+    await userEvent.selectOptions(screen.getByTestId('professional-form-registration-council-type-0'), 'crp')
+    fireEvent.change(screen.getByTestId('professional-form-registration-number-0'), { target: { value: '06/12345' } })
+    fireEvent.change(screen.getByTestId('professional-form-registration-state-0'), { target: { value: 'SP' } })
+
+    await userEvent.click(screen.getByTestId('professional-form-submit'))
+
+    await waitFor(() => {
+      expect(onSubmit).toHaveBeenCalledWith(
+        expect.objectContaining({
+          registrations: [{ number: '06/12345', state: 'SP', isPrimary: true, councilType: 'crp' }],
+        }),
+        expect.any(Function),
+      )
+    })
+  })
+
+  it('updates placeholder and max length when the council type of a row changes', async () => {
+    renderWithProviders(<ProfessionalForm mode="create" isPending={false} onSubmit={jest.fn()} />)
+
+    expect(screen.getByTestId('professional-form-registration-number-0')).toHaveAttribute('placeholder', '12345')
+    expect(screen.getByTestId('professional-form-registration-number-0')).toHaveAttribute('maxlength', '6')
+
+    await userEvent.selectOptions(screen.getByTestId('professional-form-registration-council-type-0'), 'crp')
+
+    expect(screen.getByTestId('professional-form-registration-number-0')).toHaveAttribute('placeholder', '06/12345')
+    expect(screen.getByTestId('professional-form-registration-number-0')).toHaveAttribute('maxlength', '9')
   })
 
   it('submits a generalist professional (no specialty selected)', async () => {
@@ -476,10 +571,11 @@ describe('ProfessionalForm (integration) — edit mode', () => {
     )
 
     await waitFor(() => {
-      expect(screen.getByTestId('professional-form-crm-number-0')).toHaveValue('12345')
+      expect(screen.getByTestId('professional-form-registration-number-0')).toHaveValue('12345')
     })
-    expect(screen.getByTestId('professional-form-crm-state-0')).toHaveValue('SP')
-    expect(screen.getByTestId('professional-form-crm-primary-0')).toBeChecked()
+    expect(screen.getByTestId('professional-form-registration-council-type-0')).toHaveValue('crm')
+    expect(screen.getByTestId('professional-form-registration-state-0')).toHaveValue('SP')
+    expect(screen.getByTestId('professional-form-registration-primary-0')).toBeChecked()
 
     await waitFor(() => {
       expect(screen.getByTestId(`professional-form-specialty-${SPEC_ID_1}`)).toBeChecked()
@@ -516,7 +612,7 @@ describe('ProfessionalForm (integration) — edit mode', () => {
     )
 
     await waitFor(() => {
-      expect(screen.getByTestId('professional-form-crm-number-0')).toHaveValue('12345')
+      expect(screen.getByTestId('professional-form-registration-number-0')).toHaveValue('12345')
     })
 
     await waitFor(() => {
@@ -565,6 +661,20 @@ describe('ProfessionalForm (integration) — edit mode', () => {
     })
   })
 
+  it('hides the RQE field in edit mode when the primary registration is switched away from CRM', async () => {
+    renderWithProviders(
+      <ProfessionalForm mode="edit" defaultValues={existingProfessional} isPending={false} onSubmit={jest.fn()} />,
+    )
+
+    await waitFor(() => {
+      expect(screen.getByTestId(`professional-form-registryNumber-${SPEC_ID_1}`)).toBeInTheDocument()
+    })
+
+    await userEvent.selectOptions(screen.getByTestId('professional-form-registration-council-type-0'), 'crn')
+
+    expect(screen.queryByTestId(`professional-form-registryNumber-${SPEC_ID_1}`)).not.toBeInTheDocument()
+  })
+
   it('deselects pre-selected specialty when clicked in edit mode', async () => {
     renderWithProviders(
       <ProfessionalForm mode="edit" defaultValues={existingProfessional} isPending={false} onSubmit={jest.fn()} />,
@@ -586,7 +696,7 @@ describe('ProfessionalForm (integration) — edit mode', () => {
     )
 
     await waitFor(() => {
-      expect(screen.getByTestId('professional-form-crm-number-0')).toHaveValue('12345')
+      expect(screen.getByTestId('professional-form-registration-number-0')).toHaveValue('12345')
     })
 
     expect(screen.getByTestId('professional-form-bio')).toHaveValue('')
@@ -600,7 +710,7 @@ describe('ProfessionalForm (integration) — edit mode', () => {
     )
 
     await waitFor(() => {
-      expect(screen.getByTestId('professional-form-crm-number-0')).toHaveValue('12345')
+      expect(screen.getByTestId('professional-form-registration-number-0')).toHaveValue('12345')
     })
 
     await waitFor(() => {
@@ -630,7 +740,7 @@ describe('ProfessionalForm (integration) — edit mode', () => {
     )
 
     await waitFor(() => {
-      expect(screen.getByTestId('professional-form-crm-number-0')).toHaveValue('12345')
+      expect(screen.getByTestId('professional-form-registration-number-0')).toHaveValue('12345')
     })
 
     await waitFor(() => {
@@ -679,7 +789,7 @@ describe('ProfessionalForm (integration) — edit mode', () => {
     )
 
     await waitFor(() => {
-      expect(screen.getByTestId('professional-form-crm-number-0')).toHaveValue('12345')
+      expect(screen.getByTestId('professional-form-registration-number-0')).toHaveValue('12345')
     })
 
     const longBio = 'a'.repeat(501)

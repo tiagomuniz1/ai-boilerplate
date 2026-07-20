@@ -27,9 +27,9 @@ export default function NewProfessionalPage() {
             setError(field as keyof ICreateProfessionalInput, { message })
           })
         } else if (error.status === 409) {
-          setGlobalError('CRM já cadastrado ou usuário já possui perfil de médico.')
+          setGlobalError('Registro já cadastrado ou usuário já possui perfil de profissional.')
         } else {
-          setGlobalError('Não foi possível criar o médico. Tente novamente.')
+          setGlobalError('Não foi possível criar o profissional. Tente novamente.')
         }
       },
     })
@@ -43,7 +43,7 @@ export default function NewProfessionalPage() {
             ← Voltar
           </Button>
         </Link>
-        <Typography variant="h2">Novo médico</Typography>
+        <Typography variant="h2">Novo profissional</Typography>
       </div>
       <ProfessionalForm
         mode="create"

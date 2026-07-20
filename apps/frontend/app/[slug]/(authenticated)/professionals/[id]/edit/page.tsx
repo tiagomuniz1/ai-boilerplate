@@ -35,11 +35,11 @@ export default function EditProfessionalPage() {
               setError(field as keyof IUpdateProfessionalInput, { message })
             })
           } else if (error.status === 409) {
-            setGlobalError('CRM já cadastrado por outro médico.')
+            setGlobalError('Registro já cadastrado por outro profissional.')
           } else if (error.status === 404) {
-            setGlobalError('Médico não encontrado.')
+            setGlobalError('Profissional não encontrado.')
           } else {
-            setGlobalError('Não foi possível atualizar o médico. Tente novamente.')
+            setGlobalError('Não foi possível atualizar o profissional. Tente novamente.')
           }
         },
       },
@@ -54,7 +54,7 @@ export default function EditProfessionalPage() {
             ← Voltar
           </Button>
         </Link>
-        <Typography variant="h2">Editar médico</Typography>
+        <Typography variant="h2">Editar profissional</Typography>
       </div>
 
       {isLoadingProfessional && (
@@ -69,7 +69,7 @@ export default function EditProfessionalPage() {
 
       {isLoadError && (
         <Alert variant="error" data-testid="edit-professional-load-error">
-          Não foi possível carregar os dados do médico. Verifique o ID e tente novamente.
+          Não foi possível carregar os dados do profissional. Verifique o ID e tente novamente.
         </Alert>
       )}
 

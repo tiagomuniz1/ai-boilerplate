@@ -1,5 +1,6 @@
 'use client'
 
+import { COUNCIL_TYPE_LABELS } from '@app/shared'
 import { cn } from '@/lib/cn'
 import { useProfessional } from '../hooks/use-professional.hook'
 
@@ -19,11 +20,12 @@ const selectClassName = cn(
 )
 
 /**
- * Optional CRM / specialty pickers for signing a prescription, certificate or exam request.
+ * Optional registration / specialty pickers for signing a prescription, certificate or exam request.
  *
- * Defaults ("") mean "use the primary CRM" and "use the appointment's specialty" — the backend
- * resolves those fallbacks. The pickers only appear when the professional has more than one option to
- * choose from. Fetches the professional by id (cached via React Query) and renders nothing until loaded.
+ * Defaults ("") mean "use the primary registration" and "use the appointment's specialty" — the
+ * backend resolves those fallbacks. The pickers only appear when the professional has more than one
+ * option to choose from. Fetches the professional by id (cached via React Query) and renders nothing
+ * until loaded.
  */
 export function ProfessionalSignatureSelect({
   professionalId,
@@ -51,7 +53,7 @@ export function ProfessionalSignatureSelect({
       {showRegistration && (
         <div className="flex flex-col gap-1">
           <label htmlFor="professional-signature-crm" className="text-xs text-text-mute">
-            CRM
+            Registro profissional
           </label>
           <select
             id="professional-signature-crm"
@@ -60,11 +62,11 @@ export function ProfessionalSignatureSelect({
             className={selectClassName}
             data-testid="professional-signature-crm"
           >
-            <option value="">CRM principal</option>
-            {professional.registrations.map((crm) => (
-              <option key={crm.id} value={crm.id}>
-                {crm.number}/{crm.state}
-                {crm.isPrimary ? ' (principal)' : ''}
+            <option value="">Registro principal</option>
+            {professional.registrations.map((registration) => (
+              <option key={registration.id} value={registration.id}>
+                {COUNCIL_TYPE_LABELS[registration.councilType]} {registration.number}/{registration.state}
+                {registration.isPrimary ? ' (principal)' : ''}
               </option>
             ))}
           </select>
