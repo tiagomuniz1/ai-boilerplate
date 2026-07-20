@@ -207,7 +207,7 @@ describe('SpecialtyList (integration)', () => {
 
       await waitFor(() => {
         expect(screen.getByTestId('specialty-list-delete-error')).toHaveTextContent(
-          'Não é possível excluir "Cardiologia" pois ela está vinculada a médicos ativos.',
+          'Não é possível excluir "Cardiologia" pois ela está vinculada a profissionais ativos.',
         )
       })
     })
@@ -260,7 +260,7 @@ describe('SpecialtyList (integration)', () => {
   })
 
   describe('as DOCTOR', () => {
-    beforeEach(() => mockAuthStoreAs(UserRole.DOCTOR))
+    beforeEach(() => mockAuthStoreAs(UserRole.PROFESSIONAL))
 
     it('hides "Nova especialidade" button', async () => {
       ;(specialtiesService.getAll as jest.Mock).mockResolvedValue(makePaginatedResponse([]))
@@ -338,7 +338,7 @@ describe('SpecialtyList (integration)', () => {
     })
 
     it('mobile card hides edit and delete actions for DOCTOR', async () => {
-      mockAuthStoreAs(UserRole.DOCTOR)
+      mockAuthStoreAs(UserRole.PROFESSIONAL)
       ;(specialtiesService.getAll as jest.Mock).mockResolvedValue(makePaginatedResponse())
 
       renderWithProviders(<SpecialtyList />)

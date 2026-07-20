@@ -40,7 +40,7 @@ const makeMedPage = (meds: object[] = []) => ({ data: meds, total: meds.length, 
 describe('PrescriptionTemplateList (integration)', () => {
   beforeEach(() => {
     jest.clearAllMocks()
-    useAuthStore.setState({ user: makeUser(UserRole.DOCTOR) })
+    useAuthStore.setState({ user: makeUser(UserRole.PROFESSIONAL) })
     mockMedicationsService.getAll.mockResolvedValue(makeMedPage() as any)
   })
 

@@ -5,7 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import { UserRole } from '@app/shared'
 import { useAuthStore } from '@/stores/auth.store'
 import { useIsMobile } from '@/hooks/use-is-mobile.hook'
-import { useDoctors } from '@/components/features/doctors/hooks/use-doctors.hook'
+import { useProfessionals } from '@/components/features/professionals/hooks/use-professionals.hook'
 import { BlockTimeDialog } from '@/components/features/schedule-exceptions/components/BlockTimeDialog'
 import { AgendaToolbar } from './agenda-toolbar'
 import { AgendaDayGrid } from './agenda-day-grid'
@@ -52,10 +52,10 @@ export function AppointmentAgenda() {
   const isMobile = useIsMobile()
   const effectiveView: AgendaView = isMobile ? 'day' : view
 
-  const isDoctor = role === UserRole.DOCTOR
+  const isDoctor = role === UserRole.PROFESSIONAL
   const showDoctorSelector = role === UserRole.ADMIN || role === UserRole.USER
 
-  const { data: doctors } = useDoctors({ limit: 100 })
+  const { data: doctors } = useProfessionals({ limit: 100 })
 
   const currentDoctorId = isDoctor ? doctors?.[0]?.id : undefined
 

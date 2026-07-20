@@ -1,7 +1,7 @@
 jest.mock('../services/exams.service')
 jest.mock('../use-cases/download-exam-request-pdf.use-case')
 jest.mock('../use-cases/download-exam-result-file.use-case')
-jest.mock('@/components/features/doctors/hooks/use-doctor.hook')
+jest.mock('@/components/features/professionals/hooks/use-professional.hook')
 
 import { screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
@@ -9,14 +9,14 @@ import { ExamRequestStatus, UserRole } from '@app/shared'
 import { examsService } from '../services/exams.service'
 import { downloadExamRequestPdfUseCase } from '../use-cases/download-exam-request-pdf.use-case'
 import { downloadExamResultFileUseCase } from '../use-cases/download-exam-result-file.use-case'
-import { useDoctor } from '@/components/features/doctors/hooks/use-doctor.hook'
+import { useProfessional } from '@/components/features/professionals/hooks/use-professional.hook'
 import { renderWithProviders } from '@/tests/utils/render-with-providers'
 import { ExameSection } from './exame-section'
 
 const mockExamsService = examsService as jest.Mocked<typeof examsService>
 const mockDownload = downloadExamRequestPdfUseCase as jest.Mock
 const mockDownloadResultFile = downloadExamResultFileUseCase as jest.Mock
-const mockUseDoctor = useDoctor as jest.Mock
+const mockUseProfessional = useProfessional as jest.Mock
 
 const makeExamRequestDto = (overrides: object = {}) => ({
   id: 'exam-uuid',
@@ -44,7 +44,7 @@ const makeResultDto = (overrides: object = {}) => ({
   ...overrides,
 })
 
-const doctorProps = { appointmentId: 'appt-uuid', doctorId: 'doctor-uuid', canManage: true, userRole: UserRole.DOCTOR }
+const doctorProps = { appointmentId: 'appt-uuid', doctorId: 'doctor-uuid', canManage: true, userRole: UserRole.PROFESSIONAL }
 const adminProps = { appointmentId: 'appt-uuid', doctorId: 'doctor-uuid', canManage: true, userRole: UserRole.ADMIN }
 
 describe('ExameSection (integration)', () => {
@@ -52,7 +52,7 @@ describe('ExameSection (integration)', () => {
     jest.clearAllMocks()
     mockDownload.mockResolvedValue(undefined)
     mockDownloadResultFile.mockResolvedValue(undefined)
-    mockUseDoctor.mockReturnValue({ data: undefined })
+    mockUseProfessional.mockReturnValue({ data: undefined })
   })
 
   it('shows skeleton while loading', () => {

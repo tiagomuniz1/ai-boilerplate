@@ -54,7 +54,7 @@ describe('BlockBanner (integration)', () => {
   })
 
   it('shows remove button for DOCTOR', () => {
-    renderWithProviders(<BlockBanner exception={makeException()} role={UserRole.DOCTOR} />)
+    renderWithProviders(<BlockBanner exception={makeException()} role={UserRole.PROFESSIONAL} />)
     expect(screen.getByTestId('block-banner-remove')).toBeInTheDocument()
   })
 

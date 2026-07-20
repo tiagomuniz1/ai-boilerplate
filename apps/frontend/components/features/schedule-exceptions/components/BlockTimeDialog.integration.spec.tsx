@@ -25,7 +25,7 @@ const defaultProps = {
   isOpen: true,
   onClose: jest.fn(),
   date: '2099-06-20',
-  role: UserRole.DOCTOR,
+  role: UserRole.PROFESSIONAL,
 }
 
 describe('BlockTimeDialog (integration)', () => {
@@ -109,7 +109,7 @@ describe('BlockTimeDialog (integration)', () => {
   it('calls service with correct payload for partial block (DOCTOR)', async () => {
     mockService.create.mockResolvedValue(makeExceptionResponse())
 
-    renderWithProviders(<BlockTimeDialog {...defaultProps} role={UserRole.DOCTOR} />)
+    renderWithProviders(<BlockTimeDialog {...defaultProps} role={UserRole.PROFESSIONAL} />)
 
     await userEvent.type(screen.getByTestId('block-dialog-start-time'), '08:00')
     await userEvent.type(screen.getByTestId('block-dialog-end-time'), '12:00')

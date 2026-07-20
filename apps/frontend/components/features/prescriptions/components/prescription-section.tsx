@@ -34,7 +34,7 @@ export function PrescriptionSection({ appointmentId, doctorId, canManage, userRo
   const { mutate: deletePrescription, isPending: isDeleting } = useDeletePrescription(appointmentId)
   const { mutate: download, isPending: isDownloading, variables: downloadingVars } = useDownloadPrescriptionPdf()
 
-  const isDoctor = userRole === UserRole.DOCTOR
+  const isDoctor = userRole === UserRole.PROFESSIONAL
 
   function handleCreate(input: ICreatePrescriptionInput) {
     create(input, { onSuccess: () => setShowForm(false) })

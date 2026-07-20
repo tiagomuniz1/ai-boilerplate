@@ -57,7 +57,7 @@ export function AtestadoSection({ appointmentId, doctorId, canManage, userRole }
   const { mutate: deleteAtestado, isPending: isDeleting } = useDeleteAtestado(appointmentId)
   const { mutate: download, isPending: isDownloading, variables: downloadingVars } = useDownloadAtestadoPdf()
 
-  const isDoctor = userRole === UserRole.DOCTOR
+  const isDoctor = userRole === UserRole.PROFESSIONAL
 
   function handleCreate(input: ICreateAtestadoInput) {
     create(input, { onSuccess: () => setShowForm(false) })

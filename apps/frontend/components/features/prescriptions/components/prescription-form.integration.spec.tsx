@@ -1,18 +1,18 @@
 jest.mock('@/components/features/medications/services/medications.service')
 jest.mock('@/components/features/prescription-templates/services/prescription-templates.service')
-jest.mock('@/components/features/doctors/hooks/use-doctor.hook')
+jest.mock('@/components/features/professionals/hooks/use-professional.hook')
 
 import { screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { medicationsService } from '@/components/features/medications/services/medications.service'
 import { prescriptionTemplatesService } from '@/components/features/prescription-templates/services/prescription-templates.service'
-import { useDoctor } from '@/components/features/doctors/hooks/use-doctor.hook'
+import { useProfessional } from '@/components/features/professionals/hooks/use-professional.hook'
 import { renderWithProviders } from '@/tests/utils/render-with-providers'
 import { PrescriptionForm } from './prescription-form'
 
 const mockMedicationsService = medicationsService as jest.Mocked<typeof medicationsService>
 const mockPrescriptionTemplatesService = prescriptionTemplatesService as jest.Mocked<typeof prescriptionTemplatesService>
-const mockUseDoctor = useDoctor as jest.Mock
+const mockUseProfessional = useProfessional as jest.Mock
 
 const makeMedPage = (meds: object[] = []) => ({ data: meds, total: meds.length, page: 1, limit: 10 })
 const makeMed = (overrides: object = {}) => ({
@@ -55,13 +55,13 @@ const defaultProps = {
 const doctorWithSignatureOptions = {
   id: 'doctor-uuid',
   user: { id: 'user-uuid', fullName: 'Dr. Test', email: 'dr@example.com', isActive: true },
-  crms: [
-    { id: 'crm-1', number: '12345', state: 'SP', isPrimary: true },
-    { id: 'crm-2', number: '67890', state: 'RJ', isPrimary: false },
+  registrations: [
+    { id: 'crm-1', councilType: 'crm', number: '12345', state: 'SP', isPrimary: true },
+    { id: 'crm-2', councilType: 'crm', number: '67890', state: 'RJ', isPrimary: false },
   ],
   specialties: [
-    { id: 'spec-1', name: 'Cardiologia', rqe: '111' },
-    { id: 'spec-2', name: 'Mastologia', rqe: '222' },
+    { id: 'spec-1', name: 'Cardiologia', registryNumber: '111' },
+    { id: 'spec-2', name: 'Mastologia', registryNumber: '222' },
   ],
   bio: null,
   createdAt: new Date(),
@@ -73,7 +73,7 @@ describe('PrescriptionForm (integration)', () => {
     jest.clearAllMocks()
     mockMedicationsService.getAll.mockResolvedValue(makeMedPage() as any)
     mockPrescriptionTemplatesService.getAll.mockResolvedValue([])
-    mockUseDoctor.mockReturnValue({ data: undefined })
+    mockUseProfessional.mockReturnValue({ data: undefined })
   })
 
   // ── Layout ──────────────────────────────────────────────────────────────────
@@ -233,11 +233,11 @@ describe('PrescriptionForm (integration)', () => {
 
   it('does not render the signature pickers when the doctor has a single CRM and specialty', () => {
     renderWithProviders(<PrescriptionForm {...defaultProps} />)
-    expect(screen.queryByTestId('doctor-signature-select')).not.toBeInTheDocument()
+    expect(screen.queryByTestId('professional-signature-select')).not.toBeInTheDocument()
   })
 
   it('includes the chosen CRM and specialty in the submitted payload', async () => {
-    mockUseDoctor.mockReturnValue({ data: doctorWithSignatureOptions })
+    mockUseProfessional.mockReturnValue({ data: doctorWithSignatureOptions })
     const onSubmit = jest.fn()
     renderWithProviders(<PrescriptionForm {...defaultProps} onSubmit={onSubmit} />)
 
@@ -246,8 +246,8 @@ describe('PrescriptionForm (integration)', () => {
     await userEvent.click(screen.getByTestId('prescription-form-manual-add'))
     await userEvent.type(screen.getByTestId('prescription-form-item-instructions-0'), 'Tomar 1 cp 8/8h')
 
-    await userEvent.selectOptions(screen.getByTestId('doctor-signature-crm'), 'crm-2')
-    await userEvent.selectOptions(screen.getByTestId('doctor-signature-specialty'), 'spec-2')
+    await userEvent.selectOptions(screen.getByTestId('professional-signature-crm'), 'crm-2')
+    await userEvent.selectOptions(screen.getByTestId('professional-signature-specialty'), 'spec-2')
 
     await userEvent.click(screen.getByTestId('prescription-form-submit'))
 

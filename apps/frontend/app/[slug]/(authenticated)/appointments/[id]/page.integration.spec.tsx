@@ -1,5 +1,5 @@
 jest.mock('@/components/features/appointments/services/appointments.service')
-jest.mock('@/components/features/doctors/services/doctors.service')
+jest.mock('@/components/features/professionals/services/professionals.service')
 jest.mock('@/components/features/medical-records/services/medical-records.service')
 jest.mock('@/components/features/medical-record-templates/services/medical-record-templates.service')
 jest.mock('@/components/features/prescriptions/services/prescriptions.service')
@@ -17,7 +17,7 @@ import userEvent from '@testing-library/user-event'
 import { AppointmentStatus, PatientGender, UserRole } from '@app/shared'
 import { useRouter } from 'next/navigation'
 import { appointmentsService } from '@/components/features/appointments/services/appointments.service'
-import { doctorsService } from '@/components/features/doctors/services/doctors.service'
+import { professionalsService } from '@/components/features/professionals/services/professionals.service'
 import { medicalRecordsService } from '@/components/features/medical-records/services/medical-records.service'
 import { medicalRecordTemplatesService } from '@/components/features/medical-record-templates/services/medical-record-templates.service'
 import { prescriptionsService } from '@/components/features/prescriptions/services/prescriptions.service'
@@ -29,7 +29,7 @@ import AppointmentDetailPage from './page'
 
 const mockUseRouter = useRouter as jest.Mock
 const mockAppointmentsService = appointmentsService as jest.Mocked<typeof appointmentsService>
-const mockDoctorsService = doctorsService as jest.Mocked<typeof doctorsService>
+const mockDoctorsService = professionalsService as jest.Mocked<typeof professionalsService>
 const mockMedicalRecordsService = medicalRecordsService as jest.Mocked<typeof medicalRecordsService>
 const mockTemplatesService = medicalRecordTemplatesService as jest.Mocked<typeof medicalRecordTemplatesService>
 const mockPrescriptionsService = prescriptionsService as jest.Mocked<typeof prescriptionsService>
@@ -53,7 +53,7 @@ const makeDoctorsResponse = (id = DOCTOR_ID) => ({
     {
       id,
       user: { id: DOCTOR_USER_ID, fullName: 'Dr. Test', email: 'doctor@test.com', isActive: true },
-      crms: [{ id: 'crm-1', number: '12345', state: 'SP', isPrimary: true }],
+      registrations: [{ id: 'crm-1', councilType: 'crm', number: '12345', state: 'SP', isPrimary: true }],
       specialties: [],
       bio: null,
       createdAt: new Date().toISOString(),
@@ -182,7 +182,7 @@ describe('AppointmentDetailPage (integration)', () => {
   })
 
   it('DOCTOR sees actions for own appointment', async () => {
-    mockAuth(UserRole.DOCTOR, DOCTOR_USER_ID)
+    mockAuth(UserRole.PROFESSIONAL, DOCTOR_USER_ID)
     mockDoctorsService.getAll.mockResolvedValue(makeDoctorsResponse(DOCTOR_ID))
     mockAppointmentsService.getById.mockResolvedValue(makeAppointmentDto({ doctorId: DOCTOR_ID }))
     renderWithProviders(<AppointmentDetailPage />)
@@ -192,7 +192,7 @@ describe('AppointmentDetailPage (integration)', () => {
   })
 
   it('DOCTOR does not see actions for another doctor appointment', async () => {
-    mockAuth(UserRole.DOCTOR, DOCTOR_USER_ID)
+    mockAuth(UserRole.PROFESSIONAL, DOCTOR_USER_ID)
     mockDoctorsService.getAll.mockResolvedValue(makeDoctorsResponse(DOCTOR_ID))
     mockAppointmentsService.getById.mockResolvedValue(
       makeAppointmentDto({ doctorId: 'other-doctor-id' }),

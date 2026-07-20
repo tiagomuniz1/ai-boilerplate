@@ -51,7 +51,7 @@ export function ExameSection({ appointmentId, doctorId, canManage, userRole }: E
     variables: downloadResultVars,
   } = useDownloadExamResultFile()
 
-  const isDoctor = userRole === UserRole.DOCTOR
+  const isDoctor = userRole === UserRole.PROFESSIONAL
   const previewExamRequest = examRequests?.find((examRequest) => examRequest.id === previewId) ?? null
 
   function handleCreate(input: ICreateExamRequestInput) {

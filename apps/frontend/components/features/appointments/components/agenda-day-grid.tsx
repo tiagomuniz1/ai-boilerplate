@@ -35,7 +35,7 @@ export function AgendaDayGrid({
     doctorId !== null ? { doctorId: doctorId === 'self' ? undefined : doctorId, from: date, to: date } : undefined,
   )
 
-  const canManage = role === UserRole.ADMIN || role === UserRole.DOCTOR
+  const canManage = role === UserRole.ADMIN || role === UserRole.PROFESSIONAL
 
   function isSlotPast(startTime: string): boolean {
     return new Date(`${date}T${startTime}:00`) < new Date()

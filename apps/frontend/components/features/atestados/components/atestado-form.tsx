@@ -7,7 +7,7 @@ import { MedicalCertificateType } from '@app/shared'
 import { useState } from 'react'
 import { Button } from '@/components/ui/atoms/button/button'
 import { Alert } from '@/components/ui/molecules/alert/alert'
-import { DoctorSignatureSelect } from '@/components/features/doctors/components/doctor-signature-select'
+import { ProfessionalSignatureSelect } from '@/components/features/professionals/components/professional-signature-select'
 import type { ICreateAtestadoInput } from '../types/atestado-input.types'
 
 const TIME_REGEX = /^([01]\d|2[0-3]):[0-5]\d$/
@@ -286,11 +286,11 @@ export function AtestadoForm({ appointmentId, doctorId, isPending, globalError, 
         )}
       </div>
 
-      <DoctorSignatureSelect
-        doctorId={doctorId}
-        crmId={crmId}
+      <ProfessionalSignatureSelect
+        professionalId={doctorId}
+        registrationId={crmId}
         specialtyId={specialtyId}
-        onCrmIdChange={setCrmId}
+        onRegistrationIdChange={setCrmId}
         onSpecialtyIdChange={setSpecialtyId}
       />
 

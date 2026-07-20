@@ -20,7 +20,7 @@ export default function ScheduleDetailsPage() {
   const router = useRouter()
   const basePath = useBasePath()
   const user = useAuthStore((state) => state.user)
-  const canManageSchedules = user?.role === UserRole.ADMIN || user?.role === UserRole.DOCTOR
+  const canManageSchedules = user?.role === UserRole.ADMIN || user?.role === UserRole.PROFESSIONAL
   const { data: schedule, isPending, isError, error } = useSchedule(id)
   const { mutate: deleteSchedule, isPending: isDeleting } = useDeleteSchedule()
   const [showDeleteDialog, setShowDeleteDialog] = useState(false)

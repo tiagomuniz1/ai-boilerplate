@@ -2,7 +2,7 @@
 
 import { UserRole } from '@app/shared'
 import { Button } from '@/components/ui/atoms/button/button'
-import type { IDoctorModel } from '@/components/features/doctors/types/doctor-model.types'
+import type { IProfessionalModel } from '@/components/features/professionals/types/professional-model.types'
 
 type AgendaView = 'day' | 'week'
 
@@ -12,7 +12,7 @@ interface AgendaToolbarProps {
   onDateChange: (date: Date) => void
   onViewChange: (view: AgendaView) => void
   role: UserRole
-  doctors?: IDoctorModel[]
+  doctors?: IProfessionalModel[]
   selectedDoctorId: string | null
   onDoctorChange: (doctorId: string | null) => void
   onBlockTime?: () => void
@@ -57,7 +57,7 @@ export function AgendaToolbar({
   }
 
   const showDoctorSelector = role === UserRole.ADMIN || role === UserRole.USER
-  const canBlockTime = role === UserRole.ADMIN || role === UserRole.DOCTOR
+  const canBlockTime = role === UserRole.ADMIN || role === UserRole.PROFESSIONAL
   const blockTimeDisabled = role === UserRole.ADMIN && !selectedDoctorId
 
   return (

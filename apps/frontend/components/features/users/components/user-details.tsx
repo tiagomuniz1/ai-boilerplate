@@ -10,7 +10,7 @@ import type { IUserModel } from '../types/user-model.types'
 
 const roleLabel: Record<UserRole, string> = {
   [UserRole.ADMIN]: 'Admin',
-  [UserRole.DOCTOR]: 'Médico',
+  [UserRole.PROFESSIONAL]: 'Médico',
   [UserRole.USER]: 'Usuário',
   [UserRole.PATIENT]: 'Paciente',
   [UserRole.PLATFORM_ADMIN]: 'Platform Admin',

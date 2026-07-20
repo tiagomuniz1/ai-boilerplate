@@ -21,7 +21,7 @@ import type { IApiError } from '@/types/api.types'
 export function PrescriptionTemplateList() {
   const role = useAuthStore((s) => s.user?.role)
   const isAdmin = role === UserRole.ADMIN
-  const isDoctor = role === UserRole.DOCTOR
+  const isDoctor = role === UserRole.PROFESSIONAL
 
   const { data: templates, isPending, isError } = usePrescriptionTemplates()
 

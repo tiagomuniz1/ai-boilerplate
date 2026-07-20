@@ -2,7 +2,7 @@ jest.mock('next/navigation', () => ({ useRouter: jest.fn() }))
 jest.mock('@/stores/auth.store')
 jest.mock('../services/schedules.service')
 jest.mock('../use-cases/delete-schedule.use-case')
-jest.mock('@/components/features/doctors/services/doctors.service')
+jest.mock('@/components/features/professionals/services/professionals.service')
 
 import { screen, waitFor, fireEvent } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
@@ -11,7 +11,7 @@ import { UserRole, DayOfWeek } from '@app/shared'
 import { useAuthStore } from '@/stores/auth.store'
 import { schedulesService } from '../services/schedules.service'
 import { deleteScheduleUseCase } from '../use-cases/delete-schedule.use-case'
-import { doctorsService } from '@/components/features/doctors/services/doctors.service'
+import { professionalsService } from '@/components/features/professionals/services/professionals.service'
 import { renderWithProviders } from '@/tests/utils/render-with-providers'
 import { ScheduleList } from './schedule-list'
 
@@ -49,7 +49,7 @@ const makePaginatedResponse = (items = [makeScheduleDto()]) => ({
 const makeDoctorDto = (overrides = {}) => ({
   id: 'doc-uuid-1',
   user: { id: 'user-uuid-1', fullName: 'Dr. João Silva', email: 'joao@example.com', isActive: true },
-  crms: [{ id: 'crm-1', number: '12345', state: 'SP', isPrimary: true }],
+  registrations: [{ id: 'crm-1', councilType: 'crm', number: '12345', state: 'SP', isPrimary: true }],
   specialties: [],
   bio: null,
   createdAt: '2025-01-01T10:00:00.000Z',
@@ -61,11 +61,11 @@ describe('ScheduleList (integration)', () => {
   beforeEach(() => {
     jest.clearAllMocks()
     ;(useRouter as jest.Mock).mockReturnValue({ push: mockPush })
-    ;(doctorsService.getAll as jest.Mock).mockResolvedValue({ data: [makeDoctorDto()], total: 1, page: 1, limit: 100 })
+    ;(professionalsService.getAll as jest.Mock).mockResolvedValue({ data: [makeDoctorDto()], total: 1, page: 1, limit: 100 })
   })
 
   describe('as DOCTOR', () => {
-    beforeEach(() => mockAuthStoreAs(UserRole.DOCTOR))
+    beforeEach(() => mockAuthStoreAs(UserRole.PROFESSIONAL))
 
     it('renders skeleton while loading', () => {
       ;(schedulesService.getAll as jest.Mock).mockReturnValue(new Promise(() => {}))

@@ -55,7 +55,7 @@ describe('ScheduleForm — create mode', () => {
     renderWithProviders(
       <ScheduleForm
         mode="create"
-        role={UserRole.DOCTOR}
+        role={UserRole.PROFESSIONAL}
         isPending={false}
         onSubmit={onSubmit}
       />,
@@ -69,7 +69,7 @@ describe('ScheduleForm — create mode', () => {
     renderWithProviders(
       <ScheduleForm
         mode="create"
-        role={UserRole.DOCTOR}
+        role={UserRole.PROFESSIONAL}
         isPending={false}
         onSubmit={onSubmit}
       />,
@@ -86,7 +86,7 @@ describe('ScheduleForm — create mode', () => {
     renderWithProviders(
       <ScheduleForm
         mode="create"
-        role={UserRole.DOCTOR}
+        role={UserRole.PROFESSIONAL}
         isPending={false}
         globalError="Esta agenda conflita com outra já existente"
         onSubmit={onSubmit}
@@ -103,7 +103,7 @@ describe('ScheduleForm — create mode', () => {
     renderWithProviders(
       <ScheduleForm
         mode="create"
-        role={UserRole.DOCTOR}
+        role={UserRole.PROFESSIONAL}
         isPending={false}
         onSubmit={onSubmit}
       />,
@@ -126,7 +126,7 @@ describe('ScheduleForm — create mode', () => {
 
   it('shows validation errors for empty required fields in DOCTOR mode', async () => {
     renderWithProviders(
-      <ScheduleForm mode="create" role={UserRole.DOCTOR} isPending={false} onSubmit={jest.fn()} />,
+      <ScheduleForm mode="create" role={UserRole.PROFESSIONAL} isPending={false} onSubmit={jest.fn()} />,
     )
 
     await userEvent.click(screen.getByTestId('schedule-form-submit'))
@@ -160,7 +160,7 @@ describe('ScheduleForm — create mode', () => {
   it('calls onSubmit for DOCTOR without doctorId on valid submit', async () => {
     const onSubmit = jest.fn()
     renderWithProviders(
-      <ScheduleForm mode="create" role={UserRole.DOCTOR} isPending={false} onSubmit={onSubmit} />,
+      <ScheduleForm mode="create" role={UserRole.PROFESSIONAL} isPending={false} onSubmit={onSubmit} />,
     )
 
     await userEvent.selectOptions(screen.getByTestId('schedule-form-day'), 'MONDAY')
@@ -188,7 +188,7 @@ describe('ScheduleForm — create mode', () => {
 
   it('shows error when slot duration does not evenly divide the time interval', async () => {
     renderWithProviders(
-      <ScheduleForm mode="create" role={UserRole.DOCTOR} isPending={false} onSubmit={jest.fn()} />,
+      <ScheduleForm mode="create" role={UserRole.PROFESSIONAL} isPending={false} onSubmit={jest.fn()} />,
     )
 
     await userEvent.selectOptions(screen.getByTestId('schedule-form-day'), 'MONDAY')
@@ -249,7 +249,7 @@ describe('ScheduleForm — create mode', () => {
   it('includes validFrom and validUntil in submit payload when set', async () => {
     const onSubmit = jest.fn()
     renderWithProviders(
-      <ScheduleForm mode="create" role={UserRole.DOCTOR} isPending={false} onSubmit={onSubmit} />,
+      <ScheduleForm mode="create" role={UserRole.PROFESSIONAL} isPending={false} onSubmit={onSubmit} />,
     )
 
     await userEvent.selectOptions(screen.getByTestId('schedule-form-day'), 'TUESDAY')
@@ -272,7 +272,7 @@ describe('ScheduleForm — create mode', () => {
 
   it('shows error when validUntil is before validFrom', async () => {
     renderWithProviders(
-      <ScheduleForm mode="create" role={UserRole.DOCTOR} isPending={false} onSubmit={jest.fn()} />,
+      <ScheduleForm mode="create" role={UserRole.PROFESSIONAL} isPending={false} onSubmit={jest.fn()} />,
     )
 
     await userEvent.selectOptions(screen.getByTestId('schedule-form-day'), 'MONDAY')
@@ -297,7 +297,7 @@ describe('ScheduleForm — create mode', () => {
     renderWithProviders(
       <ScheduleForm
         mode="create"
-        role={UserRole.DOCTOR}
+        role={UserRole.PROFESSIONAL}
         isPending={true}
         onSubmit={onSubmit}
       />,

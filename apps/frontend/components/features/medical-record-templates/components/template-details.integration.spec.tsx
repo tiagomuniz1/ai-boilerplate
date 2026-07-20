@@ -354,7 +354,7 @@ describe('TemplateDetails (integration)', () => {
   })
 
   describe('as DOCTOR', () => {
-    beforeEach(() => mockAuthStoreAs(UserRole.DOCTOR))
+    beforeEach(() => mockAuthStoreAs(UserRole.PROFESSIONAL))
 
     it('does not show edit/delete buttons', async () => {
       ;(medicalRecordTemplatesService.getById as jest.Mock).mockResolvedValue(makeDto())

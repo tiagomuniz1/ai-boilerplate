@@ -22,7 +22,7 @@ const roleBadge: Record<UserRole, { label: string; className: string }> = {
     label: 'Usuário',
     className: 'border border-line text-text-dim bg-transparent',
   },
-  [UserRole.DOCTOR]: {
+  [UserRole.PROFESSIONAL]: {
     label: 'Médico',
     className: 'border border-line text-text-dim bg-transparent',
   },

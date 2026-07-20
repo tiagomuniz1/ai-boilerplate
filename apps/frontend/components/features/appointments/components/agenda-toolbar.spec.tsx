@@ -96,17 +96,17 @@ describe('AgendaToolbar', () => {
   })
 
   it('does not show doctor selector for DOCTOR role (doctors prop undefined)', () => {
-    render(<AgendaToolbar {...defaultProps} role={UserRole.DOCTOR} doctors={undefined} />)
+    render(<AgendaToolbar {...defaultProps} role={UserRole.PROFESSIONAL} doctors={undefined} />)
     expect(screen.queryByTestId('toolbar-doctor-selector')).not.toBeInTheDocument()
   })
 
   it('shows block time button for DOCTOR', () => {
-    render(<AgendaToolbar {...defaultProps} role={UserRole.DOCTOR} />)
+    render(<AgendaToolbar {...defaultProps} role={UserRole.PROFESSIONAL} />)
     expect(screen.getByTestId('toolbar-block-time')).toBeInTheDocument()
   })
 
   it('block time button is enabled for DOCTOR (no selectedDoctorId requirement)', () => {
-    render(<AgendaToolbar {...defaultProps} role={UserRole.DOCTOR} selectedDoctorId={null} />)
+    render(<AgendaToolbar {...defaultProps} role={UserRole.PROFESSIONAL} selectedDoctorId={null} />)
     expect(screen.getByTestId('toolbar-block-time')).not.toBeDisabled()
   })
 

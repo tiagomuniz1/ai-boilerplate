@@ -8,7 +8,7 @@ import { Alert } from '@/components/ui/molecules/alert/alert'
 import { Button } from '@/components/ui/atoms/button/button'
 import { MobileListCard } from '@/components/ui/molecules/mobile-list-card/mobile-list-card'
 import { useAuthStore } from '@/stores/auth.store'
-import { useDoctors } from '@/components/features/doctors/hooks/use-doctors.hook'
+import { useProfessionals } from '@/components/features/professionals/hooks/use-professionals.hook'
 import { useSchedules } from '../hooks/use-schedules.hook'
 import { useDeleteSchedule } from '../hooks/use-delete-schedule.hook'
 import { ScheduleListSkeleton } from './schedule-list-skeleton'
@@ -56,7 +56,7 @@ export function ScheduleList() {
   const basePath = useBasePath()
   const user = useAuthStore((state) => state.user)
   const isAdmin = user?.role === UserRole.ADMIN
-  const canManageSchedules = user?.role === UserRole.ADMIN || user?.role === UserRole.DOCTOR
+  const canManageSchedules = user?.role === UserRole.ADMIN || user?.role === UserRole.PROFESSIONAL
 
   const [filterDoctorId, setFilterDoctorId] = useState('')
   const [filterDayOfWeek, setFilterDayOfWeek] = useState('')
@@ -72,7 +72,7 @@ export function ScheduleList() {
 
   const { data: schedulesPage, isPending, isError } = useSchedules(params)
   const { mutate: deleteSchedule, isPending: isDeleting } = useDeleteSchedule()
-  const { data: doctorsList } = useDoctors({ limit: 100 })
+  const { data: doctorsList } = useProfessionals({ limit: 100 })
   const doctors = doctorsList ?? []
 
   const schedules = schedulesPage?.data ?? []

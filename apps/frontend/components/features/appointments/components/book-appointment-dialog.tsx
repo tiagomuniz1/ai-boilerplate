@@ -8,7 +8,7 @@ import { Modal } from '@/components/ui/organisms/modal/modal'
 import { Button } from '@/components/ui/atoms/button/button'
 import { Alert } from '@/components/ui/molecules/alert/alert'
 import { usePatients } from '@/components/features/patients/hooks/use-patients.hook'
-import { useDoctor } from '@/components/features/doctors/hooks/use-doctor.hook'
+import { useProfessional } from '@/components/features/professionals/hooks/use-professional.hook'
 import { useBookAppointment } from '../hooks/use-book-appointment.hook'
 import type { IApiError } from '@/types/api.types'
 import { formatDateToBR } from '@/lib/format-date'
@@ -37,7 +37,7 @@ export function BookAppointmentDialog({
   doctorId,
 }: BookAppointmentDialogProps) {
   const { data: patientsData } = usePatients({ limit: 100 })
-  const { data: doctor, isPending: isDoctorLoading } = useDoctor(doctorId ?? '', {
+  const { data: doctor, isPending: isDoctorLoading } = useProfessional(doctorId ?? '', {
     enabled: isOpen && !!doctorId,
   })
   const { mutate, isPending, isError, error, reset } = useBookAppointment()

@@ -1,7 +1,7 @@
 jest.mock('../services/prescriptions.service')
 jest.mock('@/components/features/medications/services/medications.service')
 jest.mock('../use-cases/download-prescription-pdf.use-case')
-jest.mock('@/components/features/doctors/hooks/use-doctor.hook')
+jest.mock('@/components/features/professionals/hooks/use-professional.hook')
 
 import { screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
@@ -9,14 +9,14 @@ import { UserRole } from '@app/shared'
 import { prescriptionsService } from '../services/prescriptions.service'
 import { medicationsService } from '@/components/features/medications/services/medications.service'
 import { downloadPrescriptionPdfUseCase } from '../use-cases/download-prescription-pdf.use-case'
-import { useDoctor } from '@/components/features/doctors/hooks/use-doctor.hook'
+import { useProfessional } from '@/components/features/professionals/hooks/use-professional.hook'
 import { renderWithProviders } from '@/tests/utils/render-with-providers'
 import { PrescriptionSection } from './prescription-section'
 
 const mockPrescriptionsService = prescriptionsService as jest.Mocked<typeof prescriptionsService>
 const mockMedicationsService = medicationsService as jest.Mocked<typeof medicationsService>
 const mockDownload = downloadPrescriptionPdfUseCase as jest.Mock
-const mockUseDoctor = useDoctor as jest.Mock
+const mockUseProfessional = useProfessional as jest.Mock
 
 const makePrescriptionDto = (overrides: object = {}) => ({
   id: 'rx-uuid',
@@ -49,7 +49,7 @@ const makeMed = () => ({
   createdAt: new Date().toISOString(),
 })
 
-const doctorProps = { appointmentId: 'appt-uuid', doctorId: 'doctor-uuid', canManage: true, userRole: UserRole.DOCTOR }
+const doctorProps = { appointmentId: 'appt-uuid', doctorId: 'doctor-uuid', canManage: true, userRole: UserRole.PROFESSIONAL }
 const adminProps = { appointmentId: 'appt-uuid', doctorId: 'doctor-uuid', canManage: true, userRole: UserRole.ADMIN }
 
 describe('PrescriptionSection (integration)', () => {
@@ -57,7 +57,7 @@ describe('PrescriptionSection (integration)', () => {
     jest.clearAllMocks()
     mockMedicationsService.getAll.mockResolvedValue(makeMedPage() as any)
     mockDownload.mockResolvedValue(undefined)
-    mockUseDoctor.mockReturnValue({ data: undefined })
+    mockUseProfessional.mockReturnValue({ data: undefined })
   })
 
   it('shows skeleton while loading', () => {

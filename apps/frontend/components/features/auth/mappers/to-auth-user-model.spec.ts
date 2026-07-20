@@ -9,14 +9,14 @@ describe('toAuthUserModel', () => {
       id: 'uuid-1',
       fullName: 'Alice Costa',
       email: 'alice@example.com',
-      role: UserRole.DOCTOR,
+      role: UserRole.PROFESSIONAL,
       clinicId: CLINIC_ID,
     }
     expect(toAuthUserModel(dto)).toEqual({
       id: 'uuid-1',
       fullName: 'Alice Costa',
       email: 'alice@example.com',
-      role: UserRole.DOCTOR,
+      role: UserRole.PROFESSIONAL,
       clinicId: CLINIC_ID,
     })
   })

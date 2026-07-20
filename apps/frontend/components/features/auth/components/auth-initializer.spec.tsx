@@ -14,7 +14,7 @@ const mockUser: IAuthUserModel = {
   id: 'uuid-1',
   fullName: 'Alice Costa',
   email: 'alice@example.com',
-  role: UserRole.DOCTOR,
+  role: UserRole.PROFESSIONAL,
   clinicId: 'clinic-uuid-1',
 }
 

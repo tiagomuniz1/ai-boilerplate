@@ -6,7 +6,7 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { Button } from '@/components/ui/atoms/button/button'
 import { Alert } from '@/components/ui/molecules/alert/alert'
-import { DoctorSignatureSelect } from '@/components/features/doctors/components/doctor-signature-select'
+import { ProfessionalSignatureSelect } from '@/components/features/professionals/components/professional-signature-select'
 import type { ICreateExamRequestInput } from '../types/exam-request-input.types'
 
 const itemSchema = z.object({
@@ -154,11 +154,11 @@ export function ExameForm({ appointmentId, doctorId, isPending, globalError, onS
         )}
       </div>
 
-      <DoctorSignatureSelect
-        doctorId={doctorId}
-        crmId={crmId}
+      <ProfessionalSignatureSelect
+        professionalId={doctorId}
+        registrationId={crmId}
         specialtyId={specialtyId}
-        onCrmIdChange={setCrmId}
+        onRegistrationIdChange={setCrmId}
         onSpecialtyIdChange={setSpecialtyId}
       />
 

@@ -42,7 +42,7 @@ function DayColumn({ doctorId, date, dayLabel, role, currentDoctorId, effectiveD
   const { data: exceptions = [] } = useScheduleExceptions(
     { doctorId: doctorId === 'self' ? undefined : doctorId, from: date, to: date },
   )
-  const canManage = role === UserRole.ADMIN || role === UserRole.DOCTOR
+  const canManage = role === UserRole.ADMIN || role === UserRole.PROFESSIONAL
 
   function isSlotPast(startTime: string): boolean {
     return new Date(`${date}T${startTime}:00`) < new Date()
