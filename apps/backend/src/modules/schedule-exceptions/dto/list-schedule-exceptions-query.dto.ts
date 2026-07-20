@@ -4,7 +4,7 @@ import { PaginationDto } from '../../../common/dto/pagination.dto'
 export class ListScheduleExceptionsQueryDto extends PaginationDto {
   @IsOptional()
   @IsUUID()
-  doctorId?: string
+  professionalId?: string
 
   @IsOptional()
   @IsDateString()

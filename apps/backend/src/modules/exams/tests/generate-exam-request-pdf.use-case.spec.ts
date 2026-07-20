@@ -12,7 +12,7 @@ const clinicId = 'clinic-uuid'
 const examRequestId = 'exam-uuid'
 
 const adminUser: ICurrentUser = { id: 'admin-id', role: UserRole.ADMIN, clinicId }
-const doctorUser: ICurrentUser = { id: 'doctor-user-id', role: UserRole.DOCTOR, clinicId }
+const doctorUser: ICurrentUser = { id: 'doctor-user-id', role: UserRole.PROFESSIONAL, clinicId }
 
 const makeSnapshot = () => ({
   issuedAt: '2026-01-05T10:00:00.000Z',
@@ -28,7 +28,7 @@ const makeExamRequest = () => ({
   clinicId,
   appointmentId: 'appt-uuid',
   patientId: 'patient-uuid',
-  doctorId: 'doctor-uuid',
+  professionalId: 'doctor-uuid',
   issuedAt: new Date(),
   snapshot: makeSnapshot(),
   createdAt: new Date(),

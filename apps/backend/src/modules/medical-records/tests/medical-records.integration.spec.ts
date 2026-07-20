@@ -50,7 +50,7 @@ describe('MedicalRecordsController (integration)', () => {
   let doctorToken: string
   let otherDoctorToken: string
   let userToken: string
-  let doctorId: string
+  let professionalId: string
   let otherDoctorId: string
   let patientId: string
   let specialtyId: string
@@ -123,7 +123,7 @@ describe('MedicalRecordsController (integration)', () => {
         fullName: 'Doctor Smith',
         email: 'doctor@mr.test',
         password: hashed,
-        role: UserRole.DOCTOR,
+        role: UserRole.PROFESSIONAL,
         clinicId: SEED_CLINIC_ID,
       }),
     )
@@ -133,7 +133,7 @@ describe('MedicalRecordsController (integration)', () => {
         fullName: 'Other Doctor',
         email: 'other@mr.test',
         password: hashed,
-        role: UserRole.DOCTOR,
+        role: UserRole.PROFESSIONAL,
         clinicId: SEED_CLINIC_ID,
       }),
     )
@@ -160,7 +160,7 @@ describe('MedicalRecordsController (integration)', () => {
     doctorEntity.registrations = [{ clinicId: SEED_CLINIC_ID, councilType: CouncilType.CRM, number: '12345', state: 'SP', isPrimary: true }] as any
     doctorEntity.professionalSpecialties = ([specialty]).map((s: any) => ({ specialtyId: s.id, registryNumber: null })) as any
     const doctorProfile = await doctorRepository.save(doctorEntity)
-    doctorId = doctorProfile.id
+    professionalId = doctorProfile.id
 
     const otherDoctorEntity = doctorRepository.create({
       userId: otherDoctorUser.id,
@@ -194,7 +194,7 @@ describe('MedicalRecordsController (integration)', () => {
 
     const schedule = await scheduleRepository.save(
       scheduleRepository.create({
-        doctorId,
+        professionalId,
         clinicId: SEED_CLINIC_ID,
         dayOfWeek: DayOfWeek.MONDAY,
         startTime: '08:00',
@@ -208,7 +208,7 @@ describe('MedicalRecordsController (integration)', () => {
     const appointment = await appointmentRepository.save(
       appointmentRepository.create({
         clinicId: SEED_CLINIC_ID,
-        doctorId,
+        professionalId,
         patientId,
         specialtyId,
         scheduleId: schedule.id,
@@ -306,9 +306,9 @@ describe('MedicalRecordsController (integration)', () => {
       expect(body.specialtyId).toBe(specialtyId)
       expect(body.templateId).toBe(templateId)
       expect(body.patientId).toBe(patientId)
-      expect(body.doctorId).toBe(doctorId)
+      expect(body.professionalId).toBe(professionalId)
       expect(body.patientName).toBe('Patient Jones')
-      expect(body.doctorName).toBe('Doctor Smith')
+      expect(body.professionalName).toBe('Doctor Smith')
       expect(body.specialtyName).toBe('Cardiologia')
       expect(body.templateSchemaSnapshot).toHaveLength(2)
     })
@@ -396,10 +396,10 @@ describe('MedicalRecordsController (integration)', () => {
       const noSpecAppt = await appointmentRepository.save(
         appointmentRepository.create({
           clinicId: SEED_CLINIC_ID,
-          doctorId,
+          professionalId,
           patientId,
           specialtyId: null,
-          scheduleId: (await scheduleRepository.findOneByOrFail({ doctorId })).id,
+          scheduleId: (await scheduleRepository.findOneByOrFail({ professionalId })).id,
           date: '2026-01-06',
           startTime: '09:00',
           endTime: '09:30',
@@ -429,10 +429,10 @@ describe('MedicalRecordsController (integration)', () => {
       const generalistAppt = await appointmentRepository.save(
         appointmentRepository.create({
           clinicId: SEED_CLINIC_ID,
-          doctorId,
+          professionalId,
           patientId,
           specialtyId: null,
-          scheduleId: (await scheduleRepository.findOneByOrFail({ doctorId })).id,
+          scheduleId: (await scheduleRepository.findOneByOrFail({ professionalId })).id,
           date: '2026-01-07',
           startTime: '09:30',
           endTime: '10:00',
@@ -476,10 +476,10 @@ describe('MedicalRecordsController (integration)', () => {
       await expect(
         recordRepository.query(`
           INSERT INTO test.medical_records
-            (clinic_id, appointment_id, patient_id, doctor_id, specialty_id, template_id, template_schema_snapshot, data)
+            (clinic_id, appointment_id, patient_id, professional_id, specialty_id, template_id, template_schema_snapshot, data)
           VALUES
             ($1, $2, $3, $4, $5, $6, '[]'::jsonb, '{}'::jsonb)
-        `, [SEED_CLINIC_ID, appointmentId, patientId, doctorId, otherSpecialty.id, templateId]),
+        `, [SEED_CLINIC_ID, appointmentId, patientId, professionalId, otherSpecialty.id, templateId]),
       ).rejects.toThrow()
     })
   })
@@ -599,7 +599,7 @@ describe('MedicalRecordsController (integration)', () => {
         .expect(200)
 
       expect(body.data).toHaveLength(1)
-      expect(body.data[0].doctorId).toBe(doctorId)
+      expect(body.data[0].professionalId).toBe(professionalId)
     })
 
     it('returns 403 for USER', async () => {

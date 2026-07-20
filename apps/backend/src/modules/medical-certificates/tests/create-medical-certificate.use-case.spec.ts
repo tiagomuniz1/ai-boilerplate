@@ -11,18 +11,18 @@ import { CreateMedicalCertificateUseCase } from '../use-cases/create-medical-cer
 import { CacheService } from '../../../cache/cache.service'
 
 const clinicId = 'clinic-uuid'
-const doctorId = 'doctor-uuid'
+const professionalId = 'doctor-uuid'
 const patientId = 'patient-uuid'
 const appointmentId = 'appt-uuid'
 const specialtyId = 'specialty-uuid'
 
 const adminUser: ICurrentUser = { id: 'admin-id', role: UserRole.ADMIN, clinicId }
-const doctorUser: ICurrentUser = { id: 'doctor-user-id', role: UserRole.DOCTOR, clinicId }
+const doctorUser: ICurrentUser = { id: 'doctor-user-id', role: UserRole.PROFESSIONAL, clinicId }
 
 const makeAppointment = (overrides = {}) => ({
   id: appointmentId,
   clinicId,
-  doctorId,
+  professionalId,
   patientId,
   specialtyId,
   status: AppointmentStatus.SCHEDULED,
@@ -32,7 +32,7 @@ const makeAppointment = (overrides = {}) => ({
 const makeDoctor = (overrides: any = {}) => {
   const { specialties = [{ id: specialtyId, name: 'Cardiologia' }], ...rest } = overrides
   return {
-    id: doctorId,
+    id: professionalId,
     user: { fullName: 'Doctor Smith' },
     registrations: [{ id: 'crm-1', number: '12345', state: 'SP', isPrimary: true }],
     professionalSpecialties: specialties.map((s: any) => ({ specialtyId: s.id, specialty: { id: s.id, name: s.name } })),
@@ -67,7 +67,7 @@ const makeSavedCertificate = (overrides = {}) => ({
   clinicId,
   appointmentId,
   patientId,
-  doctorId,
+  professionalId,
   issuedAt: new Date(),
   snapshot: {
     issuedAt: new Date().toISOString(),
@@ -99,7 +99,7 @@ const mockMedicalCertificatesRepository: jest.Mocked<IMedicalCertificatesReposit
 const mockAppointmentsRepository: jest.Mocked<IAppointmentsRepository> = {
   findAll: jest.fn(),
   findById: jest.fn(),
-  findActiveByDoctorAndDate: jest.fn(),
+  findActiveByProfessionalAndDate: jest.fn(),
   findActiveBySlot: jest.fn(),
   hasFutureByScheduleId: jest.fn(),
   create: jest.fn(),
@@ -179,7 +179,7 @@ describe('CreateMedicalCertificateUseCase', () => {
 
     expect(result.appointmentId).toBe(appointmentId)
     expect(result.patientName).toBe('Patient Jones')
-    expect(result.doctorName).toBe('Doctor Smith')
+    expect(result.professionalName).toBe('Doctor Smith')
     expect(mockMedicalCertificatesRepository.create).toHaveBeenCalled()
   })
 
@@ -202,7 +202,7 @@ describe('CreateMedicalCertificateUseCase', () => {
     await useCase.execute(leaveDto as any, adminUser)
 
     expect(mockProfessionalsRepository.findByUserId).not.toHaveBeenCalled()
-    expect(mockProfessionalsRepository.findById).toHaveBeenCalledWith(doctorId, clinicId)
+    expect(mockProfessionalsRepository.findById).toHaveBeenCalledWith(professionalId, clinicId)
   })
 
   it('builds snapshot with LEAVE fields and null ATTENDANCE fields', async () => {

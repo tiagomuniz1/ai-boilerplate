@@ -7,19 +7,19 @@ import { IPrescriptionTemplatesRepository } from '../repositories/prescription-t
 import { DeletePrescriptionTemplateUseCase } from '../use-cases/delete-prescription-template.use-case'
 
 const clinicId = 'clinic-uuid'
-const doctorId = 'doctor-uuid'
+const professionalId = 'doctor-uuid'
 const templateId = 'tpl-uuid'
 
 const adminUser: ICurrentUser = { id: 'admin-id', role: UserRole.ADMIN, clinicId }
-const doctorUser: ICurrentUser = { id: 'doctor-user-id', role: UserRole.DOCTOR, clinicId }
+const doctorUser: ICurrentUser = { id: 'doctor-user-id', role: UserRole.PROFESSIONAL, clinicId }
 
-const makeDoctor = (overrides = {}) => ({ id: doctorId, user: { fullName: 'Dr. House' }, ...overrides })
+const makeDoctor = (overrides = {}) => ({ id: professionalId, user: { fullName: 'Dr. House' }, ...overrides })
 
 const makeTemplate = (overrides = {}) => ({
   id: templateId,
   clinicId,
-  doctorId,
-  doctorName: 'Dr. House',
+  professionalId,
+  professionalName: 'Dr. House',
   name: 'Modelo A',
   items: [],
   notes: null,

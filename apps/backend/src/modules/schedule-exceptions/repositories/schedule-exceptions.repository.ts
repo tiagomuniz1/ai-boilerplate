@@ -13,7 +13,7 @@ export class ScheduleExceptionsRepository implements IScheduleExceptionsReposito
   ) {}
 
   async findAll(filters: ListScheduleExceptionsQueryDto, clinicId: string): Promise<[ScheduleException[], number]> {
-    const { doctorId, from, to, page = 1, limit = 20 } = filters
+    const { professionalId, from, to, page = 1, limit = 20 } = filters
 
     const qb = this.repository
       .createQueryBuilder('exception')
@@ -24,7 +24,7 @@ export class ScheduleExceptionsRepository implements IScheduleExceptionsReposito
       .skip((page - 1) * limit)
       .take(limit)
 
-    if (doctorId) qb.andWhere('exception.doctor_id = :doctorId', { doctorId })
+    if (professionalId) qb.andWhere('exception.professional_id = :professionalId', { professionalId })
     if (from) qb.andWhere('exception.date >= :from', { from })
     if (to) qb.andWhere('exception.date <= :to', { to })
 
@@ -35,8 +35,8 @@ export class ScheduleExceptionsRepository implements IScheduleExceptionsReposito
     return this.repository.findOne({ where: { id, clinicId } })
   }
 
-  async findActiveByDoctorAndDate(doctorId: string, date: string, clinicId: string): Promise<ScheduleException[]> {
-    return this.repository.find({ where: { doctorId, date, clinicId } })
+  async findActiveByProfessionalAndDate(professionalId: string, date: string, clinicId: string): Promise<ScheduleException[]> {
+    return this.repository.find({ where: { professionalId, date, clinicId } })
   }
 
   async create(data: Partial<ScheduleException>, queryRunner?: QueryRunner): Promise<ScheduleException> {

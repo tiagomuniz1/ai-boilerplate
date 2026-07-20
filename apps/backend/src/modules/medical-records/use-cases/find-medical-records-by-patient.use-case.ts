@@ -30,14 +30,14 @@ export class FindMedicalRecordsByPatientUseCase extends BaseUseCase {
     const clinicId = currentUser.clinicId!
     const { page, limit } = query
 
-    let doctorIdFilter: string | undefined = query.doctorId
+    let professionalIdFilter: string | undefined = query.professionalId
 
-    if (currentUser.role === UserRole.DOCTOR) {
-      const doctor = await this.professionalsRepository.findByUserId(currentUser.id, clinicId)
-      doctorIdFilter = doctor?.id
+    if (currentUser.role === UserRole.PROFESSIONAL) {
+      const professional = await this.professionalsRepository.findByUserId(currentUser.id, clinicId)
+      professionalIdFilter = professional?.id
     }
 
-    const cacheKey = `medical_records:patient:${patientId}:${page}:${limit}:${doctorIdFilter ?? 'all'}`
+    const cacheKey = `medical_records:patient:${patientId}:${page}:${limit}:${professionalIdFilter ?? 'all'}`
     try {
       const cached = await this.cacheService.get<PaginatedMedicalRecordsResponseDto>(cacheKey)
       if (cached) return cached
@@ -50,7 +50,7 @@ export class FindMedicalRecordsByPatientUseCase extends BaseUseCase {
       patientId,
       page,
       limit,
-      doctorIdFilter,
+      professionalIdFilter,
     )
 
     const data: MedicalRecordResponseDto[] = records.map(toMedicalRecordResponse)

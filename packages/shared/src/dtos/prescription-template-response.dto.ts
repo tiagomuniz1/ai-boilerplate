@@ -9,8 +9,8 @@ export class PrescriptionTemplateItemResponseDto {
 
 export class PrescriptionTemplateResponseDto {
   id!: string
-  doctorId!: string
-  doctorName!: string
+  professionalId!: string
+  professionalName!: string
   name!: string
   items!: PrescriptionTemplateItemResponseDto[]
   notes!: string | null

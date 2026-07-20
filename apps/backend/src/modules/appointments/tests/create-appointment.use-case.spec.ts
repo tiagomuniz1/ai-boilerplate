@@ -12,26 +12,26 @@ import { DistributedLockService } from '../../../cache/distributed-lock.service'
 import { ICurrentUser } from '../../auth/types/current-user.type'
 import { IProfessionalsRepository } from '../../professionals/repositories/professionals.repository.interface'
 import { IPatientsRepository } from '../../patients/repositories/patients.repository.interface'
-import { GetActiveSchedulesForDoctorUseCase } from '../../schedules/use-cases/get-active-schedules-for-doctor.use-case'
+import { GetActiveSchedulesForProfessionalUseCase } from '../../schedules/use-cases/get-active-schedules-for-professional.use-case'
 import { IAppointmentsRepository } from '../repositories/appointments.repository.interface'
 import { CreateAppointmentUseCase } from '../use-cases/create-appointment.use-case'
 
 const CLINIC_ID = 'clinic-uuid'
 const doctorUserId = faker.string.uuid()
-const doctorId = faker.string.uuid()
+const professionalId = faker.string.uuid()
 const specialtyId = faker.string.uuid()
 const specialtyName = 'Cardiologia'
 const makeDoctor = (overrides: any = {}) => {
   const { specialties = [{ id: specialtyId, name: specialtyName }], ...rest } = overrides
   return {
-    id: doctorId,
+    id: professionalId,
     registrations: [{ id: 'crm-1', number: '12345', state: 'SP', isPrimary: true }],
     professionalSpecialties: specialties.map((s: any) => ({ specialtyId: s.id, specialty: { id: s.id, name: s.name } })),
     ...rest,
   }
 }
 
-const doctorUser: ICurrentUser = { id: doctorUserId, role: UserRole.DOCTOR, clinicId: CLINIC_ID }
+const doctorUser: ICurrentUser = { id: doctorUserId, role: UserRole.PROFESSIONAL, clinicId: CLINIC_ID }
 const adminUser: ICurrentUser = { id: faker.string.uuid(), role: UserRole.ADMIN, clinicId: CLINIC_ID }
 
 const tomorrow = new Date()
@@ -52,7 +52,7 @@ const tomorrowDayOfWeek = dayOfWeekMap[utcDay]
 
 const makeSchedule = (overrides = {}) => ({
   id: faker.string.uuid(),
-  doctorId,
+  professionalId,
   dayOfWeek: tomorrowDayOfWeek,
   startTime: '08:00',
   endTime: '10:00',
@@ -69,7 +69,7 @@ const makeSchedule = (overrides = {}) => ({
 const makeAppointment = (overrides = {}) => ({
   id: faker.string.uuid(),
   clinicId: CLINIC_ID,
-  doctorId,
+  professionalId,
   patientId: faker.string.uuid(),
   specialtyId,
   scheduleId: faker.string.uuid(),
@@ -89,7 +89,7 @@ const makeAppointment = (overrides = {}) => ({
 const mockAppointmentsRepository: jest.Mocked<IAppointmentsRepository> = {
   findAll: jest.fn(),
   findById: jest.fn(),
-  findActiveByDoctorAndDate: jest.fn(),
+  findActiveByProfessionalAndDate: jest.fn(),
   findActiveBySlot: jest.fn(),
   hasFutureByScheduleId: jest.fn(),
   create: jest.fn(),
@@ -118,7 +118,7 @@ const mockPatientsRepository: jest.Mocked<IPatientsRepository> = {
 
 const mockGetActiveSchedules = {
   execute: jest.fn(),
-} as unknown as jest.Mocked<GetActiveSchedulesForDoctorUseCase>
+} as unknown as jest.Mocked<GetActiveSchedulesForProfessionalUseCase>
 
 const mockCacheService = {
   get: jest.fn(),
@@ -181,9 +181,9 @@ describe('CreateAppointmentUseCase', () => {
   })
 
   describe('DOCTOR role', () => {
-    it('creates appointment using own doctorId (ignores dto.doctorId)', async () => {
+    it('creates appointment using own professionalId (ignores dto.professionalId)', async () => {
       await useCase.execute(
-        { patientId: faker.string.uuid(), date: tomorrowStr, startTime: '08:00', doctorId: faker.string.uuid() },
+        { patientId: faker.string.uuid(), date: tomorrowStr, startTime: '08:00', professionalId: faker.string.uuid() },
         doctorUser,
       )
       expect(mockProfessionalsRepository.findByUserId).toHaveBeenCalledWith(doctorUserId, CLINIC_ID)
@@ -199,15 +199,15 @@ describe('CreateAppointmentUseCase', () => {
   })
 
   describe('ADMIN role', () => {
-    it('creates appointment using dto.doctorId', async () => {
+    it('creates appointment using dto.professionalId', async () => {
       await useCase.execute(
-        { patientId: faker.string.uuid(), date: tomorrowStr, startTime: '08:00', doctorId },
+        { patientId: faker.string.uuid(), date: tomorrowStr, startTime: '08:00', professionalId },
         adminUser,
       )
-      expect(mockProfessionalsRepository.findById).toHaveBeenCalledWith(doctorId, CLINIC_ID)
+      expect(mockProfessionalsRepository.findById).toHaveBeenCalledWith(professionalId, CLINIC_ID)
     })
 
-    it('throws UnprocessableEntityException when doctorId not provided', async () => {
+    it('throws UnprocessableEntityException when professionalId not provided', async () => {
       await expect(
         useCase.execute({ patientId: faker.string.uuid(), date: tomorrowStr, startTime: '08:00' }, adminUser),
       ).rejects.toThrow(UnprocessableEntityException)
@@ -216,7 +216,7 @@ describe('CreateAppointmentUseCase', () => {
     it('throws NotFoundException when doctor not found', async () => {
       mockProfessionalsRepository.findById.mockResolvedValue(null)
       await expect(
-        useCase.execute({ patientId: faker.string.uuid(), date: tomorrowStr, startTime: '08:00', doctorId }, adminUser),
+        useCase.execute({ patientId: faker.string.uuid(), date: tomorrowStr, startTime: '08:00', professionalId }, adminUser),
       ).rejects.toThrow(NotFoundException)
     })
   })
@@ -300,7 +300,7 @@ describe('CreateAppointmentUseCase', () => {
       doctorUser,
     )
     expect(mockCacheService.delByPrefix).toHaveBeenCalledWith(`appointments:list:${CLINIC_ID}:`)
-    expect(mockCacheService.delByPrefix).toHaveBeenCalledWith(`appointments:availability:${CLINIC_ID}:${doctorId}:`)
+    expect(mockCacheService.delByPrefix).toHaveBeenCalledWith(`appointments:availability:${CLINIC_ID}:${professionalId}:`)
   })
 
   it('continues when cache invalidation fails', async () => {
@@ -318,7 +318,7 @@ describe('CreateAppointmentUseCase', () => {
     mockDistributedLockService.runWithLock.mockRejectedValue(pgError)
 
     await expect(
-      useCase.execute({ patientId: faker.string.uuid(), date: tomorrowStr, startTime: '08:00', doctorId }, adminUser),
+      useCase.execute({ patientId: faker.string.uuid(), date: tomorrowStr, startTime: '08:00', professionalId }, adminUser),
     ).rejects.toThrow(ConflictException)
   })
 
@@ -330,11 +330,11 @@ describe('CreateAppointmentUseCase', () => {
     mockDistributedLockService.runWithLock.mockRejectedValue(pgError)
 
     await expect(
-      useCase.execute({ patientId: faker.string.uuid(), date: tomorrowStr, startTime: '08:00', doctorId }, adminUser),
+      useCase.execute({ patientId: faker.string.uuid(), date: tomorrowStr, startTime: '08:00', professionalId }, adminUser),
     ).rejects.toThrow(QueryFailedError)
   })
 
-  it('returns empty strings for doctorName and patientName when rows are empty', async () => {
+  it('returns empty strings for professionalName and patientName when rows are empty', async () => {
     const emptyBuilder = {
       select: jest.fn().mockReturnThis(),
       addSelect: jest.fn().mockReturnThis(),
@@ -371,7 +371,7 @@ describe('CreateAppointmentUseCase', () => {
       doctorUser,
     )
 
-    expect(result.doctorName).toBe('')
+    expect(result.professionalName).toBe('')
     expect(result.patientName).toBe('')
   })
 

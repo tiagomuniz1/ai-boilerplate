@@ -16,7 +16,7 @@ const UTC_DAY_TO_DAY_OF_WEEK: Record<number, DayOfWeek> = {
 }
 
 @Injectable()
-export class GetActiveSchedulesForDoctorUseCase extends BaseUseCase {
+export class GetActiveSchedulesForProfessionalUseCase extends BaseUseCase {
   constructor(
     dataSource: DataSource,
     private readonly schedulesRepository: ISchedulesRepository,
@@ -24,9 +24,9 @@ export class GetActiveSchedulesForDoctorUseCase extends BaseUseCase {
     super(dataSource)
   }
 
-  async execute(doctorId: string, clinicId: string, date: string): Promise<Schedule[]> {
+  async execute(professionalId: string, clinicId: string, date: string): Promise<Schedule[]> {
     const utcDay = new Date(`${date}T00:00:00Z`).getUTCDay()
     const dayOfWeek = UTC_DAY_TO_DAY_OF_WEEK[utcDay]
-    return this.schedulesRepository.findActiveByDoctorAndDate(doctorId, dayOfWeek, date, clinicId)
+    return this.schedulesRepository.findActiveByProfessionalAndDate(professionalId, dayOfWeek, date, clinicId)
   }
 }

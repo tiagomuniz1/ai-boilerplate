@@ -4,7 +4,7 @@ import { AppointmentInsuranceType } from '../enums/appointment-insurance-type.en
 export class CreateAppointmentDto {
   @IsOptional()
   @IsUUID()
-  doctorId?: string
+  professionalId?: string
 
   @IsOptional()
   @IsUUID()

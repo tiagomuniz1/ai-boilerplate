@@ -13,7 +13,7 @@ import { DistributedLockService } from '../../../cache/distributed-lock.service'
 import { ICurrentUser } from '../../auth/types/current-user.type'
 import { IProfessionalsRepository } from '../../professionals/repositories/professionals.repository.interface'
 import { IPatientsRepository } from '../../patients/repositories/patients.repository.interface'
-import { GetActiveSchedulesForDoctorUseCase } from '../../schedules/use-cases/get-active-schedules-for-doctor.use-case'
+import { GetActiveSchedulesForProfessionalUseCase } from '../../schedules/use-cases/get-active-schedules-for-professional.use-case'
 import { Schedule } from '../../schedules/entities/schedule.entity'
 import { Appointment } from '../entities/appointment.entity'
 import { IAppointmentsRepository } from '../repositories/appointments.repository.interface'
@@ -55,7 +55,7 @@ export class CreateAppointmentUseCase extends BaseUseCase {
     private readonly appointmentsRepository: IAppointmentsRepository,
     private readonly professionalsRepository: IProfessionalsRepository,
     private readonly patientsRepository: IPatientsRepository,
-    private readonly getActiveSchedulesUseCase: GetActiveSchedulesForDoctorUseCase,
+    private readonly getActiveSchedulesUseCase: GetActiveSchedulesForProfessionalUseCase,
     private readonly cacheService: CacheService,
     private readonly distributedLockService: DistributedLockService,
   ) {
@@ -65,17 +65,17 @@ export class CreateAppointmentUseCase extends BaseUseCase {
   async execute(dto: CreateAppointmentDto, currentUser: ICurrentUser): Promise<AppointmentResponseDto> {
     const clinicId = currentUser.clinicId!
 
-    let doctor
-    if (currentUser.role === UserRole.DOCTOR) {
-      doctor = await this.professionalsRepository.findByUserId(currentUser.id, clinicId)
+    let professional
+    if (currentUser.role === UserRole.PROFESSIONAL) {
+      professional = await this.professionalsRepository.findByUserId(currentUser.id, clinicId)
     } else {
-      if (!dto.doctorId) throw new UnprocessableEntityException('doctorId is required for admin')
-      doctor = await this.professionalsRepository.findById(dto.doctorId, clinicId)
+      if (!dto.professionalId) throw new UnprocessableEntityException('professionalId is required for admin')
+      professional = await this.professionalsRepository.findById(dto.professionalId, clinicId)
     }
-    if (!doctor) throw new NotFoundException('Professional not found')
+    if (!professional) throw new NotFoundException('Professional not found')
 
     const chosenSpecialty = this.resolveSpecialty(
-      doctor.professionalSpecialties.map((ds) => ({ id: ds.specialtyId, name: ds.specialty.name })),
+      professional.professionalSpecialties.map((ds) => ({ id: ds.specialtyId, name: ds.specialty.name })),
       dto.specialtyId,
     )
 
@@ -90,7 +90,7 @@ export class CreateAppointmentUseCase extends BaseUseCase {
       throw new UnprocessableEntityException('Cannot book an appointment in the past')
     }
 
-    const schedules = await this.getActiveSchedulesUseCase.execute(doctor.id, clinicId, dateStr)
+    const schedules = await this.getActiveSchedulesUseCase.execute(professional.id, clinicId, dateStr)
 
     let matchedSlot: { startTime: string; endTime: string; scheduleId: string; slotDurationInMinutes: number } | undefined
     for (const schedule of schedules) {
@@ -107,15 +107,15 @@ export class CreateAppointmentUseCase extends BaseUseCase {
     }
 
     const { scheduleId, endTime } = matchedSlot
-    const doctorId = doctor.id
-    const lockKey = `appointment:${clinicId}:${doctorId}:${dateStr}:${timeStr}`
+    const professionalId = professional.id
+    const lockKey = `appointment:${clinicId}:${professionalId}:${dateStr}:${timeStr}`
 
     let appointment: Appointment
     try {
       appointment = await this.distributedLockService.runWithLock(lockKey, 10, () =>
         this.runInTransaction(async (queryRunner) => {
           const existing = await this.appointmentsRepository.findActiveBySlot(
-            doctorId,
+            professionalId,
             dateStr,
             timeStr,
             clinicId,
@@ -126,7 +126,7 @@ export class CreateAppointmentUseCase extends BaseUseCase {
           return this.appointmentsRepository.create(
             {
               clinicId,
-              doctorId,
+              professionalId,
               patientId: dto.patientId,
               specialtyId: chosenSpecialty?.id ?? null,
               scheduleId,
@@ -150,17 +150,17 @@ export class CreateAppointmentUseCase extends BaseUseCase {
 
     try {
       await this.cacheService.delByPrefix(`appointments:list:${clinicId}:`)
-      await this.cacheService.delByPrefix(`appointments:availability:${clinicId}:${doctorId}:`)
+      await this.cacheService.delByPrefix(`appointments:availability:${clinicId}:${professionalId}:`)
     } catch {
       this.logger.warn('Cache invalidation failed', { context: CreateAppointmentUseCase.name })
     }
 
-    const [doctorName, patientName] = await Promise.all([
-      this.fetchDoctorName(doctorId),
+    const [professionalName, patientName] = await Promise.all([
+      this.fetchProfessionalName(professionalId),
       this.fetchPatientName(dto.patientId),
     ])
 
-    return this.toResponse(appointment, doctorName, patientName, chosenSpecialty?.name ?? null)
+    return this.toResponse(appointment, professionalName, patientName, chosenSpecialty?.name ?? null)
   }
 
   private resolveSpecialty(
@@ -170,12 +170,12 @@ export class CreateAppointmentUseCase extends BaseUseCase {
     if (requestedSpecialtyId) {
       const matched = specialties.find((specialty) => specialty.id === requestedSpecialtyId)
       if (!matched) {
-        throw new UnprocessableEntityException('Specialty does not belong to this doctor')
+        throw new UnprocessableEntityException('Specialty does not belong to this professional')
       }
       return matched
     }
 
-    // Generalist doctor: no specialties linked → appointment has no specialty.
+    // Generalist professional: no specialties linked → appointment has no specialty.
     if (specialties.length === 0) {
       return null
     }
@@ -187,13 +187,13 @@ export class CreateAppointmentUseCase extends BaseUseCase {
     return specialties[0]
   }
 
-  private async fetchDoctorName(doctorId: string): Promise<string> {
+  private async fetchProfessionalName(professionalId: string): Promise<string> {
     const rows: Array<{ fullName: string }> = await this.dataSource
       .createQueryBuilder()
       .select('u.full_name', 'fullName')
       .from('professionals', 'd')
       .innerJoin('users', 'u', 'u.id = d.user_id AND u.deleted_at IS NULL')
-      .where('d.id = :doctorId', { doctorId })
+      .where('d.id = :professionalId', { professionalId })
       .andWhere('d.deleted_at IS NULL')
       .getRawMany()
     return rows[0]?.fullName ?? ''
@@ -213,14 +213,14 @@ export class CreateAppointmentUseCase extends BaseUseCase {
 
   private toResponse(
     appointment: Appointment,
-    doctorName: string,
+    professionalName: string,
     patientName: string,
     specialtyName: string | null,
   ): AppointmentResponseDto {
     return {
       id: appointment.id,
-      doctorId: appointment.doctorId,
-      doctorName,
+      professionalId: appointment.professionalId,
+      professionalName,
       patientId: appointment.patientId,
       patientName,
       specialtyId: appointment.specialtyId,

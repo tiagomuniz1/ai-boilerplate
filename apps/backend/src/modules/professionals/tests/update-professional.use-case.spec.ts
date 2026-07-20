@@ -324,7 +324,7 @@ describe('UpdateProfessionalUseCase', () => {
 
   it('allows DOCTOR to update their own profile', async () => {
     const professional = makeProfessional()
-    const professionalUser: ICurrentUser = { id: professional.user.id, role: UserRole.DOCTOR, clinicId: CLINIC_ID }
+    const professionalUser: ICurrentUser = { id: professional.user.id, role: UserRole.PROFESSIONAL, clinicId: CLINIC_ID }
     const updated = makeProfessional({ id: professional.id })
 
     mockProfessionalsRepository.findByUserId.mockResolvedValue(professional as any)
@@ -339,7 +339,7 @@ describe('UpdateProfessionalUseCase', () => {
   })
 
   it('throws ForbiddenException when DOCTOR tries to update another professional profile', async () => {
-    const professionalUser: ICurrentUser = { id: faker.string.uuid(), role: UserRole.DOCTOR, clinicId: CLINIC_ID }
+    const professionalUser: ICurrentUser = { id: faker.string.uuid(), role: UserRole.PROFESSIONAL, clinicId: CLINIC_ID }
     const ownProfessional = makeProfessional()
     const otherProfessionalId = faker.string.uuid()
 
@@ -393,7 +393,7 @@ describe('UpdateProfessionalUseCase', () => {
 
   it('throws ForbiddenException when DOCTOR tries to change isActive', async () => {
     const professional = makeProfessional()
-    const professionalUser: ICurrentUser = { id: professional.user.id, role: UserRole.DOCTOR, clinicId: CLINIC_ID }
+    const professionalUser: ICurrentUser = { id: professional.user.id, role: UserRole.PROFESSIONAL, clinicId: CLINIC_ID }
 
     mockProfessionalsRepository.findByUserId.mockResolvedValue(professional as any)
 

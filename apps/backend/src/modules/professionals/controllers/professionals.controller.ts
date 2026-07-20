@@ -37,7 +37,7 @@ export class ProfessionalsController {
   }
 
   @Get()
-  @Roles(UserRole.ADMIN, UserRole.DOCTOR, UserRole.USER)
+  @Roles(UserRole.ADMIN, UserRole.PROFESSIONAL, UserRole.USER)
   findAll(
     @Query() query: ListProfessionalsQueryDto,
     @CurrentUser() currentUser: ICurrentUser,
@@ -46,7 +46,7 @@ export class ProfessionalsController {
   }
 
   @Get(':id')
-  @Roles(UserRole.ADMIN, UserRole.DOCTOR, UserRole.USER)
+  @Roles(UserRole.ADMIN, UserRole.PROFESSIONAL, UserRole.USER)
   findById(
     @Param('id') id: string,
     @CurrentUser() currentUser: ICurrentUser,
@@ -55,7 +55,7 @@ export class ProfessionalsController {
   }
 
   @Patch(':id')
-  @Roles(UserRole.ADMIN, UserRole.DOCTOR)
+  @Roles(UserRole.ADMIN, UserRole.PROFESSIONAL)
   update(
     @Param('id') id: string,
     @Body() dto: UpdateProfessionalDto,

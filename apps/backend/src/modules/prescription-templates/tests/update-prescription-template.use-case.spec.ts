@@ -8,22 +8,22 @@ import { IPrescriptionTemplatesRepository } from '../repositories/prescription-t
 import { UpdatePrescriptionTemplateUseCase } from '../use-cases/update-prescription-template.use-case'
 
 const clinicId = 'clinic-uuid'
-const doctorId = 'doctor-uuid'
+const professionalId = 'doctor-uuid'
 const templateId = 'tpl-uuid'
 const medicationId = 'med-uuid'
 
 const adminUser: ICurrentUser = { id: 'admin-id', role: UserRole.ADMIN, clinicId }
-const doctorUser: ICurrentUser = { id: 'doctor-user-id', role: UserRole.DOCTOR, clinicId }
+const doctorUser: ICurrentUser = { id: 'doctor-user-id', role: UserRole.PROFESSIONAL, clinicId }
 
-const makeDoctor = (overrides = {}) => ({ id: doctorId, user: { fullName: 'Dr. House' }, ...overrides })
+const makeDoctor = (overrides = {}) => ({ id: professionalId, user: { fullName: 'Dr. House' }, ...overrides })
 
 const makeMedication = () => ({ id: medicationId, name: 'Dipirona', activeIngredient: 'dipirona sódica' })
 
 const makeTemplate = (overrides = {}) => ({
   id: templateId,
   clinicId,
-  doctorId,
-  doctorName: 'Dr. House',
+  professionalId,
+  professionalName: 'Dr. House',
   name: 'Modelo A',
   items: [],
   notes: null,
@@ -86,7 +86,7 @@ describe('UpdatePrescriptionTemplateUseCase', () => {
   })
 
   it('allows ADMIN to update any template without an owning-doctor check', async () => {
-    mockRepository.findById.mockResolvedValue(makeTemplate({ doctorId: 'some-other-doctor' }) as any)
+    mockRepository.findById.mockResolvedValue(makeTemplate({ professionalId: 'some-other-doctor' }) as any)
 
     await useCase.execute(templateId, { name: 'Novo nome' }, adminUser)
 

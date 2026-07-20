@@ -137,7 +137,7 @@ describe('FindProfessionalByIdUseCase', () => {
 
   it('allows DOCTOR to view their own profile', async () => {
     const professional = makeProfessional()
-    const professionalUser: ICurrentUser = { id: professional.user.id, role: UserRole.DOCTOR, clinicId: CLINIC_ID }
+    const professionalUser: ICurrentUser = { id: professional.user.id, role: UserRole.PROFESSIONAL, clinicId: CLINIC_ID }
     mockProfessionalsRepository.findByUserId.mockResolvedValue(professional as any)
     mockCacheService.get.mockResolvedValue(null)
     mockProfessionalsRepository.findById.mockResolvedValue(professional as any)
@@ -149,7 +149,7 @@ describe('FindProfessionalByIdUseCase', () => {
   })
 
   it('throws ForbiddenException when DOCTOR tries to view another professional profile', async () => {
-    const professionalUser: ICurrentUser = { id: faker.string.uuid(), role: UserRole.DOCTOR, clinicId: CLINIC_ID }
+    const professionalUser: ICurrentUser = { id: faker.string.uuid(), role: UserRole.PROFESSIONAL, clinicId: CLINIC_ID }
     const professional = makeProfessional()
     const ownProfessional = makeProfessional()
     mockProfessionalsRepository.findByUserId.mockResolvedValue(ownProfessional as any)

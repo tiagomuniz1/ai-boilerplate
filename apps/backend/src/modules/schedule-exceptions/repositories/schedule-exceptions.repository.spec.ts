@@ -8,7 +8,7 @@ const makeException = (overrides = {}): ScheduleException =>
   ({
     id: faker.string.uuid(),
     clinicId: CLINIC_ID,
-    doctorId: faker.string.uuid(),
+    professionalId: faker.string.uuid(),
     date: '2099-06-20',
     startTime: '08:00',
     endTime: '12:00',
@@ -63,15 +63,15 @@ describe('ScheduleExceptionsRepository', () => {
       expect(result).toEqual([exceptions, 1])
     })
 
-    it('applies doctorId filter when provided', async () => {
-      const doctorId = faker.string.uuid()
+    it('applies professionalId filter when provided', async () => {
+      const professionalId = faker.string.uuid()
       const qb = makeQueryBuilder()
       qb.getManyAndCount.mockResolvedValue([[], 0])
       mockRepository.createQueryBuilder.mockReturnValue(qb)
 
-      await repository.findAll({ page: 1, limit: 20, doctorId } as any, CLINIC_ID)
+      await repository.findAll({ page: 1, limit: 20, professionalId } as any, CLINIC_ID)
 
-      expect(qb.andWhere).toHaveBeenCalledWith('exception.doctor_id = :doctorId', { doctorId })
+      expect(qb.andWhere).toHaveBeenCalledWith('exception.professional_id = :professionalId', { professionalId })
     })
 
     it('applies from/to date filters when provided', async () => {
@@ -128,16 +128,16 @@ describe('ScheduleExceptionsRepository', () => {
     })
   })
 
-  describe('findActiveByDoctorAndDate', () => {
+  describe('findActiveByProfessionalAndDate', () => {
     it('returns exceptions by doctor and date', async () => {
-      const doctorId = faker.string.uuid()
-      const exception = makeException({ doctorId })
+      const professionalId = faker.string.uuid()
+      const exception = makeException({ professionalId })
       mockRepository.find.mockResolvedValue([exception])
 
-      const result = await repository.findActiveByDoctorAndDate(doctorId, '2099-06-20', CLINIC_ID)
+      const result = await repository.findActiveByProfessionalAndDate(professionalId, '2099-06-20', CLINIC_ID)
 
       expect(mockRepository.find).toHaveBeenCalledWith({
-        where: { doctorId, date: '2099-06-20', clinicId: CLINIC_ID },
+        where: { professionalId, date: '2099-06-20', clinicId: CLINIC_ID },
       })
       expect(result).toEqual([exception])
     })
@@ -149,7 +149,7 @@ describe('ScheduleExceptionsRepository', () => {
       mockRepository.create.mockReturnValue(exception)
       mockRepository.save.mockResolvedValue(exception)
 
-      const data = { doctorId: exception.doctorId, clinicId: CLINIC_ID, date: '2099-06-20' }
+      const data = { professionalId: exception.professionalId, clinicId: CLINIC_ID, date: '2099-06-20' }
       const result = await repository.create(data)
 
       expect(mockRepository.create).toHaveBeenCalledWith(data)
@@ -162,7 +162,7 @@ describe('ScheduleExceptionsRepository', () => {
       const qrRepo = { create: jest.fn().mockReturnValue(exception), save: jest.fn().mockResolvedValue(exception) }
       const queryRunner = { manager: { getRepository: jest.fn().mockReturnValue(qrRepo) } } as any
 
-      const result = await repository.create({ doctorId: exception.doctorId }, queryRunner)
+      const result = await repository.create({ professionalId: exception.professionalId }, queryRunner)
 
       expect(queryRunner.manager.getRepository).toHaveBeenCalledWith(ScheduleException)
       expect(result).toBe(exception)

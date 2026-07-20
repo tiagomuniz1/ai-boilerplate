@@ -26,11 +26,11 @@ export class FindMedicalCertificatesByAppointmentUseCase extends BaseUseCase {
   async execute(appointmentId: string, currentUser: ICurrentUser): Promise<MedicalCertificateResponseDto[]> {
     const clinicId = currentUser.clinicId!
 
-    if (currentUser.role === UserRole.DOCTOR) {
+    if (currentUser.role === UserRole.PROFESSIONAL) {
       const appointment = await this.appointmentsRepository.findById(appointmentId, clinicId)
       if (!appointment) throw new NotFoundException('Appointment not found')
-      const doctor = await this.professionalsRepository.findByUserId(currentUser.id, clinicId)
-      if (!doctor || doctor.id !== appointment.doctorId) {
+      const professional = await this.professionalsRepository.findByUserId(currentUser.id, clinicId)
+      if (!professional || professional.id !== appointment.professionalId) {
         throw new ForbiddenException('Insufficient permissions')
       }
     }

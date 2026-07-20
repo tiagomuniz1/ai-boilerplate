@@ -26,13 +26,13 @@ export class FindScheduledAppointmentsInWindowUseCase extends BaseUseCase {
   }
 
   async execute(
-    doctorId: string,
+    professionalId: string,
     date: string,
     startTime: string | null,
     endTime: string | null,
     clinicId: string,
   ): Promise<IConflictingAppointment[]> {
-    const appointments = await this.appointmentsRepository.findActiveByDoctorAndDate(doctorId, date, clinicId)
+    const appointments = await this.appointmentsRepository.findActiveByProfessionalAndDate(professionalId, date, clinicId)
 
     const blockStart = startTime ? timeToMinutes(startTime) : 0
     const blockEnd = endTime ? timeToMinutes(endTime) : 24 * 60

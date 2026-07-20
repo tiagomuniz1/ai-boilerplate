@@ -8,15 +8,15 @@ import { IMedicalRecordsRepository } from '../repositories/medical-records.repos
 import { FindMedicalRecordByAppointmentUseCase } from '../use-cases/find-medical-record-by-appointment.use-case'
 
 const clinicId = 'clinic-uuid'
-const doctorId = 'doctor-uuid'
+const professionalId = 'doctor-uuid'
 const appointmentId = 'appt-uuid'
 
 const adminUser: ICurrentUser = { id: 'admin-id', role: UserRole.ADMIN, clinicId }
-const doctorUser: ICurrentUser = { id: 'doctor-user-id', role: UserRole.DOCTOR, clinicId }
+const doctorUser: ICurrentUser = { id: 'doctor-user-id', role: UserRole.PROFESSIONAL, clinicId }
 
 const makeAppointment = (overrides = {}) => ({
   id: appointmentId,
-  doctorId,
+  professionalId,
   status: AppointmentStatus.SCHEDULED,
   ...overrides,
 })
@@ -25,14 +25,14 @@ const makeRecord = () => ({
   id: 'record-uuid',
   appointmentId,
   patientId: 'patient-uuid',
-  doctorId,
+  professionalId,
   specialtyId: 'specialty-uuid',
   templateId: 'template-uuid',
   templateSchemaSnapshot: [],
   data: {},
   notes: null,
   patient: { user: { fullName: 'Patient Name' } },
-  doctor: { user: { fullName: 'Doctor Name' } },
+  professional: { user: { fullName: 'Doctor Name' } },
   specialty: { name: 'Cardiologia' },
   createdAt: new Date(),
   updatedAt: new Date(),
@@ -50,7 +50,7 @@ const mockMedicalRecordsRepository: jest.Mocked<IMedicalRecordsRepository> = {
 const mockAppointmentsRepository: jest.Mocked<IAppointmentsRepository> = {
   findAll: jest.fn(),
   findById: jest.fn(),
-  findActiveByDoctorAndDate: jest.fn(),
+  findActiveByProfessionalAndDate: jest.fn(),
   findActiveBySlot: jest.fn(),
   hasFutureByScheduleId: jest.fn(),
   create: jest.fn(),
@@ -89,7 +89,7 @@ describe('FindMedicalRecordByAppointmentUseCase', () => {
   })
 
   it('returns record for DOCTOR (own appointment)', async () => {
-    mockProfessionalsRepository.findByUserId.mockResolvedValue({ id: doctorId } as any)
+    mockProfessionalsRepository.findByUserId.mockResolvedValue({ id: professionalId } as any)
     const result = await useCase.execute(appointmentId, doctorUser)
     expect(result).not.toBeNull()
   })

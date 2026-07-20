@@ -19,11 +19,11 @@ export class Schedule {
   id: string
 
   @ManyToOne(() => Professional, { eager: false })
-  @JoinColumn({ name: 'doctor_id' })
-  doctor: Professional
+  @JoinColumn({ name: 'professional_id' })
+  professional: Professional
 
-  @Column({ name: 'doctor_id' })
-  doctorId: string
+  @Column({ name: 'professional_id' })
+  professionalId: string
 
   @ManyToOne(() => Clinic, { eager: false })
   @JoinColumn({ name: 'clinic_id' })

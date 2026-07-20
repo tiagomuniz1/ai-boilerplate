@@ -120,7 +120,7 @@ describe('UsersController (integration)', () => {
     const admin = await loginAs(UserRole.ADMIN)
     accessToken = admin.token
     authUserId = admin.id
-    const doctor = await loginAs(UserRole.DOCTOR)
+    const doctor = await loginAs(UserRole.PROFESSIONAL)
     doctorToken = doctor.token
     doctorUserId = doctor.id
     const user = await loginAs(UserRole.USER)
@@ -676,7 +676,7 @@ describe('UsersController (integration)', () => {
     })
 
     it('soft-deletes linked doctor when user is deleted', async () => {
-      const { body: targetUser } = await createUser({ role: UserRole.DOCTOR }).expect(201)
+      const { body: targetUser } = await createUser({ role: UserRole.PROFESSIONAL }).expect(201)
 
       const specialty = await specialtyRepository.save(
         specialtyRepository.create({ name: 'Cardiologia' }),

@@ -5,7 +5,7 @@ import { PaginationDto } from '../../../common/dto/pagination.dto'
 export class ListAppointmentsQueryDto extends PaginationDto {
   @IsOptional()
   @IsUUID()
-  doctorId?: string
+  professionalId?: string
 
   @IsOptional()
   @IsUUID()

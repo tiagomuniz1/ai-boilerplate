@@ -7,18 +7,18 @@ import { IPrescriptionTemplatesRepository } from '../repositories/prescription-t
 import { FindAllPrescriptionTemplatesUseCase } from '../use-cases/find-all-prescription-templates.use-case'
 
 const clinicId = 'clinic-uuid'
-const doctorId = 'doctor-uuid'
+const professionalId = 'doctor-uuid'
 
 const adminUser: ICurrentUser = { id: 'admin-id', role: UserRole.ADMIN, clinicId }
-const doctorUser: ICurrentUser = { id: 'doctor-user-id', role: UserRole.DOCTOR, clinicId }
+const doctorUser: ICurrentUser = { id: 'doctor-user-id', role: UserRole.PROFESSIONAL, clinicId }
 
-const makeDoctor = (overrides = {}) => ({ id: doctorId, user: { fullName: 'Dr. House' }, ...overrides })
+const makeDoctor = (overrides = {}) => ({ id: professionalId, user: { fullName: 'Dr. House' }, ...overrides })
 
 const makeTemplate = (overrides = {}) => ({
   id: 'tpl-uuid',
   clinicId,
-  doctorId,
-  doctorName: 'Dr. House',
+  professionalId,
+  professionalName: 'Dr. House',
   name: 'Modelo A',
   items: [],
   notes: null,
@@ -57,25 +57,25 @@ describe('FindAllPrescriptionTemplatesUseCase', () => {
     mockRepository.findAll.mockResolvedValue([makeTemplate() as any])
   })
 
-  it('returns own templates for DOCTOR filtered by doctorId', async () => {
+  it('returns own templates for DOCTOR filtered by professionalId', async () => {
     const result = await useCase.execute(doctorUser)
 
     expect(mockProfessionalsRepository.findByUserId).toHaveBeenCalledWith(doctorUser.id, clinicId)
-    expect(mockRepository.findAll).toHaveBeenCalledWith(clinicId, doctorId)
+    expect(mockRepository.findAll).toHaveBeenCalledWith(clinicId, professionalId)
     expect(result).toHaveLength(1)
   })
 
-  it('returns all templates for ADMIN without doctorId filter', async () => {
+  it('returns all templates for ADMIN without professionalId filter', async () => {
     await useCase.execute(adminUser)
 
     expect(mockProfessionalsRepository.findByUserId).not.toHaveBeenCalled()
     expect(mockRepository.findAll).toHaveBeenCalledWith(clinicId, undefined)
   })
 
-  it('passes doctorId filter to repository when ADMIN provides it', async () => {
-    await useCase.execute(adminUser, doctorId)
+  it('passes professionalId filter to repository when ADMIN provides it', async () => {
+    await useCase.execute(adminUser, professionalId)
 
-    expect(mockRepository.findAll).toHaveBeenCalledWith(clinicId, doctorId)
+    expect(mockRepository.findAll).toHaveBeenCalledWith(clinicId, professionalId)
   })
 
   it('throws ForbiddenException when DOCTOR has no profile', async () => {
@@ -89,6 +89,6 @@ describe('FindAllPrescriptionTemplatesUseCase', () => {
 
     expect(result[0].id).toBe('tpl-uuid')
     expect(result[0].name).toBe('Modelo A')
-    expect(result[0].doctorName).toBe('Dr. House')
+    expect(result[0].professionalName).toBe('Dr. House')
   })
 })

@@ -38,9 +38,9 @@ export class UpdateMedicalRecordUseCase extends BaseUseCase {
     const record = await this.medicalRecordsRepository.findById(id, clinicId)
     if (!record) throw new NotFoundException('Medical record not found')
 
-    if (currentUser.role === UserRole.DOCTOR) {
-      const doctor = await this.professionalsRepository.findByUserId(currentUser.id, clinicId)
-      if (!doctor || doctor.id !== record.doctorId) {
+    if (currentUser.role === UserRole.PROFESSIONAL) {
+      const professional = await this.professionalsRepository.findByUserId(currentUser.id, clinicId)
+      if (!professional || professional.id !== record.professionalId) {
         throw new ForbiddenException('Insufficient permissions')
       }
     }

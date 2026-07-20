@@ -46,12 +46,12 @@ export class UpdateScheduleUseCase extends BaseUseCase {
     if (!schedule) throw new NotFoundException('Schedule not found')
 
     if (currentUser.role !== UserRole.ADMIN) {
-      if (currentUser.role !== UserRole.DOCTOR) {
+      if (currentUser.role !== UserRole.PROFESSIONAL) {
         throw new ForbiddenException('Only doctors and admins can manage schedules')
       }
-      const doctor = await this.professionalsRepository.findByUserId(currentUser.id, clinicId)
-      if (!doctor) throw new NotFoundException('Professional not found')
-      if (schedule.doctorId !== doctor.id) {
+      const professional = await this.professionalsRepository.findByUserId(currentUser.id, clinicId)
+      if (!professional) throw new NotFoundException('Professional not found')
+      if (schedule.professionalId !== professional.id) {
         throw new ForbiddenException('You are not allowed to manage this schedule')
       }
     }
@@ -95,7 +95,7 @@ export class UpdateScheduleUseCase extends BaseUseCase {
 
     if (timeOrValidityChanged) {
       const overlapping = await this.schedulesRepository.findOverlapping(
-        schedule.doctorId,
+        schedule.professionalId,
         merged.dayOfWeek,
         merged.startTime,
         merged.endTime,
@@ -124,27 +124,27 @@ export class UpdateScheduleUseCase extends BaseUseCase {
       this.logger.warn('Cache invalidation failed', { context: UpdateScheduleUseCase.name })
     }
 
-    const doctorName = await this.fetchDoctorName(updated.doctorId)
-    return this.toResponse(updated, doctorName)
+    const professionalName = await this.fetchProfessionalName(updated.professionalId)
+    return this.toResponse(updated, professionalName)
   }
 
-  private async fetchDoctorName(doctorId: string): Promise<string> {
+  private async fetchProfessionalName(professionalId: string): Promise<string> {
     const rows: Array<{ fullName: string }> = await this.dataSource
       .createQueryBuilder()
       .select('u.full_name', 'fullName')
       .from('professionals', 'd')
       .innerJoin('users', 'u', 'u.id = d.user_id AND u.deleted_at IS NULL')
-      .where('d.id = :doctorId', { doctorId })
+      .where('d.id = :professionalId', { professionalId })
       .andWhere('d.deleted_at IS NULL')
       .getRawMany()
     return rows[0]?.fullName ?? ''
   }
 
-  private toResponse(schedule: Schedule, doctorName: string): ScheduleResponseDto {
+  private toResponse(schedule: Schedule, professionalName: string): ScheduleResponseDto {
     return {
       id: schedule.id,
-      doctorId: schedule.doctorId,
-      doctorName,
+      professionalId: schedule.professionalId,
+      professionalName,
       dayOfWeek: schedule.dayOfWeek,
       startTime: schedule.startTime,
       endTime: schedule.endTime,

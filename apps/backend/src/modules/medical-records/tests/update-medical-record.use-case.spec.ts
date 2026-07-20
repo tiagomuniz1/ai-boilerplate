@@ -15,7 +15,7 @@ import { UpdateMedicalRecordUseCase } from '../use-cases/update-medical-record.u
 import { CacheService } from '../../../cache/cache.service'
 
 const clinicId = 'clinic-uuid'
-const doctorId = 'doctor-uuid'
+const professionalId = 'doctor-uuid'
 const patientId = 'patient-uuid'
 const recordId = 'record-uuid'
 const appointmentId = 'appt-uuid'
@@ -23,7 +23,7 @@ const specialtyId = 'specialty-uuid'
 const templateId = 'template-uuid'
 
 const adminUser: ICurrentUser = { id: 'admin-id', role: UserRole.ADMIN, clinicId }
-const doctorUser: ICurrentUser = { id: 'doctor-user-id', role: UserRole.DOCTOR, clinicId }
+const doctorUser: ICurrentUser = { id: 'doctor-user-id', role: UserRole.PROFESSIONAL, clinicId }
 
 const makeSnapshot = () => [
   {
@@ -44,14 +44,14 @@ const makeRecord = (overrides = {}) => ({
   id: recordId,
   appointmentId,
   patientId,
-  doctorId,
+  professionalId,
   specialtyId,
   templateId,
   templateSchemaSnapshot: makeSnapshot(),
   data: {},
   notes: null,
   patient: { user: { fullName: 'Patient Name' } },
-  doctor: { user: { fullName: 'Doctor Name' } },
+  professional: { user: { fullName: 'Doctor Name' } },
   specialty: { name: 'Cardiologia' },
   createdAt: new Date(),
   updatedAt: new Date(),
@@ -70,7 +70,7 @@ const mockMedicalRecordsRepository: jest.Mocked<IMedicalRecordsRepository> = {
 const mockAppointmentsRepository: jest.Mocked<IAppointmentsRepository> = {
   findAll: jest.fn(),
   findById: jest.fn(),
-  findActiveByDoctorAndDate: jest.fn(),
+  findActiveByProfessionalAndDate: jest.fn(),
   findActiveBySlot: jest.fn(),
   hasFutureByScheduleId: jest.fn(),
   create: jest.fn(),
@@ -124,7 +124,7 @@ describe('UpdateMedicalRecordUseCase', () => {
   })
 
   it('updates the record for DOCTOR (own record)', async () => {
-    mockProfessionalsRepository.findByUserId.mockResolvedValue({ id: doctorId } as any)
+    mockProfessionalsRepository.findByUserId.mockResolvedValue({ id: professionalId } as any)
     const dto = { notes: 'Doctor notes' }
     await useCase.execute(recordId, dto, doctorUser)
     expect(mockMedicalRecordsRepository.update).toHaveBeenCalled()

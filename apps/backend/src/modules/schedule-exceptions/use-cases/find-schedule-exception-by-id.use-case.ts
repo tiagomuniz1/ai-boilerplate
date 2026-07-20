@@ -23,9 +23,9 @@ export class FindScheduleExceptionByIdUseCase extends BaseUseCase {
     const exception = await this.scheduleExceptionsRepository.findById(id, clinicId)
     if (!exception) throw new NotFoundException('Schedule exception not found')
 
-    if (currentUser.role === UserRole.DOCTOR) {
-      const doctor = await this.professionalsRepository.findByUserId(currentUser.id, clinicId)
-      if (!doctor || exception.doctorId !== doctor.id) {
+    if (currentUser.role === UserRole.PROFESSIONAL) {
+      const professional = await this.professionalsRepository.findByUserId(currentUser.id, clinicId)
+      if (!professional || exception.professionalId !== professional.id) {
         throw new ForbiddenException('You are not allowed to view this schedule exception')
       }
     }

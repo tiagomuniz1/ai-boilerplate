@@ -51,7 +51,7 @@ async function seedGeneralistDoctor(dataSource: DataSource): Promise<void> {
       fullName: 'Dra. Ana Generalista',
       email: 'generalista@pulso.center',
       password,
-      role: UserRole.DOCTOR,
+      role: UserRole.PROFESSIONAL,
       clinicId: SEED_CLINIC_ID,
     }),
   )
@@ -352,7 +352,7 @@ async function seedMedicalRecords(dataSource: DataSource): Promise<void> {
           fullName: 'Dr. João Silva',
           email: 'doctor@pulso.center',
           password,
-          role: UserRole.DOCTOR,
+          role: UserRole.PROFESSIONAL,
           clinicId: SEED_CLINIC_ID,
         }),
       )
@@ -398,11 +398,11 @@ async function seedMedicalRecords(dataSource: DataSource): Promise<void> {
     console.log('Dev seed: seed patient created.')
   }
 
-  let schedule = await scheduleRepository.findOneBy({ doctorId: doctor.id })
+  let schedule = await scheduleRepository.findOneBy({ professionalId: doctor.id })
   if (!schedule) {
     schedule = await scheduleRepository.save(
       scheduleRepository.create({
-        doctorId: doctor.id,
+        professionalId: doctor.id,
         clinicId: SEED_CLINIC_ID,
         dayOfWeek: DayOfWeek.MONDAY,
         startTime: '08:00',
@@ -456,7 +456,7 @@ async function seedMedicalRecords(dataSource: DataSource): Promise<void> {
     const appointment = await appointmentRepository.save(
       appointmentRepository.create({
         clinicId: SEED_CLINIC_ID,
-        doctorId: doctor.id,
+        professionalId: doctor.id,
         patientId: patient.id,
         specialtyId,
         scheduleId: schedule.id,
@@ -487,7 +487,7 @@ async function seedMedicalRecords(dataSource: DataSource): Promise<void> {
         clinicId: SEED_CLINIC_ID,
         appointmentId: appointment.id,
         patientId: patient.id,
-        doctorId: doctor.id,
+        professionalId: doctor.id,
         specialtyId,
         templateId: template.id,
         templateSchemaSnapshot: template.fields,

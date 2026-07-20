@@ -182,7 +182,7 @@ describe('UpdateUserUseCase', () => {
 
   it('allows DOCTOR to update their own profile', async () => {
     const user = makeUser()
-    const doctorUser: ICurrentUser = { id: user.id, role: UserRole.DOCTOR, clinicId: CLINIC_ID }
+    const doctorUser: ICurrentUser = { id: user.id, role: UserRole.PROFESSIONAL, clinicId: CLINIC_ID }
     const updated = { ...user, fullName: 'Updated Name' }
     mockUsersRepository.findById.mockResolvedValue(user)
     mockUsersRepository.update.mockResolvedValue(updated)
@@ -193,7 +193,7 @@ describe('UpdateUserUseCase', () => {
   })
 
   it('throws ForbiddenException when DOCTOR tries to update another user profile', async () => {
-    const doctorUser: ICurrentUser = { id: faker.string.uuid(), role: UserRole.DOCTOR, clinicId: CLINIC_ID }
+    const doctorUser: ICurrentUser = { id: faker.string.uuid(), role: UserRole.PROFESSIONAL, clinicId: CLINIC_ID }
     const otherId = faker.string.uuid()
 
     await expect(useCase.execute(otherId, { fullName: 'X' }, doctorUser)).rejects.toThrow(ForbiddenException)

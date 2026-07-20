@@ -51,7 +51,7 @@ describe('ExamRequestsController (integration)', () => {
   let doctorToken: string
   let otherDoctorToken: string
   let userToken: string
-  let doctorId: string
+  let professionalId: string
   let patientId: string
   let appointmentId: string
   let cancelledAppointmentId: string
@@ -121,7 +121,7 @@ describe('ExamRequestsController (integration)', () => {
         fullName: 'Doctor Smith',
         email: 'doctor@exams.test',
         password: hashed,
-        role: UserRole.DOCTOR,
+        role: UserRole.PROFESSIONAL,
         clinicId: SEED_CLINIC_ID,
       }),
     )
@@ -131,7 +131,7 @@ describe('ExamRequestsController (integration)', () => {
         fullName: 'Other Doctor',
         email: 'other@exams.test',
         password: hashed,
-        role: UserRole.DOCTOR,
+        role: UserRole.PROFESSIONAL,
         clinicId: SEED_CLINIC_ID,
       }),
     )
@@ -157,7 +157,7 @@ describe('ExamRequestsController (integration)', () => {
     doctorEntity.registrations = [{ clinicId: SEED_CLINIC_ID, councilType: CouncilType.CRM, number: '11111', state: 'SP', isPrimary: true }] as any
     doctorEntity.professionalSpecialties = ([specialty]).map((s: any) => ({ specialtyId: s.id, registryNumber: null })) as any
     const doctorProfile = await doctorRepository.save(doctorEntity)
-    doctorId = doctorProfile.id
+    professionalId = doctorProfile.id
 
     const otherDoctorEntity = doctorRepository.create({
       userId: otherDoctorUser.id,
@@ -190,7 +190,7 @@ describe('ExamRequestsController (integration)', () => {
 
     const schedule = await scheduleRepository.save(
       scheduleRepository.create({
-        doctorId,
+        professionalId,
         clinicId: SEED_CLINIC_ID,
         dayOfWeek: DayOfWeek.MONDAY,
         startTime: '08:00',
@@ -204,7 +204,7 @@ describe('ExamRequestsController (integration)', () => {
     const appointment = await appointmentRepository.save(
       appointmentRepository.create({
         clinicId: SEED_CLINIC_ID,
-        doctorId,
+        professionalId,
         patientId,
         specialtyId: specialty.id,
         scheduleId: schedule.id,
@@ -221,7 +221,7 @@ describe('ExamRequestsController (integration)', () => {
     const cancelledAppt = await appointmentRepository.save(
       appointmentRepository.create({
         clinicId: SEED_CLINIC_ID,
-        doctorId,
+        professionalId,
         patientId,
         specialtyId: specialty.id,
         scheduleId: schedule.id,
@@ -285,9 +285,9 @@ describe('ExamRequestsController (integration)', () => {
       expect(body.id).toBeDefined()
       expect(body.appointmentId).toBe(appointmentId)
       expect(body.patientId).toBe(patientId)
-      expect(body.doctorId).toBe(doctorId)
+      expect(body.professionalId).toBe(professionalId)
       expect(body.patientName).toBe('Patient Jones')
-      expect(body.doctorName).toBe('Doctor Smith')
+      expect(body.professionalName).toBe('Doctor Smith')
       expect(body.items).toHaveLength(1)
       expect(body.items[0].name).toBe('Hemograma completo')
       expect(body.items[0].observations).toBe('Jejum de 8 horas')

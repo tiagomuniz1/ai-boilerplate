@@ -42,7 +42,7 @@ describe('PrescriptionTemplatesController (integration)', () => {
   let doctorToken: string
   let otherDoctorToken: string
   let userToken: string
-  let doctorId: string
+  let professionalId: string
   let otherDoctorId: string
   let medicationId: string
 
@@ -106,7 +106,7 @@ describe('PrescriptionTemplatesController (integration)', () => {
         fullName: 'Doctor Smith',
         email: 'doctor@tpl.test',
         password: hashed,
-        role: UserRole.DOCTOR,
+        role: UserRole.PROFESSIONAL,
         clinicId: SEED_CLINIC_ID,
       }),
     )
@@ -116,7 +116,7 @@ describe('PrescriptionTemplatesController (integration)', () => {
         fullName: 'Other Doctor',
         email: 'other@tpl.test',
         password: hashed,
-        role: UserRole.DOCTOR,
+        role: UserRole.PROFESSIONAL,
         clinicId: SEED_CLINIC_ID,
       }),
     )
@@ -137,7 +137,7 @@ describe('PrescriptionTemplatesController (integration)', () => {
     })
     doctorEntity.registrations = [{ clinicId: SEED_CLINIC_ID, councilType: CouncilType.CRM, number: '11111', state: 'SP', isPrimary: true }] as any
     const savedDoctor = await doctorRepository.save(doctorEntity)
-    doctorId = savedDoctor.id
+    professionalId = savedDoctor.id
 
     const otherDoctorEntity = doctorRepository.create({
       userId: otherDoctorUser.id,
@@ -196,20 +196,20 @@ describe('PrescriptionTemplatesController (integration)', () => {
 
       expect(body.id).toBeDefined()
       expect(body.name).toBe('Hipertensão leve')
-      expect(body.doctorId).toBe(doctorId)
-      expect(body.doctorName).toBe('Doctor Smith')
+      expect(body.professionalId).toBe(professionalId)
+      expect(body.professionalName).toBe('Doctor Smith')
       expect(body.items[0].name).toBe('Dipirona 500mg')
       expect(body.items[0].activeIngredient).toBe('dipirona sódica')
     })
 
-    it('creates template as ADMIN with doctorId → 201', async () => {
+    it('creates template as ADMIN with professionalId → 201', async () => {
       const { body } = await request(app.getHttpServer())
         .post('/prescription-templates')
         .set('Cookie', [`access_token=${adminToken}`])
-        .send(makePayload({ doctorId }))
+        .send(makePayload({ professionalId }))
         .expect(201)
 
-      expect(body.doctorId).toBe(doctorId)
+      expect(body.professionalId).toBe(professionalId)
     })
 
     it('creates template with activeIngredientName → 201', async () => {
@@ -223,7 +223,7 @@ describe('PrescriptionTemplatesController (integration)', () => {
       expect(body.items[0].name).toBe('Amoxicilina')
     })
 
-    it('returns 422 when ADMIN omits doctorId', async () => {
+    it('returns 422 when ADMIN omits professionalId', async () => {
       await request(app.getHttpServer())
         .post('/prescription-templates')
         .set('Cookie', [`access_token=${adminToken}`])
@@ -253,8 +253,8 @@ describe('PrescriptionTemplatesController (integration)', () => {
       await templateRepository.save(
         templateRepository.create({
           clinicId: SEED_CLINIC_ID,
-          doctorId,
-          doctorName: 'Doctor Smith',
+          professionalId,
+          professionalName: 'Doctor Smith',
           name: 'Modelo A',
           items: [{ medicationId, name: 'Dipirona 500mg', activeIngredient: 'dipirona sódica', dosage: null, quantity: null, instructions: 'Tomar 1 cp' }],
           notes: null,
@@ -270,7 +270,7 @@ describe('PrescriptionTemplatesController (integration)', () => {
         .expect(200)
 
       expect(body).toHaveLength(1)
-      expect(body[0].doctorId).toBe(doctorId)
+      expect(body[0].professionalId).toBe(professionalId)
     })
 
     it('ADMIN sees all templates → 200', async () => {
@@ -306,8 +306,8 @@ describe('PrescriptionTemplatesController (integration)', () => {
       const tpl = await templateRepository.save(
         templateRepository.create({
           clinicId: SEED_CLINIC_ID,
-          doctorId,
-          doctorName: 'Doctor Smith',
+          professionalId,
+          professionalName: 'Doctor Smith',
           name: 'Modelo A',
           items: [],
           notes: null,
@@ -355,8 +355,8 @@ describe('PrescriptionTemplatesController (integration)', () => {
       const tpl = await templateRepository.save(
         templateRepository.create({
           clinicId: SEED_CLINIC_ID,
-          doctorId,
-          doctorName: 'Doctor Smith',
+          professionalId,
+          professionalName: 'Doctor Smith',
           name: 'Modelo A',
           items: [],
           notes: null,
@@ -410,8 +410,8 @@ describe('PrescriptionTemplatesController (integration)', () => {
       const tpl = await templateRepository.save(
         templateRepository.create({
           clinicId: SEED_CLINIC_ID,
-          doctorId,
-          doctorName: 'Doctor Smith',
+          professionalId,
+          professionalName: 'Doctor Smith',
           name: 'Modelo A',
           items: [],
           notes: null,

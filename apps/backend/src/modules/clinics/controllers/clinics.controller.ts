@@ -113,7 +113,7 @@ export class ClinicsController {
   }
 
   @Get('me')
-  @Roles(UserRole.ADMIN, UserRole.DOCTOR, UserRole.USER)
+  @Roles(UserRole.ADMIN, UserRole.PROFESSIONAL, UserRole.USER)
   async findCurrentClinic(@CurrentUser() currentUser: ICurrentUser): Promise<ClinicResponseDto> {
     if (!currentUser.clinicId) throw new UnauthorizedException('No clinic associated with this account')
     return this.findClinicByIdUseCase.execute(currentUser.clinicId)

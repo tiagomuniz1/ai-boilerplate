@@ -42,7 +42,7 @@ export class UsersController {
   }
 
   @Get(':id')
-  @Roles(UserRole.ADMIN, UserRole.DOCTOR, UserRole.USER)
+  @Roles(UserRole.ADMIN, UserRole.PROFESSIONAL, UserRole.USER)
   findById(
     @Param('id') id: string,
     @CurrentUser() currentUser: ICurrentUser,
@@ -60,7 +60,7 @@ export class UsersController {
   }
 
   @Patch(':id')
-  @Roles(UserRole.ADMIN, UserRole.DOCTOR, UserRole.USER)
+  @Roles(UserRole.ADMIN, UserRole.PROFESSIONAL, UserRole.USER)
   update(
     @Param('id') id: string,
     @Body() dto: UpdateUserDto,

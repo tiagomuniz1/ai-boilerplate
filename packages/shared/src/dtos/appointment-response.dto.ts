@@ -3,8 +3,8 @@ import { AppointmentStatus } from '../enums/appointment-status.enum'
 
 export class AppointmentResponseDto {
   id: string
-  doctorId: string
-  doctorName: string
+  professionalId: string
+  professionalName: string
   patientId: string
   patientName: string
   specialtyId: string | null

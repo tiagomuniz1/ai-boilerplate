@@ -45,5 +45,5 @@ export class CreatePrescriptionTemplateDto {
 
   @IsOptional()
   @IsUUID()
-  doctorId?: string
+  professionalId?: string
 }

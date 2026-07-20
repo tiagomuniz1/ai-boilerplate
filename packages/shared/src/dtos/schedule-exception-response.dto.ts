@@ -1,6 +1,6 @@
 export class ScheduleExceptionResponseDto {
   id: string
-  doctorId: string
+  professionalId: string
   date: string
   startTime: string | null
   endTime: string | null

@@ -15,15 +15,15 @@ import { ConfirmAppointmentUseCase } from '../use-cases/confirm-appointment.use-
 
 const CLINIC_ID = 'clinic-uuid'
 const doctorUserId = faker.string.uuid()
-const doctorId = faker.string.uuid()
+const professionalId = faker.string.uuid()
 
-const doctorUser: ICurrentUser = { id: doctorUserId, role: UserRole.DOCTOR, clinicId: CLINIC_ID }
+const doctorUser: ICurrentUser = { id: doctorUserId, role: UserRole.PROFESSIONAL, clinicId: CLINIC_ID }
 const adminUser: ICurrentUser = { id: faker.string.uuid(), role: UserRole.ADMIN, clinicId: CLINIC_ID }
 
 const makeAppointment = (overrides = {}) => ({
   id: faker.string.uuid(),
   clinicId: CLINIC_ID,
-  doctorId,
+  professionalId,
   patientId: faker.string.uuid(),
   specialtyId: null,
   scheduleId: faker.string.uuid(),
@@ -44,7 +44,7 @@ const makeAppointment = (overrides = {}) => ({
 const mockAppointmentsRepository: jest.Mocked<IAppointmentsRepository> = {
   findAll: jest.fn(),
   findById: jest.fn(),
-  findActiveByDoctorAndDate: jest.fn(),
+  findActiveByProfessionalAndDate: jest.fn(),
   findActiveBySlot: jest.fn(),
   hasFutureByScheduleId: jest.fn(),
   create: jest.fn(),
@@ -89,7 +89,7 @@ describe('ConfirmAppointmentUseCase', () => {
       mockProfessionalsRepository,
       mockCacheService,
     )
-    mockProfessionalsRepository.findByUserId.mockResolvedValue({ id: doctorId } as any)
+    mockProfessionalsRepository.findByUserId.mockResolvedValue({ id: professionalId } as any)
     mockCacheService.delByPrefix.mockResolvedValue(undefined)
   })
 
@@ -99,7 +99,7 @@ describe('ConfirmAppointmentUseCase', () => {
   })
 
   it('throws ForbiddenException when DOCTOR tries to confirm another doctor appointment', async () => {
-    const appointment = makeAppointment({ doctorId: faker.string.uuid() })
+    const appointment = makeAppointment({ professionalId: faker.string.uuid() })
     mockAppointmentsRepository.findById.mockResolvedValue(appointment as any)
     await expect(useCase.execute(appointment.id, doctorUser)).rejects.toThrow(ForbiddenException)
   })
@@ -161,7 +161,7 @@ describe('ConfirmAppointmentUseCase', () => {
 
     expect(mockCacheService.delByPrefix).toHaveBeenCalledWith(`appointments:list:${CLINIC_ID}:`)
     expect(mockCacheService.delByPrefix).toHaveBeenCalledWith(
-      `appointments:availability:${CLINIC_ID}:${doctorId}:`,
+      `appointments:availability:${CLINIC_ID}:${professionalId}:`,
     )
   })
 
@@ -229,7 +229,7 @@ describe('ConfirmAppointmentUseCase', () => {
     expect(result.specialtyName).toBe('Cardiologia')
   })
 
-  it('returns empty strings for doctorName and patientName when rows are empty', async () => {
+  it('returns empty strings for professionalName and patientName when rows are empty', async () => {
     const emptyBuilder = {
       select: jest.fn().mockReturnThis(),
       addSelect: jest.fn().mockReturnThis(),
@@ -254,7 +254,7 @@ describe('ConfirmAppointmentUseCase', () => {
 
     const result = await useCaseEmpty.execute(appointment.id, adminUser)
 
-    expect(result.doctorName).toBe('')
+    expect(result.professionalName).toBe('')
     expect(result.patientName).toBe('')
     expect(result.specialtyName).toBeNull()
   })

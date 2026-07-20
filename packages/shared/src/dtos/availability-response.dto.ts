@@ -6,7 +6,7 @@ export class AvailableSlotDto {
 }
 
 export class AvailabilityResponseDto {
-  doctorId: string
+  professionalId: string
   date: string
   slots: AvailableSlotDto[]
 }

@@ -14,7 +14,7 @@ const DOCTOR_USER_ID = faker.string.uuid()
 
 const adminUser: ICurrentUser = { id: faker.string.uuid(), role: UserRole.ADMIN, clinicId: CLINIC_ID }
 const userUser: ICurrentUser = { id: faker.string.uuid(), role: UserRole.USER, clinicId: CLINIC_ID }
-const doctorUser: ICurrentUser = { id: DOCTOR_USER_ID, role: UserRole.DOCTOR, clinicId: CLINIC_ID }
+const doctorUser: ICurrentUser = { id: DOCTOR_USER_ID, role: UserRole.PROFESSIONAL, clinicId: CLINIC_ID }
 
 const emptyStatusCounts = () => ({
   [AppointmentStatus.SCHEDULED]: 0,
@@ -114,9 +114,9 @@ describe('GetDashboardStatsUseCase', () => {
   })
 
   describe('doctor resolution', () => {
-    it('DOCTOR uses own doctorId and ignores query.doctorId', async () => {
+    it('DOCTOR uses own professionalId and ignores query.professionalId', async () => {
       const someOtherId = faker.string.uuid()
-      await useCase.execute({ doctorId: someOtherId }, doctorUser)
+      await useCase.execute({ professionalId: someOtherId }, doctorUser)
 
       const call = mockDashboardRepository.countByStatus.mock.calls[0]
       expect(call[3]).toBe(DOCTOR_ID)
@@ -128,24 +128,24 @@ describe('GetDashboardStatsUseCase', () => {
       await expect(useCase.execute({}, doctorUser)).rejects.toThrow(ForbiddenException)
     })
 
-    it('ADMIN uses query.doctorId when provided', async () => {
+    it('ADMIN uses query.professionalId when provided', async () => {
       const filterId = faker.string.uuid()
-      await useCase.execute({ doctorId: filterId }, adminUser)
+      await useCase.execute({ professionalId: filterId }, adminUser)
 
       const call = mockDashboardRepository.countByStatus.mock.calls[0]
       expect(call[3]).toBe(filterId)
     })
 
-    it('ADMIN passes undefined doctorId when not provided', async () => {
+    it('ADMIN passes undefined professionalId when not provided', async () => {
       await useCase.execute({}, adminUser)
 
       const call = mockDashboardRepository.countByStatus.mock.calls[0]
       expect(call[3]).toBeUndefined()
     })
 
-    it('USER uses query.doctorId when provided', async () => {
+    it('USER uses query.professionalId when provided', async () => {
       const filterId = faker.string.uuid()
-      await useCase.execute({ doctorId: filterId }, userUser)
+      await useCase.execute({ professionalId: filterId }, userUser)
 
       const call = mockDashboardRepository.countByStatus.mock.calls[0]
       expect(call[3]).toBe(filterId)

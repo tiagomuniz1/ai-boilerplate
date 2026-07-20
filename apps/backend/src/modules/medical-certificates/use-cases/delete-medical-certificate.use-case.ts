@@ -26,9 +26,9 @@ export class DeleteMedicalCertificateUseCase extends BaseUseCase {
     const certificate = await this.medicalCertificatesRepository.findById(id, clinicId)
     if (!certificate) throw new NotFoundException('Medical certificate not found')
 
-    if (currentUser.role === UserRole.DOCTOR) {
-      const doctor = await this.professionalsRepository.findByUserId(currentUser.id, clinicId)
-      if (!doctor || doctor.id !== certificate.doctorId) {
+    if (currentUser.role === UserRole.PROFESSIONAL) {
+      const professional = await this.professionalsRepository.findByUserId(currentUser.id, clinicId)
+      if (!professional || professional.id !== certificate.professionalId) {
         throw new ForbiddenException('Insufficient permissions')
       }
     }

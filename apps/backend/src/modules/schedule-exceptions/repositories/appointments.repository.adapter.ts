@@ -3,7 +3,7 @@ import { FindScheduledAppointmentsInWindowUseCase, IConflictingAppointment } fro
 
 export abstract class IAppointmentsRepository {
   abstract findScheduledAppointmentsInWindow(
-    doctorId: string,
+    professionalId: string,
     date: string,
     startTime: string | null,
     endTime: string | null,
@@ -21,12 +21,12 @@ export class AppointmentsRepositoryAdapter extends IAppointmentsRepository {
   }
 
   findScheduledAppointmentsInWindow(
-    doctorId: string,
+    professionalId: string,
     date: string,
     startTime: string | null,
     endTime: string | null,
     clinicId: string,
   ): Promise<IConflictingAppointment[]> {
-    return this.findInWindowUseCase.execute(doctorId, date, startTime, endTime, clinicId)
+    return this.findInWindowUseCase.execute(professionalId, date, startTime, endTime, clinicId)
   }
 }

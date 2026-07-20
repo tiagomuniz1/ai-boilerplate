@@ -18,7 +18,7 @@ function makePrescriptionData(): CreatePrescriptionData {
     clinicId: 'clinic-uuid',
     appointmentId: 'appt-uuid',
     patientId: 'patient-uuid',
-    doctorId: 'doctor-uuid',
+    professionalId: 'doctor-uuid',
     snapshot: {
       issuedAt: new Date().toISOString(),
       clinic: { name: 'Clinic', address: null, logoUrl: null },

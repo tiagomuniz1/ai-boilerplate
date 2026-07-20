@@ -10,7 +10,7 @@ import { FindScheduleExceptionByIdUseCase } from '../use-cases/find-schedule-exc
 const mockScheduleExceptionsRepository: jest.Mocked<IScheduleExceptionsRepository> = {
   findAll: jest.fn(),
   findById: jest.fn(),
-  findActiveByDoctorAndDate: jest.fn(),
+  findActiveByProfessionalAndDate: jest.fn(),
   create: jest.fn(),
   update: jest.fn(),
   delete: jest.fn(),
@@ -35,7 +35,7 @@ const makeDoctor = (id = DOCTOR_ID) => ({ id } as any)
 const makeException = (overrides = {}) => ({
   id: EXCEPTION_ID,
   clinicId: CLINIC_ID,
-  doctorId: DOCTOR_ID,
+  professionalId: DOCTOR_ID,
   date: '2099-06-20',
   startTime: null,
   endTime: null,
@@ -47,7 +47,7 @@ const makeException = (overrides = {}) => ({
   ...overrides,
 })
 
-const doctorUser: ICurrentUser = { id: faker.string.uuid(), role: UserRole.DOCTOR, clinicId: CLINIC_ID }
+const doctorUser: ICurrentUser = { id: faker.string.uuid(), role: UserRole.PROFESSIONAL, clinicId: CLINIC_ID }
 const adminUser: ICurrentUser = { id: faker.string.uuid(), role: UserRole.ADMIN, clinicId: CLINIC_ID }
 
 describe('FindScheduleExceptionByIdUseCase', () => {
@@ -81,7 +81,7 @@ describe('FindScheduleExceptionByIdUseCase', () => {
   })
 
   it('throws ForbiddenException when DOCTOR views exception of another doctor', async () => {
-    mockScheduleExceptionsRepository.findById.mockResolvedValue(makeException({ doctorId: 'other-doctor' }) as any)
+    mockScheduleExceptionsRepository.findById.mockResolvedValue(makeException({ professionalId: 'other-doctor' }) as any)
     mockProfessionalsRepository.findByUserId.mockResolvedValue(makeDoctor())
     await expect(useCase.execute(EXCEPTION_ID, doctorUser)).rejects.toThrow(ForbiddenException)
   })

@@ -36,11 +36,11 @@ export class DeleteProfessionalUseCase extends BaseUseCase {
     const userRole = professional.user.role
     const hasPatientProfile = await this.userHasPatientProfile(userId)
 
-    const shouldDeleteUser = userRole === UserRole.DOCTOR && !hasPatientProfile
-    const shouldDemoteToPatient = userRole === UserRole.DOCTOR && hasPatientProfile
+    const shouldDeleteUser = userRole === UserRole.PROFESSIONAL && !hasPatientProfile
+    const shouldDemoteToPatient = userRole === UserRole.PROFESSIONAL && hasPatientProfile
 
     await this.runInTransaction(async (queryRunner) => {
-      await this.deleteScheduleUseCase.deleteByDoctorId(id, clinicId, queryRunner)
+      await this.deleteScheduleUseCase.deleteByProfessionalId(id, clinicId, queryRunner)
       await this.professionalsRepository.delete(id, queryRunner)
       if (shouldDeleteUser) {
         await this.usersRepository.delete(userId, queryRunner)
@@ -75,7 +75,7 @@ export class DeleteProfessionalUseCase extends BaseUseCase {
     const professional = await this.professionalsRepository.findByUserId(userId, clinicId)
     if (!professional) return
 
-    await this.deleteScheduleUseCase.deleteByDoctorId(professional.id, clinicId, queryRunner)
+    await this.deleteScheduleUseCase.deleteByProfessionalId(professional.id, clinicId, queryRunner)
     await this.professionalsRepository.delete(professional.id, queryRunner)
 
     try {

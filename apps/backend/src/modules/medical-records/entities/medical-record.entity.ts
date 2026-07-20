@@ -33,11 +33,11 @@ export class MedicalRecord {
   patientId: string
 
   @ManyToOne(() => Professional, { eager: false })
-  @JoinColumn({ name: 'doctor_id' })
-  doctor: Professional
+  @JoinColumn({ name: 'professional_id' })
+  professional: Professional
 
-  @Column({ name: 'doctor_id', type: 'uuid' })
-  doctorId: string
+  @Column({ name: 'professional_id', type: 'uuid' })
+  professionalId: string
 
   @ManyToOne(() => Specialty, { eager: false })
   @JoinColumn({ name: 'specialty_id' })

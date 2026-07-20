@@ -34,9 +34,9 @@ export class CompleteAppointmentUseCase extends BaseUseCase {
     const appointment = await this.appointmentsRepository.findById(id, clinicId)
     if (!appointment) throw new NotFoundException('Appointment not found')
 
-    if (currentUser.role === UserRole.DOCTOR) {
-      const doctor = await this.professionalsRepository.findByUserId(currentUser.id, clinicId)
-      if (!doctor || appointment.doctorId !== doctor.id) {
+    if (currentUser.role === UserRole.PROFESSIONAL) {
+      const professional = await this.professionalsRepository.findByUserId(currentUser.id, clinicId)
+      if (!professional || appointment.professionalId !== professional.id) {
         throw new ForbiddenException('You are not allowed to manage this appointment')
       }
     }
@@ -67,18 +67,18 @@ export class CompleteAppointmentUseCase extends BaseUseCase {
 
     try {
       await this.cacheService.delByPrefix(`appointments:list:${clinicId}:`)
-      await this.cacheService.delByPrefix(`appointments:availability:${clinicId}:${appointment.doctorId}:`)
+      await this.cacheService.delByPrefix(`appointments:availability:${clinicId}:${appointment.professionalId}:`)
     } catch {
       this.logger.warn('Cache invalidation failed', { context: CompleteAppointmentUseCase.name })
     }
 
-    const [doctorName, patientName, specialtyName] = await Promise.all([
-      this.fetchDoctorName(updated.doctorId),
+    const [professionalName, patientName, specialtyName] = await Promise.all([
+      this.fetchProfessionalName(updated.professionalId),
       this.fetchPatientName(updated.patientId),
       this.fetchSpecialtyName(updated.specialtyId),
     ])
 
-    return this.toResponse(updated, doctorName, patientName, specialtyName)
+    return this.toResponse(updated, professionalName, patientName, specialtyName)
   }
 
   private async fetchSpecialtyName(specialtyId: string | null): Promise<string | null> {
@@ -93,13 +93,13 @@ export class CompleteAppointmentUseCase extends BaseUseCase {
     return rows[0]?.name ?? null
   }
 
-  private async fetchDoctorName(doctorId: string): Promise<string> {
+  private async fetchProfessionalName(professionalId: string): Promise<string> {
     const rows: Array<{ fullName: string }> = await this.dataSource
       .createQueryBuilder()
       .select('u.full_name', 'fullName')
       .from('professionals', 'd')
       .innerJoin('users', 'u', 'u.id = d.user_id AND u.deleted_at IS NULL')
-      .where('d.id = :doctorId', { doctorId })
+      .where('d.id = :professionalId', { professionalId })
       .andWhere('d.deleted_at IS NULL')
       .getRawMany()
     return rows[0]?.fullName ?? ''
@@ -119,14 +119,14 @@ export class CompleteAppointmentUseCase extends BaseUseCase {
 
   private toResponse(
     appointment: Appointment,
-    doctorName: string,
+    professionalName: string,
     patientName: string,
     specialtyName: string | null,
   ): AppointmentResponseDto {
     return {
       id: appointment.id,
-      doctorId: appointment.doctorId,
-      doctorName,
+      professionalId: appointment.professionalId,
+      professionalName,
       patientId: appointment.patientId,
       patientName,
       specialtyId: appointment.specialtyId,

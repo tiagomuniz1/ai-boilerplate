@@ -7,7 +7,7 @@ export class VerifyPrescriptionItemDto {
 
 export class VerifyPrescriptionResponseDto {
   clinicName!: string
-  doctorName!: string
+  professionalName!: string
   doctorCrmNumber!: string
   specialtyName!: string | null
   patientNameMasked!: string

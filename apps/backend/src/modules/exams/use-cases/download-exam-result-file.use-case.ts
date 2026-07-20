@@ -35,9 +35,9 @@ export class DownloadExamResultFileUseCase extends BaseUseCase {
     const examRequest = await this.examRequestsRepository.findById(examResult.examRequestId, clinicId)
     if (!examRequest) throw new NotFoundException('Exam request not found')
 
-    if (currentUser.role === UserRole.DOCTOR) {
-      const doctor = await this.professionalsRepository.findByUserId(currentUser.id, clinicId)
-      if (!doctor || doctor.id !== examRequest.doctorId) {
+    if (currentUser.role === UserRole.PROFESSIONAL) {
+      const professional = await this.professionalsRepository.findByUserId(currentUser.id, clinicId)
+      if (!professional || professional.id !== examRequest.professionalId) {
         throw new ForbiddenException('Insufficient permissions')
       }
     }

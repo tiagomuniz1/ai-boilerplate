@@ -26,9 +26,9 @@ export class DeleteScheduleExceptionUseCase extends BaseUseCase {
     const exception = await this.scheduleExceptionsRepository.findById(id, clinicId)
     if (!exception) throw new NotFoundException('Schedule exception not found')
 
-    if (currentUser.role === UserRole.DOCTOR) {
-      const doctor = await this.professionalsRepository.findByUserId(currentUser.id, clinicId)
-      if (!doctor || exception.doctorId !== doctor.id) {
+    if (currentUser.role === UserRole.PROFESSIONAL) {
+      const professional = await this.professionalsRepository.findByUserId(currentUser.id, clinicId)
+      if (!professional || exception.professionalId !== professional.id) {
         throw new ForbiddenException('You are not allowed to manage this schedule exception')
       }
     }
@@ -36,9 +36,9 @@ export class DeleteScheduleExceptionUseCase extends BaseUseCase {
     await this.scheduleExceptionsRepository.delete(id)
 
     try {
-      await this.cacheService.delByPrefix(`schedule-exceptions:list:${clinicId}:${exception.doctorId}:`)
+      await this.cacheService.delByPrefix(`schedule-exceptions:list:${clinicId}:${exception.professionalId}:`)
       await this.cacheService.delByPrefix(`schedule-exceptions:list:${clinicId}:all:`)
-      await this.cacheService.del(`appointments:availability:${clinicId}:${exception.doctorId}:${exception.date}`)
+      await this.cacheService.del(`appointments:availability:${clinicId}:${exception.professionalId}:${exception.date}`)
     } catch {
       this.logger.warn('Cache invalidation failed', { context: DeleteScheduleExceptionUseCase.name })
     }

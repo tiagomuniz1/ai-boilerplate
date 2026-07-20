@@ -357,7 +357,7 @@ async function seedDoctors(dataSource: DataSource, specialties: Specialty[], pas
             fullName: `Dr. Médico Carga ${idx}`,
             email,
             password: passwordHash,
-            role: UserRole.DOCTOR,
+            role: UserRole.PROFESSIONAL,
             clinicId: CARGA_CLINIC_ID,
           }))
         }
@@ -376,10 +376,10 @@ async function seedDoctors(dataSource: DataSource, specialties: Specialty[], pas
           doctor = await doctorRepo.save(d)
         }
 
-        const schedExists = await scheduleRepo.findOneBy({ doctorId: doctor.id })
+        const schedExists = await scheduleRepo.findOneBy({ professionalId: doctor.id })
         if (!schedExists) {
           await scheduleRepo.save(scheduleRepo.create({
-            doctorId: doctor.id,
+            professionalId: doctor.id,
             clinicId: CARGA_CLINIC_ID,
             dayOfWeek: dow,
             startTime: schedCfg.startTime,
@@ -470,14 +470,14 @@ async function seedPrescriptionTemplatesBulk(dataSource: DataSource): Promise<vo
     await qr.query(
       `
       INSERT INTO prescription_templates
-        (id, clinic_id, doctor_id, doctor_name, name, items, notes, is_active, created_at, updated_at)
+        (id, clinic_id, professional_id, professional_name, name, items, notes, is_active, created_at, updated_at)
       SELECT
         gen_random_uuid(),
         $1,
-        doc.doctor_id,
-        doc.doctor_name,
+        doc.professional_id,
+        doc.professional_name,
         (ARRAY[${TEMPLATE_NAME_SAMPLES.map((s) => `'${s}'`).join(',')}])[((gs.idx - 1) % ${TEMPLATE_NAME_SAMPLES.length}) + 1]
-          || ' - ' || doc.doctor_name,
+          || ' - ' || doc.professional_name,
         jsonb_build_array(
           jsonb_build_object(
             'medicationId', NULL,
@@ -502,8 +502,8 @@ async function seedPrescriptionTemplatesBulk(dataSource: DataSource): Promise<vo
         NOW() - ((gs.idx % 365) * INTERVAL '1 day')
       FROM (
         SELECT
-          d.id AS doctor_id,
-          u.full_name AS doctor_name,
+          d.id AS professional_id,
+          u.full_name AS professional_name,
           (ROW_NUMBER() OVER (ORDER BY d.created_at, d.id))::int AS rn
         FROM professionals d
         JOIN users u ON u.id = d.user_id
@@ -627,7 +627,7 @@ async function seedAppointmentsBulk(dataSource: DataSource): Promise<void> {
     await qr.query(`
       CREATE TEMP TABLE IF NOT EXISTS _carga_doctors_idx AS
       SELECT
-        d.id                                                         AS doctor_id,
+        d.id                                                         AS professional_id,
         s.id                                                         AS schedule_id,
         (SELECT ds.specialty_id
          FROM professional_specialties ds
@@ -635,7 +635,7 @@ async function seedAppointmentsBulk(dataSource: DataSource): Promise<void> {
          LIMIT 1)                                                    AS specialty_id,
         (ROW_NUMBER() OVER (ORDER BY d.created_at, d.id))::int - 1  AS rn
       FROM professionals d
-      JOIN schedules s ON s.doctor_id = d.id AND s.clinic_id = d.clinic_id
+      JOIN schedules s ON s.professional_id = d.id AND s.clinic_id = d.clinic_id
       WHERE d.clinic_id = $1
       LIMIT $2
     `, [CARGA_CLINIC_ID, TOTAL_DOCTORS])
@@ -675,12 +675,12 @@ async function seedAppointmentsBulk(dataSource: DataSource): Promise<void> {
 
     await qr.query(`
       INSERT INTO appointments
-        (id, clinic_id, doctor_id, patient_id, specialty_id, schedule_id,
+        (id, clinic_id, professional_id, patient_id, specialty_id, schedule_id,
          date, start_time, end_time, status, insurance_type, reason, version, created_at, updated_at)
       SELECT
         gen_random_uuid(),
         $1,
-        dr.doctor_id,
+        dr.professional_id,
         pt.patient_id,
         dr.specialty_id,
         dr.schedule_id,

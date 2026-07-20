@@ -8,14 +8,14 @@ import { IPrescriptionTemplatesRepository } from '../repositories/prescription-t
 import { CreatePrescriptionTemplateUseCase } from '../use-cases/create-prescription-template.use-case'
 
 const clinicId = 'clinic-uuid'
-const doctorId = 'doctor-uuid'
+const professionalId = 'doctor-uuid'
 const medicationId = 'med-uuid'
 
 const adminUser: ICurrentUser = { id: 'admin-id', role: UserRole.ADMIN, clinicId }
-const doctorUser: ICurrentUser = { id: 'doctor-user-id', role: UserRole.DOCTOR, clinicId }
+const doctorUser: ICurrentUser = { id: 'doctor-user-id', role: UserRole.PROFESSIONAL, clinicId }
 
 const makeDoctor = (overrides = {}) => ({
-  id: doctorId,
+  id: professionalId,
   user: { fullName: 'Dr. House' },
   ...overrides,
 })
@@ -30,8 +30,8 @@ const makeMedication = (overrides = {}) => ({
 const makeSavedTemplate = (overrides = {}) => ({
   id: 'tpl-uuid',
   clinicId,
-  doctorId,
-  doctorName: 'Dr. House',
+  professionalId,
+  professionalName: 'Dr. House',
   name: 'Hipertensão leve',
   items: [{ medicationId, name: 'Dipirona', activeIngredient: 'dipirona sódica', dosage: null, quantity: null, instructions: 'Tomar 1 cp 8/8h' }],
   notes: null,
@@ -91,21 +91,21 @@ describe('CreatePrescriptionTemplateUseCase', () => {
     mockRepository.create.mockResolvedValue(makeSavedTemplate() as any)
   })
 
-  it('creates template for DOCTOR using own doctorId from session', async () => {
+  it('creates template for DOCTOR using own professionalId from session', async () => {
     const result = await useCase.execute(baseDto, doctorUser)
 
     expect(mockProfessionalsRepository.findByUserId).toHaveBeenCalledWith(doctorUser.id, clinicId)
     expect(mockProfessionalsRepository.findById).not.toHaveBeenCalled()
-    expect(result.doctorId).toBe(doctorId)
+    expect(result.professionalId).toBe(professionalId)
     expect(result.name).toBe('Hipertensão leve')
   })
 
-  it('creates template for ADMIN using doctorId from DTO', async () => {
-    const result = await useCase.execute({ ...baseDto, doctorId }, adminUser)
+  it('creates template for ADMIN using professionalId from DTO', async () => {
+    const result = await useCase.execute({ ...baseDto, professionalId }, adminUser)
 
-    expect(mockProfessionalsRepository.findById).toHaveBeenCalledWith(doctorId, clinicId)
+    expect(mockProfessionalsRepository.findById).toHaveBeenCalledWith(professionalId, clinicId)
     expect(mockProfessionalsRepository.findByUserId).not.toHaveBeenCalled()
-    expect(result.doctorId).toBe(doctorId)
+    expect(result.professionalId).toBe(professionalId)
   })
 
   it('resolves medication fields from DB when medicationId provided', async () => {
@@ -162,14 +162,14 @@ describe('CreatePrescriptionTemplateUseCase', () => {
     await expect(useCase.execute(baseDto, doctorUser)).rejects.toThrow(ForbiddenException)
   })
 
-  it('throws UnprocessableEntityException when ADMIN omits doctorId', async () => {
+  it('throws UnprocessableEntityException when ADMIN omits professionalId', async () => {
     await expect(useCase.execute(baseDto, adminUser)).rejects.toThrow(UnprocessableEntityException)
   })
 
-  it('throws NotFoundException when ADMIN provides unknown doctorId', async () => {
+  it('throws NotFoundException when ADMIN provides unknown professionalId', async () => {
     mockProfessionalsRepository.findById.mockResolvedValue(null)
 
-    await expect(useCase.execute({ ...baseDto, doctorId }, adminUser)).rejects.toThrow(NotFoundException)
+    await expect(useCase.execute({ ...baseDto, professionalId }, adminUser)).rejects.toThrow(NotFoundException)
   })
 
   it('throws UnprocessableEntityException when medication not found', async () => {

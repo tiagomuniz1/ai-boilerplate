@@ -10,7 +10,7 @@ import { UpdateScheduleExceptionUseCase } from './use-cases/update-schedule-exce
 import { DeleteScheduleExceptionUseCase } from './use-cases/delete-schedule-exception.use-case'
 import { FindScheduleExceptionByIdUseCase } from './use-cases/find-schedule-exception-by-id.use-case'
 import { ListScheduleExceptionsUseCase } from './use-cases/list-schedule-exceptions.use-case'
-import { GetActiveExceptionsForDoctorUseCase } from './use-cases/get-active-exceptions-for-doctor.use-case'
+import { GetActiveExceptionsForProfessionalUseCase } from './use-cases/get-active-exceptions-for-professional.use-case'
 import { IScheduleExceptionsRepository } from './repositories/schedule-exceptions.repository.interface'
 import { ScheduleExceptionsRepository } from './repositories/schedule-exceptions.repository'
 import {
@@ -32,10 +32,10 @@ import {
     DeleteScheduleExceptionUseCase,
     FindScheduleExceptionByIdUseCase,
     ListScheduleExceptionsUseCase,
-    GetActiveExceptionsForDoctorUseCase,
+    GetActiveExceptionsForProfessionalUseCase,
     { provide: IScheduleExceptionsRepository, useClass: ScheduleExceptionsRepository },
     { provide: IAppointmentsRepository, useClass: AppointmentsRepositoryAdapter },
   ],
-  exports: [GetActiveExceptionsForDoctorUseCase],
+  exports: [GetActiveExceptionsForProfessionalUseCase],
 })
 export class ScheduleExceptionsModule {}

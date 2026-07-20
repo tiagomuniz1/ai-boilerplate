@@ -5,7 +5,7 @@ import { Appointment } from '../entities/appointment.entity'
 
 export interface CreateAppointmentData {
   clinicId: string
-  doctorId: string
+  professionalId: string
   patientId: string
   specialtyId: string | null
   scheduleId: string
@@ -24,8 +24,8 @@ export interface UpdateAppointmentData {
 export abstract class IAppointmentsRepository {
   abstract findAll(filters: ListAppointmentsQueryDto, clinicId: string): Promise<[Appointment[], number]>
   abstract findById(id: string, clinicId: string): Promise<Appointment | null>
-  abstract findActiveByDoctorAndDate(doctorId: string, date: string, clinicId: string): Promise<Appointment[]>
-  abstract findActiveBySlot(doctorId: string, date: string, startTime: string, clinicId: string, queryRunner?: QueryRunner): Promise<Appointment | null>
+  abstract findActiveByProfessionalAndDate(professionalId: string, date: string, clinicId: string): Promise<Appointment[]>
+  abstract findActiveBySlot(professionalId: string, date: string, startTime: string, clinicId: string, queryRunner?: QueryRunner): Promise<Appointment | null>
   abstract hasFutureByScheduleId(scheduleId: string, clinicId: string): Promise<boolean>
   abstract create(data: CreateAppointmentData, queryRunner?: QueryRunner): Promise<Appointment>
   abstract update(id: string, data: UpdateAppointmentData, queryRunner?: QueryRunner): Promise<Appointment>

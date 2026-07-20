@@ -18,12 +18,12 @@ const mockList = { execute: jest.fn() } as unknown as jest.Mocked<ListScheduleEx
 
 const CLINIC_ID = 'clinic-uuid'
 const adminUser: ICurrentUser = { id: faker.string.uuid(), role: UserRole.ADMIN, clinicId: CLINIC_ID }
-const doctorUser: ICurrentUser = { id: faker.string.uuid(), role: UserRole.DOCTOR, clinicId: CLINIC_ID }
+const doctorUser: ICurrentUser = { id: faker.string.uuid(), role: UserRole.PROFESSIONAL, clinicId: CLINIC_ID }
 
 const makeException = (overrides: Partial<ScheduleException> = {}): ScheduleException =>
   ({
     id: faker.string.uuid(),
-    doctorId: faker.string.uuid(),
+    professionalId: faker.string.uuid(),
     clinicId: CLINIC_ID,
     date: '2099-06-20',
     startTime: '08:00',
@@ -59,7 +59,7 @@ describe('ScheduleExceptionsController', () => {
 
       expect(mockCreate.execute).toHaveBeenCalledWith(dto, adminUser)
       expect(result.id).toBe(exception.id)
-      expect(result.doctorId).toBe(exception.doctorId)
+      expect(result.professionalId).toBe(exception.professionalId)
       expect(result.date).toBe(exception.date)
       expect(result.startTime).toBe(exception.startTime)
       expect(result.endTime).toBe(exception.endTime)
@@ -104,7 +104,7 @@ describe('ScheduleExceptionsController', () => {
 
       expect(mockFindById.execute).toHaveBeenCalledWith(id, adminUser)
       expect(result.id).toBe(id)
-      expect(result.doctorId).toBe(exception.doctorId)
+      expect(result.professionalId).toBe(exception.professionalId)
     })
   })
 

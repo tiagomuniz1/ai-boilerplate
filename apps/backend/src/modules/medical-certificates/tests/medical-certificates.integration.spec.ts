@@ -49,7 +49,7 @@ describe('MedicalCertificatesController (integration)', () => {
   let doctorToken: string
   let otherDoctorToken: string
   let userToken: string
-  let doctorId: string
+  let professionalId: string
   let otherDoctorId: string
   let patientId: string
   let appointmentId: string
@@ -118,7 +118,7 @@ describe('MedicalCertificatesController (integration)', () => {
         fullName: 'Doctor Smith',
         email: 'doctor@cert.test',
         password: hashed,
-        role: UserRole.DOCTOR,
+        role: UserRole.PROFESSIONAL,
         clinicId: SEED_CLINIC_ID,
       }),
     )
@@ -128,7 +128,7 @@ describe('MedicalCertificatesController (integration)', () => {
         fullName: 'Other Doctor',
         email: 'other@cert.test',
         password: hashed,
-        role: UserRole.DOCTOR,
+        role: UserRole.PROFESSIONAL,
         clinicId: SEED_CLINIC_ID,
       }),
     )
@@ -154,7 +154,7 @@ describe('MedicalCertificatesController (integration)', () => {
     doctorEntity.registrations = [{ clinicId: SEED_CLINIC_ID, councilType: CouncilType.CRM, number: '11111', state: 'SP', isPrimary: true }] as any
     doctorEntity.professionalSpecialties = ([specialty]).map((s: any) => ({ specialtyId: s.id, registryNumber: null })) as any
     const doctorProfile = await doctorRepository.save(doctorEntity)
-    doctorId = doctorProfile.id
+    professionalId = doctorProfile.id
 
     const otherDoctorEntity = doctorRepository.create({
       userId: otherDoctorUser.id,
@@ -188,7 +188,7 @@ describe('MedicalCertificatesController (integration)', () => {
 
     const schedule = await scheduleRepository.save(
       scheduleRepository.create({
-        doctorId,
+        professionalId,
         clinicId: SEED_CLINIC_ID,
         dayOfWeek: DayOfWeek.MONDAY,
         startTime: '08:00',
@@ -202,7 +202,7 @@ describe('MedicalCertificatesController (integration)', () => {
     const appointment = await appointmentRepository.save(
       appointmentRepository.create({
         clinicId: SEED_CLINIC_ID,
-        doctorId,
+        professionalId,
         patientId,
         specialtyId: specialty.id,
         scheduleId: schedule.id,
@@ -219,7 +219,7 @@ describe('MedicalCertificatesController (integration)', () => {
     const cancelledAppt = await appointmentRepository.save(
       appointmentRepository.create({
         clinicId: SEED_CLINIC_ID,
-        doctorId,
+        professionalId,
         patientId,
         specialtyId: specialty.id,
         scheduleId: schedule.id,
@@ -293,9 +293,9 @@ describe('MedicalCertificatesController (integration)', () => {
       expect(body.id).toBeDefined()
       expect(body.appointmentId).toBe(appointmentId)
       expect(body.patientId).toBe(patientId)
-      expect(body.doctorId).toBe(doctorId)
+      expect(body.professionalId).toBe(professionalId)
       expect(body.patientName).toBe('Patient Jones')
-      expect(body.doctorName).toBe('Doctor Smith')
+      expect(body.professionalName).toBe('Doctor Smith')
       expect(body.type).toBe(MedicalCertificateType.LEAVE)
       expect(body.daysOff).toBe(3)
       expect(body.startDate).toBe('2026-01-05')

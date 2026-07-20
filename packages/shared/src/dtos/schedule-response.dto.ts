@@ -2,8 +2,8 @@ import { DayOfWeek } from '../enums/day-of-week.enum'
 
 export class ScheduleResponseDto {
   id: string
-  doctorId: string
-  doctorName: string
+  professionalId: string
+  professionalName: string
   dayOfWeek: DayOfWeek
   startTime: string
   endTime: string

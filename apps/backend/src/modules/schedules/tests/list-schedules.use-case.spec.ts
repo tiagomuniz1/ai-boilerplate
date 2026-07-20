@@ -17,7 +17,7 @@ const mockSchedulesRepository: jest.Mocked<ISchedulesRepository> = {
   update: jest.fn(),
   delete: jest.fn(),
   deleteAllByDoctorId: jest.fn(),
-  findActiveByDoctorAndDate: jest.fn(),
+  findActiveByProfessionalAndDate: jest.fn(),
 }
 
 const mockProfessionalsRepository: jest.Mocked<IProfessionalsRepository> = {
@@ -40,13 +40,13 @@ const mockCacheService = {
 } as unknown as jest.Mocked<CacheService>
 
 const CLINIC_ID = 'fixed-clinic-uuid'
-const doctorId = faker.string.uuid()
-const doctorUser: ICurrentUser = { id: doctorId, role: UserRole.DOCTOR, clinicId: CLINIC_ID }
+const professionalId = faker.string.uuid()
+const doctorUser: ICurrentUser = { id: professionalId, role: UserRole.PROFESSIONAL, clinicId: CLINIC_ID }
 const adminUser: ICurrentUser = { id: faker.string.uuid(), role: UserRole.ADMIN, clinicId: CLINIC_ID }
 
 const makeSchedule = (overrides = {}) => ({
   id: faker.string.uuid(),
-  doctorId,
+  professionalId,
   dayOfWeek: DayOfWeek.MONDAY,
   startTime: '08:00',
   endTime: '12:00',
@@ -60,7 +60,7 @@ const makeSchedule = (overrides = {}) => ({
   ...overrides,
 })
 
-function makeMockDataSource(doctorName = 'Dr. Test Doctor'): DataSource {
+function makeMockDataSource(professionalName = 'Dr. Test Doctor'): DataSource {
   const builder = {
     select: jest.fn().mockReturnThis(),
     addSelect: jest.fn().mockReturnThis(),
@@ -68,7 +68,7 @@ function makeMockDataSource(doctorName = 'Dr. Test Doctor'): DataSource {
     innerJoin: jest.fn().mockReturnThis(),
     where: jest.fn().mockReturnThis(),
     andWhere: jest.fn().mockReturnThis(),
-    getRawMany: jest.fn().mockResolvedValue([{ doctorId, fullName: doctorName }]),
+    getRawMany: jest.fn().mockResolvedValue([{ professionalId, fullName: professionalName }]),
   }
   return { createQueryBuilder: jest.fn().mockReturnValue(builder) } as unknown as DataSource
 }
@@ -97,27 +97,27 @@ describe('ListSchedulesUseCase', () => {
     expect(mockSchedulesRepository.findAll).not.toHaveBeenCalled()
   })
 
-  it('forces doctorId to currentUser.id for DOCTOR role', async () => {
+  it('forces professionalId to currentUser.id for DOCTOR role', async () => {
     const schedule = makeSchedule()
     mockSchedulesRepository.findAll.mockResolvedValue([[schedule as any], 1])
 
-    const query: ListSchedulesQueryDto = { page: 1, limit: 20, doctorId: faker.string.uuid() }
+    const query: ListSchedulesQueryDto = { page: 1, limit: 20, professionalId: faker.string.uuid() }
     await useCase.execute(query, doctorUser)
 
     expect(mockSchedulesRepository.findAll).toHaveBeenCalledWith(
-      expect.objectContaining({ doctorId }),
+      expect.objectContaining({ professionalId }),
       CLINIC_ID,
     )
   })
 
-  it('returns all schedules when admin provides no doctorId', async () => {
+  it('returns all schedules when admin provides no professionalId', async () => {
     mockSchedulesRepository.findAll.mockResolvedValue([[], 0])
 
     const query: ListSchedulesQueryDto = { page: 1, limit: 20 }
     await useCase.execute(query, adminUser)
 
     const calledWith = mockSchedulesRepository.findAll.mock.calls[0][0]
-    expect(calledWith.doctorId).toBeUndefined()
+    expect(calledWith.professionalId).toBeUndefined()
   })
 
   it('does not pass activeOn to repository when not provided', async () => {
@@ -157,7 +157,7 @@ describe('ListSchedulesUseCase', () => {
     await useCase.execute({ page: 1, limit: 20, dayOfWeek: DayOfWeek.MONDAY }, doctorUser)
 
     expect(mockCacheService.get).toHaveBeenCalledWith(
-      `schedules:list:${CLINIC_ID}:${doctorId}:MONDAY:all:1:20`,
+      `schedules:list:${CLINIC_ID}:${professionalId}:MONDAY:all:1:20`,
     )
   })
 
@@ -167,11 +167,11 @@ describe('ListSchedulesUseCase', () => {
     await useCase.execute({ page: 1, limit: 20 }, doctorUser)
 
     expect(mockCacheService.get).toHaveBeenCalledWith(
-      `schedules:list:${CLINIC_ID}:${doctorId}:all:all:1:20`,
+      `schedules:list:${CLINIC_ID}:${professionalId}:all:all:1:20`,
     )
   })
 
-  it('cache key uses "all" for admin without doctorId', async () => {
+  it('cache key uses "all" for admin without professionalId', async () => {
     mockSchedulesRepository.findAll.mockResolvedValue([[], 0])
 
     await useCase.execute({ page: 1, limit: 20 }, adminUser)
@@ -187,7 +187,7 @@ describe('ListSchedulesUseCase', () => {
     await useCase.execute({ page: 1, limit: 20, activeOn: '2024-06-15' }, doctorUser)
 
     expect(mockCacheService.get).toHaveBeenCalledWith(
-      `schedules:list:${CLINIC_ID}:${doctorId}:all:2024-06-15:1:20`,
+      `schedules:list:${CLINIC_ID}:${professionalId}:all:2024-06-15:1:20`,
     )
   })
 
@@ -211,7 +211,7 @@ describe('ListSchedulesUseCase', () => {
     await useCase.execute({} as ListSchedulesQueryDto, doctorUser)
 
     expect(mockCacheService.get).toHaveBeenCalledWith(
-      `schedules:list:${CLINIC_ID}:${doctorId}:all:all:1:20`,
+      `schedules:list:${CLINIC_ID}:${professionalId}:all:all:1:20`,
     )
   })
 
@@ -229,7 +229,7 @@ describe('ListSchedulesUseCase', () => {
     await expect(useCase.execute({ page: 1, limit: 20 }, doctorUser)).resolves.toBeDefined()
   })
 
-  it('returns empty doctorName when name query returns no rows', async () => {
+  it('returns empty professionalName when name query returns no rows', async () => {
     const builder = {
       select: jest.fn().mockReturnThis(),
       addSelect: jest.fn().mockReturnThis(),
@@ -251,6 +251,6 @@ describe('ListSchedulesUseCase', () => {
 
     const result = await useCaseWithEmptyNames.execute({ page: 1, limit: 20 }, doctorUser)
 
-    expect(result.data[0].doctorName).toBe('')
+    expect(result.data[0].professionalName).toBe('')
   })
 })

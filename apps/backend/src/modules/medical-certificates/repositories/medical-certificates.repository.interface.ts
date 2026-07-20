@@ -6,7 +6,7 @@ export interface CreateMedicalCertificateData {
   clinicId: string
   appointmentId: string
   patientId: string
-  doctorId: string
+  professionalId: string
   snapshot: MedicalCertificateSnapshot
   issuedAt: Date
 }

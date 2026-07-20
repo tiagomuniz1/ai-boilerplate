@@ -48,7 +48,7 @@ describe('ScheduleExceptionsController (integration)', () => {
   let doctorToken: string
   let otherDoctorToken: string
   let userToken: string
-  let doctorId: string
+  let professionalId: string
   let otherDoctorId: string
   let patientId: string
   let scheduleId: string
@@ -121,7 +121,7 @@ describe('ScheduleExceptionsController (integration)', () => {
         fullName: 'Doctor User',
         email: 'doctor@exceptions.test',
         password: hashed,
-        role: UserRole.DOCTOR,
+        role: UserRole.PROFESSIONAL,
         clinicId: SEED_CLINIC_ID,
       }),
     )
@@ -131,7 +131,7 @@ describe('ScheduleExceptionsController (integration)', () => {
         fullName: 'Other Doctor',
         email: 'otherdoctor@exceptions.test',
         password: hashed,
-        role: UserRole.DOCTOR,
+        role: UserRole.PROFESSIONAL,
         clinicId: SEED_CLINIC_ID,
       }),
     )
@@ -155,7 +155,7 @@ describe('ScheduleExceptionsController (integration)', () => {
     doctorEntity.registrations = [{ clinicId: SEED_CLINIC_ID, councilType: CouncilType.CRM, number: '11111', state: 'SP', isPrimary: true }] as any
     doctorEntity.professionalSpecialties = ([specialty]).map((s: any) => ({ specialtyId: s.id, registryNumber: null })) as any
     const doctorProfile = await doctorRepository.save(doctorEntity)
-    doctorId = doctorProfile.id
+    professionalId = doctorProfile.id
 
     const otherDoctorEntity = doctorRepository.create({
       userId: otherDoctorUser.id,
@@ -189,7 +189,7 @@ describe('ScheduleExceptionsController (integration)', () => {
 
     const scheduleRecord = await scheduleRepository.save(
       scheduleRepository.create({
-        doctorId,
+        professionalId,
         clinicId: SEED_CLINIC_ID,
         dayOfWeek: DayOfWeek.FRIDAY,
         startTime: '08:00',
@@ -235,7 +235,7 @@ describe('ScheduleExceptionsController (integration)', () => {
   // --- POST /schedule-exceptions ---
 
   describe('POST /schedule-exceptions', () => {
-    it('DOCTOR creates all-day exception for self without doctorId', async () => {
+    it('DOCTOR creates all-day exception for self without professionalId', async () => {
       const { body } = await request(app.getHttpServer())
         .post('/schedule-exceptions')
         .set('Cookie', `access_token=${doctorToken}`)
@@ -243,7 +243,7 @@ describe('ScheduleExceptionsController (integration)', () => {
         .expect(201)
 
       expect(body.id).toBeDefined()
-      expect(body.doctorId).toBe(doctorId)
+      expect(body.professionalId).toBe(professionalId)
       expect(body.startTime).toBeNull()
       expect(body.endTime).toBeNull()
     })
@@ -259,27 +259,27 @@ describe('ScheduleExceptionsController (integration)', () => {
       expect(body.endTime).toBe('18:00')
     })
 
-    it('DOCTOR sending doctorId of another doctor → uses own id (ignores dto.doctorId)', async () => {
+    it('DOCTOR sending professionalId of another doctor → uses own id (ignores dto.professionalId)', async () => {
       const { body } = await request(app.getHttpServer())
         .post('/schedule-exceptions')
         .set('Cookie', `access_token=${doctorToken}`)
-        .send({ date: futureDate, doctorId: otherDoctorId })
+        .send({ date: futureDate, professionalId: otherDoctorId })
         .expect(201)
 
-      expect(body.doctorId).toBe(doctorId)
+      expect(body.professionalId).toBe(professionalId)
     })
 
     it('ADMIN creates exception for another doctor', async () => {
       const { body } = await request(app.getHttpServer())
         .post('/schedule-exceptions')
         .set('Cookie', `access_token=${adminToken}`)
-        .send({ date: futureDate, doctorId: otherDoctorId })
+        .send({ date: futureDate, professionalId: otherDoctorId })
         .expect(201)
 
-      expect(body.doctorId).toBe(otherDoctorId)
+      expect(body.professionalId).toBe(otherDoctorId)
     })
 
-    it('ADMIN without doctorId → 422', async () => {
+    it('ADMIN without professionalId → 422', async () => {
       await request(app.getHttpServer())
         .post('/schedule-exceptions')
         .set('Cookie', `access_token=${adminToken}`)
@@ -299,7 +299,7 @@ describe('ScheduleExceptionsController (integration)', () => {
       await request(app.getHttpServer())
         .post('/schedule-exceptions')
         .set('Cookie', `access_token=${userToken}`)
-        .send({ date: futureDate, doctorId })
+        .send({ date: futureDate, professionalId })
         .expect(403)
     })
 
@@ -307,7 +307,7 @@ describe('ScheduleExceptionsController (integration)', () => {
       await appointmentRepository.save(
         appointmentRepository.create({
           clinicId: SEED_CLINIC_ID,
-          doctorId,
+          professionalId,
           patientId,
           scheduleId,
           date: futureDate,
@@ -334,7 +334,7 @@ describe('ScheduleExceptionsController (integration)', () => {
       await appointmentRepository.save(
         appointmentRepository.create({
           clinicId: SEED_CLINIC_ID,
-          doctorId,
+          professionalId,
           patientId,
           scheduleId,
           date: futureDate,
@@ -359,7 +359,7 @@ describe('ScheduleExceptionsController (integration)', () => {
   describe('GET /schedule-exceptions', () => {
     it('ADMIN lists all exceptions', async () => {
       await scheduleExceptionRepository.save(
-        scheduleExceptionRepository.create({ clinicId: SEED_CLINIC_ID, doctorId, date: futureDate }),
+        scheduleExceptionRepository.create({ clinicId: SEED_CLINIC_ID, professionalId, date: futureDate }),
       )
 
       const { body } = await request(app.getHttpServer())
@@ -372,10 +372,10 @@ describe('ScheduleExceptionsController (integration)', () => {
 
     it('DOCTOR lists only own exceptions', async () => {
       await scheduleExceptionRepository.save(
-        scheduleExceptionRepository.create({ clinicId: SEED_CLINIC_ID, doctorId, date: futureDate }),
+        scheduleExceptionRepository.create({ clinicId: SEED_CLINIC_ID, professionalId, date: futureDate }),
       )
       await scheduleExceptionRepository.save(
-        scheduleExceptionRepository.create({ clinicId: SEED_CLINIC_ID, doctorId: otherDoctorId, date: futureDate }),
+        scheduleExceptionRepository.create({ clinicId: SEED_CLINIC_ID, professionalId: otherDoctorId, date: futureDate }),
       )
 
       const { body } = await request(app.getHttpServer())
@@ -383,15 +383,15 @@ describe('ScheduleExceptionsController (integration)', () => {
         .set('Cookie', `access_token=${doctorToken}`)
         .expect(200)
 
-      expect(body.data.every((e: any) => e.doctorId === doctorId)).toBe(true)
+      expect(body.data.every((e: any) => e.professionalId === professionalId)).toBe(true)
     })
 
     it('filters by from/to range', async () => {
       await scheduleExceptionRepository.save(
-        scheduleExceptionRepository.create({ clinicId: SEED_CLINIC_ID, doctorId, date: '2099-01-10' }),
+        scheduleExceptionRepository.create({ clinicId: SEED_CLINIC_ID, professionalId, date: '2099-01-10' }),
       )
       await scheduleExceptionRepository.save(
-        scheduleExceptionRepository.create({ clinicId: SEED_CLINIC_ID, doctorId, date: '2099-03-10' }),
+        scheduleExceptionRepository.create({ clinicId: SEED_CLINIC_ID, professionalId, date: '2099-03-10' }),
       )
 
       const { body } = await request(app.getHttpServer())
@@ -415,7 +415,7 @@ describe('ScheduleExceptionsController (integration)', () => {
   describe('GET /schedule-exceptions/:id', () => {
     it('returns exception by id for ADMIN', async () => {
       const exc = await scheduleExceptionRepository.save(
-        scheduleExceptionRepository.create({ clinicId: SEED_CLINIC_ID, doctorId, date: futureDate }),
+        scheduleExceptionRepository.create({ clinicId: SEED_CLINIC_ID, professionalId, date: futureDate }),
       )
 
       const { body } = await request(app.getHttpServer())
@@ -428,7 +428,7 @@ describe('ScheduleExceptionsController (integration)', () => {
 
     it('DOCTOR cannot view exception of another doctor → 403', async () => {
       const exc = await scheduleExceptionRepository.save(
-        scheduleExceptionRepository.create({ clinicId: SEED_CLINIC_ID, doctorId: otherDoctorId, date: futureDate }),
+        scheduleExceptionRepository.create({ clinicId: SEED_CLINIC_ID, professionalId: otherDoctorId, date: futureDate }),
       )
 
       await request(app.getHttpServer())
@@ -450,7 +450,7 @@ describe('ScheduleExceptionsController (integration)', () => {
   describe('PATCH /schedule-exceptions/:id', () => {
     it('ADMIN updates exception', async () => {
       const exc = await scheduleExceptionRepository.save(
-        scheduleExceptionRepository.create({ clinicId: SEED_CLINIC_ID, doctorId, date: futureDate }),
+        scheduleExceptionRepository.create({ clinicId: SEED_CLINIC_ID, professionalId, date: futureDate }),
       )
 
       const { body } = await request(app.getHttpServer())
@@ -464,7 +464,7 @@ describe('ScheduleExceptionsController (integration)', () => {
 
     it('DOCTOR updates own exception', async () => {
       const exc = await scheduleExceptionRepository.save(
-        scheduleExceptionRepository.create({ clinicId: SEED_CLINIC_ID, doctorId, date: futureDate }),
+        scheduleExceptionRepository.create({ clinicId: SEED_CLINIC_ID, professionalId, date: futureDate }),
       )
 
       const { body } = await request(app.getHttpServer())
@@ -478,7 +478,7 @@ describe('ScheduleExceptionsController (integration)', () => {
 
     it('DOCTOR cannot update exception of another doctor → 403', async () => {
       const exc = await scheduleExceptionRepository.save(
-        scheduleExceptionRepository.create({ clinicId: SEED_CLINIC_ID, doctorId: otherDoctorId, date: futureDate }),
+        scheduleExceptionRepository.create({ clinicId: SEED_CLINIC_ID, professionalId: otherDoctorId, date: futureDate }),
       )
 
       await request(app.getHttpServer())
@@ -492,7 +492,7 @@ describe('ScheduleExceptionsController (integration)', () => {
       const exc = await scheduleExceptionRepository.save(
         scheduleExceptionRepository.create({
           clinicId: SEED_CLINIC_ID,
-          doctorId,
+          professionalId,
           date: futureDate,
           startTime: '11:00',
           endTime: '12:00',
@@ -501,7 +501,7 @@ describe('ScheduleExceptionsController (integration)', () => {
       await appointmentRepository.save(
         appointmentRepository.create({
           clinicId: SEED_CLINIC_ID,
-          doctorId,
+          professionalId,
           patientId,
           scheduleId,
           date: futureDate,
@@ -522,7 +522,7 @@ describe('ScheduleExceptionsController (integration)', () => {
 
     it('removes reason when sent as null', async () => {
       const exc = await scheduleExceptionRepository.save(
-        scheduleExceptionRepository.create({ clinicId: SEED_CLINIC_ID, doctorId, date: futureDate, reason: 'Old reason' }),
+        scheduleExceptionRepository.create({ clinicId: SEED_CLINIC_ID, professionalId, date: futureDate, reason: 'Old reason' }),
       )
 
       const { body } = await request(app.getHttpServer())
@@ -540,7 +540,7 @@ describe('ScheduleExceptionsController (integration)', () => {
   describe('DELETE /schedule-exceptions/:id', () => {
     it('ADMIN deletes any exception → 204', async () => {
       const exc = await scheduleExceptionRepository.save(
-        scheduleExceptionRepository.create({ clinicId: SEED_CLINIC_ID, doctorId, date: futureDate }),
+        scheduleExceptionRepository.create({ clinicId: SEED_CLINIC_ID, professionalId, date: futureDate }),
       )
 
       await request(app.getHttpServer())
@@ -554,7 +554,7 @@ describe('ScheduleExceptionsController (integration)', () => {
 
     it('DOCTOR deletes own exception → 204', async () => {
       const exc = await scheduleExceptionRepository.save(
-        scheduleExceptionRepository.create({ clinicId: SEED_CLINIC_ID, doctorId, date: futureDate }),
+        scheduleExceptionRepository.create({ clinicId: SEED_CLINIC_ID, professionalId, date: futureDate }),
       )
 
       await request(app.getHttpServer())
@@ -565,7 +565,7 @@ describe('ScheduleExceptionsController (integration)', () => {
 
     it('DOCTOR cannot delete exception of another doctor → 403', async () => {
       const exc = await scheduleExceptionRepository.save(
-        scheduleExceptionRepository.create({ clinicId: SEED_CLINIC_ID, doctorId: otherDoctorId, date: futureDate }),
+        scheduleExceptionRepository.create({ clinicId: SEED_CLINIC_ID, professionalId: otherDoctorId, date: futureDate }),
       )
 
       await request(app.getHttpServer())
@@ -583,7 +583,7 @@ describe('ScheduleExceptionsController (integration)', () => {
 
     it('USER cannot delete → 403', async () => {
       const exc = await scheduleExceptionRepository.save(
-        scheduleExceptionRepository.create({ clinicId: SEED_CLINIC_ID, doctorId, date: futureDate }),
+        scheduleExceptionRepository.create({ clinicId: SEED_CLINIC_ID, professionalId, date: futureDate }),
       )
 
       await request(app.getHttpServer())
@@ -600,7 +600,7 @@ describe('ScheduleExceptionsController (integration)', () => {
       await scheduleExceptionRepository.save(
         scheduleExceptionRepository.create({
           clinicId: SEED_CLINIC_ID,
-          doctorId,
+          professionalId,
           date: futureDate,
           startTime: '09:00',
           endTime: '10:00',
@@ -608,7 +608,7 @@ describe('ScheduleExceptionsController (integration)', () => {
       )
 
       const { body } = await request(app.getHttpServer())
-        .get(`/appointments/availability?doctorId=${doctorId}&date=${futureDate}`)
+        .get(`/appointments/availability?professionalId=${professionalId}&date=${futureDate}`)
         .set('Cookie', `access_token=${adminToken}`)
         .expect(200)
 
@@ -623,7 +623,7 @@ describe('ScheduleExceptionsController (integration)', () => {
       await scheduleExceptionRepository.save(
         scheduleExceptionRepository.create({
           clinicId: SEED_CLINIC_ID,
-          doctorId,
+          professionalId,
           date: futureDate,
           startTime: '10:00',
           endTime: '12:00',
@@ -631,7 +631,7 @@ describe('ScheduleExceptionsController (integration)', () => {
       )
 
       const { body } = await request(app.getHttpServer())
-        .get(`/appointments/availability?doctorId=${doctorId}&date=${futureDate}`)
+        .get(`/appointments/availability?professionalId=${professionalId}&date=${futureDate}`)
         .set('Cookie', `access_token=${adminToken}`)
         .expect(200)
 
@@ -647,13 +647,13 @@ describe('ScheduleExceptionsController (integration)', () => {
       await scheduleExceptionRepository.save(
         scheduleExceptionRepository.create({
           clinicId: SEED_CLINIC_ID,
-          doctorId,
+          professionalId,
           date: futureDate,
         }),
       )
 
       const { body } = await request(app.getHttpServer())
-        .get(`/appointments/availability?doctorId=${doctorId}&date=${futureDate}`)
+        .get(`/appointments/availability?professionalId=${professionalId}&date=${futureDate}`)
         .set('Cookie', `access_token=${adminToken}`)
         .expect(200)
 
@@ -664,7 +664,7 @@ describe('ScheduleExceptionsController (integration)', () => {
       await scheduleExceptionRepository.save(
         scheduleExceptionRepository.create({
           clinicId: SEED_CLINIC_ID,
-          doctorId,
+          professionalId,
           date: futureDate,
           startTime: '09:00',
           endTime: '12:00',
@@ -672,7 +672,7 @@ describe('ScheduleExceptionsController (integration)', () => {
       )
 
       const { body } = await request(app.getHttpServer())
-        .get(`/appointments/availability?doctorId=${doctorId}&date=${futureDate}`)
+        .get(`/appointments/availability?professionalId=${professionalId}&date=${futureDate}`)
         .set('Cookie', `access_token=${adminToken}`)
         .expect(200)
 
@@ -690,13 +690,13 @@ describe('ScheduleExceptionsController (integration)', () => {
       await scheduleExceptionRepository.save(
         scheduleExceptionRepository.create({
           clinicId: SEED_CLINIC_ID,
-          doctorId,
+          professionalId,
           date: nextWeekDate,
         }),
       )
 
       const { body } = await request(app.getHttpServer())
-        .get(`/appointments/availability?doctorId=${doctorId}&date=${futureDate}`)
+        .get(`/appointments/availability?professionalId=${professionalId}&date=${futureDate}`)
         .set('Cookie', `access_token=${adminToken}`)
         .expect(200)
 

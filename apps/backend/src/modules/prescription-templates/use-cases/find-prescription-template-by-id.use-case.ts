@@ -23,9 +23,9 @@ export class FindPrescriptionTemplateByIdUseCase extends BaseUseCase {
     const template = await this.prescriptionTemplatesRepository.findById(id, clinicId)
     if (!template) throw new NotFoundException('Prescription template not found')
 
-    if (currentUser.role === UserRole.DOCTOR) {
-      const doctor = await this.professionalsRepository.findByUserId(currentUser.id, clinicId)
-      if (!doctor || doctor.id !== template.doctorId) throw new ForbiddenException('Insufficient permissions')
+    if (currentUser.role === UserRole.PROFESSIONAL) {
+      const professional = await this.professionalsRepository.findByUserId(currentUser.id, clinicId)
+      if (!professional || professional.id !== template.professionalId) throw new ForbiddenException('Insufficient permissions')
     }
 
     return toPrescriptionTemplateResponse(template)

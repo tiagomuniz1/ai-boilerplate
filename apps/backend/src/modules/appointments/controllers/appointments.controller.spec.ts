@@ -24,12 +24,12 @@ const mockGetAvailability = { execute: jest.fn() } as unknown as jest.Mocked<Get
 const CLINIC_ID = 'clinic-uuid'
 
 const adminUser: ICurrentUser = { id: faker.string.uuid(), role: UserRole.ADMIN, clinicId: CLINIC_ID }
-const doctorUser: ICurrentUser = { id: faker.string.uuid(), role: UserRole.DOCTOR, clinicId: CLINIC_ID }
+const doctorUser: ICurrentUser = { id: faker.string.uuid(), role: UserRole.PROFESSIONAL, clinicId: CLINIC_ID }
 
 const makeAppointmentResponse = (overrides = {}) => ({
   id: faker.string.uuid(),
-  doctorId: faker.string.uuid(),
-  doctorName: 'Dr. Test',
+  professionalId: faker.string.uuid(),
+  professionalName: 'Dr. Test',
   patientId: faker.string.uuid(),
   patientName: 'Patient Test',
   scheduleId: faker.string.uuid(),
@@ -84,7 +84,7 @@ describe('AppointmentsController', () => {
   })
 
   it('getAvailability delegates to GetAvailabilityUseCase', async () => {
-    const query = { doctorId: faker.string.uuid(), date: '2099-06-20' } as any
+    const query = { professionalId: faker.string.uuid(), date: '2099-06-20' } as any
     const response = { slots: [] } as any
     mockGetAvailability.execute.mockResolvedValue(response)
 

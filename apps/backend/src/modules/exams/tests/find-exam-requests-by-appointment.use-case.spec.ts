@@ -10,18 +10,18 @@ import { FindExamRequestsByAppointmentUseCase } from '../use-cases/find-exam-req
 import { CacheService } from '../../../cache/cache.service'
 
 const clinicId = 'clinic-uuid'
-const doctorId = 'doctor-uuid'
+const professionalId = 'doctor-uuid'
 const appointmentId = 'appt-uuid'
 
 const adminUser: ICurrentUser = { id: 'admin-id', role: UserRole.ADMIN, clinicId }
-const doctorUser: ICurrentUser = { id: 'doctor-user-id', role: UserRole.DOCTOR, clinicId }
+const doctorUser: ICurrentUser = { id: 'doctor-user-id', role: UserRole.PROFESSIONAL, clinicId }
 
 const makeExamRequest = () => ({
   id: 'exam-uuid',
   clinicId,
   appointmentId,
   patientId: 'patient-uuid',
-  doctorId,
+  professionalId,
   issuedAt: new Date(),
   status: ExamRequestStatus.REQUESTED,
   snapshot: {
@@ -57,7 +57,7 @@ const mockExamResultsRepository: jest.Mocked<IExamResultsRepository> = {
 const mockAppointmentsRepository: jest.Mocked<IAppointmentsRepository> = {
   findAll: jest.fn(),
   findById: jest.fn(),
-  findActiveByDoctorAndDate: jest.fn(),
+  findActiveByProfessionalAndDate: jest.fn(),
   findActiveBySlot: jest.fn(),
   hasFutureByScheduleId: jest.fn(),
   create: jest.fn(),
@@ -97,8 +97,8 @@ describe('FindExamRequestsByAppointmentUseCase', () => {
     )
     mockExamRequestsRepository.findByAppointment.mockResolvedValue([makeExamRequest() as any])
     mockExamResultsRepository.findByExamRequestIds.mockResolvedValue([])
-    mockAppointmentsRepository.findById.mockResolvedValue({ id: appointmentId, doctorId } as any)
-    mockProfessionalsRepository.findByUserId.mockResolvedValue({ id: doctorId } as any)
+    mockAppointmentsRepository.findById.mockResolvedValue({ id: appointmentId, professionalId } as any)
+    mockProfessionalsRepository.findByUserId.mockResolvedValue({ id: professionalId } as any)
     mockCacheService.get.mockResolvedValue(null)
     mockCacheService.set.mockResolvedValue(undefined)
   })
@@ -178,7 +178,7 @@ describe('FindExamRequestsByAppointmentUseCase', () => {
       fileName: 'hemograma.pdf',
       mimeType: 'application/pdf',
       fileSizeBytes: 1000,
-      uploadedByUserId: doctorId,
+      uploadedByUserId: professionalId,
       createdAt: new Date(),
       updatedAt: new Date(),
       deletedAt: null,

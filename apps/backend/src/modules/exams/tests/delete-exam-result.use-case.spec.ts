@@ -9,12 +9,12 @@ import { DeleteExamResultUseCase } from '../use-cases/delete-exam-result.use-cas
 import { CacheService } from '../../../cache/cache.service'
 
 const clinicId = 'clinic-uuid'
-const doctorId = 'doctor-uuid'
+const professionalId = 'doctor-uuid'
 const examRequestId = 'exam-uuid'
 const resultId = 'result-uuid'
 const appointmentId = 'appt-uuid'
 
-const doctorUser: ICurrentUser = { id: 'doctor-user-id', role: UserRole.DOCTOR, clinicId }
+const doctorUser: ICurrentUser = { id: 'doctor-user-id', role: UserRole.PROFESSIONAL, clinicId }
 
 const makeExamResult = (overrides = {}) => ({
   id: resultId,
@@ -36,7 +36,7 @@ const makeExamRequest = (overrides = {}) => ({
   clinicId,
   appointmentId,
   patientId: 'patient-uuid',
-  doctorId,
+  professionalId,
   issuedAt: new Date(),
   status: ExamRequestStatus.COMPLETED,
   snapshot: {
@@ -115,7 +115,7 @@ describe('DeleteExamResultUseCase', () => {
     )
     mockExamResultsRepository.findById.mockResolvedValue(makeExamResult() as any)
     mockExamRequestsRepository.findById.mockResolvedValue(makeExamRequest() as any)
-    mockProfessionalsRepository.findByUserId.mockResolvedValue({ id: doctorId } as any)
+    mockProfessionalsRepository.findByUserId.mockResolvedValue({ id: professionalId } as any)
     mockExamResultsRepository.delete.mockResolvedValue(undefined)
     mockExamResultsRepository.countActiveByExamRequest.mockResolvedValue(0)
     mockExamRequestsRepository.updateStatus.mockResolvedValue(undefined)

@@ -11,8 +11,8 @@ import { PrescriptionTemplate, PrescriptionTemplateItem } from '../entities/pres
 export function toPrescriptionTemplateResponse(template: PrescriptionTemplate): PrescriptionTemplateResponseDto {
   return {
     id: template.id,
-    doctorId: template.doctorId,
-    doctorName: template.doctorName,
+    professionalId: template.professionalId,
+    professionalName: template.professionalName,
     name: template.name,
     items: template.items.map((item) => ({
       medicationId: item.medicationId,
@@ -42,20 +42,20 @@ export class CreatePrescriptionTemplateUseCase extends BaseUseCase {
   async execute(dto: CreatePrescriptionTemplateDto, currentUser: ICurrentUser): Promise<PrescriptionTemplateResponseDto> {
     const clinicId = currentUser.clinicId!
 
-    let doctorId: string
-    let doctorName: string
+    let professionalId: string
+    let professionalName: string
 
-    if (currentUser.role === UserRole.DOCTOR) {
-      const doctor = await this.professionalsRepository.findByUserId(currentUser.id, clinicId)
-      if (!doctor) throw new ForbiddenException('Insufficient permissions')
-      doctorId = doctor.id
-      doctorName = doctor.user.fullName
+    if (currentUser.role === UserRole.PROFESSIONAL) {
+      const professional = await this.professionalsRepository.findByUserId(currentUser.id, clinicId)
+      if (!professional) throw new ForbiddenException('Insufficient permissions')
+      professionalId = professional.id
+      professionalName = professional.user.fullName
     } else {
-      if (!dto.doctorId) throw new UnprocessableEntityException('doctorId is required for ADMIN')
-      const doctor = await this.professionalsRepository.findById(dto.doctorId, clinicId)
-      if (!doctor) throw new NotFoundException('Professional not found')
-      doctorId = doctor.id
-      doctorName = doctor.user.fullName
+      if (!dto.professionalId) throw new UnprocessableEntityException('professionalId is required for ADMIN')
+      const professional = await this.professionalsRepository.findById(dto.professionalId, clinicId)
+      if (!professional) throw new NotFoundException('Professional not found')
+      professionalId = professional.id
+      professionalName = professional.user.fullName
     }
 
     const items: PrescriptionTemplateItem[] = []
@@ -87,8 +87,8 @@ export class CreatePrescriptionTemplateUseCase extends BaseUseCase {
 
     const template = await this.prescriptionTemplatesRepository.create({
       clinicId,
-      doctorId,
-      doctorName,
+      professionalId,
+      professionalName,
       name: dto.name,
       items,
       notes: dto.notes ?? null,

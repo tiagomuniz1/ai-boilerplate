@@ -38,7 +38,7 @@ export class PrescriptionsController {
   }
 
   @Post()
-  @Roles(UserRole.DOCTOR)
+  @Roles(UserRole.PROFESSIONAL)
   @Throttle({ default: { limit: 30, ttl: 60000 } })
   create(
     @Body() dto: CreatePrescriptionDto,
@@ -48,7 +48,7 @@ export class PrescriptionsController {
   }
 
   @Get()
-  @Roles(UserRole.ADMIN, UserRole.DOCTOR)
+  @Roles(UserRole.ADMIN, UserRole.PROFESSIONAL)
   findByAppointment(
     @Query() query: PrescriptionListQueryDto,
     @CurrentUser() currentUser: ICurrentUser,
@@ -57,7 +57,7 @@ export class PrescriptionsController {
   }
 
   @Get(':id')
-  @Roles(UserRole.ADMIN, UserRole.DOCTOR)
+  @Roles(UserRole.ADMIN, UserRole.PROFESSIONAL)
   findById(
     @Param('id') id: string,
     @CurrentUser() currentUser: ICurrentUser,
@@ -67,7 +67,7 @@ export class PrescriptionsController {
 
   @Delete(':id')
   @HttpCode(204)
-  @Roles(UserRole.ADMIN, UserRole.DOCTOR)
+  @Roles(UserRole.ADMIN, UserRole.PROFESSIONAL)
   delete(
     @Param('id') id: string,
     @CurrentUser() currentUser: ICurrentUser,
@@ -76,7 +76,7 @@ export class PrescriptionsController {
   }
 
   @Get(':id/pdf')
-  @Roles(UserRole.ADMIN, UserRole.DOCTOR)
+  @Roles(UserRole.ADMIN, UserRole.PROFESSIONAL)
   async downloadPdf(
     @Param('id') id: string,
     @CurrentUser() currentUser: ICurrentUser,

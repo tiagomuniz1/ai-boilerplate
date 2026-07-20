@@ -64,17 +64,17 @@ describe('MedicalRecordsRepository', () => {
       expect(mockQueryBuilder.take).toHaveBeenCalledWith(20)
     })
 
-    it('adds doctorId filter when provided', async () => {
+    it('adds professionalId filter when provided', async () => {
       mockQueryBuilder.getManyAndCount.mockResolvedValue([[], 0])
       await repository.findByPatient('clinic-1', 'patient-1', 1, 20, 'doctor-1')
-      expect(mockQueryBuilder.andWhere).toHaveBeenCalledWith('mr.doctorId = :doctorId', { doctorId: 'doctor-1' })
+      expect(mockQueryBuilder.andWhere).toHaveBeenCalledWith('mr.professionalId = :professionalId', { professionalId: 'doctor-1' })
     })
 
-    it('skips doctorId filter when not provided', async () => {
+    it('skips professionalId filter when not provided', async () => {
       mockQueryBuilder.getManyAndCount.mockResolvedValue([[], 0])
       await repository.findByPatient('clinic-1', 'patient-1', 1, 20)
       const andWhereCalls = (mockQueryBuilder.andWhere as jest.Mock).mock.calls.map((c: unknown[]) => c[0])
-      expect(andWhereCalls).not.toContain('mr.doctorId = :doctorId')
+      expect(andWhereCalls).not.toContain('mr.professionalId = :professionalId')
     })
   })
 
@@ -83,7 +83,7 @@ describe('MedicalRecordsRepository', () => {
       clinicId: 'clinic-1',
       appointmentId: 'appt-1',
       patientId: 'patient-1',
-      doctorId: 'doctor-1',
+      professionalId: 'doctor-1',
       specialtyId: 'specialty-1',
       templateId: 'template-1',
       templateSchemaSnapshot: [],

@@ -41,7 +41,7 @@ export class MedicalRecordsController {
   ) {}
 
   @Post()
-  @Roles(UserRole.ADMIN, UserRole.DOCTOR)
+  @Roles(UserRole.ADMIN, UserRole.PROFESSIONAL)
   @Throttle({ default: { limit: 30, ttl: 60000 } })
   create(
     @Body() dto: CreateMedicalRecordDto,
@@ -51,7 +51,7 @@ export class MedicalRecordsController {
   }
 
   @Get('by-appointment/:appointmentId')
-  @Roles(UserRole.ADMIN, UserRole.DOCTOR)
+  @Roles(UserRole.ADMIN, UserRole.PROFESSIONAL)
   async findByAppointment(
     @Param('appointmentId') appointmentId: string,
     @CurrentUser() currentUser: ICurrentUser,
@@ -62,7 +62,7 @@ export class MedicalRecordsController {
   }
 
   @Get()
-  @Roles(UserRole.ADMIN, UserRole.DOCTOR)
+  @Roles(UserRole.ADMIN, UserRole.PROFESSIONAL)
   findByPatient(
     @Query() query: MedicalRecordListQueryDto,
     @CurrentUser() currentUser: ICurrentUser,
@@ -71,7 +71,7 @@ export class MedicalRecordsController {
   }
 
   @Get(':id')
-  @Roles(UserRole.ADMIN, UserRole.DOCTOR)
+  @Roles(UserRole.ADMIN, UserRole.PROFESSIONAL)
   findById(
     @Param('id') id: string,
     @CurrentUser() currentUser: ICurrentUser,
@@ -80,7 +80,7 @@ export class MedicalRecordsController {
   }
 
   @Patch(':id')
-  @Roles(UserRole.ADMIN, UserRole.DOCTOR)
+  @Roles(UserRole.ADMIN, UserRole.PROFESSIONAL)
   update(
     @Param('id') id: string,
     @Body() dto: UpdateMedicalRecordDto,

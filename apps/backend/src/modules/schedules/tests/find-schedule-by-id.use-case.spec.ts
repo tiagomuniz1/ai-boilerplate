@@ -16,7 +16,7 @@ const mockSchedulesRepository: jest.Mocked<ISchedulesRepository> = {
   update: jest.fn(),
   delete: jest.fn(),
   deleteAllByDoctorId: jest.fn(),
-  findActiveByDoctorAndDate: jest.fn(),
+  findActiveByProfessionalAndDate: jest.fn(),
 }
 
 const mockProfessionalsRepository: jest.Mocked<IProfessionalsRepository> = {
@@ -41,13 +41,13 @@ const mockCacheService = {
 const ownerId = faker.string.uuid()
 const otherDoctorId = faker.string.uuid()
 
-const ownerUser: ICurrentUser = { id: ownerId, role: UserRole.DOCTOR, clinicId: faker.string.uuid() }
-const otherDoctorUser: ICurrentUser = { id: otherDoctorId, role: UserRole.DOCTOR, clinicId: faker.string.uuid() }
+const ownerUser: ICurrentUser = { id: ownerId, role: UserRole.PROFESSIONAL, clinicId: faker.string.uuid() }
+const otherDoctorUser: ICurrentUser = { id: otherDoctorId, role: UserRole.PROFESSIONAL, clinicId: faker.string.uuid() }
 const adminUser: ICurrentUser = { id: faker.string.uuid(), role: UserRole.ADMIN, clinicId: faker.string.uuid() }
 
 const makeSchedule = (overrides = {}) => ({
   id: faker.string.uuid(),
-  doctorId: ownerId,
+  professionalId: ownerId,
   dayOfWeek: DayOfWeek.MONDAY,
   startTime: '08:00',
   endTime: '12:00',
@@ -109,7 +109,7 @@ describe('FindScheduleByIdUseCase', () => {
     const result = await useCase.execute(schedule.id, ownerUser)
 
     expect(result.id).toBe(schedule.id)
-    expect(result.doctorId).toBe(ownerId)
+    expect(result.professionalId).toBe(ownerId)
   })
 
   it('throws ForbiddenException when doctor tries to view another doctor schedule', async () => {
@@ -132,7 +132,7 @@ describe('FindScheduleByIdUseCase', () => {
     const schedule = makeSchedule()
     const cachedResponse = {
       id: schedule.id,
-      doctorId: ownerId,
+      professionalId: ownerId,
       dayOfWeek: DayOfWeek.MONDAY,
       startTime: '08:00',
       endTime: '12:00',
@@ -153,7 +153,7 @@ describe('FindScheduleByIdUseCase', () => {
   it('throws ForbiddenException from cache when doctor accesses wrong schedule', async () => {
     const cachedResponse = {
       id: faker.string.uuid(),
-      doctorId: ownerId,
+      professionalId: ownerId,
       dayOfWeek: DayOfWeek.MONDAY,
       startTime: '08:00',
       endTime: '12:00',
@@ -201,7 +201,7 @@ describe('FindScheduleByIdUseCase', () => {
     expect(result).not.toHaveProperty('deletedAt')
   })
 
-  it('returns empty doctorName when name query returns no rows', async () => {
+  it('returns empty professionalName when name query returns no rows', async () => {
     const builder = {
       select: jest.fn().mockReturnThis(),
       from: jest.fn().mockReturnThis(),
@@ -222,6 +222,6 @@ describe('FindScheduleByIdUseCase', () => {
 
     const result = await useCaseWithEmptyNames.execute(schedule.id, ownerUser)
 
-    expect(result.doctorName).toBe('')
+    expect(result.professionalName).toBe('')
   })
 })

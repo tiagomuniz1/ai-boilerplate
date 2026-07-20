@@ -11,5 +11,5 @@ export class DashboardQueryDto {
 
   @IsOptional()
   @IsUUID()
-  doctorId?: string
+  professionalId?: string
 }

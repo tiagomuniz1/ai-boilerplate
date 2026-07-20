@@ -8,18 +8,18 @@ import { IExamResultsRepository } from '../repositories/exam-results.repository.
 import { FindExamRequestByIdUseCase } from '../use-cases/find-exam-request-by-id.use-case'
 
 const clinicId = 'clinic-uuid'
-const doctorId = 'doctor-uuid'
+const professionalId = 'doctor-uuid'
 const examRequestId = 'exam-uuid'
 
 const adminUser: ICurrentUser = { id: 'admin-id', role: UserRole.ADMIN, clinicId }
-const doctorUser: ICurrentUser = { id: 'doctor-user-id', role: UserRole.DOCTOR, clinicId }
+const doctorUser: ICurrentUser = { id: 'doctor-user-id', role: UserRole.PROFESSIONAL, clinicId }
 
 const makeExamRequest = (overrides = {}) => ({
   id: examRequestId,
   clinicId,
   appointmentId: 'appt-uuid',
   patientId: 'patient-uuid',
-  doctorId,
+  professionalId,
   issuedAt: new Date(),
   status: ExamRequestStatus.REQUESTED,
   snapshot: {
@@ -76,7 +76,7 @@ describe('FindExamRequestByIdUseCase', () => {
     )
     mockExamRequestsRepository.findById.mockResolvedValue(makeExamRequest() as any)
     mockExamResultsRepository.findByExamRequestIds.mockResolvedValue([])
-    mockProfessionalsRepository.findByUserId.mockResolvedValue({ id: doctorId } as any)
+    mockProfessionalsRepository.findByUserId.mockResolvedValue({ id: professionalId } as any)
   })
 
   it('returns exam request for ADMIN', async () => {
@@ -115,7 +115,7 @@ describe('FindExamRequestByIdUseCase', () => {
     const result = await useCase.execute(examRequestId, adminUser)
 
     expect(result.patientName).toBe('Patient')
-    expect(result.doctorName).toBe('Doctor')
+    expect(result.professionalName).toBe('Doctor')
     expect(result.notes).toBeNull()
     expect(result.status).toBe(ExamRequestStatus.REQUESTED)
   })
@@ -136,7 +136,7 @@ describe('FindExamRequestByIdUseCase', () => {
       fileName: 'hemograma.pdf',
       mimeType: 'application/pdf',
       fileSizeBytes: 1000,
-      uploadedByUserId: doctorId,
+      uploadedByUserId: professionalId,
       createdAt: new Date(),
       updatedAt: new Date(),
       deletedAt: null,

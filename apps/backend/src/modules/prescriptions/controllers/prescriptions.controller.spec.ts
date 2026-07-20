@@ -17,15 +17,15 @@ const mockDelete = { execute: jest.fn() } as unknown as jest.Mocked<DeletePrescr
 const mockGeneratePdf = { execute: jest.fn() } as unknown as jest.Mocked<GeneratePrescriptionPdfUseCase>
 const mockVerify = { execute: jest.fn() } as unknown as jest.Mocked<VerifyPrescriptionUseCase>
 
-const currentUser: ICurrentUser = { id: 'doctor-uuid', role: UserRole.DOCTOR, clinicId: 'clinic-uuid' }
+const currentUser: ICurrentUser = { id: 'doctor-uuid', role: UserRole.PROFESSIONAL, clinicId: 'clinic-uuid' }
 
 const makePrescriptionResponse = () => ({
   id: 'rx-uuid',
   appointmentId: 'appt-uuid',
   patientId: 'patient-uuid',
   patientName: 'Patient Jones',
-  doctorId: 'doctor-uuid',
-  doctorName: 'Doctor Smith',
+  professionalId: 'doctor-uuid',
+  professionalName: 'Doctor Smith',
   issuedAt: new Date(),
   items: [{ medicationId: 'med-uuid', name: 'Dipirona', activeIngredient: null, dosage: null, quantity: null, instructions: 'Tomar 1 cp' }],
   notes: null,

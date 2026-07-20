@@ -70,7 +70,7 @@ export class CreateProfessionalUseCase extends BaseUseCase {
       try {
         if (needsRolePromotion) {
           professional = await this.runInTransaction(async (queryRunner) => {
-            await this.usersRepository.update(user.id, { role: UserRole.DOCTOR, isActive: true }, queryRunner)
+            await this.usersRepository.update(user.id, { role: UserRole.PROFESSIONAL, isActive: true }, queryRunner)
             return this.professionalsRepository.create(
               { userId: dto.userId!, bio: dto.bio ?? null },
               clinicId,
@@ -106,7 +106,7 @@ export class CreateProfessionalUseCase extends BaseUseCase {
       try {
         professional = await this.runInTransaction(async (queryRunner) => {
           const user = await this.usersRepository.create(
-            { fullName: dto.fullName!, email: dto.email!, password: hashedPassword, role: UserRole.DOCTOR, isActive: true },
+            { fullName: dto.fullName!, email: dto.email!, password: hashedPassword, role: UserRole.PROFESSIONAL, isActive: true },
             clinicId,
             queryRunner,
           )

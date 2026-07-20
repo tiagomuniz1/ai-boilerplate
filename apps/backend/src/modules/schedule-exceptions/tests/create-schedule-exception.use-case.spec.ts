@@ -12,7 +12,7 @@ import { CreateScheduleExceptionUseCase } from '../use-cases/create-schedule-exc
 const mockScheduleExceptionsRepository: jest.Mocked<IScheduleExceptionsRepository> = {
   findAll: jest.fn(),
   findById: jest.fn(),
-  findActiveByDoctorAndDate: jest.fn(),
+  findActiveByProfessionalAndDate: jest.fn(),
   create: jest.fn(),
   update: jest.fn(),
   delete: jest.fn(),
@@ -49,7 +49,7 @@ const makeDoctor = (id = DOCTOR_ID) => ({ id } as any)
 const makeException = (overrides = {}) => ({
   id: faker.string.uuid(),
   clinicId: CLINIC_ID,
-  doctorId: DOCTOR_ID,
+  professionalId: DOCTOR_ID,
   date: '2099-06-20',
   startTime: null,
   endTime: null,
@@ -61,7 +61,7 @@ const makeException = (overrides = {}) => ({
   ...overrides,
 })
 
-const doctorUser: ICurrentUser = { id: faker.string.uuid(), role: UserRole.DOCTOR, clinicId: CLINIC_ID }
+const doctorUser: ICurrentUser = { id: faker.string.uuid(), role: UserRole.PROFESSIONAL, clinicId: CLINIC_ID }
 const adminUser: ICurrentUser = { id: faker.string.uuid(), role: UserRole.ADMIN, clinicId: CLINIC_ID }
 
 function makeUseCase() {
@@ -85,25 +85,25 @@ describe('CreateScheduleExceptionUseCase', () => {
     mockAppointmentsRepository.findScheduledAppointmentsInWindow.mockResolvedValue([])
   })
 
-  it('creates all-day exception as DOCTOR using own profile (ignores dto.doctorId)', async () => {
+  it('creates all-day exception as DOCTOR using own profile (ignores dto.professionalId)', async () => {
     const doctor = makeDoctor()
-    const exception = makeException({ doctorId: doctor.id })
+    const exception = makeException({ professionalId: doctor.id })
     mockProfessionalsRepository.findByUserId.mockResolvedValue(doctor)
     mockScheduleExceptionsRepository.create.mockResolvedValue(exception as any)
 
-    const result = await useCase.execute({ date: '2099-06-20', doctorId: faker.string.uuid() }, doctorUser)
+    const result = await useCase.execute({ date: '2099-06-20', professionalId: faker.string.uuid() }, doctorUser)
 
     expect(mockProfessionalsRepository.findByUserId).toHaveBeenCalledWith(doctorUser.id, CLINIC_ID)
     expect(mockProfessionalsRepository.findById).not.toHaveBeenCalled()
     expect(result.id).toBeDefined()
   })
 
-  it('creates exception as ADMIN using dto.doctorId', async () => {
+  it('creates exception as ADMIN using dto.professionalId', async () => {
     const exception = makeException()
     mockProfessionalsRepository.findById.mockResolvedValue(makeDoctor())
     mockScheduleExceptionsRepository.create.mockResolvedValue(exception as any)
 
-    await useCase.execute({ date: '2099-06-20', doctorId: DOCTOR_ID }, adminUser)
+    await useCase.execute({ date: '2099-06-20', professionalId: DOCTOR_ID }, adminUser)
 
     expect(mockProfessionalsRepository.findById).toHaveBeenCalledWith(DOCTOR_ID, CLINIC_ID)
   })
@@ -114,14 +114,14 @@ describe('CreateScheduleExceptionUseCase', () => {
     expect(mockScheduleExceptionsRepository.create).not.toHaveBeenCalled()
   })
 
-  it('throws UnprocessableEntityException when ADMIN omits doctorId', async () => {
+  it('throws UnprocessableEntityException when ADMIN omits professionalId', async () => {
     await expect(useCase.execute({ date: '2099-06-20' }, adminUser)).rejects.toThrow(UnprocessableEntityException)
     expect(mockScheduleExceptionsRepository.create).not.toHaveBeenCalled()
   })
 
-  it('throws NotFoundException when ADMIN provides non-existent doctorId', async () => {
+  it('throws NotFoundException when ADMIN provides non-existent professionalId', async () => {
     mockProfessionalsRepository.findById.mockResolvedValue(null)
-    await expect(useCase.execute({ date: '2099-06-20', doctorId: DOCTOR_ID }, adminUser)).rejects.toThrow(NotFoundException)
+    await expect(useCase.execute({ date: '2099-06-20', professionalId: DOCTOR_ID }, adminUser)).rejects.toThrow(NotFoundException)
     expect(mockScheduleExceptionsRepository.create).not.toHaveBeenCalled()
   })
 

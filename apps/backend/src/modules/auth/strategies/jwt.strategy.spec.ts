@@ -24,14 +24,14 @@ describe('JwtStrategy', () => {
       const payload: JwtPayload = {
         sub: 'user-uuid',
         email: 'user@example.com',
-        role: UserRole.DOCTOR,
+        role: UserRole.PROFESSIONAL,
         clinicId: 'clinic-uuid',
         iat: 0,
         exp: 9999999999,
       }
       expect(strategy.validate(payload)).toEqual({
         id: 'user-uuid',
-        role: UserRole.DOCTOR,
+        role: UserRole.PROFESSIONAL,
         clinicId: 'clinic-uuid',
       })
     })

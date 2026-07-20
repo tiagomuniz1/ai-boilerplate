@@ -23,20 +23,20 @@ export class FindAppointmentByIdUseCase extends BaseUseCase {
     const appointment = await this.appointmentsRepository.findById(id, clinicId)
     if (!appointment) throw new NotFoundException('Appointment not found')
 
-    if (currentUser.role === UserRole.DOCTOR) {
-      const doctor = await this.professionalsRepository.findByUserId(currentUser.id, clinicId)
-      if (!doctor || appointment.doctorId !== doctor.id) {
+    if (currentUser.role === UserRole.PROFESSIONAL) {
+      const professional = await this.professionalsRepository.findByUserId(currentUser.id, clinicId)
+      if (!professional || appointment.professionalId !== professional.id) {
         throw new ForbiddenException('You are not allowed to view this appointment')
       }
     }
 
-    const [doctorName, patientDetails, specialtyName] = await Promise.all([
-      this.fetchDoctorName(appointment.doctorId),
+    const [professionalName, patientDetails, specialtyName] = await Promise.all([
+      this.fetchProfessionalName(appointment.professionalId),
       this.fetchPatientDetails(appointment.patientId),
       this.fetchSpecialtyName(appointment.specialtyId),
     ])
 
-    return this.toResponse(appointment, doctorName, patientDetails, specialtyName)
+    return this.toResponse(appointment, professionalName, patientDetails, specialtyName)
   }
 
   private async fetchSpecialtyName(specialtyId: string | null): Promise<string | null> {
@@ -51,13 +51,13 @@ export class FindAppointmentByIdUseCase extends BaseUseCase {
     return rows[0]?.name ?? null
   }
 
-  private async fetchDoctorName(doctorId: string): Promise<string> {
+  private async fetchProfessionalName(professionalId: string): Promise<string> {
     const rows: Array<{ fullName: string }> = await this.dataSource
       .createQueryBuilder()
       .select('u.full_name', 'fullName')
       .from('professionals', 'd')
       .innerJoin('users', 'u', 'u.id = d.user_id AND u.deleted_at IS NULL')
-      .where('d.id = :doctorId', { doctorId })
+      .where('d.id = :professionalId', { professionalId })
       .andWhere('d.deleted_at IS NULL')
       .getRawMany()
     return rows[0]?.fullName ?? ''
@@ -100,7 +100,7 @@ export class FindAppointmentByIdUseCase extends BaseUseCase {
 
   private toResponse(
     appointment: Appointment,
-    doctorName: string,
+    professionalName: string,
     patientDetails: AppointmentPatientDto | null,
     specialtyName: string | null,
   ): AppointmentDetailResponseDto {
@@ -115,8 +115,8 @@ export class FindAppointmentByIdUseCase extends BaseUseCase {
 
     return {
       id: appointment.id,
-      doctorId: appointment.doctorId,
-      doctorName,
+      professionalId: appointment.professionalId,
+      professionalName,
       patientId: appointment.patientId,
       patientName: patient.fullName,
       specialtyId: appointment.specialtyId,

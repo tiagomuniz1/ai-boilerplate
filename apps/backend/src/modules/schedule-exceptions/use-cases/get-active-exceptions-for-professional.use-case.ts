@@ -5,7 +5,7 @@ import { IScheduleExceptionsRepository } from '../repositories/schedule-exceptio
 import { ScheduleException } from '../entities/schedule-exception.entity'
 
 @Injectable()
-export class GetActiveExceptionsForDoctorUseCase extends BaseUseCase {
+export class GetActiveExceptionsForProfessionalUseCase extends BaseUseCase {
   constructor(
     dataSource: DataSource,
     private readonly scheduleExceptionsRepository: IScheduleExceptionsRepository,
@@ -13,7 +13,7 @@ export class GetActiveExceptionsForDoctorUseCase extends BaseUseCase {
     super(dataSource)
   }
 
-  async execute(doctorId: string, clinicId: string, date: string): Promise<ScheduleException[]> {
-    return this.scheduleExceptionsRepository.findActiveByDoctorAndDate(doctorId, date, clinicId)
+  async execute(professionalId: string, clinicId: string, date: string): Promise<ScheduleException[]> {
+    return this.scheduleExceptionsRepository.findActiveByProfessionalAndDate(professionalId, date, clinicId)
   }
 }

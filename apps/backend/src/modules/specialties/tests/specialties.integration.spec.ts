@@ -106,7 +106,7 @@ describe('SpecialtiesController (integration)', () => {
 
     platformAdminToken = await loginAsPlatformAdmin()
     adminToken = await loginAs(UserRole.ADMIN)
-    doctorToken = await loginAs(UserRole.DOCTOR)
+    doctorToken = await loginAs(UserRole.PROFESSIONAL)
     userToken = await loginAs(UserRole.USER)
   })
 
@@ -576,7 +576,7 @@ describe('SpecialtiesController (integration)', () => {
           fullName: 'Dr. Ortopedista',
           email: `ortopedista.${faker.string.alphanumeric(6)}@test.com`,
           password: hashedPassword,
-          role: UserRole.DOCTOR,
+          role: UserRole.PROFESSIONAL,
           isActive: true,
           clinicId: SEED_CLINIC_ID,
         }),
@@ -621,7 +621,7 @@ describe('SpecialtiesController (integration)', () => {
           fullName: 'Dr. Reumatologista',
           email: `reumatologista.${faker.string.alphanumeric(6)}@test.com`,
           password: hashedPassword,
-          role: UserRole.DOCTOR,
+          role: UserRole.PROFESSIONAL,
           isActive: true,
           clinicId: SEED_CLINIC_ID,
         }),

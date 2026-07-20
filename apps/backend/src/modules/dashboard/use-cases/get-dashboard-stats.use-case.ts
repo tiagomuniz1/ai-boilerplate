@@ -34,17 +34,17 @@ export class GetDashboardStatsUseCase extends BaseUseCase {
       throw new UnprocessableEntityException('from must not be after to')
     }
 
-    let effectiveDoctorId: string | undefined
+    let effectiveProfessionalId: string | undefined
 
-    if (currentUser.role === UserRole.DOCTOR) {
-      const doctor = await this.professionalsRepository.findByUserId(currentUser.id, clinicId)
-      if (!doctor) throw new ForbiddenException('No doctor profile found for current user')
-      effectiveDoctorId = doctor.id
+    if (currentUser.role === UserRole.PROFESSIONAL) {
+      const professional = await this.professionalsRepository.findByUserId(currentUser.id, clinicId)
+      if (!professional) throw new ForbiddenException('No professional profile found for current user')
+      effectiveProfessionalId = professional.id
     } else {
-      effectiveDoctorId = query.doctorId
+      effectiveProfessionalId = query.professionalId
     }
 
-    const cacheKey = `dashboard:${clinicId}:${effectiveDoctorId ?? 'all'}:${from}:${to}`
+    const cacheKey = `dashboard:${clinicId}:${effectiveProfessionalId ?? 'all'}:${from}:${to}`
 
     try {
       const cached = await this.cacheService.get<DashboardResponseDto>(cacheKey)
@@ -55,14 +55,14 @@ export class GetDashboardStatsUseCase extends BaseUseCase {
 
     const [statusCounts, patientStats, procedures, insurance, cidRanking, completedByDay, ageDistribution, birthdays] =
       await Promise.all([
-        this.dashboardRepository.countByStatus(clinicId, from, to, effectiveDoctorId),
-        this.dashboardRepository.getPatientStats(clinicId, from, to, effectiveDoctorId),
-        this.dashboardRepository.getProceduresBySpecialty(clinicId, from, to, effectiveDoctorId),
-        this.dashboardRepository.getInsuranceStats(clinicId, from, to, effectiveDoctorId),
-        this.dashboardRepository.getCidRanking(clinicId, from, to, effectiveDoctorId),
-        this.dashboardRepository.getCompletedCountByDay(clinicId, from, to, effectiveDoctorId),
-        this.dashboardRepository.getAgeDistribution(clinicId, from, to, effectiveDoctorId),
-        this.dashboardRepository.getTodayBirthdays(clinicId, effectiveDoctorId),
+        this.dashboardRepository.countByStatus(clinicId, from, to, effectiveProfessionalId),
+        this.dashboardRepository.getPatientStats(clinicId, from, to, effectiveProfessionalId),
+        this.dashboardRepository.getProceduresBySpecialty(clinicId, from, to, effectiveProfessionalId),
+        this.dashboardRepository.getInsuranceStats(clinicId, from, to, effectiveProfessionalId),
+        this.dashboardRepository.getCidRanking(clinicId, from, to, effectiveProfessionalId),
+        this.dashboardRepository.getCompletedCountByDay(clinicId, from, to, effectiveProfessionalId),
+        this.dashboardRepository.getAgeDistribution(clinicId, from, to, effectiveProfessionalId),
+        this.dashboardRepository.getTodayBirthdays(clinicId, effectiveProfessionalId),
       ])
 
     const appointmentsByDay = this.fillDayGaps(from, to, completedByDay)

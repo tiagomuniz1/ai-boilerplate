@@ -23,9 +23,9 @@ export class FindPrescriptionByIdUseCase extends BaseUseCase {
     const prescription = await this.prescriptionsRepository.findById(id, clinicId)
     if (!prescription) throw new NotFoundException('Prescription not found')
 
-    if (currentUser.role === UserRole.DOCTOR) {
-      const doctor = await this.professionalsRepository.findByUserId(currentUser.id, clinicId)
-      if (!doctor || doctor.id !== prescription.doctorId) {
+    if (currentUser.role === UserRole.PROFESSIONAL) {
+      const professional = await this.professionalsRepository.findByUserId(currentUser.id, clinicId)
+      if (!professional || professional.id !== prescription.professionalId) {
         throw new ForbiddenException('Insufficient permissions')
       }
     }

@@ -8,7 +8,7 @@ const CLINIC_ID = 'fixed-clinic-uuid'
 const makeSchedule = (overrides = {}): Schedule =>
   ({
     id: faker.string.uuid(),
-    doctorId: faker.string.uuid(),
+    professionalId: faker.string.uuid(),
     dayOfWeek: DayOfWeek.MONDAY,
     startTime: '08:00',
     endTime: '12:00',
@@ -65,16 +65,16 @@ describe('SchedulesRepository', () => {
       expect(andWhereCalls.some((c: string) => c.includes('clinic_id'))).toBe(true)
     })
 
-    it('applies doctorId filter when provided', async () => {
-      const doctorId = faker.string.uuid()
+    it('applies professionalId filter when provided', async () => {
+      const professionalId = faker.string.uuid()
       const qb = makeQueryBuilder()
       qb.getManyAndCount.mockResolvedValue([[], 0])
       mockRepository.createQueryBuilder.mockReturnValue(qb)
 
-      await repository.findAll({ page: 1, limit: 20, doctorId }, CLINIC_ID)
+      await repository.findAll({ page: 1, limit: 20, professionalId }, CLINIC_ID)
 
       const calls = qb.andWhere.mock.calls.map((c: any[]) => c[0])
-      expect(calls.some((c: string) => c.includes('doctor_id'))).toBe(true)
+      expect(calls.some((c: string) => c.includes('professional_id'))).toBe(true)
     })
 
     it('applies validity filter only when activeOn is provided', async () => {
@@ -155,7 +155,7 @@ describe('SchedulesRepository', () => {
       mockRepository.createQueryBuilder.mockReturnValue(qb)
 
       const result = await repository.findOverlapping(
-        schedule.doctorId,
+        schedule.professionalId,
         DayOfWeek.MONDAY,
         '08:00',
         '12:00',
@@ -216,7 +216,7 @@ describe('SchedulesRepository', () => {
       mockRepository.save.mockResolvedValue(schedule)
 
       const dto = {
-        doctorId: schedule.doctorId,
+        professionalId: schedule.professionalId,
         dayOfWeek: DayOfWeek.MONDAY,
         startTime: '08:00',
         endTime: '12:00',
@@ -241,7 +241,7 @@ describe('SchedulesRepository', () => {
       }
 
       const dto = {
-        doctorId: schedule.doctorId,
+        professionalId: schedule.professionalId,
         dayOfWeek: DayOfWeek.MONDAY,
         startTime: '08:00',
         endTime: '12:00',
@@ -319,10 +319,10 @@ describe('SchedulesRepository', () => {
     })
   })
 
-  describe('findActiveByDoctorAndDate', () => {
+  describe('findActiveByProfessionalAndDate', () => {
     it('returns active schedules for doctor on given date and dayOfWeek', async () => {
-      const doctorId = faker.string.uuid()
-      const schedule = makeSchedule({ doctorId, dayOfWeek: DayOfWeek.MONDAY })
+      const professionalId = faker.string.uuid()
+      const schedule = makeSchedule({ professionalId, dayOfWeek: DayOfWeek.MONDAY })
       const qb = {
         innerJoin: jest.fn().mockReturnThis(),
         where: jest.fn().mockReturnThis(),
@@ -331,16 +331,16 @@ describe('SchedulesRepository', () => {
       }
       mockRepository.createQueryBuilder.mockReturnValue(qb)
 
-      const result = await repository.findActiveByDoctorAndDate(doctorId, DayOfWeek.MONDAY, '2099-06-16', CLINIC_ID)
+      const result = await repository.findActiveByProfessionalAndDate(professionalId, DayOfWeek.MONDAY, '2099-06-16', CLINIC_ID)
 
-      expect(qb.andWhere).toHaveBeenCalledWith('schedule.doctor_id = :doctorId', { doctorId })
+      expect(qb.andWhere).toHaveBeenCalledWith('schedule.professional_id = :professionalId', { professionalId })
       expect(qb.andWhere).toHaveBeenCalledWith('schedule.day_of_week = :dayOfWeek', { dayOfWeek: DayOfWeek.MONDAY })
       expect(qb.andWhere).toHaveBeenCalledWith('u.clinic_id = :clinicId', { clinicId: CLINIC_ID })
       expect(result).toEqual([schedule])
     })
 
     it('returns empty array when no active schedules found', async () => {
-      const doctorId = faker.string.uuid()
+      const professionalId = faker.string.uuid()
       const qb = {
         innerJoin: jest.fn().mockReturnThis(),
         where: jest.fn().mockReturnThis(),
@@ -349,33 +349,33 @@ describe('SchedulesRepository', () => {
       }
       mockRepository.createQueryBuilder.mockReturnValue(qb)
 
-      const result = await repository.findActiveByDoctorAndDate(doctorId, DayOfWeek.FRIDAY, '2099-06-20', CLINIC_ID)
+      const result = await repository.findActiveByProfessionalAndDate(professionalId, DayOfWeek.FRIDAY, '2099-06-20', CLINIC_ID)
 
       expect(result).toEqual([])
     })
   })
 
   describe('deleteAllByDoctorId', () => {
-    it('soft-deletes all schedules matching doctorId', async () => {
-      const doctorId = 'doctor-uuid-1'
+    it('soft-deletes all schedules matching professionalId', async () => {
+      const professionalId = 'doctor-uuid-1'
       mockRepository.softDelete.mockResolvedValue({ affected: 3 })
 
-      await repository.deleteAllByDoctorId(doctorId, CLINIC_ID)
+      await repository.deleteAllByDoctorId(professionalId, CLINIC_ID)
 
-      expect(mockRepository.softDelete).toHaveBeenCalledWith({ doctorId })
+      expect(mockRepository.softDelete).toHaveBeenCalledWith({ professionalId })
     })
 
     it('uses queryRunner repo when provided', async () => {
-      const doctorId = 'doctor-uuid-1'
+      const professionalId = 'doctor-uuid-1'
       const mockQrRepo = { softDelete: jest.fn().mockResolvedValue({ affected: 2 }) }
       const mockQueryRunner = {
         manager: { getRepository: jest.fn().mockReturnValue(mockQrRepo) },
       }
 
-      await repository.deleteAllByDoctorId(doctorId, CLINIC_ID, mockQueryRunner as any)
+      await repository.deleteAllByDoctorId(professionalId, CLINIC_ID, mockQueryRunner as any)
 
       expect(mockQueryRunner.manager.getRepository).toHaveBeenCalledWith(Schedule)
-      expect(mockQrRepo.softDelete).toHaveBeenCalledWith({ doctorId })
+      expect(mockQrRepo.softDelete).toHaveBeenCalledWith({ professionalId })
     })
   })
 })

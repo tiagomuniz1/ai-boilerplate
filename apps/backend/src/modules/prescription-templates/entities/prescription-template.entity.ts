@@ -24,11 +24,11 @@ export class PrescriptionTemplate {
   @Column({ name: 'clinic_id', type: 'uuid' })
   clinicId: string
 
-  @Column({ name: 'doctor_id', type: 'uuid' })
-  doctorId: string
+  @Column({ name: 'professional_id', type: 'uuid' })
+  professionalId: string
 
-  @Column({ name: 'doctor_name' })
-  doctorName: string
+  @Column({ name: 'professional_name' })
+  professionalName: string
 
   @Column()
   name: string

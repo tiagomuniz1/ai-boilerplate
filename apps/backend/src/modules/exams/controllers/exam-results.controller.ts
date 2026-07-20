@@ -15,7 +15,7 @@ export class ExamResultsController {
   ) {}
 
   @Get(':id/file')
-  @Roles(UserRole.ADMIN, UserRole.DOCTOR)
+  @Roles(UserRole.ADMIN, UserRole.PROFESSIONAL)
   async downloadFile(
     @Param('id') id: string,
     @CurrentUser() currentUser: ICurrentUser,
@@ -32,7 +32,7 @@ export class ExamResultsController {
 
   @Delete(':id')
   @HttpCode(204)
-  @Roles(UserRole.DOCTOR)
+  @Roles(UserRole.PROFESSIONAL)
   delete(
     @Param('id') id: string,
     @CurrentUser() currentUser: ICurrentUser,

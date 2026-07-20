@@ -25,9 +25,9 @@ export class FindMedicalRecordByAppointmentUseCase extends BaseUseCase {
     const appointment = await this.appointmentsRepository.findById(appointmentId, clinicId)
     if (!appointment) throw new NotFoundException('Appointment not found')
 
-    if (currentUser.role === UserRole.DOCTOR) {
-      const doctor = await this.professionalsRepository.findByUserId(currentUser.id, clinicId)
-      if (!doctor || doctor.id !== appointment.doctorId) {
+    if (currentUser.role === UserRole.PROFESSIONAL) {
+      const professional = await this.professionalsRepository.findByUserId(currentUser.id, clinicId)
+      if (!professional || professional.id !== appointment.professionalId) {
         throw new ForbiddenException('Insufficient permissions')
       }
     }

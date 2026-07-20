@@ -7,24 +7,24 @@ import { IMedicalRecordsRepository } from '../repositories/medical-records.repos
 import { FindMedicalRecordByIdUseCase } from '../use-cases/find-medical-record-by-id.use-case'
 
 const clinicId = 'clinic-uuid'
-const doctorId = 'doctor-uuid'
+const professionalId = 'doctor-uuid'
 const recordId = 'record-uuid'
 
 const adminUser: ICurrentUser = { id: 'admin-id', role: UserRole.ADMIN, clinicId }
-const doctorUser: ICurrentUser = { id: 'doctor-user-id', role: UserRole.DOCTOR, clinicId }
+const doctorUser: ICurrentUser = { id: 'doctor-user-id', role: UserRole.PROFESSIONAL, clinicId }
 
 const makeRecord = (overrides = {}) => ({
   id: recordId,
   appointmentId: 'appt-uuid',
   patientId: 'patient-uuid',
-  doctorId,
+  professionalId,
   specialtyId: 'specialty-uuid',
   templateId: 'template-uuid',
   templateSchemaSnapshot: [],
   data: {},
   notes: null,
   patient: { user: { fullName: 'Patient Name' } },
-  doctor: { user: { fullName: 'Doctor Name' } },
+  professional: { user: { fullName: 'Doctor Name' } },
   specialty: { name: 'Cardiologia' },
   createdAt: new Date(),
   updatedAt: new Date(),
@@ -66,7 +66,7 @@ describe('FindMedicalRecordByIdUseCase', () => {
   })
 
   it('returns record for DOCTOR (own record)', async () => {
-    mockProfessionalsRepository.findByUserId.mockResolvedValue({ id: doctorId } as any)
+    mockProfessionalsRepository.findByUserId.mockResolvedValue({ id: professionalId } as any)
     const result = await useCase.execute(recordId, doctorUser)
     expect(result.id).toBe(recordId)
   })

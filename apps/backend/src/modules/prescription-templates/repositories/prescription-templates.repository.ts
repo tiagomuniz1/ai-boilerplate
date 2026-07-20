@@ -15,9 +15,9 @@ export class PrescriptionTemplatesRepository implements IPrescriptionTemplatesRe
     private readonly repository: Repository<PrescriptionTemplate>,
   ) {}
 
-  async findAll(clinicId: string, doctorId?: string): Promise<PrescriptionTemplate[]> {
+  async findAll(clinicId: string, professionalId?: string): Promise<PrescriptionTemplate[]> {
     const where: Record<string, unknown> = { clinicId, isActive: true }
-    if (doctorId) where.doctorId = doctorId
+    if (professionalId) where.professionalId = professionalId
     return this.repository.find({
       where,
       order: { createdAt: 'DESC' },

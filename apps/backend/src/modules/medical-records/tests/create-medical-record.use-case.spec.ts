@@ -16,19 +16,19 @@ import { CreateMedicalRecordUseCase } from '../use-cases/create-medical-record.u
 import { CacheService } from '../../../cache/cache.service'
 
 const clinicId = 'clinic-uuid'
-const doctorId = 'doctor-uuid'
+const professionalId = 'doctor-uuid'
 const patientId = 'patient-uuid'
 const specialtyId = 'specialty-uuid'
 const templateId = 'template-uuid'
 const appointmentId = 'appt-uuid'
 
 const adminUser: ICurrentUser = { id: 'admin-id', role: UserRole.ADMIN, clinicId }
-const doctorUser: ICurrentUser = { id: 'doctor-user-id', role: UserRole.DOCTOR, clinicId }
+const doctorUser: ICurrentUser = { id: 'doctor-user-id', role: UserRole.PROFESSIONAL, clinicId }
 
 const makeAppointment = (overrides = {}) => ({
   id: appointmentId,
   clinicId,
-  doctorId,
+  professionalId,
   patientId,
   specialtyId,
   status: AppointmentStatus.SCHEDULED,
@@ -60,14 +60,14 @@ const makeRecord = () => ({
   id: 'record-uuid',
   appointmentId,
   patientId,
-  doctorId,
+  professionalId,
   specialtyId,
   templateId,
   templateSchemaSnapshot: makeTemplate().fields,
   data: {},
   notes: null,
   patient: { user: { fullName: 'Patient Name' } },
-  doctor: { user: { fullName: 'Doctor Name' } },
+  professional: { user: { fullName: 'Doctor Name' } },
   specialty: { name: 'Cardiologia' },
   createdAt: new Date(),
   updatedAt: new Date(),
@@ -85,7 +85,7 @@ const mockMedicalRecordsRepository: jest.Mocked<IMedicalRecordsRepository> = {
 const mockAppointmentsRepository: jest.Mocked<IAppointmentsRepository> = {
   findAll: jest.fn(),
   findById: jest.fn(),
-  findActiveByDoctorAndDate: jest.fn(),
+  findActiveByProfessionalAndDate: jest.fn(),
   findActiveBySlot: jest.fn(),
   hasFutureByScheduleId: jest.fn(),
   create: jest.fn(),
@@ -140,13 +140,13 @@ describe('CreateMedicalRecordUseCase', () => {
     const result = await useCase.execute(dto, adminUser)
     expect(result.appointmentId).toBe(appointmentId)
     expect(result.patientName).toBe('Patient Name')
-    expect(result.doctorName).toBe('Doctor Name')
+    expect(result.professionalName).toBe('Doctor Name')
     expect(result.specialtyName).toBe('Cardiologia')
     expect(mockMedicalRecordsRepository.create).toHaveBeenCalled()
   })
 
   it('creates a medical record for DOCTOR (own appointment)', async () => {
-    mockProfessionalsRepository.findByUserId.mockResolvedValue({ id: doctorId } as any)
+    mockProfessionalsRepository.findByUserId.mockResolvedValue({ id: professionalId } as any)
     const dto = { appointmentId, data: {} }
     await useCase.execute(dto, doctorUser)
     expect(mockMedicalRecordsRepository.create).toHaveBeenCalled()

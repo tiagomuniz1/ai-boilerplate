@@ -8,19 +8,19 @@ import { DeletePrescriptionUseCase } from '../use-cases/delete-prescription.use-
 import { CacheService } from '../../../cache/cache.service'
 
 const clinicId = 'clinic-uuid'
-const doctorId = 'doctor-uuid'
+const professionalId = 'doctor-uuid'
 const prescriptionId = 'rx-uuid'
 const appointmentId = 'appt-uuid'
 
 const adminUser: ICurrentUser = { id: 'admin-id', role: UserRole.ADMIN, clinicId }
-const doctorUser: ICurrentUser = { id: 'doctor-user-id', role: UserRole.DOCTOR, clinicId }
+const doctorUser: ICurrentUser = { id: 'doctor-user-id', role: UserRole.PROFESSIONAL, clinicId }
 
 const makePrescription = (overrides = {}) => ({
   id: prescriptionId,
   clinicId,
   appointmentId,
   patientId: 'patient-uuid',
-  doctorId,
+  professionalId,
   issuedAt: new Date(),
   snapshot: {
     issuedAt: new Date().toISOString(),
@@ -74,7 +74,7 @@ describe('DeletePrescriptionUseCase', () => {
       mockCacheService,
     )
     mockPrescriptionsRepository.findById.mockResolvedValue(makePrescription() as any)
-    mockProfessionalsRepository.findByUserId.mockResolvedValue({ id: doctorId } as any)
+    mockProfessionalsRepository.findByUserId.mockResolvedValue({ id: professionalId } as any)
     mockPrescriptionsRepository.delete.mockResolvedValue(undefined)
     mockCacheService.del.mockResolvedValue(undefined)
   })

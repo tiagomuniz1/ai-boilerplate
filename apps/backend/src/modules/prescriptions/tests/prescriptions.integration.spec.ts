@@ -51,7 +51,7 @@ describe('PrescriptionsController (integration)', () => {
   let doctorToken: string
   let otherDoctorToken: string
   let userToken: string
-  let doctorId: string
+  let professionalId: string
   let otherDoctorId: string
   let patientId: string
   let appointmentId: string
@@ -123,7 +123,7 @@ describe('PrescriptionsController (integration)', () => {
         fullName: 'Doctor Smith',
         email: 'doctor@rx.test',
         password: hashed,
-        role: UserRole.DOCTOR,
+        role: UserRole.PROFESSIONAL,
         clinicId: SEED_CLINIC_ID,
       }),
     )
@@ -133,7 +133,7 @@ describe('PrescriptionsController (integration)', () => {
         fullName: 'Other Doctor',
         email: 'other@rx.test',
         password: hashed,
-        role: UserRole.DOCTOR,
+        role: UserRole.PROFESSIONAL,
         clinicId: SEED_CLINIC_ID,
       }),
     )
@@ -159,7 +159,7 @@ describe('PrescriptionsController (integration)', () => {
     doctorEntity.registrations = [{ clinicId: SEED_CLINIC_ID, councilType: CouncilType.CRM, number: '11111', state: 'SP', isPrimary: true }] as any
     doctorEntity.professionalSpecialties = ([specialty]).map((s: any) => ({ specialtyId: s.id, registryNumber: null })) as any
     const doctorProfile = await doctorRepository.save(doctorEntity)
-    doctorId = doctorProfile.id
+    professionalId = doctorProfile.id
 
     const otherDoctorEntity = doctorRepository.create({
       userId: otherDoctorUser.id,
@@ -193,7 +193,7 @@ describe('PrescriptionsController (integration)', () => {
 
     const schedule = await scheduleRepository.save(
       scheduleRepository.create({
-        doctorId,
+        professionalId,
         clinicId: SEED_CLINIC_ID,
         dayOfWeek: DayOfWeek.MONDAY,
         startTime: '08:00',
@@ -207,7 +207,7 @@ describe('PrescriptionsController (integration)', () => {
     const appointment = await appointmentRepository.save(
       appointmentRepository.create({
         clinicId: SEED_CLINIC_ID,
-        doctorId,
+        professionalId,
         patientId,
         specialtyId: specialty.id,
         scheduleId: schedule.id,
@@ -224,7 +224,7 @@ describe('PrescriptionsController (integration)', () => {
     const cancelledAppt = await appointmentRepository.save(
       appointmentRepository.create({
         clinicId: SEED_CLINIC_ID,
-        doctorId,
+        professionalId,
         patientId,
         specialtyId: specialty.id,
         scheduleId: schedule.id,
@@ -299,9 +299,9 @@ describe('PrescriptionsController (integration)', () => {
       expect(body.id).toBeDefined()
       expect(body.appointmentId).toBe(appointmentId)
       expect(body.patientId).toBe(patientId)
-      expect(body.doctorId).toBe(doctorId)
+      expect(body.professionalId).toBe(professionalId)
       expect(body.patientName).toBe('Patient Jones')
-      expect(body.doctorName).toBe('Doctor Smith')
+      expect(body.professionalName).toBe('Doctor Smith')
       expect(body.items).toHaveLength(1)
       expect(body.items[0].name).toBe('Dipirona 500mg')
       expect(body.items[0].activeIngredient).toBe('dipirona sódica')
@@ -707,7 +707,7 @@ describe('PrescriptionsController (integration)', () => {
         .expect(200)
 
       expect(body.clinicName).toBe('Prescriptions Clinic')
-      expect(body.doctorName).toBe('Doctor Smith')
+      expect(body.professionalName).toBe('Doctor Smith')
       expect(body.doctorCrmNumber).toBe('11111/SP')
       expect(body.items).toHaveLength(1)
       expect(body.items[0].name).toBe('Dipirona 500mg')
@@ -731,7 +731,7 @@ describe('PrescriptionsController (integration)', () => {
 
       expect(body).not.toHaveProperty('id')
       expect(body).not.toHaveProperty('patientId')
-      expect(body).not.toHaveProperty('doctorId')
+      expect(body).not.toHaveProperty('professionalId')
       expect(body).not.toHaveProperty('notes')
       expect(body.items[0]).not.toHaveProperty('instructions')
       expect(body.items[0]).not.toHaveProperty('medicationId')

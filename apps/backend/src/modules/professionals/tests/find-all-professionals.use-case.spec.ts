@@ -140,7 +140,7 @@ describe('FindAllProfessionalsUseCase', () => {
 
   it('returns only own profile when DOCTOR role', async () => {
     const professional = makeProfessional()
-    const professionalUser: ICurrentUser = { id: professional.user.id, role: UserRole.DOCTOR, clinicId: CLINIC_ID }
+    const professionalUser: ICurrentUser = { id: professional.user.id, role: UserRole.PROFESSIONAL, clinicId: CLINIC_ID }
     mockProfessionalsRepository.findByUserId.mockResolvedValue(professional as any)
 
     const result = await useCase.execute(makeQuery(), professionalUser)
@@ -153,7 +153,7 @@ describe('FindAllProfessionalsUseCase', () => {
   })
 
   it('throws NotFoundException when DOCTOR has no professional profile', async () => {
-    const professionalUser: ICurrentUser = { id: faker.string.uuid(), role: UserRole.DOCTOR, clinicId: CLINIC_ID }
+    const professionalUser: ICurrentUser = { id: faker.string.uuid(), role: UserRole.PROFESSIONAL, clinicId: CLINIC_ID }
     mockProfessionalsRepository.findByUserId.mockResolvedValue(null)
 
     await expect(useCase.execute(makeQuery(), professionalUser)).rejects.toThrow(NotFoundException)

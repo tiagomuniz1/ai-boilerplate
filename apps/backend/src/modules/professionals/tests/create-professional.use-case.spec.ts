@@ -399,7 +399,7 @@ describe('CreateProfessionalUseCase', () => {
       mockSpecialtiesRepository.findByIds.mockResolvedValue([specialty] as any)
       mockUsersRepository.findById.mockResolvedValue(user)
       mockProfessionalsRepository.findByUserId.mockResolvedValue(null)
-      mockUsersRepository.update.mockResolvedValue({ ...user, role: UserRole.DOCTOR, isActive: true } as any)
+      mockUsersRepository.update.mockResolvedValue({ ...user, role: UserRole.PROFESSIONAL, isActive: true } as any)
       mockProfessionalsRepository.create.mockResolvedValue(created as any)
       mockCacheService.delByPattern.mockResolvedValue(undefined)
       mockCacheService.del.mockResolvedValue(undefined)
@@ -409,7 +409,7 @@ describe('CreateProfessionalUseCase', () => {
       expect(result.id).toBe(created.id)
       expect(mockUsersRepository.update).toHaveBeenCalledWith(
         user.id,
-        { role: UserRole.DOCTOR, isActive: true },
+        { role: UserRole.PROFESSIONAL, isActive: true },
         expect.anything(),
       )
       expect(mockProfessionalsRepository.create).toHaveBeenCalledWith(
@@ -531,7 +531,7 @@ describe('CreateProfessionalUseCase', () => {
       expect(result.id).toBe(created.id)
       expect(result.user.id).toBe(newUser.id)
       expect(mockUsersRepository.create).toHaveBeenCalledWith(
-        expect.objectContaining({ fullName: dto.fullName, email: dto.email, role: UserRole.DOCTOR, isActive: true }),
+        expect.objectContaining({ fullName: dto.fullName, email: dto.email, role: UserRole.PROFESSIONAL, isActive: true }),
         CLINIC_ID,
         expect.anything(),
       )

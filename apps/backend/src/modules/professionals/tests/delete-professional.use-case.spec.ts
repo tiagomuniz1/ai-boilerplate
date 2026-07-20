@@ -63,10 +63,10 @@ const mockUsersRepository: jest.Mocked<IUsersRepository> = {
 }
 
 const mockDeleteScheduleUseCase = {
-  deleteByDoctorId: jest.fn(),
+  deleteByProfessionalId: jest.fn(),
 } as unknown as jest.Mocked<DeleteScheduleUseCase>
 
-const makeProfessional = (role = UserRole.DOCTOR) => ({
+const makeProfessional = (role = UserRole.PROFESSIONAL) => ({
   id: faker.string.uuid(),
   userId: faker.string.uuid(),
   user: { id: faker.string.uuid(), fullName: faker.person.fullName(), email: faker.internet.email(), role } as any,
@@ -96,7 +96,7 @@ describe('DeleteProfessionalUseCase', () => {
       mockCacheService,
       mockDeleteScheduleUseCase,
     )
-    mockDeleteScheduleUseCase.deleteByDoctorId.mockResolvedValue(undefined)
+    mockDeleteScheduleUseCase.deleteByProfessionalId.mockResolvedValue(undefined)
     mockProfessionalsRepository.delete.mockResolvedValue(undefined)
     mockUsersRepository.delete.mockResolvedValue(undefined)
     mockUsersRepository.update.mockResolvedValue(undefined as any)
@@ -106,12 +106,12 @@ describe('DeleteProfessionalUseCase', () => {
   })
 
   it('cascades to schedules, deletes professional and linked DOCTOR-role user in a transaction', async () => {
-    const professional = makeProfessional(UserRole.DOCTOR)
+    const professional = makeProfessional(UserRole.PROFESSIONAL)
     mockProfessionalsRepository.findById.mockResolvedValue(professional as any)
 
     await expect(useCase.execute(professional.id, adminCurrentUser)).resolves.toBeUndefined()
 
-    expect(mockDeleteScheduleUseCase.deleteByDoctorId).toHaveBeenCalledWith(professional.id, CLINIC_ID, mockQueryRunner)
+    expect(mockDeleteScheduleUseCase.deleteByProfessionalId).toHaveBeenCalledWith(professional.id, CLINIC_ID, mockQueryRunner)
     expect(mockProfessionalsRepository.delete).toHaveBeenCalledWith(professional.id, mockQueryRunner)
     expect(mockUsersRepository.delete).toHaveBeenCalledWith(professional.userId, mockQueryRunner)
     expect(mockQueryRunner.commitTransaction).toHaveBeenCalled()
@@ -143,7 +143,7 @@ describe('DeleteProfessionalUseCase', () => {
     await expect(useCase.execute(faker.string.uuid(), adminCurrentUser)).rejects.toThrow(NotFoundException)
     expect(mockProfessionalsRepository.delete).not.toHaveBeenCalled()
     expect(mockUsersRepository.delete).not.toHaveBeenCalled()
-    expect(mockDeleteScheduleUseCase.deleteByDoctorId).not.toHaveBeenCalled()
+    expect(mockDeleteScheduleUseCase.deleteByProfessionalId).not.toHaveBeenCalled()
   })
 
   it('rolls back transaction and rethrows when professional delete fails', async () => {
@@ -157,7 +157,7 @@ describe('DeleteProfessionalUseCase', () => {
   })
 
   it('invalidates professional and user caches after deletion of DOCTOR-role user', async () => {
-    const professional = makeProfessional(UserRole.DOCTOR)
+    const professional = makeProfessional(UserRole.PROFESSIONAL)
     mockProfessionalsRepository.findById.mockResolvedValue(professional as any)
 
     await useCase.execute(professional.id, adminCurrentUser)
@@ -181,7 +181,7 @@ describe('DeleteProfessionalUseCase', () => {
   })
 
   it('demotes user to PATIENT with isActive false when linked user has a patient profile', async () => {
-    const professional = makeProfessional(UserRole.DOCTOR)
+    const professional = makeProfessional(UserRole.PROFESSIONAL)
     mockProfessionalsRepository.findById.mockResolvedValue(professional as any)
     ;(mockDataSource.createQueryBuilder as jest.Mock).mockReturnValue(makePatientCheckQb(true))
 
@@ -224,7 +224,7 @@ describe('DeleteProfessionalUseCase', () => {
 
       await useCase.deleteByUserId(userId, CLINIC_ID)
 
-      expect(mockDeleteScheduleUseCase.deleteByDoctorId).toHaveBeenCalledWith(professional.id, CLINIC_ID, undefined)
+      expect(mockDeleteScheduleUseCase.deleteByProfessionalId).toHaveBeenCalledWith(professional.id, CLINIC_ID, undefined)
       expect(mockProfessionalsRepository.delete).toHaveBeenCalledWith(professional.id, undefined)
     })
 
@@ -232,7 +232,7 @@ describe('DeleteProfessionalUseCase', () => {
       mockProfessionalsRepository.findByUserId.mockResolvedValue(null)
 
       await expect(useCase.deleteByUserId(faker.string.uuid(), CLINIC_ID)).resolves.toBeUndefined()
-      expect(mockDeleteScheduleUseCase.deleteByDoctorId).not.toHaveBeenCalled()
+      expect(mockDeleteScheduleUseCase.deleteByProfessionalId).not.toHaveBeenCalled()
       expect(mockProfessionalsRepository.delete).not.toHaveBeenCalled()
     })
 
@@ -244,7 +244,7 @@ describe('DeleteProfessionalUseCase', () => {
 
       await useCase.deleteByUserId(userId, CLINIC_ID, queryRunner)
 
-      expect(mockDeleteScheduleUseCase.deleteByDoctorId).toHaveBeenCalledWith(professional.id, CLINIC_ID, queryRunner)
+      expect(mockDeleteScheduleUseCase.deleteByProfessionalId).toHaveBeenCalledWith(professional.id, CLINIC_ID, queryRunner)
       expect(mockProfessionalsRepository.delete).toHaveBeenCalledWith(professional.id, queryRunner)
     })
 

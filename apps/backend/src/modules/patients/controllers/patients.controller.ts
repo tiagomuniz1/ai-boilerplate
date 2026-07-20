@@ -31,7 +31,7 @@ export class PatientsController {
   }
 
   @Get()
-  @Roles(UserRole.ADMIN, UserRole.USER, UserRole.DOCTOR)
+  @Roles(UserRole.ADMIN, UserRole.USER, UserRole.PROFESSIONAL)
   findAll(
     @Query() query: ListPatientsQueryDto,
     @CurrentUser() currentUser: ICurrentUser,
@@ -40,7 +40,7 @@ export class PatientsController {
   }
 
   @Get(':id')
-  @Roles(UserRole.ADMIN, UserRole.USER, UserRole.DOCTOR)
+  @Roles(UserRole.ADMIN, UserRole.USER, UserRole.PROFESSIONAL)
   findById(
     @Param('id') id: string,
     @CurrentUser() currentUser: ICurrentUser,

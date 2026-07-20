@@ -20,8 +20,8 @@ export class MedicalRecordsRepository implements IMedicalRecordsRepository {
       .createQueryBuilder('mr')
       .innerJoinAndSelect('mr.patient', 'patient')
       .innerJoinAndSelect('patient.user', 'patientUser')
-      .innerJoinAndSelect('mr.doctor', 'doctor')
-      .innerJoinAndSelect('doctor.user', 'doctorUser')
+      .innerJoinAndSelect('mr.professional', 'professional')
+      .innerJoinAndSelect('professional.user', 'professionalUser')
       // LEFT JOIN: generalist records have specialty_id NULL — an inner join would drop them.
       .leftJoinAndSelect('mr.specialty', 'specialty')
   }
@@ -45,7 +45,7 @@ export class MedicalRecordsRepository implements IMedicalRecordsRepository {
     patientId: string,
     page: number,
     limit: number,
-    doctorId?: string,
+    professionalId?: string,
   ): Promise<[MedicalRecord[], number]> {
     const qb = this.baseQuery()
       .where('mr.clinicId = :clinicId', { clinicId })
@@ -54,8 +54,8 @@ export class MedicalRecordsRepository implements IMedicalRecordsRepository {
       .skip((page - 1) * limit)
       .take(limit)
 
-    if (doctorId) {
-      qb.andWhere('mr.doctorId = :doctorId', { doctorId })
+    if (professionalId) {
+      qb.andWhere('mr.professionalId = :professionalId', { professionalId })
     }
 
     return qb.getManyAndCount()

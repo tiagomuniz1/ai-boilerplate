@@ -29,11 +29,11 @@ export class Appointment {
   clinicId: string
 
   @ManyToOne(() => Professional, { eager: false })
-  @JoinColumn({ name: 'doctor_id' })
-  doctor: Professional
+  @JoinColumn({ name: 'professional_id' })
+  professional: Professional
 
-  @Column({ name: 'doctor_id' })
-  doctorId: string
+  @Column({ name: 'professional_id' })
+  professionalId: string
 
   @ManyToOne(() => Patient, { eager: false })
   @JoinColumn({ name: 'patient_id' })

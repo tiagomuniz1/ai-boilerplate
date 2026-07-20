@@ -22,7 +22,7 @@ export class VerifyPrescriptionUseCase extends BaseUseCase {
 
     return {
       clinicName: snapshot.clinic.name,
-      doctorName: snapshot.doctor.name,
+      professionalName: snapshot.doctor.name,
       doctorCrmNumber: snapshot.doctor.crmNumber,
       specialtyName: snapshot.doctor.specialtyName,
       patientNameMasked: maskName(snapshot.patient.name),

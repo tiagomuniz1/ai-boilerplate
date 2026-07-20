@@ -25,11 +25,11 @@ export class ScheduleException {
   clinicId: string
 
   @ManyToOne(() => Professional, { eager: false })
-  @JoinColumn({ name: 'doctor_id' })
-  doctor: Professional
+  @JoinColumn({ name: 'professional_id' })
+  professional: Professional
 
-  @Column({ name: 'doctor_id' })
-  doctorId: string
+  @Column({ name: 'professional_id' })
+  professionalId: string
 
   @Column({ type: 'varchar' })
   date: string

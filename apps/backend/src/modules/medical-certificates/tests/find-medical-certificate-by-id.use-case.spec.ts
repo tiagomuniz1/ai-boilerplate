@@ -7,18 +7,18 @@ import { IMedicalCertificatesRepository } from '../repositories/medical-certific
 import { FindMedicalCertificateByIdUseCase } from '../use-cases/find-medical-certificate-by-id.use-case'
 
 const clinicId = 'clinic-uuid'
-const doctorId = 'doctor-uuid'
+const professionalId = 'doctor-uuid'
 const certificateId = 'cert-uuid'
 
 const adminUser: ICurrentUser = { id: 'admin-id', role: UserRole.ADMIN, clinicId }
-const doctorUser: ICurrentUser = { id: 'doctor-user-id', role: UserRole.DOCTOR, clinicId }
+const doctorUser: ICurrentUser = { id: 'doctor-user-id', role: UserRole.PROFESSIONAL, clinicId }
 
 const makeCertificate = (overrides = {}) => ({
   id: certificateId,
   clinicId,
   appointmentId: 'appt-uuid',
   patientId: 'patient-uuid',
-  doctorId,
+  professionalId,
   issuedAt: new Date(),
   snapshot: {
     issuedAt: new Date().toISOString(),
@@ -68,7 +68,7 @@ describe('FindMedicalCertificateByIdUseCase', () => {
       mockProfessionalsRepository,
     )
     mockMedicalCertificatesRepository.findById.mockResolvedValue(makeCertificate() as any)
-    mockProfessionalsRepository.findByUserId.mockResolvedValue({ id: doctorId } as any)
+    mockProfessionalsRepository.findByUserId.mockResolvedValue({ id: professionalId } as any)
   })
 
   it('returns certificate for ADMIN', async () => {
@@ -107,7 +107,7 @@ describe('FindMedicalCertificateByIdUseCase', () => {
     const result = await useCase.execute(certificateId, adminUser)
 
     expect(result.patientName).toBe('Patient')
-    expect(result.doctorName).toBe('Doctor')
+    expect(result.professionalName).toBe('Doctor')
     expect(result.type).toBe(MedicalCertificateType.ATTENDANCE)
     expect(result.attendanceDate).toBe('2026-01-05')
     expect(result.observations).toBeNull()

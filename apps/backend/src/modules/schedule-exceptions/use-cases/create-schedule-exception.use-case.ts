@@ -37,16 +37,16 @@ export class CreateScheduleExceptionUseCase extends BaseUseCase {
   async execute(dto: CreateScheduleExceptionDto, currentUser: ICurrentUser): Promise<ScheduleException> {
     const clinicId = currentUser.clinicId!
 
-    let doctorId: string
-    if (currentUser.role === UserRole.DOCTOR) {
-      const doctor = await this.professionalsRepository.findByUserId(currentUser.id, clinicId)
-      if (!doctor) throw new NotFoundException('Professional not found')
-      doctorId = doctor.id
+    let professionalId: string
+    if (currentUser.role === UserRole.PROFESSIONAL) {
+      const professional = await this.professionalsRepository.findByUserId(currentUser.id, clinicId)
+      if (!professional) throw new NotFoundException('Professional not found')
+      professionalId = professional.id
     } else {
-      if (!dto.doctorId) throw new UnprocessableEntityException('doctorId is required for admin')
-      const doctor = await this.professionalsRepository.findById(dto.doctorId, clinicId)
-      if (!doctor) throw new NotFoundException('Professional not found')
-      doctorId = doctor.id
+      if (!dto.professionalId) throw new UnprocessableEntityException('professionalId is required for admin')
+      const professional = await this.professionalsRepository.findById(dto.professionalId, clinicId)
+      if (!professional) throw new NotFoundException('Professional not found')
+      professionalId = professional.id
     }
 
     const startTime = dto.startTime ?? null
@@ -59,7 +59,7 @@ export class CreateScheduleExceptionUseCase extends BaseUseCase {
     }
 
     const conflicts = await this.appointmentsRepository.findScheduledAppointmentsInWindow(
-      doctorId,
+      professionalId,
       dto.date,
       startTime,
       endTime,
@@ -75,7 +75,7 @@ export class CreateScheduleExceptionUseCase extends BaseUseCase {
 
     const exception = await this.scheduleExceptionsRepository.create({
       clinicId,
-      doctorId,
+      professionalId,
       date: dto.date,
       startTime,
       endTime,
@@ -83,9 +83,9 @@ export class CreateScheduleExceptionUseCase extends BaseUseCase {
     })
 
     try {
-      await this.cacheService.delByPrefix(`schedule-exceptions:list:${clinicId}:${doctorId}:`)
+      await this.cacheService.delByPrefix(`schedule-exceptions:list:${clinicId}:${professionalId}:`)
       await this.cacheService.delByPrefix(`schedule-exceptions:list:${clinicId}:all:`)
-      await this.cacheService.del(`appointments:availability:${clinicId}:${doctorId}:${dto.date}`)
+      await this.cacheService.del(`appointments:availability:${clinicId}:${professionalId}:${dto.date}`)
     } catch {
       this.logger.warn('Cache invalidation failed', { context: CreateScheduleExceptionUseCase.name })
     }

@@ -23,7 +23,7 @@ export class FindAllProfessionalsUseCase extends BaseUseCase {
   async execute(query: ListProfessionalsQueryDto, currentUser: ICurrentUser): Promise<PaginatedProfessionalsResponseDto> {
     const clinicId = currentUser.clinicId!
 
-    if (currentUser.role === UserRole.DOCTOR) {
+    if (currentUser.role === UserRole.PROFESSIONAL) {
       const professional = await this.professionalsRepository.findByUserId(currentUser.id, clinicId)
       if (!professional) throw new NotFoundException('Professional not found')
       const result: PaginatedProfessionalsResponseDto = {

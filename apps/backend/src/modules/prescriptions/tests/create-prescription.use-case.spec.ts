@@ -12,19 +12,19 @@ import { CreatePrescriptionUseCase } from '../use-cases/create-prescription.use-
 import { CacheService } from '../../../cache/cache.service'
 
 const clinicId = 'clinic-uuid'
-const doctorId = 'doctor-uuid'
+const professionalId = 'doctor-uuid'
 const patientId = 'patient-uuid'
 const appointmentId = 'appt-uuid'
 const medicationId = 'med-uuid'
 const specialtyId = 'specialty-uuid'
 
 const adminUser: ICurrentUser = { id: 'admin-id', role: UserRole.ADMIN, clinicId }
-const doctorUser: ICurrentUser = { id: 'doctor-user-id', role: UserRole.DOCTOR, clinicId }
+const doctorUser: ICurrentUser = { id: 'doctor-user-id', role: UserRole.PROFESSIONAL, clinicId }
 
 const makeAppointment = (overrides = {}) => ({
   id: appointmentId,
   clinicId,
-  doctorId,
+  professionalId,
   patientId,
   specialtyId,
   status: AppointmentStatus.SCHEDULED,
@@ -34,7 +34,7 @@ const makeAppointment = (overrides = {}) => ({
 const makeDoctor = (overrides: any = {}) => {
   const { specialties = [{ id: specialtyId, name: 'Cardiologia' }], ...rest } = overrides
   return {
-    id: doctorId,
+    id: professionalId,
     user: { fullName: 'Doctor Smith' },
     registrations: [{ id: 'crm-1', number: '12345', state: 'SP', isPrimary: true }],
     professionalSpecialties: specialties.map((s: any) => ({ specialtyId: s.id, specialty: { id: s.id, name: s.name } })),
@@ -75,7 +75,7 @@ const makeSavedPrescription = () => ({
   clinicId,
   appointmentId,
   patientId,
-  doctorId,
+  professionalId,
   issuedAt: new Date(),
   verificationToken: 'a'.repeat(64),
   snapshot: {
@@ -102,7 +102,7 @@ const mockPrescriptionsRepository: jest.Mocked<IPrescriptionsRepository> = {
 const mockAppointmentsRepository: jest.Mocked<IAppointmentsRepository> = {
   findAll: jest.fn(),
   findById: jest.fn(),
-  findActiveByDoctorAndDate: jest.fn(),
+  findActiveByProfessionalAndDate: jest.fn(),
   findActiveBySlot: jest.fn(),
   hasFutureByScheduleId: jest.fn(),
   create: jest.fn(),
@@ -183,7 +183,7 @@ describe('CreatePrescriptionUseCase', () => {
 
     expect(result.appointmentId).toBe(appointmentId)
     expect(result.patientName).toBe('Patient Jones')
-    expect(result.doctorName).toBe('Doctor Smith')
+    expect(result.professionalName).toBe('Doctor Smith')
     expect(result.items).toHaveLength(1)
     expect(result.items[0].name).toBe('Dipirona')
     expect(mockPrescriptionsRepository.create).toHaveBeenCalled()
@@ -208,7 +208,7 @@ describe('CreatePrescriptionUseCase', () => {
     await useCase.execute(baseDto, adminUser)
 
     expect(mockProfessionalsRepository.findByUserId).not.toHaveBeenCalled()
-    expect(mockProfessionalsRepository.findById).toHaveBeenCalledWith(doctorId, clinicId)
+    expect(mockProfessionalsRepository.findById).toHaveBeenCalledWith(professionalId, clinicId)
   })
 
   it('builds snapshot with denormalized clinic, doctor, patient, and items', async () => {
@@ -226,7 +226,7 @@ describe('CreatePrescriptionUseCase', () => {
   it('signs with the chosen CRM and specialty (alternate RQE and profession title) when crmId/specialtyId are provided', async () => {
     const altSpecialtyId = 'specialty-alt'
     const doctorWithOptions = {
-      id: doctorId,
+      id: professionalId,
       user: { fullName: 'Doctor Smith' },
       registrations: [
         { id: 'crm-1', number: '12345', state: 'SP', isPrimary: true },

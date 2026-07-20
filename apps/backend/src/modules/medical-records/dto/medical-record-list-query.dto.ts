@@ -8,5 +8,5 @@ export class MedicalRecordListQueryDto extends PaginationDto {
 
   @IsOptional()
   @IsUUID()
-  doctorId?: string
+  professionalId?: string
 }

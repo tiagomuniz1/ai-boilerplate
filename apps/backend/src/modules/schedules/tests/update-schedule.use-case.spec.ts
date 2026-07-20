@@ -17,7 +17,7 @@ const mockSchedulesRepository: jest.Mocked<ISchedulesRepository> = {
   update: jest.fn(),
   delete: jest.fn(),
   deleteAllByDoctorId: jest.fn(),
-  findActiveByDoctorAndDate: jest.fn(),
+  findActiveByProfessionalAndDate: jest.fn(),
 }
 
 const mockProfessionalsRepository: jest.Mocked<IProfessionalsRepository> = {
@@ -48,13 +48,13 @@ const ownerId = faker.string.uuid()
 const otherDoctorId = faker.string.uuid()
 const adminId = faker.string.uuid()
 
-const ownerUser: ICurrentUser = { id: ownerId, role: UserRole.DOCTOR, clinicId: CLINIC_ID }
-const otherDoctorUser: ICurrentUser = { id: otherDoctorId, role: UserRole.DOCTOR, clinicId: CLINIC_ID }
+const ownerUser: ICurrentUser = { id: ownerId, role: UserRole.PROFESSIONAL, clinicId: CLINIC_ID }
+const otherDoctorUser: ICurrentUser = { id: otherDoctorId, role: UserRole.PROFESSIONAL, clinicId: CLINIC_ID }
 const adminUser: ICurrentUser = { id: adminId, role: UserRole.ADMIN, clinicId: CLINIC_ID }
 
 const makeSchedule = (overrides = {}) => ({
   id: faker.string.uuid(),
-  doctorId: ownerId,
+  professionalId: ownerId,
   dayOfWeek: DayOfWeek.MONDAY,
   startTime: '08:00',
   endTime: '12:00',
@@ -196,7 +196,7 @@ describe('UpdateScheduleUseCase', () => {
     await useCase.execute(schedule.id, { startTime: '09:00' }, ownerUser)
 
     expect(mockSchedulesRepository.findOverlapping).toHaveBeenCalledWith(
-      schedule.doctorId,
+      schedule.professionalId,
       schedule.dayOfWeek,
       '09:00',
       schedule.endTime,
@@ -266,7 +266,7 @@ describe('UpdateScheduleUseCase', () => {
     ).resolves.toBeDefined()
 
     expect(mockSchedulesRepository.findOverlapping).toHaveBeenCalledWith(
-      schedule.doctorId,
+      schedule.professionalId,
       DayOfWeek.TUESDAY,
       schedule.startTime,
       schedule.endTime,
@@ -289,7 +289,7 @@ describe('UpdateScheduleUseCase', () => {
     ).resolves.toBeDefined()
 
     expect(mockSchedulesRepository.findOverlapping).toHaveBeenCalledWith(
-      schedule.doctorId,
+      schedule.professionalId,
       schedule.dayOfWeek,
       schedule.startTime,
       '13:00',
@@ -310,7 +310,7 @@ describe('UpdateScheduleUseCase', () => {
     ).rejects.toThrow('Database connection lost')
   })
 
-  it('returns empty doctorName when name query returns no rows', async () => {
+  it('returns empty professionalName when name query returns no rows', async () => {
     const builder = {
       select: jest.fn().mockReturnThis(),
       from: jest.fn().mockReturnThis(),
@@ -337,10 +337,10 @@ describe('UpdateScheduleUseCase', () => {
       ownerUser,
     )
 
-    expect(result.doctorName).toBe('')
+    expect(result.professionalName).toBe('')
   })
 
-  it('invalidates cache after update using schedule.doctorId', async () => {
+  it('invalidates cache after update using schedule.professionalId', async () => {
     const schedule = makeSchedule()
     mockSchedulesRepository.findById.mockResolvedValue(schedule as any)
     mockSchedulesRepository.update.mockResolvedValue(schedule as any)

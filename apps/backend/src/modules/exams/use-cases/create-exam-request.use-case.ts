@@ -43,8 +43,8 @@ export function toExamRequestResponse(examRequest: ExamRequest, results: ExamRes
     appointmentId: examRequest.appointmentId,
     patientId: examRequest.patientId,
     patientName: examRequest.snapshot.patient.name,
-    doctorId: examRequest.doctorId,
-    doctorName: examRequest.snapshot.doctor.name,
+    professionalId: examRequest.professionalId,
+    professionalName: examRequest.snapshot.doctor.name,
     items: examRequest.snapshot.items.map((item) => ({
       name: item.name,
       observations: item.observations ?? null,
@@ -80,9 +80,9 @@ export class CreateExamRequestUseCase extends BaseUseCase {
     if (!appointment) throw new NotFoundException('Appointment not found')
 
     let doctorForRbac = null
-    if (currentUser.role === UserRole.DOCTOR) {
+    if (currentUser.role === UserRole.PROFESSIONAL) {
       doctorForRbac = await this.professionalsRepository.findByUserId(currentUser.id, clinicId)
-      if (!doctorForRbac || doctorForRbac.id !== appointment.doctorId) {
+      if (!doctorForRbac || doctorForRbac.id !== appointment.professionalId) {
         throw new ForbiddenException('Insufficient permissions')
       }
     }
@@ -93,11 +93,11 @@ export class CreateExamRequestUseCase extends BaseUseCase {
 
     const clinic = await this.findClinicByIdUseCase.execute(clinicId)
 
-    const doctor = doctorForRbac ?? (await this.professionalsRepository.findById(appointment.doctorId, clinicId))
-    if (!doctor) throw new NotFoundException('Professional not found')
+    const professional = doctorForRbac ?? (await this.professionalsRepository.findById(appointment.professionalId, clinicId))
+    if (!professional) throw new NotFoundException('Professional not found')
 
     const { crmNumber, rqe, specialtyName } = resolveDoctorSigningIdentity(
-      doctor,
+      professional,
       appointment.specialtyId,
       dto.crmId,
       dto.specialtyId,
@@ -126,7 +126,7 @@ export class CreateExamRequestUseCase extends BaseUseCase {
         logoUrl: clinic.logoUrl,
       },
       doctor: {
-        name: doctor.user.fullName,
+        name: professional.user.fullName,
         crmNumber,
         rqe,
         specialtyName,
@@ -146,7 +146,7 @@ export class CreateExamRequestUseCase extends BaseUseCase {
       clinicId,
       appointmentId: dto.appointmentId,
       patientId: appointment.patientId,
-      doctorId: appointment.doctorId,
+      professionalId: appointment.professionalId,
       snapshot,
       issuedAt,
     })

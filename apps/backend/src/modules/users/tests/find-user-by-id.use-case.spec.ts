@@ -166,7 +166,7 @@ describe('FindUserByIdUseCase', () => {
 
   it('allows DOCTOR to view their own profile', async () => {
     const user = makeUser()
-    const doctorUser: ICurrentUser = { id: user.id, role: UserRole.DOCTOR, clinicId: CLINIC_ID }
+    const doctorUser: ICurrentUser = { id: user.id, role: UserRole.PROFESSIONAL, clinicId: CLINIC_ID }
     mockCacheService.get.mockResolvedValue(null)
     mockUsersRepository.findById.mockResolvedValue(user)
     mockCacheService.set.mockResolvedValue(undefined)
@@ -177,7 +177,7 @@ describe('FindUserByIdUseCase', () => {
   })
 
   it('throws ForbiddenException when DOCTOR tries to view another user profile', async () => {
-    const doctorUser: ICurrentUser = { id: faker.string.uuid(), role: UserRole.DOCTOR, clinicId: CLINIC_ID }
+    const doctorUser: ICurrentUser = { id: faker.string.uuid(), role: UserRole.PROFESSIONAL, clinicId: CLINIC_ID }
     const otherId = faker.string.uuid()
 
     await expect(useCase.execute(otherId, doctorUser)).rejects.toThrow(ForbiddenException)

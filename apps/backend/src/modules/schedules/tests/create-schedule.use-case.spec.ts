@@ -16,7 +16,7 @@ const mockSchedulesRepository: jest.Mocked<ISchedulesRepository> = {
   update: jest.fn(),
   delete: jest.fn(),
   deleteAllByDoctorId: jest.fn(),
-  findActiveByDoctorAndDate: jest.fn(),
+  findActiveByProfessionalAndDate: jest.fn(),
 }
 
 const mockProfessionalsRepository: jest.Mocked<IProfessionalsRepository> = {
@@ -42,7 +42,7 @@ const makeDoctor = () => ({ id: faker.string.uuid() } as any)
 
 const makeSchedule = (overrides = {}) => ({
   id: faker.string.uuid(),
-  doctorId: faker.string.uuid(),
+  professionalId: faker.string.uuid(),
   dayOfWeek: DayOfWeek.MONDAY,
   startTime: '08:00',
   endTime: '12:00',
@@ -65,7 +65,7 @@ const makeDto = (overrides = {}) => ({
 })
 
 const CLINIC_ID = 'fixed-clinic-uuid'
-const doctorUser: ICurrentUser = { id: faker.string.uuid(), role: UserRole.DOCTOR, clinicId: CLINIC_ID }
+const doctorUser: ICurrentUser = { id: faker.string.uuid(), role: UserRole.PROFESSIONAL, clinicId: CLINIC_ID }
 const adminUser: ICurrentUser = { id: faker.string.uuid(), role: UserRole.ADMIN, clinicId: CLINIC_ID }
 
 function makeMockDataSource(): DataSource {
@@ -94,15 +94,15 @@ describe('CreateScheduleUseCase', () => {
     mockCacheService.delByPrefix.mockResolvedValue(undefined)
   })
 
-  it('creates schedule as doctor using findByUserId (ignores dto.doctorId)', async () => {
+  it('creates schedule as doctor using findByUserId (ignores dto.professionalId)', async () => {
     const doctor = makeDoctor()
-    const schedule = makeSchedule({ doctorId: doctor.id })
+    const schedule = makeSchedule({ professionalId: doctor.id })
     mockProfessionalsRepository.findByUserId.mockResolvedValue(doctor)
     mockSchedulesRepository.findOverlapping.mockResolvedValue(null)
     mockSchedulesRepository.create.mockResolvedValue(schedule as any)
 
     const result = await useCase.execute(
-      makeDto({ doctorId: faker.string.uuid() }),
+      makeDto({ professionalId: faker.string.uuid() }),
       doctorUser,
     )
 
@@ -111,10 +111,10 @@ describe('CreateScheduleUseCase', () => {
     expect(result.id).toBeDefined()
   })
 
-  it('creates schedule as admin using dto.doctorId', async () => {
+  it('creates schedule as admin using dto.professionalId', async () => {
     const targetDoctorId = faker.string.uuid()
-    const dto = makeDto({ doctorId: targetDoctorId })
-    const schedule = makeSchedule({ doctorId: targetDoctorId })
+    const dto = makeDto({ professionalId: targetDoctorId })
+    const schedule = makeSchedule({ professionalId: targetDoctorId })
     mockProfessionalsRepository.findById.mockResolvedValue({ id: targetDoctorId } as any)
     mockSchedulesRepository.findOverlapping.mockResolvedValue(null)
     mockSchedulesRepository.create.mockResolvedValue(schedule as any)
@@ -136,7 +136,7 @@ describe('CreateScheduleUseCase', () => {
     expect(mockSchedulesRepository.create).not.toHaveBeenCalled()
   })
 
-  it('throws UnprocessableEntityException when admin omits doctorId', async () => {
+  it('throws UnprocessableEntityException when admin omits professionalId', async () => {
     await expect(useCase.execute(makeDto(), adminUser)).rejects.toThrow(
       UnprocessableEntityException,
     )
@@ -198,7 +198,7 @@ describe('CreateScheduleUseCase', () => {
 
   it('invalidates cache after creation using doctor profile id', async () => {
     const doctor = makeDoctor()
-    const schedule = makeSchedule({ doctorId: doctor.id })
+    const schedule = makeSchedule({ professionalId: doctor.id })
     mockProfessionalsRepository.findByUserId.mockResolvedValue(doctor)
     mockSchedulesRepository.findOverlapping.mockResolvedValue(null)
     mockSchedulesRepository.create.mockResolvedValue(schedule as any)
@@ -232,7 +232,7 @@ describe('CreateScheduleUseCase', () => {
     expect(result).not.toHaveProperty('deletedAt')
   })
 
-  it('returns empty doctorName when name query returns no rows', async () => {
+  it('returns empty professionalName when name query returns no rows', async () => {
     const builder = {
       select: jest.fn().mockReturnThis(),
       from: jest.fn().mockReturnThis(),
@@ -255,6 +255,6 @@ describe('CreateScheduleUseCase', () => {
 
     const result = await useCaseWithEmptyNames.execute(makeDto(), doctorUser)
 
-    expect(result.doctorName).toBe('')
+    expect(result.professionalName).toBe('')
   })
 })

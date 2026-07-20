@@ -22,7 +22,7 @@ export class FindProfessionalByIdUseCase extends BaseUseCase {
   async execute(id: string, currentUser: ICurrentUser): Promise<ProfessionalResponseDto> {
     const clinicId = currentUser.clinicId!
 
-    if (currentUser.role === UserRole.DOCTOR) {
+    if (currentUser.role === UserRole.PROFESSIONAL) {
       const ownProfessional = await this.professionalsRepository.findByUserId(currentUser.id, clinicId)
       if (!ownProfessional || ownProfessional.id !== id) {
         throw new ForbiddenException('You can only view your own professional profile')

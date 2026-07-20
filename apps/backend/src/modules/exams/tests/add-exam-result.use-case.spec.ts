@@ -11,18 +11,18 @@ import { AddExamResultUseCase } from '../use-cases/add-exam-result.use-case'
 import { CacheService } from '../../../cache/cache.service'
 
 const clinicId = 'clinic-uuid'
-const doctorId = 'doctor-uuid'
+const professionalId = 'doctor-uuid'
 const examRequestId = 'exam-uuid'
 const appointmentId = 'appt-uuid'
 
-const doctorUser: ICurrentUser = { id: 'doctor-user-id', role: UserRole.DOCTOR, clinicId }
+const doctorUser: ICurrentUser = { id: 'doctor-user-id', role: UserRole.PROFESSIONAL, clinicId }
 
 const makeExamRequest = (overrides = {}) => ({
   id: examRequestId,
   clinicId,
   appointmentId,
   patientId: 'patient-uuid',
-  doctorId,
+  professionalId,
   issuedAt: new Date(),
   status: ExamRequestStatus.REQUESTED,
   snapshot: {
@@ -122,7 +122,7 @@ describe('AddExamResultUseCase', () => {
       mockFindExamRequestByIdUseCase,
     )
     mockExamRequestsRepository.findById.mockResolvedValue(makeExamRequest() as any)
-    mockProfessionalsRepository.findByUserId.mockResolvedValue({ id: doctorId } as any)
+    mockProfessionalsRepository.findByUserId.mockResolvedValue({ id: professionalId } as any)
     mockStorageAdapter.upload.mockResolvedValue('exam-results/clinic-uuid/exam-uuid/file.pdf')
     mockExamResultsRepository.create.mockResolvedValue({} as any)
     mockExamRequestsRepository.updateStatus.mockResolvedValue(undefined)

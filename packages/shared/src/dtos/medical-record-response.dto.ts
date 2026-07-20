@@ -5,8 +5,8 @@ export class MedicalRecordResponseDto {
   appointmentId!: string
   patientId!: string
   patientName!: string
-  doctorId!: string
-  doctorName!: string
+  professionalId!: string
+  professionalName!: string
   specialtyId!: string | null
   specialtyName!: string | null
   templateId!: string

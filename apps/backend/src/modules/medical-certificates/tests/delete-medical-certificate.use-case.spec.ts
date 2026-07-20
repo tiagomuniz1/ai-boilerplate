@@ -8,19 +8,19 @@ import { DeleteMedicalCertificateUseCase } from '../use-cases/delete-medical-cer
 import { CacheService } from '../../../cache/cache.service'
 
 const clinicId = 'clinic-uuid'
-const doctorId = 'doctor-uuid'
+const professionalId = 'doctor-uuid'
 const certificateId = 'cert-uuid'
 const appointmentId = 'appt-uuid'
 
 const adminUser: ICurrentUser = { id: 'admin-id', role: UserRole.ADMIN, clinicId }
-const doctorUser: ICurrentUser = { id: 'doctor-user-id', role: UserRole.DOCTOR, clinicId }
+const doctorUser: ICurrentUser = { id: 'doctor-user-id', role: UserRole.PROFESSIONAL, clinicId }
 
 const makeCertificate = (overrides = {}) => ({
   id: certificateId,
   clinicId,
   appointmentId,
   patientId: 'patient-uuid',
-  doctorId,
+  professionalId,
   issuedAt: new Date(),
   snapshot: {
     issuedAt: new Date().toISOString(),
@@ -79,7 +79,7 @@ describe('DeleteMedicalCertificateUseCase', () => {
       mockCacheService,
     )
     mockMedicalCertificatesRepository.findById.mockResolvedValue(makeCertificate() as any)
-    mockProfessionalsRepository.findByUserId.mockResolvedValue({ id: doctorId } as any)
+    mockProfessionalsRepository.findByUserId.mockResolvedValue({ id: professionalId } as any)
     mockMedicalCertificatesRepository.delete.mockResolvedValue(undefined)
     mockCacheService.del.mockResolvedValue(undefined)
   })

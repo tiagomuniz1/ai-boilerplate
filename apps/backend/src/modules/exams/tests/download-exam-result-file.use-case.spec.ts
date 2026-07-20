@@ -9,12 +9,12 @@ import { IExamResultsRepository } from '../repositories/exam-results.repository.
 import { DownloadExamResultFileUseCase } from '../use-cases/download-exam-result-file.use-case'
 
 const clinicId = 'clinic-uuid'
-const doctorId = 'doctor-uuid'
+const professionalId = 'doctor-uuid'
 const examRequestId = 'exam-uuid'
 const resultId = 'result-uuid'
 
 const adminUser: ICurrentUser = { id: 'admin-id', role: UserRole.ADMIN, clinicId }
-const doctorUser: ICurrentUser = { id: 'doctor-user-id', role: UserRole.DOCTOR, clinicId }
+const doctorUser: ICurrentUser = { id: 'doctor-user-id', role: UserRole.PROFESSIONAL, clinicId }
 
 const makeExamResult = (overrides = {}) => ({
   id: resultId,
@@ -36,7 +36,7 @@ const makeExamRequest = (overrides = {}) => ({
   clinicId,
   appointmentId: 'appt-uuid',
   patientId: 'patient-uuid',
-  doctorId,
+  professionalId,
   issuedAt: new Date(),
   status: ExamRequestStatus.COMPLETED,
   snapshot: {
@@ -99,7 +99,7 @@ describe('DownloadExamResultFileUseCase', () => {
     )
     mockExamResultsRepository.findById.mockResolvedValue(makeExamResult() as any)
     mockExamRequestsRepository.findById.mockResolvedValue(makeExamRequest() as any)
-    mockProfessionalsRepository.findByUserId.mockResolvedValue({ id: doctorId } as any)
+    mockProfessionalsRepository.findByUserId.mockResolvedValue({ id: professionalId } as any)
     mockStorageAdapter.download.mockResolvedValue(Buffer.from('file-bytes'))
   })
 

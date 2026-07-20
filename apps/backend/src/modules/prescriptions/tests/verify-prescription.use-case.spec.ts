@@ -8,7 +8,7 @@ const makePrescription = (overrides: Record<string, any> = {}) => ({
   clinicId: 'clinic-uuid',
   appointmentId: 'appt-uuid',
   patientId: 'patient-uuid',
-  doctorId: 'doctor-uuid',
+  professionalId: 'doctor-uuid',
   issuedAt: new Date('2026-01-05T10:00:00.000Z'),
   verificationToken: 'a'.repeat(64),
   snapshot: {
@@ -55,7 +55,7 @@ describe('VerifyPrescriptionUseCase', () => {
 
     expect(result).toEqual({
       clinicName: 'Clínica Saúde',
-      doctorName: 'Dr. João Silva',
+      professionalName: 'Dr. João Silva',
       doctorCrmNumber: '12345/SP',
       specialtyName: 'Cardiologia',
       patientNameMasked: 'Maria S.',
@@ -83,7 +83,7 @@ describe('VerifyPrescriptionUseCase', () => {
     expect(result.items[0]).not.toHaveProperty('medicationId')
     expect(result).not.toHaveProperty('id')
     expect(result).not.toHaveProperty('patientId')
-    expect(result).not.toHaveProperty('doctorId')
+    expect(result).not.toHaveProperty('professionalId')
   })
 
   it('masks CPF to *** when it does not have 11 digits', async () => {

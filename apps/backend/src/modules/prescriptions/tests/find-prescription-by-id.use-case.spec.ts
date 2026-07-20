@@ -7,18 +7,18 @@ import { IPrescriptionsRepository } from '../repositories/prescriptions.reposito
 import { FindPrescriptionByIdUseCase } from '../use-cases/find-prescription-by-id.use-case'
 
 const clinicId = 'clinic-uuid'
-const doctorId = 'doctor-uuid'
+const professionalId = 'doctor-uuid'
 const prescriptionId = 'rx-uuid'
 
 const adminUser: ICurrentUser = { id: 'admin-id', role: UserRole.ADMIN, clinicId }
-const doctorUser: ICurrentUser = { id: 'doctor-user-id', role: UserRole.DOCTOR, clinicId }
+const doctorUser: ICurrentUser = { id: 'doctor-user-id', role: UserRole.PROFESSIONAL, clinicId }
 
 const makePrescription = (overrides = {}) => ({
   id: prescriptionId,
   clinicId,
   appointmentId: 'appt-uuid',
   patientId: 'patient-uuid',
-  doctorId,
+  professionalId,
   issuedAt: new Date(),
   snapshot: {
     issuedAt: new Date().toISOString(),
@@ -63,7 +63,7 @@ describe('FindPrescriptionByIdUseCase', () => {
       mockProfessionalsRepository,
     )
     mockPrescriptionsRepository.findById.mockResolvedValue(makePrescription() as any)
-    mockProfessionalsRepository.findByUserId.mockResolvedValue({ id: doctorId } as any)
+    mockProfessionalsRepository.findByUserId.mockResolvedValue({ id: professionalId } as any)
   })
 
   it('returns prescription for ADMIN', async () => {
@@ -102,7 +102,7 @@ describe('FindPrescriptionByIdUseCase', () => {
     const result = await useCase.execute(prescriptionId, adminUser)
 
     expect(result.patientName).toBe('Patient')
-    expect(result.doctorName).toBe('Doctor')
+    expect(result.professionalName).toBe('Doctor')
     expect(result.notes).toBeNull()
   })
 })

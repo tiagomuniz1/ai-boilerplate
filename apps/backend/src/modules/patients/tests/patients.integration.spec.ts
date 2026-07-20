@@ -81,7 +81,7 @@ describe('PatientsController (integration)', () => {
     )
 
     accessToken = await loginAs(UserRole.ADMIN)
-    doctorToken = await loginAs(UserRole.DOCTOR)
+    doctorToken = await loginAs(UserRole.PROFESSIONAL)
     userToken = await loginAs(UserRole.USER)
   })
 
