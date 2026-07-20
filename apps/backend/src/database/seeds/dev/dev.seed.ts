@@ -32,13 +32,41 @@ export async function devSeed(dataSource: DataSource): Promise<void> {
   await seedClinic(dataSource, defaultTheme.id)
   await seedPlatformAdmin(dataSource.getRepository(User))
   await seedClinicAdmin(dataSource.getRepository(User))
+  const nutritionSpecialty = await seedNutritionSpecialty(dataSource)
   await seedCanonicalFields(dataSource)
   await seedMedicalRecordTemplates(dataSource)
-  await seedGeneralistDoctor(dataSource)
+  await seedGeneralistProfessional(dataSource)
+  await seedNutritionistProfessional(dataSource, nutritionSpecialty)
   await seedMedicalRecords(dataSource)
 }
 
-async function seedGeneralistDoctor(dataSource: DataSource): Promise<void> {
+// Non-medical specialty fixture, created early so the nutrition-scoped canonical fields
+// (bmi, waist_circumference) resolve against it during seedCanonicalFields.
+async function seedNutritionSpecialty(dataSource: DataSource): Promise<Specialty> {
+  const specialtyRepository = dataSource.getRepository(Specialty)
+  let specialty = await specialtyRepository.findOneBy({ name: 'Nutrição Clínica' })
+  if (!specialty) {
+    specialty = await specialtyRepository.save(
+      specialtyRepository.create({ name: 'Nutrição Clínica', description: null, titleName: 'nutricionista' }),
+    )
+    console.log('Dev seed: specialty "Nutrição Clínica" created.')
+  }
+
+  const clinicSpecialtyRepository = dataSource.getRepository(ClinicSpecialty)
+  const existingClinicSpecialty = await clinicSpecialtyRepository.findOneBy({
+    clinicId: SEED_CLINIC_ID,
+    specialtyId: specialty.id,
+  })
+  if (!existingClinicSpecialty) {
+    await clinicSpecialtyRepository.save(
+      clinicSpecialtyRepository.create({ clinicId: SEED_CLINIC_ID, specialtyId: specialty.id }),
+    )
+  }
+
+  return specialty
+}
+
+async function seedGeneralistProfessional(dataSource: DataSource): Promise<void> {
   const userRepository = dataSource.getRepository(User)
   const professionalRepository = dataSource.getRepository(Professional)
 
@@ -46,7 +74,7 @@ async function seedGeneralistDoctor(dataSource: DataSource): Promise<void> {
   if (existingUser) return
 
   const password = await bcrypt.hash('123123123', 10)
-  const doctorUser = await userRepository.save(
+  const professionalUser = await userRepository.save(
     userRepository.create({
       fullName: 'Dra. Ana Generalista',
       email: 'generalista@pulso.center',
@@ -56,7 +84,7 @@ async function seedGeneralistDoctor(dataSource: DataSource): Promise<void> {
     }),
   )
 
-  const professionalEntity = professionalRepository.create({ userId: doctorUser.id, clinicId: SEED_CLINIC_ID })
+  const professionalEntity = professionalRepository.create({ userId: professionalUser.id, clinicId: SEED_CLINIC_ID })
   professionalEntity.registrations = [
     dataSource
       .getRepository(ProfessionalRegistration)
@@ -65,7 +93,40 @@ async function seedGeneralistDoctor(dataSource: DataSource): Promise<void> {
   // Generalist: no specialties linked.
   professionalEntity.professionalSpecialties = []
   await professionalRepository.save(professionalEntity)
-  console.log('Dev seed: generalist doctor created.')
+  console.log('Dev seed: generalist professional created.')
+}
+
+// Fixture of a non-medical professional (CRN) for manual QA of the professional form's
+// council-type-driven fields.
+async function seedNutritionistProfessional(dataSource: DataSource, specialty: Specialty): Promise<void> {
+  const userRepository = dataSource.getRepository(User)
+  const professionalRepository = dataSource.getRepository(Professional)
+
+  const existingUser = await userRepository.findOneBy({ email: 'nutricionista@pulso.center' })
+  if (existingUser) return
+
+  const password = await bcrypt.hash('123123123', 10)
+  const professionalUser = await userRepository.save(
+    userRepository.create({
+      fullName: 'Beatriz Nutricionista',
+      email: 'nutricionista@pulso.center',
+      password,
+      role: UserRole.PROFESSIONAL,
+      clinicId: SEED_CLINIC_ID,
+    }),
+  )
+
+  const professionalEntity = professionalRepository.create({ userId: professionalUser.id, clinicId: SEED_CLINIC_ID })
+  professionalEntity.registrations = [
+    dataSource
+      .getRepository(ProfessionalRegistration)
+      .create({ clinicId: SEED_CLINIC_ID, councilType: CouncilType.CRN, number: '9876543', state: 'SP', isPrimary: true }),
+  ]
+  professionalEntity.professionalSpecialties = [
+    dataSource.getRepository(ProfessionalSpecialty).create({ specialtyId: specialty.id, registryNumber: null }),
+  ]
+  await professionalRepository.save(professionalEntity)
+  console.log('Dev seed: nutritionist professional (CRN) created.')
 }
 
 async function seedCanonicalFields(dataSource: DataSource): Promise<void> {
@@ -343,11 +404,11 @@ async function seedMedicalRecords(dataSource: DataSource): Promise<void> {
   const adminUser = await userRepository.findOneBy({ email: 'admin@pulso.center' })
   if (!adminUser) return
 
-  let doctor = await professionalRepository.findOneBy({ clinicId: SEED_CLINIC_ID })
-  if (!doctor) {
-    let doctorUser = await userRepository.findOneBy({ email: 'doctor@pulso.center' })
-    if (!doctorUser) {
-      doctorUser = await userRepository.save(
+  let professional = await professionalRepository.findOneBy({ clinicId: SEED_CLINIC_ID })
+  if (!professional) {
+    let professionalUser = await userRepository.findOneBy({ email: 'doctor@pulso.center' })
+    if (!professionalUser) {
+      professionalUser = await userRepository.save(
         userRepository.create({
           fullName: 'Dr. João Silva',
           email: 'doctor@pulso.center',
@@ -358,7 +419,7 @@ async function seedMedicalRecords(dataSource: DataSource): Promise<void> {
       )
     }
     const specialty = await dataSource.getRepository(Specialty).findOneBy({ id: specialtyId })
-    const professionalEntity = professionalRepository.create({ userId: doctorUser.id, clinicId: SEED_CLINIC_ID })
+    const professionalEntity = professionalRepository.create({ userId: professionalUser.id, clinicId: SEED_CLINIC_ID })
     professionalEntity.registrations = [
       dataSource
         .getRepository(ProfessionalRegistration)
@@ -367,8 +428,8 @@ async function seedMedicalRecords(dataSource: DataSource): Promise<void> {
     professionalEntity.professionalSpecialties = specialty
       ? [dataSource.getRepository(ProfessionalSpecialty).create({ specialtyId: specialty.id, registryNumber: '11223' })]
       : []
-    doctor = await professionalRepository.save(professionalEntity)
-    console.log('Dev seed: seed doctor created.')
+    professional = await professionalRepository.save(professionalEntity)
+    console.log('Dev seed: seed professional created.')
   }
 
   let patient = await patientRepository.findOneBy({ clinicId: SEED_CLINIC_ID })
@@ -398,11 +459,11 @@ async function seedMedicalRecords(dataSource: DataSource): Promise<void> {
     console.log('Dev seed: seed patient created.')
   }
 
-  let schedule = await scheduleRepository.findOneBy({ professionalId: doctor.id })
+  let schedule = await scheduleRepository.findOneBy({ professionalId: professional.id })
   if (!schedule) {
     schedule = await scheduleRepository.save(
       scheduleRepository.create({
-        professionalId: doctor.id,
+        professionalId: professional.id,
         clinicId: SEED_CLINIC_ID,
         dayOfWeek: DayOfWeek.MONDAY,
         startTime: '08:00',
@@ -456,7 +517,7 @@ async function seedMedicalRecords(dataSource: DataSource): Promise<void> {
     const appointment = await appointmentRepository.save(
       appointmentRepository.create({
         clinicId: SEED_CLINIC_ID,
-        professionalId: doctor.id,
+        professionalId: professional.id,
         patientId: patient.id,
         specialtyId,
         scheduleId: schedule.id,
@@ -487,7 +548,7 @@ async function seedMedicalRecords(dataSource: DataSource): Promise<void> {
         clinicId: SEED_CLINIC_ID,
         appointmentId: appointment.id,
         patientId: patient.id,
-        professionalId: doctor.id,
+        professionalId: professional.id,
         specialtyId,
         templateId: template.id,
         templateSchemaSnapshot: template.fields,

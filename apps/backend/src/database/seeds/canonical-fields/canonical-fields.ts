@@ -37,4 +37,24 @@ export const CANONICAL_FIELDS: CanonicalFieldSeed[] = [
       { value: 'high', label: 'Alto' },
     ],
   },
+  {
+    canonicalKey: 'bmi',
+    label: 'IMC',
+    type: MedicalRecordFieldType.NUMBER,
+    unit: 'kg/m²',
+    specialtyName: 'Nutrição Clínica',
+  },
+  {
+    canonicalKey: 'waist_circumference',
+    label: 'Circunferência abdominal',
+    type: MedicalRecordFieldType.NUMBER,
+    unit: 'cm',
+    specialtyName: 'Nutrição Clínica',
+  },
+  {
+    canonicalKey: 'range_of_motion',
+    label: 'Amplitude de movimento',
+    type: MedicalRecordFieldType.TEXT,
+    specialtyName: 'Fisioterapia Ortopédica',
+  },
 ]
