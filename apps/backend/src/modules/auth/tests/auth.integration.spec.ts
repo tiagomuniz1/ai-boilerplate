@@ -73,8 +73,8 @@ describe('AuthController (integration)', () => {
 
   afterEach(async () => {
     await refreshTokenRepository.query('DELETE FROM test.schedules')
-    await refreshTokenRepository.query('DELETE FROM test.doctor_specialties')
-    await refreshTokenRepository.query('DELETE FROM test.doctors')
+    await refreshTokenRepository.query('DELETE FROM test.professional_specialties')
+    await refreshTokenRepository.query('DELETE FROM test.professionals')
     await refreshTokenRepository.query('DELETE FROM test.patients')
     await refreshTokenRepository.query('DELETE FROM test.specialties')
     await refreshTokenRepository.query('DELETE FROM test.refresh_tokens')

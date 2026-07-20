@@ -4,7 +4,7 @@ import { faker } from '@faker-js/faker'
 import { DayOfWeek, UserRole } from '@app/shared'
 import { CacheService } from '../../../cache/cache.service'
 import { ICurrentUser } from '../../auth/types/current-user.type'
-import { IDoctorsRepository } from '../../doctors/repositories/doctors.repository.interface'
+import { IProfessionalsRepository } from '../../professionals/repositories/professionals.repository.interface'
 import { GetActiveSchedulesForDoctorUseCase } from '../../schedules/use-cases/get-active-schedules-for-doctor.use-case'
 import { GetActiveExceptionsForDoctorUseCase } from '../../schedule-exceptions/use-cases/get-active-exceptions-for-doctor.use-case'
 import { IAppointmentsRepository } from '../repositories/appointments.repository.interface'
@@ -41,11 +41,11 @@ const mockAppointmentsRepository: jest.Mocked<IAppointmentsRepository> = {
   update: jest.fn(),
 }
 
-const mockDoctorsRepository: jest.Mocked<IDoctorsRepository> = {
+const mockProfessionalsRepository: jest.Mocked<IProfessionalsRepository> = {
   findAll: jest.fn(),
   findById: jest.fn(),
   findByUserId: jest.fn(),
-  findByCrm: jest.fn(),
+  findByRegistration: jest.fn(),
   create: jest.fn(),
   update: jest.fn(),
   delete: jest.fn(),
@@ -76,15 +76,15 @@ describe('GetAvailabilityUseCase', () => {
     useCase = new GetAvailabilityUseCase(
       makeMockDataSource(),
       mockAppointmentsRepository,
-      mockDoctorsRepository,
+      mockProfessionalsRepository,
       mockGetActiveSchedules,
       mockGetActiveExceptions,
       mockCacheService,
     )
     mockCacheService.get.mockResolvedValue(null)
     mockCacheService.set.mockResolvedValue(undefined)
-    mockDoctorsRepository.findByUserId.mockResolvedValue({ id: doctorId } as any)
-    mockDoctorsRepository.findById.mockResolvedValue({ id: doctorId } as any)
+    mockProfessionalsRepository.findByUserId.mockResolvedValue({ id: doctorId } as any)
+    mockProfessionalsRepository.findById.mockResolvedValue({ id: doctorId } as any)
     mockGetActiveSchedules.execute.mockResolvedValue([makeSchedule() as any])
     mockAppointmentsRepository.findActiveByDoctorAndDate.mockResolvedValue([])
     mockGetActiveExceptions.execute.mockResolvedValue([])
@@ -93,12 +93,12 @@ describe('GetAvailabilityUseCase', () => {
   describe('DOCTOR role', () => {
     it('resolves doctorId from profile', async () => {
       const result = await useCase.execute({ date: DATE }, doctorUser)
-      expect(mockDoctorsRepository.findByUserId).toHaveBeenCalledWith(doctorUserId, CLINIC_ID)
+      expect(mockProfessionalsRepository.findByUserId).toHaveBeenCalledWith(doctorUserId, CLINIC_ID)
       expect(result.doctorId).toBe(doctorId)
     })
 
     it('throws NotFoundException when doctor profile not found', async () => {
-      mockDoctorsRepository.findByUserId.mockResolvedValue(null)
+      mockProfessionalsRepository.findByUserId.mockResolvedValue(null)
       await expect(useCase.execute({ date: DATE }, doctorUser)).rejects.toThrow(NotFoundException)
     })
   })
@@ -109,7 +109,7 @@ describe('GetAvailabilityUseCase', () => {
     })
 
     it('throws NotFoundException when doctor not found', async () => {
-      mockDoctorsRepository.findById.mockResolvedValue(null)
+      mockProfessionalsRepository.findById.mockResolvedValue(null)
       await expect(useCase.execute({ date: DATE, doctorId }, adminUser)).rejects.toThrow(NotFoundException)
     })
 

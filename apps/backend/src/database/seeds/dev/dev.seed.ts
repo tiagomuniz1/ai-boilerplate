@@ -1,15 +1,15 @@
 import * as bcrypt from 'bcrypt'
 import { DataSource, ILike, IsNull } from 'typeorm'
-import { AppointmentInsuranceType, AppointmentStatus, DayOfWeek, MedicalRecordFieldType, PatientGender, UserRole } from '@app/shared'
+import { AppointmentInsuranceType, AppointmentStatus, CouncilType, DayOfWeek, MedicalRecordFieldType, PatientGender, UserRole } from '@app/shared'
 import { Theme } from '../../../modules/themes/entities/theme.entity'
 import { CANONICAL_THEMES as SEED_THEMES } from '../themes/canonical-themes'
 import { Clinic } from '../../../modules/clinics/entities/clinic.entity'
 import { User } from '../../../modules/users/entities/user.entity'
 import { Specialty } from '../../../modules/specialties/entities/specialty.entity'
 import { ClinicSpecialty } from '../../../modules/clinic-specialties/entities/clinic-specialty.entity'
-import { Doctor } from '../../../modules/doctors/entities/doctor.entity'
-import { DoctorCrm } from '../../../modules/doctors/entities/doctor-crm.entity'
-import { DoctorSpecialty } from '../../../modules/doctors/entities/doctor-specialty.entity'
+import { Professional } from '../../../modules/professionals/entities/professional.entity'
+import { ProfessionalRegistration } from '../../../modules/professionals/entities/professional-registration.entity'
+import { ProfessionalSpecialty } from '../../../modules/professionals/entities/professional-specialty.entity'
 import { Patient } from '../../../modules/patients/entities/patient.entity'
 import { Schedule } from '../../../modules/schedules/entities/schedule.entity'
 import { Appointment } from '../../../modules/appointments/entities/appointment.entity'
@@ -40,7 +40,7 @@ export async function devSeed(dataSource: DataSource): Promise<void> {
 
 async function seedGeneralistDoctor(dataSource: DataSource): Promise<void> {
   const userRepository = dataSource.getRepository(User)
-  const doctorRepository = dataSource.getRepository(Doctor)
+  const professionalRepository = dataSource.getRepository(Professional)
 
   const existingUser = await userRepository.findOneBy({ email: 'generalista@pulso.center' })
   if (existingUser) return
@@ -56,15 +56,15 @@ async function seedGeneralistDoctor(dataSource: DataSource): Promise<void> {
     }),
   )
 
-  const doctorEntity = doctorRepository.create({ userId: doctorUser.id, clinicId: SEED_CLINIC_ID })
-  doctorEntity.crms = [
+  const professionalEntity = professionalRepository.create({ userId: doctorUser.id, clinicId: SEED_CLINIC_ID })
+  professionalEntity.registrations = [
     dataSource
-      .getRepository(DoctorCrm)
-      .create({ clinicId: SEED_CLINIC_ID, number: '99999', state: 'SP', isPrimary: true }),
+      .getRepository(ProfessionalRegistration)
+      .create({ clinicId: SEED_CLINIC_ID, councilType: CouncilType.CRM, number: '99999', state: 'SP', isPrimary: true }),
   ]
   // Generalist: no specialties linked.
-  doctorEntity.doctorSpecialties = []
-  await doctorRepository.save(doctorEntity)
+  professionalEntity.professionalSpecialties = []
+  await professionalRepository.save(professionalEntity)
   console.log('Dev seed: generalist doctor created.')
 }
 
@@ -317,7 +317,7 @@ async function seedMedicalRecords(dataSource: DataSource): Promise<void> {
   }
 
   const userRepository = dataSource.getRepository(User)
-  const doctorRepository = dataSource.getRepository(Doctor)
+  const professionalRepository = dataSource.getRepository(Professional)
   const patientRepository = dataSource.getRepository(Patient)
   const scheduleRepository = dataSource.getRepository(Schedule)
   const appointmentRepository = dataSource.getRepository(Appointment)
@@ -343,7 +343,7 @@ async function seedMedicalRecords(dataSource: DataSource): Promise<void> {
   const adminUser = await userRepository.findOneBy({ email: 'admin@pulso.center' })
   if (!adminUser) return
 
-  let doctor = await doctorRepository.findOneBy({ clinicId: SEED_CLINIC_ID })
+  let doctor = await professionalRepository.findOneBy({ clinicId: SEED_CLINIC_ID })
   if (!doctor) {
     let doctorUser = await userRepository.findOneBy({ email: 'doctor@pulso.center' })
     if (!doctorUser) {
@@ -358,14 +358,16 @@ async function seedMedicalRecords(dataSource: DataSource): Promise<void> {
       )
     }
     const specialty = await dataSource.getRepository(Specialty).findOneBy({ id: specialtyId })
-    const doctorEntity = doctorRepository.create({ userId: doctorUser.id, clinicId: SEED_CLINIC_ID })
-    doctorEntity.crms = [
-      dataSource.getRepository(DoctorCrm).create({ clinicId: SEED_CLINIC_ID, number: '12345', state: 'SP', isPrimary: true }),
+    const professionalEntity = professionalRepository.create({ userId: doctorUser.id, clinicId: SEED_CLINIC_ID })
+    professionalEntity.registrations = [
+      dataSource
+        .getRepository(ProfessionalRegistration)
+        .create({ clinicId: SEED_CLINIC_ID, councilType: CouncilType.CRM, number: '12345', state: 'SP', isPrimary: true }),
     ]
-    doctorEntity.doctorSpecialties = specialty
-      ? [dataSource.getRepository(DoctorSpecialty).create({ specialtyId: specialty.id, rqe: '11223' })]
+    professionalEntity.professionalSpecialties = specialty
+      ? [dataSource.getRepository(ProfessionalSpecialty).create({ specialtyId: specialty.id, registryNumber: '11223' })]
       : []
-    doctor = await doctorRepository.save(doctorEntity)
+    doctor = await professionalRepository.save(professionalEntity)
     console.log('Dev seed: seed doctor created.')
   }
 

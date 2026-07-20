@@ -9,7 +9,7 @@ import { faker } from '@faker-js/faker'
 import { AppointmentStatus, UserRole } from '@app/shared'
 import { CacheService } from '../../../cache/cache.service'
 import { ICurrentUser } from '../../auth/types/current-user.type'
-import { IDoctorsRepository } from '../../doctors/repositories/doctors.repository.interface'
+import { IProfessionalsRepository } from '../../professionals/repositories/professionals.repository.interface'
 import { IAppointmentsRepository } from '../repositories/appointments.repository.interface'
 import { ConfirmAppointmentUseCase } from '../use-cases/confirm-appointment.use-case'
 
@@ -51,11 +51,11 @@ const mockAppointmentsRepository: jest.Mocked<IAppointmentsRepository> = {
   update: jest.fn(),
 }
 
-const mockDoctorsRepository: jest.Mocked<IDoctorsRepository> = {
+const mockProfessionalsRepository: jest.Mocked<IProfessionalsRepository> = {
   findAll: jest.fn(),
   findById: jest.fn(),
   findByUserId: jest.fn(),
-  findByCrm: jest.fn(),
+  findByRegistration: jest.fn(),
   create: jest.fn(),
   update: jest.fn(),
   delete: jest.fn(),
@@ -86,10 +86,10 @@ describe('ConfirmAppointmentUseCase', () => {
     useCase = new ConfirmAppointmentUseCase(
       makeMockDataSource(),
       mockAppointmentsRepository,
-      mockDoctorsRepository,
+      mockProfessionalsRepository,
       mockCacheService,
     )
-    mockDoctorsRepository.findByUserId.mockResolvedValue({ id: doctorId } as any)
+    mockProfessionalsRepository.findByUserId.mockResolvedValue({ id: doctorId } as any)
     mockCacheService.delByPrefix.mockResolvedValue(undefined)
   })
 
@@ -214,7 +214,7 @@ describe('ConfirmAppointmentUseCase', () => {
     const useCaseWithSpecialty = new ConfirmAppointmentUseCase(
       ds,
       mockAppointmentsRepository,
-      mockDoctorsRepository,
+      mockProfessionalsRepository,
       mockCacheService,
     )
 
@@ -243,7 +243,7 @@ describe('ConfirmAppointmentUseCase', () => {
     const useCaseEmpty = new ConfirmAppointmentUseCase(
       emptyDataSource,
       mockAppointmentsRepository,
-      mockDoctorsRepository,
+      mockProfessionalsRepository,
       mockCacheService,
     )
 

@@ -3,7 +3,7 @@ import { DataSource } from 'typeorm'
 import { MedicalCertificateType, UserRole } from '@app/shared'
 import { ICurrentUser } from '../../auth/types/current-user.type'
 import { IAppointmentsRepository } from '../../appointments/repositories/appointments.repository.interface'
-import { IDoctorsRepository } from '../../doctors/repositories/doctors.repository.interface'
+import { IProfessionalsRepository } from '../../professionals/repositories/professionals.repository.interface'
 import { IMedicalCertificatesRepository } from '../repositories/medical-certificates.repository.interface'
 import { FindMedicalCertificatesByAppointmentUseCase } from '../use-cases/find-medical-certificates-by-appointment.use-case'
 import { CacheService } from '../../../cache/cache.service'
@@ -58,11 +58,11 @@ const mockAppointmentsRepository: jest.Mocked<IAppointmentsRepository> = {
   update: jest.fn(),
 }
 
-const mockDoctorsRepository: jest.Mocked<IDoctorsRepository> = {
+const mockProfessionalsRepository: jest.Mocked<IProfessionalsRepository> = {
   findAll: jest.fn(),
   findById: jest.fn(),
   findByUserId: jest.fn(),
-  findByCrm: jest.fn(),
+  findByRegistration: jest.fn(),
   create: jest.fn(),
   update: jest.fn(),
   delete: jest.fn(),
@@ -85,12 +85,12 @@ describe('FindMedicalCertificatesByAppointmentUseCase', () => {
       {} as DataSource,
       mockMedicalCertificatesRepository,
       mockAppointmentsRepository,
-      mockDoctorsRepository,
+      mockProfessionalsRepository,
       mockCacheService,
     )
     mockMedicalCertificatesRepository.findByAppointment.mockResolvedValue([makeCertificate() as any])
     mockAppointmentsRepository.findById.mockResolvedValue({ id: appointmentId, doctorId } as any)
-    mockDoctorsRepository.findByUserId.mockResolvedValue({ id: doctorId } as any)
+    mockProfessionalsRepository.findByUserId.mockResolvedValue({ id: doctorId } as any)
     mockCacheService.get.mockResolvedValue(null)
     mockCacheService.set.mockResolvedValue(undefined)
   })
@@ -101,14 +101,14 @@ describe('FindMedicalCertificatesByAppointmentUseCase', () => {
     expect(result).toHaveLength(1)
     expect(result[0].appointmentId).toBe(appointmentId)
     expect(mockAppointmentsRepository.findById).not.toHaveBeenCalled()
-    expect(mockDoctorsRepository.findByUserId).not.toHaveBeenCalled()
+    expect(mockProfessionalsRepository.findByUserId).not.toHaveBeenCalled()
   })
 
   it('returns certificates for DOCTOR on own appointment', async () => {
     const result = await useCase.execute(appointmentId, doctorUser)
 
     expect(result).toHaveLength(1)
-    expect(mockDoctorsRepository.findByUserId).toHaveBeenCalledWith(doctorUser.id, clinicId)
+    expect(mockProfessionalsRepository.findByUserId).toHaveBeenCalledWith(doctorUser.id, clinicId)
   })
 
   it('returns cached result on cache hit', async () => {
@@ -138,13 +138,13 @@ describe('FindMedicalCertificatesByAppointmentUseCase', () => {
   })
 
   it('throws ForbiddenException when DOCTOR accesses another doctor appointment', async () => {
-    mockDoctorsRepository.findByUserId.mockResolvedValue({ id: 'other-doctor' } as any)
+    mockProfessionalsRepository.findByUserId.mockResolvedValue({ id: 'other-doctor' } as any)
 
     await expect(useCase.execute(appointmentId, doctorUser)).rejects.toThrow(ForbiddenException)
   })
 
   it('throws ForbiddenException when DOCTOR has no doctor profile', async () => {
-    mockDoctorsRepository.findByUserId.mockResolvedValue(null)
+    mockProfessionalsRepository.findByUserId.mockResolvedValue(null)
 
     await expect(useCase.execute(appointmentId, doctorUser)).rejects.toThrow(ForbiddenException)
   })

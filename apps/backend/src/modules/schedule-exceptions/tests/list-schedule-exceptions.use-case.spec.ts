@@ -3,7 +3,7 @@ import { DataSource } from 'typeorm'
 import { faker } from '@faker-js/faker'
 import { UserRole } from '@app/shared'
 import { CacheService } from '../../../cache/cache.service'
-import { IDoctorsRepository } from '../../doctors/repositories/doctors.repository.interface'
+import { IProfessionalsRepository } from '../../professionals/repositories/professionals.repository.interface'
 import { ICurrentUser } from '../../auth/types/current-user.type'
 import { IScheduleExceptionsRepository } from '../repositories/schedule-exceptions.repository.interface'
 import { ListScheduleExceptionsUseCase } from '../use-cases/list-schedule-exceptions.use-case'
@@ -17,11 +17,11 @@ const mockScheduleExceptionsRepository: jest.Mocked<IScheduleExceptionsRepositor
   delete: jest.fn(),
 }
 
-const mockDoctorsRepository: jest.Mocked<IDoctorsRepository> = {
+const mockProfessionalsRepository: jest.Mocked<IProfessionalsRepository> = {
   findAll: jest.fn(),
   findById: jest.fn(),
   findByUserId: jest.fn(),
-  findByCrm: jest.fn(),
+  findByRegistration: jest.fn(),
   create: jest.fn(),
   update: jest.fn(),
   delete: jest.fn(),
@@ -67,7 +67,7 @@ describe('ListScheduleExceptionsUseCase', () => {
     useCase = new ListScheduleExceptionsUseCase(
       {} as DataSource,
       mockScheduleExceptionsRepository,
-      mockDoctorsRepository,
+      mockProfessionalsRepository,
       mockCacheService,
     )
     mockCacheService.get.mockResolvedValue(null)
@@ -75,7 +75,7 @@ describe('ListScheduleExceptionsUseCase', () => {
   })
 
   it('DOCTOR list is forced to own doctorId', async () => {
-    mockDoctorsRepository.findByUserId.mockResolvedValue(makeDoctor())
+    mockProfessionalsRepository.findByUserId.mockResolvedValue(makeDoctor())
     mockScheduleExceptionsRepository.findAll.mockResolvedValue([[makeException() as any], 1])
 
     await useCase.execute({ doctorId: 'other-doctor-id' } as any, doctorUser)
@@ -87,7 +87,7 @@ describe('ListScheduleExceptionsUseCase', () => {
   })
 
   it('throws NotFoundException when DOCTOR has no doctor profile', async () => {
-    mockDoctorsRepository.findByUserId.mockResolvedValue(null)
+    mockProfessionalsRepository.findByUserId.mockResolvedValue(null)
     await expect(useCase.execute({} as any, doctorUser)).rejects.toThrow(NotFoundException)
   })
 

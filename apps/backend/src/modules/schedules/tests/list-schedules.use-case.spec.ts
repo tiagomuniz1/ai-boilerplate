@@ -4,7 +4,7 @@ import { faker } from '@faker-js/faker'
 import { DayOfWeek, UserRole } from '@app/shared'
 import { CacheService } from '../../../cache/cache.service'
 import { ICurrentUser } from '../../auth/types/current-user.type'
-import { IDoctorsRepository } from '../../doctors/repositories/doctors.repository.interface'
+import { IProfessionalsRepository } from '../../professionals/repositories/professionals.repository.interface'
 import { ISchedulesRepository } from '../repositories/schedules.repository.interface'
 import { ListSchedulesUseCase } from '../use-cases/list-schedules.use-case'
 import { ListSchedulesQueryDto } from '../dto/list-schedules-query.dto'
@@ -20,11 +20,11 @@ const mockSchedulesRepository: jest.Mocked<ISchedulesRepository> = {
   findActiveByDoctorAndDate: jest.fn(),
 }
 
-const mockDoctorsRepository: jest.Mocked<IDoctorsRepository> = {
+const mockProfessionalsRepository: jest.Mocked<IProfessionalsRepository> = {
   findAll: jest.fn(),
   findById: jest.fn(),
   findByUserId: jest.fn(),
-  findByCrm: jest.fn(),
+  findByRegistration: jest.fn(),
   create: jest.fn(),
   update: jest.fn(),
   delete: jest.fn(),
@@ -81,18 +81,18 @@ describe('ListSchedulesUseCase', () => {
     useCase = new ListSchedulesUseCase(
       makeMockDataSource(),
       mockSchedulesRepository,
-      mockDoctorsRepository,
+      mockProfessionalsRepository,
       mockCacheService,
     )
     mockCacheService.get.mockResolvedValue(null)
     mockCacheService.set.mockResolvedValue(undefined)
-    mockDoctorsRepository.findByUserId.mockImplementation((userId: string) =>
+    mockProfessionalsRepository.findByUserId.mockImplementation((userId: string) =>
       Promise.resolve({ id: userId } as any),
     )
   })
 
   it('throws NotFoundException when DOCTOR has no profile', async () => {
-    mockDoctorsRepository.findByUserId.mockResolvedValue(null)
+    mockProfessionalsRepository.findByUserId.mockResolvedValue(null)
     await expect(useCase.execute({ page: 1, limit: 20 }, doctorUser)).rejects.toThrow(NotFoundException)
     expect(mockSchedulesRepository.findAll).not.toHaveBeenCalled()
   })
@@ -243,7 +243,7 @@ describe('ListSchedulesUseCase', () => {
     const useCaseWithEmptyNames = new ListSchedulesUseCase(
       emptyDataSource,
       mockSchedulesRepository,
-      mockDoctorsRepository,
+      mockProfessionalsRepository,
       mockCacheService,
     )
     const schedule = makeSchedule()

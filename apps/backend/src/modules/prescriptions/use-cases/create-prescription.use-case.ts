@@ -18,8 +18,8 @@ import { BaseUseCase } from '../../../common/base.use-case'
 import { CacheService } from '../../../cache/cache.service'
 import { ICurrentUser } from '../../auth/types/current-user.type'
 import { IAppointmentsRepository } from '../../appointments/repositories/appointments.repository.interface'
-import { IDoctorsRepository } from '../../doctors/repositories/doctors.repository.interface'
-import { resolveDoctorSigningIdentity } from '../../doctors/utils/resolve-doctor-signing-identity'
+import { IProfessionalsRepository } from '../../professionals/repositories/professionals.repository.interface'
+import { resolveDoctorSigningIdentity } from '../../professionals/utils/resolve-doctor-signing-identity'
 import { IPatientsRepository } from '../../patients/repositories/patients.repository.interface'
 import { IMedicationsRepository } from '../../medications/repositories/medications.repository.interface'
 import { FindClinicByIdUseCase } from '../../clinics/use-cases/find-clinic-by-id.use-case'
@@ -56,7 +56,7 @@ export class CreatePrescriptionUseCase extends BaseUseCase {
     dataSource: DataSource,
     private readonly prescriptionsRepository: IPrescriptionsRepository,
     private readonly appointmentsRepository: IAppointmentsRepository,
-    private readonly doctorsRepository: IDoctorsRepository,
+    private readonly professionalsRepository: IProfessionalsRepository,
     private readonly patientsRepository: IPatientsRepository,
     private readonly medicationsRepository: IMedicationsRepository,
     private readonly findClinicByIdUseCase: FindClinicByIdUseCase,
@@ -73,7 +73,7 @@ export class CreatePrescriptionUseCase extends BaseUseCase {
 
     let doctorForRbac = null
     if (currentUser.role === UserRole.DOCTOR) {
-      doctorForRbac = await this.doctorsRepository.findByUserId(currentUser.id, clinicId)
+      doctorForRbac = await this.professionalsRepository.findByUserId(currentUser.id, clinicId)
       if (!doctorForRbac || doctorForRbac.id !== appointment.doctorId) {
         throw new ForbiddenException('Insufficient permissions')
       }
@@ -114,8 +114,8 @@ export class CreatePrescriptionUseCase extends BaseUseCase {
 
     const clinic = await this.findClinicByIdUseCase.execute(clinicId)
 
-    const doctor = doctorForRbac ?? (await this.doctorsRepository.findById(appointment.doctorId, clinicId))
-    if (!doctor) throw new NotFoundException('Doctor not found')
+    const doctor = doctorForRbac ?? (await this.professionalsRepository.findById(appointment.doctorId, clinicId))
+    if (!doctor) throw new NotFoundException('Professional not found')
 
     const { crmNumber, rqe, specialtyName } = resolveDoctorSigningIdentity(
       doctor,

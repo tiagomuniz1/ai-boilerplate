@@ -2,7 +2,7 @@ import { NotFoundException } from '@nestjs/common'
 import { DataSource } from 'typeorm'
 import { UserRole } from '@app/shared'
 import { ICurrentUser } from '../../auth/types/current-user.type'
-import { IDoctorsRepository } from '../../doctors/repositories/doctors.repository.interface'
+import { IProfessionalsRepository } from '../../professionals/repositories/professionals.repository.interface'
 import { IMedicalRecordsRepository } from '../repositories/medical-records.repository.interface'
 import { FindMedicalRecordByIdUseCase } from '../use-cases/find-medical-record-by-id.use-case'
 
@@ -40,11 +40,11 @@ const mockMedicalRecordsRepository: jest.Mocked<IMedicalRecordsRepository> = {
   delete: jest.fn(),
 }
 
-const mockDoctorsRepository: jest.Mocked<IDoctorsRepository> = {
+const mockProfessionalsRepository: jest.Mocked<IProfessionalsRepository> = {
   findAll: jest.fn(),
   findById: jest.fn(),
   findByUserId: jest.fn(),
-  findByCrm: jest.fn(),
+  findByRegistration: jest.fn(),
   create: jest.fn(),
   update: jest.fn(),
   delete: jest.fn(),
@@ -55,7 +55,7 @@ describe('FindMedicalRecordByIdUseCase', () => {
 
   beforeEach(() => {
     jest.clearAllMocks()
-    useCase = new FindMedicalRecordByIdUseCase({} as DataSource, mockMedicalRecordsRepository, mockDoctorsRepository)
+    useCase = new FindMedicalRecordByIdUseCase({} as DataSource, mockMedicalRecordsRepository, mockProfessionalsRepository)
     mockMedicalRecordsRepository.findById.mockResolvedValue(makeRecord() as any)
   })
 
@@ -66,7 +66,7 @@ describe('FindMedicalRecordByIdUseCase', () => {
   })
 
   it('returns record for DOCTOR (own record)', async () => {
-    mockDoctorsRepository.findByUserId.mockResolvedValue({ id: doctorId } as any)
+    mockProfessionalsRepository.findByUserId.mockResolvedValue({ id: doctorId } as any)
     const result = await useCase.execute(recordId, doctorUser)
     expect(result.id).toBe(recordId)
   })
@@ -77,12 +77,12 @@ describe('FindMedicalRecordByIdUseCase', () => {
   })
 
   it('throws NotFoundException when DOCTOR accesses another doctor record', async () => {
-    mockDoctorsRepository.findByUserId.mockResolvedValue({ id: 'other-doctor' } as any)
+    mockProfessionalsRepository.findByUserId.mockResolvedValue({ id: 'other-doctor' } as any)
     await expect(useCase.execute(recordId, doctorUser)).rejects.toThrow(NotFoundException)
   })
 
   it('throws NotFoundException when DOCTOR has no profile', async () => {
-    mockDoctorsRepository.findByUserId.mockResolvedValue(null)
+    mockProfessionalsRepository.findByUserId.mockResolvedValue(null)
     await expect(useCase.execute(recordId, doctorUser)).rejects.toThrow(NotFoundException)
   })
 })

@@ -51,14 +51,14 @@ export class UpdateUserUseCase extends BaseUseCase {
     }
 
     const [isDoctor, isPatient] = await Promise.all([
-      this.hasProfile('doctors', updated.id),
+      this.hasProfile('professionals', updated.id),
       this.hasProfile('patients', updated.id),
     ])
 
     return this.toResponse(updated, isDoctor, isPatient)
   }
 
-  private async hasProfile(table: 'doctors' | 'patients', userId: string): Promise<boolean> {
+  private async hasProfile(table: 'professionals' | 'patients', userId: string): Promise<boolean> {
     const rows: unknown[] = await this.dataSource
       .createQueryBuilder()
       .select('1')

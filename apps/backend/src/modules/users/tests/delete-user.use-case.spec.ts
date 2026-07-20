@@ -6,7 +6,7 @@ import { DeleteUserUseCase } from '../use-cases/delete-user.use-case'
 import { IUsersRepository } from '../repositories/users.repository.interface'
 import { CacheService } from '../../../cache/cache.service'
 import { ICurrentUser } from '../../auth/types/current-user.type'
-import { DeleteDoctorUseCase } from '../../doctors/use-cases/delete-doctor.use-case'
+import { DeleteProfessionalUseCase } from '../../professionals/use-cases/delete-professional.use-case'
 import { DeletePatientUseCase } from '../../patients/use-cases/delete-patient.use-case'
 import { User } from '../entities/user.entity'
 
@@ -41,9 +41,9 @@ const mockCacheService = {
   delByPattern: jest.fn(),
 } as unknown as jest.Mocked<CacheService>
 
-const mockDeleteDoctorUseCase = {
+const mockDeleteProfessionalUseCase = {
   deleteByUserId: jest.fn(),
-} as unknown as jest.Mocked<DeleteDoctorUseCase>
+} as unknown as jest.Mocked<DeleteProfessionalUseCase>
 
 const mockDeletePatientUseCase = {
   deleteByUserId: jest.fn(),
@@ -79,11 +79,11 @@ describe('DeleteUserUseCase', () => {
       mockDataSource,
       mockUsersRepository,
       mockCacheService,
-      mockDeleteDoctorUseCase,
+      mockDeleteProfessionalUseCase,
       mockDeletePatientUseCase,
     )
     mockUsersRepository.delete.mockResolvedValue(undefined)
-    mockDeleteDoctorUseCase.deleteByUserId.mockResolvedValue(undefined)
+    mockDeleteProfessionalUseCase.deleteByUserId.mockResolvedValue(undefined)
     mockDeletePatientUseCase.deleteByUserId.mockResolvedValue(undefined)
     mockCacheService.del.mockResolvedValue(undefined)
     mockCacheService.delByPattern.mockResolvedValue(undefined)
@@ -103,7 +103,7 @@ describe('DeleteUserUseCase', () => {
 
     await expect(useCase.execute(user.id, adminCurrentUser)).resolves.toBeUndefined()
 
-    expect(mockDeleteDoctorUseCase.deleteByUserId).toHaveBeenCalledWith(user.id, CLINIC_ID, mockQueryRunner)
+    expect(mockDeleteProfessionalUseCase.deleteByUserId).toHaveBeenCalledWith(user.id, CLINIC_ID, mockQueryRunner)
     expect(mockDeletePatientUseCase.deleteByUserId).toHaveBeenCalledWith(user.id, CLINIC_ID, mockQueryRunner)
     expect(mockUsersRepository.delete).toHaveBeenCalledWith(user.id, mockQueryRunner)
     expect(mockQueryRunner.commitTransaction).toHaveBeenCalled()
@@ -114,7 +114,7 @@ describe('DeleteUserUseCase', () => {
 
     await expect(useCase.execute(targetUser.id, adminCurrentUser)).rejects.toThrow(NotFoundException)
     expect(mockUsersRepository.delete).not.toHaveBeenCalled()
-    expect(mockDeleteDoctorUseCase.deleteByUserId).not.toHaveBeenCalled()
+    expect(mockDeleteProfessionalUseCase.deleteByUserId).not.toHaveBeenCalled()
     expect(mockDeletePatientUseCase.deleteByUserId).not.toHaveBeenCalled()
   })
 

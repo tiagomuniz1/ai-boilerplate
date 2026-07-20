@@ -146,6 +146,7 @@ packages/shared/src/
   dtos/     → Contratos de request/response da API
   types/    → Interfaces e types compartilhados
   enums/    → Enums usados nos dois projetos
+  config/   → Configurações estáticas compartilhadas (ex: formato de validação por enum)
   utils/    → Funções puras sem dependência de framework
   index.ts  → Único ponto de exportação
 ```

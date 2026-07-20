@@ -3,7 +3,7 @@ import { DataSource } from 'typeorm'
 import { faker } from '@faker-js/faker'
 import { DayOfWeek, UserRole } from '@app/shared'
 import { CacheService } from '../../../cache/cache.service'
-import { IDoctorsRepository } from '../../doctors/repositories/doctors.repository.interface'
+import { IProfessionalsRepository } from '../../professionals/repositories/professionals.repository.interface'
 import { ICurrentUser } from '../../auth/types/current-user.type'
 import { ISchedulesRepository } from '../repositories/schedules.repository.interface'
 import { CreateScheduleUseCase } from '../use-cases/create-schedule.use-case'
@@ -19,11 +19,11 @@ const mockSchedulesRepository: jest.Mocked<ISchedulesRepository> = {
   findActiveByDoctorAndDate: jest.fn(),
 }
 
-const mockDoctorsRepository: jest.Mocked<IDoctorsRepository> = {
+const mockProfessionalsRepository: jest.Mocked<IProfessionalsRepository> = {
   findAll: jest.fn(),
   findById: jest.fn(),
   findByUserId: jest.fn(),
-  findByCrm: jest.fn(),
+  findByRegistration: jest.fn(),
   create: jest.fn(),
   update: jest.fn(),
   delete: jest.fn(),
@@ -88,7 +88,7 @@ describe('CreateScheduleUseCase', () => {
     useCase = new CreateScheduleUseCase(
       makeMockDataSource(),
       mockSchedulesRepository,
-      mockDoctorsRepository,
+      mockProfessionalsRepository,
       mockCacheService,
     )
     mockCacheService.delByPrefix.mockResolvedValue(undefined)
@@ -97,7 +97,7 @@ describe('CreateScheduleUseCase', () => {
   it('creates schedule as doctor using findByUserId (ignores dto.doctorId)', async () => {
     const doctor = makeDoctor()
     const schedule = makeSchedule({ doctorId: doctor.id })
-    mockDoctorsRepository.findByUserId.mockResolvedValue(doctor)
+    mockProfessionalsRepository.findByUserId.mockResolvedValue(doctor)
     mockSchedulesRepository.findOverlapping.mockResolvedValue(null)
     mockSchedulesRepository.create.mockResolvedValue(schedule as any)
 
@@ -106,8 +106,8 @@ describe('CreateScheduleUseCase', () => {
       doctorUser,
     )
 
-    expect(mockDoctorsRepository.findByUserId).toHaveBeenCalledWith(doctorUser.id, CLINIC_ID)
-    expect(mockDoctorsRepository.findById).not.toHaveBeenCalled()
+    expect(mockProfessionalsRepository.findByUserId).toHaveBeenCalledWith(doctorUser.id, CLINIC_ID)
+    expect(mockProfessionalsRepository.findById).not.toHaveBeenCalled()
     expect(result.id).toBeDefined()
   })
 
@@ -115,13 +115,13 @@ describe('CreateScheduleUseCase', () => {
     const targetDoctorId = faker.string.uuid()
     const dto = makeDto({ doctorId: targetDoctorId })
     const schedule = makeSchedule({ doctorId: targetDoctorId })
-    mockDoctorsRepository.findById.mockResolvedValue({ id: targetDoctorId } as any)
+    mockProfessionalsRepository.findById.mockResolvedValue({ id: targetDoctorId } as any)
     mockSchedulesRepository.findOverlapping.mockResolvedValue(null)
     mockSchedulesRepository.create.mockResolvedValue(schedule as any)
 
     await useCase.execute(dto, adminUser)
 
-    expect(mockDoctorsRepository.findById).toHaveBeenCalledWith(targetDoctorId, CLINIC_ID)
+    expect(mockProfessionalsRepository.findById).toHaveBeenCalledWith(targetDoctorId, CLINIC_ID)
   })
 
   it('throws ForbiddenException when role is USER', async () => {
@@ -144,34 +144,34 @@ describe('CreateScheduleUseCase', () => {
   })
 
   it('throws NotFoundException when doctor does not exist', async () => {
-    mockDoctorsRepository.findByUserId.mockResolvedValue(null)
+    mockProfessionalsRepository.findByUserId.mockResolvedValue(null)
     await expect(useCase.execute(makeDto(), doctorUser)).rejects.toThrow(NotFoundException)
     expect(mockSchedulesRepository.create).not.toHaveBeenCalled()
   })
 
   it('throws UnprocessableEntityException when startTime >= endTime', async () => {
-    mockDoctorsRepository.findByUserId.mockResolvedValue(makeDoctor())
+    mockProfessionalsRepository.findByUserId.mockResolvedValue(makeDoctor())
     await expect(
       useCase.execute(makeDto({ startTime: '12:00', endTime: '08:00' }), doctorUser),
     ).rejects.toThrow(UnprocessableEntityException)
   })
 
   it('throws UnprocessableEntityException when interval not divisible by slot', async () => {
-    mockDoctorsRepository.findByUserId.mockResolvedValue(makeDoctor())
+    mockProfessionalsRepository.findByUserId.mockResolvedValue(makeDoctor())
     await expect(
       useCase.execute(makeDto({ startTime: '08:00', endTime: '09:00', slotDurationInMinutes: 40 }), doctorUser),
     ).rejects.toThrow(UnprocessableEntityException)
   })
 
   it('throws UnprocessableEntityException when validFrom >= validUntil', async () => {
-    mockDoctorsRepository.findByUserId.mockResolvedValue(makeDoctor())
+    mockProfessionalsRepository.findByUserId.mockResolvedValue(makeDoctor())
     await expect(
       useCase.execute(makeDto({ validFrom: '2025-06-01', validUntil: '2025-01-01' }), doctorUser),
     ).rejects.toThrow(UnprocessableEntityException)
   })
 
   it('throws UnprocessableEntityException when validFrom equals validUntil', async () => {
-    mockDoctorsRepository.findByUserId.mockResolvedValue(makeDoctor())
+    mockProfessionalsRepository.findByUserId.mockResolvedValue(makeDoctor())
     await expect(
       useCase.execute(makeDto({ validFrom: '2025-01-01', validUntil: '2025-01-01' }), doctorUser),
     ).rejects.toThrow(UnprocessableEntityException)
@@ -179,7 +179,7 @@ describe('CreateScheduleUseCase', () => {
 
   it('succeeds with only validFrom (open-ended validity)', async () => {
     const schedule = makeSchedule()
-    mockDoctorsRepository.findByUserId.mockResolvedValue(makeDoctor())
+    mockProfessionalsRepository.findByUserId.mockResolvedValue(makeDoctor())
     mockSchedulesRepository.findOverlapping.mockResolvedValue(null)
     mockSchedulesRepository.create.mockResolvedValue(schedule as any)
 
@@ -189,7 +189,7 @@ describe('CreateScheduleUseCase', () => {
   })
 
   it('throws ConflictException when schedule overlaps', async () => {
-    mockDoctorsRepository.findByUserId.mockResolvedValue(makeDoctor())
+    mockProfessionalsRepository.findByUserId.mockResolvedValue(makeDoctor())
     mockSchedulesRepository.findOverlapping.mockResolvedValue(makeSchedule() as any)
 
     await expect(useCase.execute(makeDto(), doctorUser)).rejects.toThrow(ConflictException)
@@ -199,7 +199,7 @@ describe('CreateScheduleUseCase', () => {
   it('invalidates cache after creation using doctor profile id', async () => {
     const doctor = makeDoctor()
     const schedule = makeSchedule({ doctorId: doctor.id })
-    mockDoctorsRepository.findByUserId.mockResolvedValue(doctor)
+    mockProfessionalsRepository.findByUserId.mockResolvedValue(doctor)
     mockSchedulesRepository.findOverlapping.mockResolvedValue(null)
     mockSchedulesRepository.create.mockResolvedValue(schedule as any)
 
@@ -210,7 +210,7 @@ describe('CreateScheduleUseCase', () => {
 
   it('continues when cache invalidation fails', async () => {
     const schedule = makeSchedule()
-    mockDoctorsRepository.findByUserId.mockResolvedValue(makeDoctor())
+    mockProfessionalsRepository.findByUserId.mockResolvedValue(makeDoctor())
     mockSchedulesRepository.findOverlapping.mockResolvedValue(null)
     mockSchedulesRepository.create.mockResolvedValue(schedule as any)
     mockCacheService.delByPrefix.mockRejectedValue(new Error('Redis error'))
@@ -222,7 +222,7 @@ describe('CreateScheduleUseCase', () => {
 
   it('response does not contain version or deletedAt', async () => {
     const schedule = makeSchedule()
-    mockDoctorsRepository.findByUserId.mockResolvedValue(makeDoctor())
+    mockProfessionalsRepository.findByUserId.mockResolvedValue(makeDoctor())
     mockSchedulesRepository.findOverlapping.mockResolvedValue(null)
     mockSchedulesRepository.create.mockResolvedValue(schedule as any)
 
@@ -245,11 +245,11 @@ describe('CreateScheduleUseCase', () => {
     const useCaseWithEmptyNames = new CreateScheduleUseCase(
       emptyDataSource,
       mockSchedulesRepository,
-      mockDoctorsRepository,
+      mockProfessionalsRepository,
       mockCacheService,
     )
     const schedule = makeSchedule()
-    mockDoctorsRepository.findByUserId.mockResolvedValue(makeDoctor())
+    mockProfessionalsRepository.findByUserId.mockResolvedValue(makeDoctor())
     mockSchedulesRepository.findOverlapping.mockResolvedValue(null)
     mockSchedulesRepository.create.mockResolvedValue(schedule as any)
 

@@ -6,11 +6,11 @@ import * as bcrypt from 'bcrypt'
 import * as cookieParser from 'cookie-parser'
 import * as request from 'supertest'
 import { Repository } from 'typeorm'
-import { AppointmentStatus, DayOfWeek, MedicalRecordFieldType, PatientGender, UserRole } from '@app/shared'
+import { AppointmentStatus, CouncilType, DayOfWeek, MedicalRecordFieldType, PatientGender, UserRole } from '@app/shared'
 import { AppModule } from '../../../app.module'
 import { Clinic } from '../../clinics/entities/clinic.entity'
 import { User } from '../../users/entities/user.entity'
-import { Doctor } from '../../doctors/entities/doctor.entity'
+import { Professional } from '../../professionals/entities/professional.entity'
 import { Patient } from '../../patients/entities/patient.entity'
 import { Specialty } from '../../specialties/entities/specialty.entity'
 import { Schedule } from '../../schedules/entities/schedule.entity'
@@ -38,7 +38,7 @@ describe('MedicalRecordsController (integration)', () => {
   let app: INestApplication
   let userRepository: Repository<User>
   let clinicRepository: Repository<Clinic>
-  let doctorRepository: Repository<Doctor>
+  let doctorRepository: Repository<Professional>
   let patientRepository: Repository<Patient>
   let specialtyRepository: Repository<Specialty>
   let scheduleRepository: Repository<Schedule>
@@ -74,7 +74,7 @@ describe('MedicalRecordsController (integration)', () => {
 
     userRepository = module.get(getRepositoryToken(User))
     clinicRepository = module.get(getRepositoryToken(Clinic))
-    doctorRepository = module.get(getRepositoryToken(Doctor))
+    doctorRepository = module.get(getRepositoryToken(Professional))
     patientRepository = module.get(getRepositoryToken(Patient))
     specialtyRepository = module.get(getRepositoryToken(Specialty))
     scheduleRepository = module.get(getRepositoryToken(Schedule))
@@ -90,8 +90,8 @@ describe('MedicalRecordsController (integration)', () => {
     await scheduleRepository.query('DELETE FROM test.schedule_exceptions')
     await scheduleRepository.query('DELETE FROM test.schedules')
     await patientRepository.query('DELETE FROM test.patients')
-    await doctorRepository.query('DELETE FROM test.doctor_specialties')
-    await doctorRepository.query('DELETE FROM test.doctors')
+    await doctorRepository.query('DELETE FROM test.professional_specialties')
+    await doctorRepository.query('DELETE FROM test.professionals')
     await specialtyRepository.query('DELETE FROM test.specialties')
     await userRepository.query('DELETE FROM test.refresh_tokens')
     await userRepository.query('DELETE FROM test.users')
@@ -157,8 +157,8 @@ describe('MedicalRecordsController (integration)', () => {
       userId: doctorUser.id,
       clinicId: SEED_CLINIC_ID,
     })
-    doctorEntity.crms = [{ clinicId: SEED_CLINIC_ID, number: '12345', state: 'SP', isPrimary: true }] as any
-    doctorEntity.doctorSpecialties = ([specialty]).map((s: any) => ({ specialtyId: s.id, rqe: null })) as any
+    doctorEntity.registrations = [{ clinicId: SEED_CLINIC_ID, councilType: CouncilType.CRM, number: '12345', state: 'SP', isPrimary: true }] as any
+    doctorEntity.professionalSpecialties = ([specialty]).map((s: any) => ({ specialtyId: s.id, registryNumber: null })) as any
     const doctorProfile = await doctorRepository.save(doctorEntity)
     doctorId = doctorProfile.id
 
@@ -166,8 +166,8 @@ describe('MedicalRecordsController (integration)', () => {
       userId: otherDoctorUser.id,
       clinicId: SEED_CLINIC_ID,
     })
-    otherDoctorEntity.crms = [{ clinicId: SEED_CLINIC_ID, number: '99999', state: 'SP', isPrimary: true }] as any
-    otherDoctorEntity.doctorSpecialties = ([specialty]).map((s: any) => ({ specialtyId: s.id, rqe: null })) as any
+    otherDoctorEntity.registrations = [{ clinicId: SEED_CLINIC_ID, councilType: CouncilType.CRM, number: '99999', state: 'SP', isPrimary: true }] as any
+    otherDoctorEntity.professionalSpecialties = ([specialty]).map((s: any) => ({ specialtyId: s.id, registryNumber: null })) as any
     const otherDoctorProfile = await doctorRepository.save(otherDoctorEntity)
     otherDoctorId = otherDoctorProfile.id
 
@@ -284,8 +284,8 @@ describe('MedicalRecordsController (integration)', () => {
     await scheduleRepository.query('DELETE FROM test.schedule_exceptions')
     await scheduleRepository.query('DELETE FROM test.schedules')
     await patientRepository.query('DELETE FROM test.patients')
-    await doctorRepository.query('DELETE FROM test.doctor_specialties')
-    await doctorRepository.query('DELETE FROM test.doctors')
+    await doctorRepository.query('DELETE FROM test.professional_specialties')
+    await doctorRepository.query('DELETE FROM test.professionals')
     await specialtyRepository.query('DELETE FROM test.specialties')
     await userRepository.query('DELETE FROM test.refresh_tokens')
     await userRepository.query('DELETE FROM test.users')

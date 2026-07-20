@@ -2,7 +2,7 @@ import { ForbiddenException, NotFoundException } from '@nestjs/common'
 import { DataSource } from 'typeorm'
 import { UserRole } from '@app/shared'
 import { ICurrentUser } from '../../auth/types/current-user.type'
-import { IDoctorsRepository } from '../../doctors/repositories/doctors.repository.interface'
+import { IProfessionalsRepository } from '../../professionals/repositories/professionals.repository.interface'
 import { IPrescriptionsRepository } from '../repositories/prescriptions.repository.interface'
 import { FindPrescriptionByIdUseCase } from '../use-cases/find-prescription-by-id.use-case'
 
@@ -42,11 +42,11 @@ const mockPrescriptionsRepository: jest.Mocked<IPrescriptionsRepository> = {
   delete: jest.fn(),
 }
 
-const mockDoctorsRepository: jest.Mocked<IDoctorsRepository> = {
+const mockProfessionalsRepository: jest.Mocked<IProfessionalsRepository> = {
   findAll: jest.fn(),
   findById: jest.fn(),
   findByUserId: jest.fn(),
-  findByCrm: jest.fn(),
+  findByRegistration: jest.fn(),
   create: jest.fn(),
   update: jest.fn(),
   delete: jest.fn(),
@@ -60,24 +60,24 @@ describe('FindPrescriptionByIdUseCase', () => {
     useCase = new FindPrescriptionByIdUseCase(
       {} as DataSource,
       mockPrescriptionsRepository,
-      mockDoctorsRepository,
+      mockProfessionalsRepository,
     )
     mockPrescriptionsRepository.findById.mockResolvedValue(makePrescription() as any)
-    mockDoctorsRepository.findByUserId.mockResolvedValue({ id: doctorId } as any)
+    mockProfessionalsRepository.findByUserId.mockResolvedValue({ id: doctorId } as any)
   })
 
   it('returns prescription for ADMIN', async () => {
     const result = await useCase.execute(prescriptionId, adminUser)
 
     expect(result.id).toBe(prescriptionId)
-    expect(mockDoctorsRepository.findByUserId).not.toHaveBeenCalled()
+    expect(mockProfessionalsRepository.findByUserId).not.toHaveBeenCalled()
   })
 
   it('returns prescription for DOCTOR on own prescription', async () => {
     const result = await useCase.execute(prescriptionId, doctorUser)
 
     expect(result.id).toBe(prescriptionId)
-    expect(mockDoctorsRepository.findByUserId).toHaveBeenCalledWith(doctorUser.id, clinicId)
+    expect(mockProfessionalsRepository.findByUserId).toHaveBeenCalledWith(doctorUser.id, clinicId)
   })
 
   it('throws NotFoundException when prescription not found', async () => {
@@ -87,13 +87,13 @@ describe('FindPrescriptionByIdUseCase', () => {
   })
 
   it('throws ForbiddenException when DOCTOR accesses another doctor prescription', async () => {
-    mockDoctorsRepository.findByUserId.mockResolvedValue({ id: 'other-doctor' } as any)
+    mockProfessionalsRepository.findByUserId.mockResolvedValue({ id: 'other-doctor' } as any)
 
     await expect(useCase.execute(prescriptionId, doctorUser)).rejects.toThrow(ForbiddenException)
   })
 
   it('throws ForbiddenException when DOCTOR has no doctor profile', async () => {
-    mockDoctorsRepository.findByUserId.mockResolvedValue(null)
+    mockProfessionalsRepository.findByUserId.mockResolvedValue(null)
 
     await expect(useCase.execute(prescriptionId, doctorUser)).rejects.toThrow(ForbiddenException)
   })

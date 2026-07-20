@@ -1,7 +1,7 @@
 import { forwardRef, Module } from '@nestjs/common'
 import { TypeOrmModule } from '@nestjs/typeorm'
 import { CacheModule } from '../../cache/cache.module'
-import { DoctorsModule } from '../doctors/doctors.module'
+import { ProfessionalsModule } from '../professionals/professionals.module'
 import { AppointmentsModule } from '../appointments/appointments.module'
 import { Schedule } from './entities/schedule.entity'
 import { SchedulesController } from './controllers/schedules.controller'
@@ -22,7 +22,7 @@ import {
   imports: [
     TypeOrmModule.forFeature([Schedule]),
     CacheModule,
-    forwardRef(() => DoctorsModule),
+    forwardRef(() => ProfessionalsModule),
     forwardRef(() => AppointmentsModule),
   ],
   controllers: [SchedulesController],

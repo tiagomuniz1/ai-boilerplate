@@ -2,7 +2,7 @@ import { ForbiddenException, NotFoundException, UnprocessableEntityException } f
 import { DataSource } from 'typeorm'
 import { UserRole } from '@app/shared'
 import { ICurrentUser } from '../../auth/types/current-user.type'
-import { IDoctorsRepository } from '../../doctors/repositories/doctors.repository.interface'
+import { IProfessionalsRepository } from '../../professionals/repositories/professionals.repository.interface'
 import { IMedicationsRepository } from '../../medications/repositories/medications.repository.interface'
 import { IPrescriptionTemplatesRepository } from '../repositories/prescription-templates.repository.interface'
 import { UpdatePrescriptionTemplateUseCase } from '../use-cases/update-prescription-template.use-case'
@@ -42,11 +42,11 @@ const mockRepository: jest.Mocked<IPrescriptionTemplatesRepository> = {
   delete: jest.fn(),
 }
 
-const mockDoctorsRepository: jest.Mocked<IDoctorsRepository> = {
+const mockProfessionalsRepository: jest.Mocked<IProfessionalsRepository> = {
   findAll: jest.fn(),
   findById: jest.fn(),
   findByUserId: jest.fn(),
-  findByCrm: jest.fn(),
+  findByRegistration: jest.fn(),
   create: jest.fn(),
   update: jest.fn(),
   delete: jest.fn(),
@@ -69,12 +69,12 @@ describe('UpdatePrescriptionTemplateUseCase', () => {
     useCase = new UpdatePrescriptionTemplateUseCase(
       {} as DataSource,
       mockRepository,
-      mockDoctorsRepository,
+      mockProfessionalsRepository,
       mockMedicationsRepository,
     )
     mockRepository.findById.mockResolvedValue(makeTemplate() as any)
     mockRepository.update.mockResolvedValue(makeTemplate({ name: 'Modelo Atualizado' }) as any)
-    mockDoctorsRepository.findByUserId.mockResolvedValue(makeDoctor() as any)
+    mockProfessionalsRepository.findByUserId.mockResolvedValue(makeDoctor() as any)
     mockMedicationsRepository.findById.mockResolvedValue(makeMedication() as any)
   })
 
@@ -90,7 +90,7 @@ describe('UpdatePrescriptionTemplateUseCase', () => {
 
     await useCase.execute(templateId, { name: 'Novo nome' }, adminUser)
 
-    expect(mockDoctorsRepository.findByUserId).not.toHaveBeenCalled()
+    expect(mockProfessionalsRepository.findByUserId).not.toHaveBeenCalled()
     expect(mockRepository.update).toHaveBeenCalled()
   })
 
@@ -105,7 +105,7 @@ describe('UpdatePrescriptionTemplateUseCase', () => {
   it('allows DOCTOR to update own template', async () => {
     await useCase.execute(templateId, { name: 'Novo' }, doctorUser)
 
-    expect(mockDoctorsRepository.findByUserId).toHaveBeenCalledWith(doctorUser.id, clinicId)
+    expect(mockProfessionalsRepository.findByUserId).toHaveBeenCalledWith(doctorUser.id, clinicId)
     expect(mockRepository.update).toHaveBeenCalled()
   })
 
@@ -116,7 +116,7 @@ describe('UpdatePrescriptionTemplateUseCase', () => {
   })
 
   it('throws ForbiddenException when DOCTOR updates another doctor template', async () => {
-    mockDoctorsRepository.findByUserId.mockResolvedValue(makeDoctor({ id: 'other' }) as any)
+    mockProfessionalsRepository.findByUserId.mockResolvedValue(makeDoctor({ id: 'other' }) as any)
 
     await expect(useCase.execute(templateId, { name: 'X' }, doctorUser)).rejects.toThrow(ForbiddenException)
   })

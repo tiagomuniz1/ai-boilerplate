@@ -4,7 +4,7 @@ import { ExamRequestStatus } from '@app/shared'
 import { BaseUseCase } from '../../../common/base.use-case'
 import { CacheService } from '../../../cache/cache.service'
 import { ICurrentUser } from '../../auth/types/current-user.type'
-import { IDoctorsRepository } from '../../doctors/repositories/doctors.repository.interface'
+import { IProfessionalsRepository } from '../../professionals/repositories/professionals.repository.interface'
 import { IExamRequestsRepository } from '../repositories/exam-requests.repository.interface'
 import { IExamResultsRepository } from '../repositories/exam-results.repository.interface'
 
@@ -16,7 +16,7 @@ export class DeleteExamResultUseCase extends BaseUseCase {
     dataSource: DataSource,
     private readonly examResultsRepository: IExamResultsRepository,
     private readonly examRequestsRepository: IExamRequestsRepository,
-    private readonly doctorsRepository: IDoctorsRepository,
+    private readonly professionalsRepository: IProfessionalsRepository,
     private readonly cacheService: CacheService,
   ) {
     super(dataSource)
@@ -31,7 +31,7 @@ export class DeleteExamResultUseCase extends BaseUseCase {
     const examRequest = await this.examRequestsRepository.findById(examResult.examRequestId, clinicId)
     if (!examRequest) throw new NotFoundException('Exam request not found')
 
-    const doctor = await this.doctorsRepository.findByUserId(currentUser.id, clinicId)
+    const doctor = await this.professionalsRepository.findByUserId(currentUser.id, clinicId)
     if (!doctor || doctor.id !== examRequest.doctorId) {
       throw new ForbiddenException('Insufficient permissions')
     }

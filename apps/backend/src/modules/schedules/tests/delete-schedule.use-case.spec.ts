@@ -4,7 +4,7 @@ import { faker } from '@faker-js/faker'
 import { DayOfWeek, UserRole } from '@app/shared'
 import { CacheService } from '../../../cache/cache.service'
 import { ICurrentUser } from '../../auth/types/current-user.type'
-import { IDoctorsRepository } from '../../doctors/repositories/doctors.repository.interface'
+import { IProfessionalsRepository } from '../../professionals/repositories/professionals.repository.interface'
 import { IAppointmentsRepository } from '../repositories/appointments.repository.adapter'
 import { ISchedulesRepository } from '../repositories/schedules.repository.interface'
 import { DeleteScheduleUseCase } from '../use-cases/delete-schedule.use-case'
@@ -20,11 +20,11 @@ const mockSchedulesRepository: jest.Mocked<ISchedulesRepository> = {
   findActiveByDoctorAndDate: jest.fn(),
 }
 
-const mockDoctorsRepository: jest.Mocked<IDoctorsRepository> = {
+const mockProfessionalsRepository: jest.Mocked<IProfessionalsRepository> = {
   findAll: jest.fn(),
   findById: jest.fn(),
   findByUserId: jest.fn(),
-  findByCrm: jest.fn(),
+  findByRegistration: jest.fn(),
   create: jest.fn(),
   update: jest.fn(),
   delete: jest.fn(),
@@ -75,13 +75,13 @@ describe('DeleteScheduleUseCase', () => {
     useCase = new DeleteScheduleUseCase(
       {} as DataSource,
       mockSchedulesRepository,
-      mockDoctorsRepository,
+      mockProfessionalsRepository,
       mockAppointmentsRepository,
       mockCacheService,
     )
     mockAppointmentsRepository.hasFutureAppointmentsByScheduleId.mockResolvedValue(false)
     mockCacheService.delByPrefix.mockResolvedValue(undefined)
-    mockDoctorsRepository.findByUserId.mockImplementation((userId: string) =>
+    mockProfessionalsRepository.findByUserId.mockImplementation((userId: string) =>
       Promise.resolve({ id: userId } as any),
     )
   })
@@ -107,7 +107,7 @@ describe('DeleteScheduleUseCase', () => {
 
   it('throws NotFoundException when DOCTOR has no profile', async () => {
     mockSchedulesRepository.findById.mockResolvedValue(makeSchedule() as any)
-    mockDoctorsRepository.findByUserId.mockResolvedValue(null)
+    mockProfessionalsRepository.findByUserId.mockResolvedValue(null)
     await expect(useCase.execute(faker.string.uuid(), ownerUser)).rejects.toThrow(NotFoundException)
     expect(mockSchedulesRepository.delete).not.toHaveBeenCalled()
   })

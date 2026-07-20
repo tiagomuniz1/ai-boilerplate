@@ -18,7 +18,7 @@ export class SchedulesRepository implements ISchedulesRepository {
 
     const qb = this.repository
       .createQueryBuilder('schedule')
-      .innerJoin('doctors', 'd', 'd.id = schedule.doctor_id AND d.deleted_at IS NULL')
+      .innerJoin('professionals', 'd', 'd.id = schedule.doctor_id AND d.deleted_at IS NULL')
       .innerJoin('users', 'u', 'u.id = d.user_id AND u.deleted_at IS NULL')
       .where('schedule.deleted_at IS NULL')
       .andWhere('u.clinic_id = :clinicId', { clinicId })
@@ -51,7 +51,7 @@ export class SchedulesRepository implements ISchedulesRepository {
   async findById(id: string, clinicId: string): Promise<Schedule | null> {
     return this.repository
       .createQueryBuilder('schedule')
-      .innerJoin('doctors', 'd', 'd.id = schedule.doctor_id AND d.deleted_at IS NULL')
+      .innerJoin('professionals', 'd', 'd.id = schedule.doctor_id AND d.deleted_at IS NULL')
       .innerJoin('users', 'u', 'u.id = d.user_id AND u.deleted_at IS NULL')
       .where('schedule.id = :id', { id })
       .andWhere('u.clinic_id = :clinicId', { clinicId })
@@ -70,7 +70,7 @@ export class SchedulesRepository implements ISchedulesRepository {
   ): Promise<Schedule | null> {
     const qb = this.repository
       .createQueryBuilder('schedule')
-      .innerJoin('doctors', 'd', 'd.id = schedule.doctor_id AND d.deleted_at IS NULL')
+      .innerJoin('professionals', 'd', 'd.id = schedule.doctor_id AND d.deleted_at IS NULL')
       .innerJoin('users', 'u', 'u.id = d.user_id AND u.deleted_at IS NULL')
       .where('schedule.deleted_at IS NULL')
       .andWhere('u.clinic_id = :clinicId', { clinicId })
@@ -152,7 +152,7 @@ export class SchedulesRepository implements ISchedulesRepository {
   ): Promise<Schedule[]> {
     return this.repository
       .createQueryBuilder('schedule')
-      .innerJoin('doctors', 'd', 'd.id = schedule.doctor_id AND d.deleted_at IS NULL')
+      .innerJoin('professionals', 'd', 'd.id = schedule.doctor_id AND d.deleted_at IS NULL')
       .innerJoin('users', 'u', 'u.id = d.user_id AND u.deleted_at IS NULL')
       .where('schedule.deleted_at IS NULL')
       .andWhere('u.clinic_id = :clinicId', { clinicId })

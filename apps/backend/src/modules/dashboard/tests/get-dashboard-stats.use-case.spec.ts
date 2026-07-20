@@ -4,7 +4,7 @@ import { faker } from '@faker-js/faker'
 import { AppointmentStatus, UserRole } from '@app/shared'
 import { CacheService } from '../../../cache/cache.service'
 import { ICurrentUser } from '../../auth/types/current-user.type'
-import { IDoctorsRepository } from '../../doctors/repositories/doctors.repository.interface'
+import { IProfessionalsRepository } from '../../professionals/repositories/professionals.repository.interface'
 import { IDashboardRepository } from '../repositories/dashboard.repository.interface'
 import { GetDashboardStatsUseCase } from '../use-cases/get-dashboard-stats.use-case'
 
@@ -37,11 +37,11 @@ const mockDashboardRepository: jest.Mocked<IDashboardRepository> = {
   getTodayBirthdays: jest.fn(),
 }
 
-const mockDoctorsRepository: jest.Mocked<IDoctorsRepository> = {
+const mockProfessionalsRepository: jest.Mocked<IProfessionalsRepository> = {
   findAll: jest.fn(),
   findById: jest.fn(),
   findByUserId: jest.fn(),
-  findByCrm: jest.fn(),
+  findByRegistration: jest.fn(),
   create: jest.fn(),
   update: jest.fn(),
   delete: jest.fn(),
@@ -56,7 +56,7 @@ function makeUseCase() {
   return new GetDashboardStatsUseCase(
     {} as DataSource,
     mockDashboardRepository,
-    mockDoctorsRepository,
+    mockProfessionalsRepository,
     mockCacheService,
   )
 }
@@ -80,7 +80,7 @@ describe('GetDashboardStatsUseCase', () => {
     useCase = makeUseCase()
     mockCacheService.get.mockResolvedValue(null)
     mockCacheService.set.mockResolvedValue(undefined)
-    mockDoctorsRepository.findByUserId.mockResolvedValue({ id: DOCTOR_ID } as any)
+    mockProfessionalsRepository.findByUserId.mockResolvedValue({ id: DOCTOR_ID } as any)
     setupEmptyRepos()
   })
 
@@ -124,7 +124,7 @@ describe('GetDashboardStatsUseCase', () => {
     })
 
     it('throws ForbiddenException when DOCTOR has no doctor profile', async () => {
-      mockDoctorsRepository.findByUserId.mockResolvedValue(null)
+      mockProfessionalsRepository.findByUserId.mockResolvedValue(null)
       await expect(useCase.execute({}, doctorUser)).rejects.toThrow(ForbiddenException)
     })
 

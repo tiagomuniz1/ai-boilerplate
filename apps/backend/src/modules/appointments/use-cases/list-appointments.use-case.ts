@@ -4,7 +4,7 @@ import { AppointmentResponseDto, PaginatedAppointmentsResponseDto, UserRole } fr
 import { BaseUseCase } from '../../../common/base.use-case'
 import { CacheService } from '../../../cache/cache.service'
 import { ICurrentUser } from '../../auth/types/current-user.type'
-import { IDoctorsRepository } from '../../doctors/repositories/doctors.repository.interface'
+import { IProfessionalsRepository } from '../../professionals/repositories/professionals.repository.interface'
 import { ListAppointmentsQueryDto } from '../dto/list-appointments-query.dto'
 import { Appointment } from '../entities/appointment.entity'
 import { IAppointmentsRepository } from '../repositories/appointments.repository.interface'
@@ -16,7 +16,7 @@ export class ListAppointmentsUseCase extends BaseUseCase {
   constructor(
     dataSource: DataSource,
     private readonly appointmentsRepository: IAppointmentsRepository,
-    private readonly doctorsRepository: IDoctorsRepository,
+    private readonly professionalsRepository: IProfessionalsRepository,
     private readonly cacheService: CacheService,
   ) {
     super(dataSource)
@@ -27,8 +27,8 @@ export class ListAppointmentsUseCase extends BaseUseCase {
     const effectiveQuery = { ...query }
 
     if (currentUser.role === UserRole.DOCTOR) {
-      const doctor = await this.doctorsRepository.findByUserId(currentUser.id, clinicId)
-      if (!doctor) throw new NotFoundException('Doctor not found')
+      const doctor = await this.professionalsRepository.findByUserId(currentUser.id, clinicId)
+      if (!doctor) throw new NotFoundException('Professional not found')
       effectiveQuery.doctorId = doctor.id
     }
 
@@ -86,7 +86,7 @@ export class ListAppointmentsUseCase extends BaseUseCase {
       .createQueryBuilder()
       .select('d.id', 'doctorId')
       .addSelect('u.full_name', 'fullName')
-      .from('doctors', 'd')
+      .from('professionals', 'd')
       .innerJoin('users', 'u', 'u.id = d.user_id AND u.deleted_at IS NULL')
       .where('d.id IN (:...ids)', { ids: doctorIds })
       .andWhere('d.deleted_at IS NULL')

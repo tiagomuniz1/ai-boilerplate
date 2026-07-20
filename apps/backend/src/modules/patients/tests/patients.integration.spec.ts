@@ -87,8 +87,8 @@ describe('PatientsController (integration)', () => {
 
   afterEach(async () => {
     await patientRepository.query('DELETE FROM test.schedules')
-    await patientRepository.query('DELETE FROM test.doctor_specialties')
-    await patientRepository.query('DELETE FROM test.doctors')
+    await patientRepository.query('DELETE FROM test.professional_specialties')
+    await patientRepository.query('DELETE FROM test.professionals')
     await patientRepository.query('DELETE FROM test.patients')
     await patientRepository.query('DELETE FROM test.specialties')
     await patientRepository.query('DELETE FROM test.refresh_tokens')

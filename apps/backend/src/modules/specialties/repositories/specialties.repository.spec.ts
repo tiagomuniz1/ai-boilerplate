@@ -1,6 +1,6 @@
 import { ILike, Repository } from 'typeorm'
 import { faker } from '@faker-js/faker'
-import { Doctor } from '../../doctors/entities/doctor.entity'
+import { Professional } from '../../professionals/entities/professional.entity'
 import { Specialty } from '../entities/specialty.entity'
 import { SpecialtiesRepository } from './specialties.repository'
 
@@ -249,8 +249,8 @@ describe('SpecialtiesRepository', () => {
 
       const result = await repository.countLinkedDoctors('uuid-1')
 
-      expect((repo.manager as any).createQueryBuilder).toHaveBeenCalledWith(Doctor, 'doctor')
-      expect(mockQueryBuilder.innerJoin).toHaveBeenCalledWith('doctor.doctorSpecialties', 'doctorSpecialty')
+      expect((repo.manager as any).createQueryBuilder).toHaveBeenCalledWith(Professional, 'doctor')
+      expect(mockQueryBuilder.innerJoin).toHaveBeenCalledWith('doctor.professionalSpecialties', 'doctorSpecialty')
       expect(mockQueryBuilder.innerJoin).toHaveBeenCalledWith('doctorSpecialty.specialty', 'specialty')
       expect(mockQueryBuilder.where).toHaveBeenCalledWith('specialty.id = :id', { id: 'uuid-1' })
       expect(result).toBe(2)

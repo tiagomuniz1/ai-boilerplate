@@ -2,7 +2,7 @@ import { Module } from '@nestjs/common'
 import { TypeOrmModule } from '@nestjs/typeorm'
 import { CacheModule } from '../../cache/cache.module'
 import { AppointmentsModule } from '../appointments/appointments.module'
-import { DoctorsModule } from '../doctors/doctors.module'
+import { ProfessionalsModule } from '../professionals/professionals.module'
 import { PatientsModule } from '../patients/patients.module'
 import { ClinicsModule } from '../clinics/clinics.module'
 import { MedicalCertificate } from './entities/medical-certificate.entity'
@@ -22,7 +22,7 @@ import { MedicalCertificatePdfBuilderService } from './services/medical-certific
     TypeOrmModule.forFeature([MedicalCertificate]),
     CacheModule,
     AppointmentsModule,
-    DoctorsModule,
+    ProfessionalsModule,
     PatientsModule,
     ClinicsModule,
   ],

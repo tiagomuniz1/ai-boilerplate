@@ -6,11 +6,11 @@ import * as bcrypt from 'bcrypt'
 import * as cookieParser from 'cookie-parser'
 import * as request from 'supertest'
 import { Repository } from 'typeorm'
-import { DayOfWeek, UserRole } from '@app/shared'
+import { CouncilType, DayOfWeek, UserRole } from '@app/shared'
 import { AppModule } from '../../../app.module'
 import { Clinic } from '../../clinics/entities/clinic.entity'
 import { User } from '../../users/entities/user.entity'
-import { Doctor } from '../../doctors/entities/doctor.entity'
+import { Professional } from '../../professionals/entities/professional.entity'
 import { Specialty } from '../../specialties/entities/specialty.entity'
 import { Schedule } from '../entities/schedule.entity'
 
@@ -34,7 +34,7 @@ describe('SchedulesController (integration)', () => {
   let app: INestApplication
   let userRepository: Repository<User>
   let clinicRepository: Repository<Clinic>
-  let doctorRepository: Repository<Doctor>
+  let doctorRepository: Repository<Professional>
   let specialtyRepository: Repository<Specialty>
   let scheduleRepository: Repository<Schedule>
 
@@ -61,15 +61,15 @@ describe('SchedulesController (integration)', () => {
 
     userRepository = module.get(getRepositoryToken(User))
     clinicRepository = module.get(getRepositoryToken(Clinic))
-    doctorRepository = module.get(getRepositoryToken(Doctor))
+    doctorRepository = module.get(getRepositoryToken(Professional))
     specialtyRepository = module.get(getRepositoryToken(Specialty))
     scheduleRepository = module.get(getRepositoryToken(Schedule))
   })
 
   beforeEach(async () => {
     await scheduleRepository.query('DELETE FROM test.schedules')
-    await doctorRepository.query('DELETE FROM test.doctor_specialties')
-    await doctorRepository.query('DELETE FROM test.doctors')
+    await doctorRepository.query('DELETE FROM test.professional_specialties')
+    await doctorRepository.query('DELETE FROM test.professionals')
     await doctorRepository.query('DELETE FROM test.patients')
     await specialtyRepository.query('DELETE FROM test.specialties')
     await scheduleRepository.query('DELETE FROM test.refresh_tokens')
@@ -143,8 +143,8 @@ describe('SchedulesController (integration)', () => {
     )
 
     const doctorEntity = doctorRepository.create({ userId: doctorUserId, clinicId: SEED_CLINIC_ID })
-    doctorEntity.crms = [{ clinicId: SEED_CLINIC_ID, number: '11111', state: 'SP', isPrimary: true }] as any
-    doctorEntity.doctorSpecialties = ([cardiologia]).map((s: any) => ({ specialtyId: s.id, rqe: null })) as any
+    doctorEntity.registrations = [{ clinicId: SEED_CLINIC_ID, councilType: CouncilType.CRM, number: '11111', state: 'SP', isPrimary: true }] as any
+    doctorEntity.professionalSpecialties = ([cardiologia]).map((s: any) => ({ specialtyId: s.id, registryNumber: null })) as any
     const doctorProfile = await doctorRepository.save(doctorEntity)
     doctorId = doctorProfile.id
 
@@ -152,8 +152,8 @@ describe('SchedulesController (integration)', () => {
       userId: otherDoctorUserRecord.id,
       clinicId: SEED_CLINIC_ID,
     })
-    otherDoctorEntity.crms = [{ clinicId: SEED_CLINIC_ID, number: '22222', state: 'SP', isPrimary: true }] as any
-    otherDoctorEntity.doctorSpecialties = ([neurologia]).map((s: any) => ({ specialtyId: s.id, rqe: null })) as any
+    otherDoctorEntity.registrations = [{ clinicId: SEED_CLINIC_ID, councilType: CouncilType.CRM, number: '22222', state: 'SP', isPrimary: true }] as any
+    otherDoctorEntity.professionalSpecialties = ([neurologia]).map((s: any) => ({ specialtyId: s.id, registryNumber: null })) as any
     const otherDoctorProfile = await doctorRepository.save(otherDoctorEntity)
     otherDoctorId = otherDoctorProfile.id
 
@@ -177,8 +177,8 @@ describe('SchedulesController (integration)', () => {
 
   afterAll(async () => {
     await scheduleRepository.query('DELETE FROM test.schedules')
-    await doctorRepository.query('DELETE FROM test.doctor_specialties')
-    await doctorRepository.query('DELETE FROM test.doctors')
+    await doctorRepository.query('DELETE FROM test.professional_specialties')
+    await doctorRepository.query('DELETE FROM test.professionals')
     await doctorRepository.query('DELETE FROM test.patients')
     await specialtyRepository.query('DELETE FROM test.specialties')
     await scheduleRepository.query('DELETE FROM test.refresh_tokens')

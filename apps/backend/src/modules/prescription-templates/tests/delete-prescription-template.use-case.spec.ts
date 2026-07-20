@@ -2,7 +2,7 @@ import { ForbiddenException, NotFoundException } from '@nestjs/common'
 import { DataSource } from 'typeorm'
 import { UserRole } from '@app/shared'
 import { ICurrentUser } from '../../auth/types/current-user.type'
-import { IDoctorsRepository } from '../../doctors/repositories/doctors.repository.interface'
+import { IProfessionalsRepository } from '../../professionals/repositories/professionals.repository.interface'
 import { IPrescriptionTemplatesRepository } from '../repositories/prescription-templates.repository.interface'
 import { DeletePrescriptionTemplateUseCase } from '../use-cases/delete-prescription-template.use-case'
 
@@ -38,11 +38,11 @@ const mockRepository: jest.Mocked<IPrescriptionTemplatesRepository> = {
   delete: jest.fn(),
 }
 
-const mockDoctorsRepository: jest.Mocked<IDoctorsRepository> = {
+const mockProfessionalsRepository: jest.Mocked<IProfessionalsRepository> = {
   findAll: jest.fn(),
   findById: jest.fn(),
   findByUserId: jest.fn(),
-  findByCrm: jest.fn(),
+  findByRegistration: jest.fn(),
   create: jest.fn(),
   update: jest.fn(),
   delete: jest.fn(),
@@ -53,23 +53,23 @@ describe('DeletePrescriptionTemplateUseCase', () => {
 
   beforeEach(() => {
     jest.clearAllMocks()
-    useCase = new DeletePrescriptionTemplateUseCase({} as DataSource, mockRepository, mockDoctorsRepository)
+    useCase = new DeletePrescriptionTemplateUseCase({} as DataSource, mockRepository, mockProfessionalsRepository)
     mockRepository.findById.mockResolvedValue(makeTemplate() as any)
     mockRepository.delete.mockResolvedValue(undefined)
-    mockDoctorsRepository.findByUserId.mockResolvedValue(makeDoctor() as any)
+    mockProfessionalsRepository.findByUserId.mockResolvedValue(makeDoctor() as any)
   })
 
   it('deletes template as ADMIN without ownership check', async () => {
     await useCase.execute(templateId, adminUser)
 
-    expect(mockDoctorsRepository.findByUserId).not.toHaveBeenCalled()
+    expect(mockProfessionalsRepository.findByUserId).not.toHaveBeenCalled()
     expect(mockRepository.delete).toHaveBeenCalledWith(templateId)
   })
 
   it('deletes own template as DOCTOR', async () => {
     await useCase.execute(templateId, doctorUser)
 
-    expect(mockDoctorsRepository.findByUserId).toHaveBeenCalledWith(doctorUser.id, clinicId)
+    expect(mockProfessionalsRepository.findByUserId).toHaveBeenCalledWith(doctorUser.id, clinicId)
     expect(mockRepository.delete).toHaveBeenCalledWith(templateId)
   })
 
@@ -80,13 +80,13 @@ describe('DeletePrescriptionTemplateUseCase', () => {
   })
 
   it('throws ForbiddenException when DOCTOR deletes another doctor template', async () => {
-    mockDoctorsRepository.findByUserId.mockResolvedValue(makeDoctor({ id: 'other-doctor' }) as any)
+    mockProfessionalsRepository.findByUserId.mockResolvedValue(makeDoctor({ id: 'other-doctor' }) as any)
 
     await expect(useCase.execute(templateId, doctorUser)).rejects.toThrow(ForbiddenException)
   })
 
   it('throws ForbiddenException when DOCTOR has no profile', async () => {
-    mockDoctorsRepository.findByUserId.mockResolvedValue(null)
+    mockProfessionalsRepository.findByUserId.mockResolvedValue(null)
 
     await expect(useCase.execute(templateId, doctorUser)).rejects.toThrow(ForbiddenException)
   })

@@ -7,7 +7,7 @@ import { HealthModule } from './health/health.module'
 import { AuthModule } from './modules/auth/auth.module'
 import { UsersModule } from './modules/users/users.module'
 import { PatientsModule } from './modules/patients/patients.module'
-import { DoctorsModule } from './modules/doctors/doctors.module'
+import { ProfessionalsModule } from './modules/professionals/professionals.module'
 import { SchedulesModule } from './modules/schedules/schedules.module'
 import { AppointmentsModule } from './modules/appointments/appointments.module'
 import { SpecialtiesModule } from './modules/specialties/specialties.module'
@@ -41,7 +41,7 @@ import { RolesGuard } from './modules/auth/guards/roles.guard'
     AuthModule,
     UsersModule,
     PatientsModule,
-    DoctorsModule,
+    ProfessionalsModule,
     SchedulesModule,
     AppointmentsModule,
     SpecialtiesModule,

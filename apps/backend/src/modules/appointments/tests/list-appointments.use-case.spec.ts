@@ -4,7 +4,7 @@ import { faker } from '@faker-js/faker'
 import { AppointmentStatus, UserRole } from '@app/shared'
 import { CacheService } from '../../../cache/cache.service'
 import { ICurrentUser } from '../../auth/types/current-user.type'
-import { IDoctorsRepository } from '../../doctors/repositories/doctors.repository.interface'
+import { IProfessionalsRepository } from '../../professionals/repositories/professionals.repository.interface'
 import { IAppointmentsRepository } from '../repositories/appointments.repository.interface'
 import { ListAppointmentsUseCase } from '../use-cases/list-appointments.use-case'
 
@@ -46,11 +46,11 @@ const mockAppointmentsRepository: jest.Mocked<IAppointmentsRepository> = {
   update: jest.fn(),
 }
 
-const mockDoctorsRepository: jest.Mocked<IDoctorsRepository> = {
+const mockProfessionalsRepository: jest.Mocked<IProfessionalsRepository> = {
   findAll: jest.fn(),
   findById: jest.fn(),
   findByUserId: jest.fn(),
-  findByCrm: jest.fn(),
+  findByRegistration: jest.fn(),
   create: jest.fn(),
   update: jest.fn(),
   delete: jest.fn(),
@@ -83,12 +83,12 @@ describe('ListAppointmentsUseCase', () => {
     useCase = new ListAppointmentsUseCase(
       makeMockDataSource(),
       mockAppointmentsRepository,
-      mockDoctorsRepository,
+      mockProfessionalsRepository,
       mockCacheService,
     )
     mockCacheService.get.mockResolvedValue(null)
     mockCacheService.set.mockResolvedValue(undefined)
-    mockDoctorsRepository.findByUserId.mockResolvedValue({ id: doctorId } as any)
+    mockProfessionalsRepository.findByUserId.mockResolvedValue({ id: doctorId } as any)
     mockAppointmentsRepository.findAll.mockResolvedValue([[], 0])
   })
 
@@ -100,7 +100,7 @@ describe('ListAppointmentsUseCase', () => {
   })
 
   it('DOCTOR: throws NotFoundException when no doctor profile', async () => {
-    mockDoctorsRepository.findByUserId.mockResolvedValue(null)
+    mockProfessionalsRepository.findByUserId.mockResolvedValue(null)
     await expect(useCase.execute({ page: 1, limit: 20 }, doctorUser)).rejects.toThrow(NotFoundException)
   })
 
@@ -155,7 +155,7 @@ describe('ListAppointmentsUseCase', () => {
     const useCaseWithSpecialty = new ListAppointmentsUseCase(
       ds,
       mockAppointmentsRepository,
-      mockDoctorsRepository,
+      mockProfessionalsRepository,
       mockCacheService,
     )
 

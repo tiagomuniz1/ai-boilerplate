@@ -11,7 +11,7 @@ import { AppointmentResponseDto, AppointmentStatus, UserRole } from '@app/shared
 import { BaseUseCase } from '../../../common/base.use-case'
 import { CacheService } from '../../../cache/cache.service'
 import { ICurrentUser } from '../../auth/types/current-user.type'
-import { IDoctorsRepository } from '../../doctors/repositories/doctors.repository.interface'
+import { IProfessionalsRepository } from '../../professionals/repositories/professionals.repository.interface'
 import { Appointment } from '../entities/appointment.entity'
 import { IAppointmentsRepository } from '../repositories/appointments.repository.interface'
 
@@ -22,7 +22,7 @@ export class CompleteAppointmentUseCase extends BaseUseCase {
   constructor(
     dataSource: DataSource,
     private readonly appointmentsRepository: IAppointmentsRepository,
-    private readonly doctorsRepository: IDoctorsRepository,
+    private readonly professionalsRepository: IProfessionalsRepository,
     private readonly cacheService: CacheService,
   ) {
     super(dataSource)
@@ -35,7 +35,7 @@ export class CompleteAppointmentUseCase extends BaseUseCase {
     if (!appointment) throw new NotFoundException('Appointment not found')
 
     if (currentUser.role === UserRole.DOCTOR) {
-      const doctor = await this.doctorsRepository.findByUserId(currentUser.id, clinicId)
+      const doctor = await this.professionalsRepository.findByUserId(currentUser.id, clinicId)
       if (!doctor || appointment.doctorId !== doctor.id) {
         throw new ForbiddenException('You are not allowed to manage this appointment')
       }
@@ -97,7 +97,7 @@ export class CompleteAppointmentUseCase extends BaseUseCase {
     const rows: Array<{ fullName: string }> = await this.dataSource
       .createQueryBuilder()
       .select('u.full_name', 'fullName')
-      .from('doctors', 'd')
+      .from('professionals', 'd')
       .innerJoin('users', 'u', 'u.id = d.user_id AND u.deleted_at IS NULL')
       .where('d.id = :doctorId', { doctorId })
       .andWhere('d.deleted_at IS NULL')

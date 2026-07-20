@@ -11,7 +11,7 @@ import { BaseUseCase } from '../../../common/base.use-case'
 import { CacheService } from '../../../cache/cache.service'
 import { DistributedLockService } from '../../../cache/distributed-lock.service'
 import { ICurrentUser } from '../../auth/types/current-user.type'
-import { IDoctorsRepository } from '../../doctors/repositories/doctors.repository.interface'
+import { IProfessionalsRepository } from '../../professionals/repositories/professionals.repository.interface'
 import { IPatientsRepository } from '../../patients/repositories/patients.repository.interface'
 import { GetActiveSchedulesForDoctorUseCase } from '../../schedules/use-cases/get-active-schedules-for-doctor.use-case'
 import { Schedule } from '../../schedules/entities/schedule.entity'
@@ -53,7 +53,7 @@ export class CreateAppointmentUseCase extends BaseUseCase {
   constructor(
     dataSource: DataSource,
     private readonly appointmentsRepository: IAppointmentsRepository,
-    private readonly doctorsRepository: IDoctorsRepository,
+    private readonly professionalsRepository: IProfessionalsRepository,
     private readonly patientsRepository: IPatientsRepository,
     private readonly getActiveSchedulesUseCase: GetActiveSchedulesForDoctorUseCase,
     private readonly cacheService: CacheService,
@@ -67,15 +67,15 @@ export class CreateAppointmentUseCase extends BaseUseCase {
 
     let doctor
     if (currentUser.role === UserRole.DOCTOR) {
-      doctor = await this.doctorsRepository.findByUserId(currentUser.id, clinicId)
+      doctor = await this.professionalsRepository.findByUserId(currentUser.id, clinicId)
     } else {
       if (!dto.doctorId) throw new UnprocessableEntityException('doctorId is required for admin')
-      doctor = await this.doctorsRepository.findById(dto.doctorId, clinicId)
+      doctor = await this.professionalsRepository.findById(dto.doctorId, clinicId)
     }
-    if (!doctor) throw new NotFoundException('Doctor not found')
+    if (!doctor) throw new NotFoundException('Professional not found')
 
     const chosenSpecialty = this.resolveSpecialty(
-      doctor.doctorSpecialties.map((ds) => ({ id: ds.specialtyId, name: ds.specialty.name })),
+      doctor.professionalSpecialties.map((ds) => ({ id: ds.specialtyId, name: ds.specialty.name })),
       dto.specialtyId,
     )
 
@@ -191,7 +191,7 @@ export class CreateAppointmentUseCase extends BaseUseCase {
     const rows: Array<{ fullName: string }> = await this.dataSource
       .createQueryBuilder()
       .select('u.full_name', 'fullName')
-      .from('doctors', 'd')
+      .from('professionals', 'd')
       .innerJoin('users', 'u', 'u.id = d.user_id AND u.deleted_at IS NULL')
       .where('d.id = :doctorId', { doctorId })
       .andWhere('d.deleted_at IS NULL')

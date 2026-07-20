@@ -11,7 +11,7 @@ import { CreateScheduleDto, ScheduleResponseDto, UserRole } from '@app/shared'
 import { BaseUseCase } from '../../../common/base.use-case'
 import { CacheService } from '../../../cache/cache.service'
 import { ICurrentUser } from '../../auth/types/current-user.type'
-import { IDoctorsRepository } from '../../doctors/repositories/doctors.repository.interface'
+import { IProfessionalsRepository } from '../../professionals/repositories/professionals.repository.interface'
 import { ISchedulesRepository } from '../repositories/schedules.repository.interface'
 import { Schedule } from '../entities/schedule.entity'
 
@@ -27,7 +27,7 @@ export class CreateScheduleUseCase extends BaseUseCase {
   constructor(
     dataSource: DataSource,
     private readonly schedulesRepository: ISchedulesRepository,
-    private readonly doctorsRepository: IDoctorsRepository,
+    private readonly professionalsRepository: IProfessionalsRepository,
     private readonly cacheService: CacheService,
   ) {
     super(dataSource)
@@ -42,14 +42,14 @@ export class CreateScheduleUseCase extends BaseUseCase {
 
     let doctor
     if (currentUser.role === UserRole.DOCTOR) {
-      doctor = await this.doctorsRepository.findByUserId(currentUser.id, clinicId)
+      doctor = await this.professionalsRepository.findByUserId(currentUser.id, clinicId)
     } else {
       if (!dto.doctorId) {
         throw new UnprocessableEntityException('doctorId is required for admin')
       }
-      doctor = await this.doctorsRepository.findById(dto.doctorId, clinicId)
+      doctor = await this.professionalsRepository.findById(dto.doctorId, clinicId)
     }
-    if (!doctor) throw new NotFoundException('Doctor not found')
+    if (!doctor) throw new NotFoundException('Professional not found')
 
     const doctorId = doctor.id
 
@@ -96,7 +96,7 @@ export class CreateScheduleUseCase extends BaseUseCase {
     const rows: Array<{ fullName: string }> = await this.dataSource
       .createQueryBuilder()
       .select('u.full_name', 'fullName')
-      .from('doctors', 'd')
+      .from('professionals', 'd')
       .innerJoin('users', 'u', 'u.id = d.user_id AND u.deleted_at IS NULL')
       .where('d.id = :doctorId', { doctorId })
       .andWhere('d.deleted_at IS NULL')

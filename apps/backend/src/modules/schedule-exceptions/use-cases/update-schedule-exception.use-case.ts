@@ -11,7 +11,7 @@ import { UpdateScheduleExceptionDto, UserRole } from '@app/shared'
 import { BaseUseCase } from '../../../common/base.use-case'
 import { CacheService } from '../../../cache/cache.service'
 import { ICurrentUser } from '../../auth/types/current-user.type'
-import { IDoctorsRepository } from '../../doctors/repositories/doctors.repository.interface'
+import { IProfessionalsRepository } from '../../professionals/repositories/professionals.repository.interface'
 import { IAppointmentsRepository } from '../repositories/appointments.repository.adapter'
 import { IScheduleExceptionsRepository } from '../repositories/schedule-exceptions.repository.interface'
 import { ScheduleException } from '../entities/schedule-exception.entity'
@@ -28,7 +28,7 @@ export class UpdateScheduleExceptionUseCase extends BaseUseCase {
   constructor(
     dataSource: DataSource,
     private readonly scheduleExceptionsRepository: IScheduleExceptionsRepository,
-    private readonly doctorsRepository: IDoctorsRepository,
+    private readonly professionalsRepository: IProfessionalsRepository,
     private readonly appointmentsRepository: IAppointmentsRepository,
     private readonly cacheService: CacheService,
   ) {
@@ -42,7 +42,7 @@ export class UpdateScheduleExceptionUseCase extends BaseUseCase {
     if (!exception) throw new NotFoundException('Schedule exception not found')
 
     if (currentUser.role === UserRole.DOCTOR) {
-      const doctor = await this.doctorsRepository.findByUserId(currentUser.id, clinicId)
+      const doctor = await this.professionalsRepository.findByUserId(currentUser.id, clinicId)
       if (!doctor || exception.doctorId !== doctor.id) {
         throw new ForbiddenException('You are not allowed to manage this schedule exception')
       }

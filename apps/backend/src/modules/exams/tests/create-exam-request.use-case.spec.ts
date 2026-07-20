@@ -3,7 +3,7 @@ import { DataSource } from 'typeorm'
 import { AppointmentStatus, ExamRequestStatus, UserRole } from '@app/shared'
 import { ICurrentUser } from '../../auth/types/current-user.type'
 import { IAppointmentsRepository } from '../../appointments/repositories/appointments.repository.interface'
-import { IDoctorsRepository } from '../../doctors/repositories/doctors.repository.interface'
+import { IProfessionalsRepository } from '../../professionals/repositories/professionals.repository.interface'
 import { IPatientsRepository } from '../../patients/repositories/patients.repository.interface'
 import { FindClinicByIdUseCase } from '../../clinics/use-cases/find-clinic-by-id.use-case'
 import { IExamRequestsRepository } from '../repositories/exam-requests.repository.interface'
@@ -34,8 +34,8 @@ const makeDoctor = (overrides: any = {}) => {
   return {
     id: doctorId,
     user: { fullName: 'Doctor Smith' },
-    crms: [{ id: 'crm-1', number: '12345', state: 'SP', isPrimary: true }],
-    doctorSpecialties: specialties.map((s: any) => ({ specialtyId: s.id, specialty: { id: s.id, name: s.name } })),
+    registrations: [{ id: 'crm-1', number: '12345', state: 'SP', isPrimary: true }],
+    professionalSpecialties: specialties.map((s: any) => ({ specialtyId: s.id, specialty: { id: s.id, name: s.name } })),
     ...rest,
   }
 }
@@ -101,11 +101,11 @@ const mockAppointmentsRepository: jest.Mocked<IAppointmentsRepository> = {
   update: jest.fn(),
 }
 
-const mockDoctorsRepository: jest.Mocked<IDoctorsRepository> = {
+const mockProfessionalsRepository: jest.Mocked<IProfessionalsRepository> = {
   findAll: jest.fn(),
   findById: jest.fn(),
   findByUserId: jest.fn(),
-  findByCrm: jest.fn(),
+  findByRegistration: jest.fn(),
   create: jest.fn(),
   update: jest.fn(),
   delete: jest.fn(),
@@ -145,14 +145,14 @@ describe('CreateExamRequestUseCase', () => {
       {} as DataSource,
       mockExamRequestsRepository,
       mockAppointmentsRepository,
-      mockDoctorsRepository,
+      mockProfessionalsRepository,
       mockPatientsRepository,
       mockFindClinicByIdUseCase,
       mockCacheService,
     )
     mockAppointmentsRepository.findById.mockResolvedValue(makeAppointment() as any)
-    mockDoctorsRepository.findByUserId.mockResolvedValue(makeDoctor() as any)
-    mockDoctorsRepository.findById.mockResolvedValue(makeDoctor() as any)
+    mockProfessionalsRepository.findByUserId.mockResolvedValue(makeDoctor() as any)
+    mockProfessionalsRepository.findById.mockResolvedValue(makeDoctor() as any)
     mockPatientsRepository.findById.mockResolvedValue(makePatient() as any)
     ;(mockFindClinicByIdUseCase.execute as jest.Mock).mockResolvedValue(makeClinic())
     mockExamRequestsRepository.create.mockResolvedValue(makeSavedExamRequest() as any)
@@ -200,22 +200,22 @@ describe('CreateExamRequestUseCase', () => {
     const result = await useCase.execute(baseDto, doctorUser)
 
     expect(result.appointmentId).toBe(appointmentId)
-    expect(mockDoctorsRepository.findByUserId).toHaveBeenCalledWith(doctorUser.id, clinicId)
+    expect(mockProfessionalsRepository.findByUserId).toHaveBeenCalledWith(doctorUser.id, clinicId)
     expect(mockExamRequestsRepository.create).toHaveBeenCalled()
   })
 
   it('reuses DOCTOR from RBAC check when loading doctor for snapshot', async () => {
     await useCase.execute(baseDto, doctorUser)
 
-    expect(mockDoctorsRepository.findByUserId).toHaveBeenCalledTimes(1)
-    expect(mockDoctorsRepository.findById).not.toHaveBeenCalled()
+    expect(mockProfessionalsRepository.findByUserId).toHaveBeenCalledTimes(1)
+    expect(mockProfessionalsRepository.findById).not.toHaveBeenCalled()
   })
 
   it('loads doctor by ID for ADMIN (no RBAC check)', async () => {
     await useCase.execute(baseDto, adminUser)
 
-    expect(mockDoctorsRepository.findByUserId).not.toHaveBeenCalled()
-    expect(mockDoctorsRepository.findById).toHaveBeenCalledWith(doctorId, clinicId)
+    expect(mockProfessionalsRepository.findByUserId).not.toHaveBeenCalled()
+    expect(mockProfessionalsRepository.findById).toHaveBeenCalledWith(doctorId, clinicId)
   })
 
   it('builds snapshot with denormalized clinic, doctor, patient, and items', async () => {
@@ -278,13 +278,13 @@ describe('CreateExamRequestUseCase', () => {
   })
 
   it('throws ForbiddenException when DOCTOR tries to create for another doctor appointment', async () => {
-    mockDoctorsRepository.findByUserId.mockResolvedValue(makeDoctor({ id: 'other-doctor' }) as any)
+    mockProfessionalsRepository.findByUserId.mockResolvedValue(makeDoctor({ id: 'other-doctor' }) as any)
 
     await expect(useCase.execute(baseDto, doctorUser)).rejects.toThrow(ForbiddenException)
   })
 
   it('throws ForbiddenException when DOCTOR has no doctor profile', async () => {
-    mockDoctorsRepository.findByUserId.mockResolvedValue(null)
+    mockProfessionalsRepository.findByUserId.mockResolvedValue(null)
 
     await expect(useCase.execute(baseDto, doctorUser)).rejects.toThrow(ForbiddenException)
   })
@@ -296,7 +296,7 @@ describe('CreateExamRequestUseCase', () => {
   })
 
   it('throws NotFoundException when doctor not found during snapshot', async () => {
-    mockDoctorsRepository.findById.mockResolvedValue(null)
+    mockProfessionalsRepository.findById.mockResolvedValue(null)
 
     await expect(useCase.execute(baseDto, adminUser)).rejects.toThrow(NotFoundException)
   })
@@ -317,7 +317,7 @@ describe('CreateExamRequestUseCase', () => {
   })
 
   it('sets specialtyName to null when doctor has no matching specialty', async () => {
-    mockDoctorsRepository.findById.mockResolvedValue(makeDoctor({ specialties: [] }) as any)
+    mockProfessionalsRepository.findById.mockResolvedValue(makeDoctor({ specialties: [] }) as any)
 
     await useCase.execute(baseDto, adminUser)
 

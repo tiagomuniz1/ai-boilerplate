@@ -123,8 +123,8 @@ describe('ClinicSpecialtiesController (integration)', () => {
   afterEach(async () => {
     await clinicSpecialtyRepository.query('DELETE FROM test.clinic_specialties')
     await clinicSpecialtyRepository.query('DELETE FROM test.schedules')
-    await clinicSpecialtyRepository.query('DELETE FROM test.doctor_specialties')
-    await clinicSpecialtyRepository.query('DELETE FROM test.doctors')
+    await clinicSpecialtyRepository.query('DELETE FROM test.professional_specialties')
+    await clinicSpecialtyRepository.query('DELETE FROM test.professionals')
     await specialtyRepository.query('DELETE FROM test.specialties')
     await userRepository.query('DELETE FROM test.refresh_tokens')
     await userRepository.query('DELETE FROM test.users')

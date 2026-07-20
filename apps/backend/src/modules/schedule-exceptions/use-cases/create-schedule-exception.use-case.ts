@@ -10,7 +10,7 @@ import { CreateScheduleExceptionDto, UserRole } from '@app/shared'
 import { BaseUseCase } from '../../../common/base.use-case'
 import { CacheService } from '../../../cache/cache.service'
 import { ICurrentUser } from '../../auth/types/current-user.type'
-import { IDoctorsRepository } from '../../doctors/repositories/doctors.repository.interface'
+import { IProfessionalsRepository } from '../../professionals/repositories/professionals.repository.interface'
 import { IAppointmentsRepository } from '../repositories/appointments.repository.adapter'
 import { IScheduleExceptionsRepository } from '../repositories/schedule-exceptions.repository.interface'
 import { ScheduleException } from '../entities/schedule-exception.entity'
@@ -27,7 +27,7 @@ export class CreateScheduleExceptionUseCase extends BaseUseCase {
   constructor(
     dataSource: DataSource,
     private readonly scheduleExceptionsRepository: IScheduleExceptionsRepository,
-    private readonly doctorsRepository: IDoctorsRepository,
+    private readonly professionalsRepository: IProfessionalsRepository,
     private readonly appointmentsRepository: IAppointmentsRepository,
     private readonly cacheService: CacheService,
   ) {
@@ -39,13 +39,13 @@ export class CreateScheduleExceptionUseCase extends BaseUseCase {
 
     let doctorId: string
     if (currentUser.role === UserRole.DOCTOR) {
-      const doctor = await this.doctorsRepository.findByUserId(currentUser.id, clinicId)
-      if (!doctor) throw new NotFoundException('Doctor not found')
+      const doctor = await this.professionalsRepository.findByUserId(currentUser.id, clinicId)
+      if (!doctor) throw new NotFoundException('Professional not found')
       doctorId = doctor.id
     } else {
       if (!dto.doctorId) throw new UnprocessableEntityException('doctorId is required for admin')
-      const doctor = await this.doctorsRepository.findById(dto.doctorId, clinicId)
-      if (!doctor) throw new NotFoundException('Doctor not found')
+      const doctor = await this.professionalsRepository.findById(dto.doctorId, clinicId)
+      if (!doctor) throw new NotFoundException('Professional not found')
       doctorId = doctor.id
     }
 

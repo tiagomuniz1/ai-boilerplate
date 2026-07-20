@@ -3,7 +3,7 @@ import { DataSource } from 'typeorm'
 import { faker } from '@faker-js/faker'
 import { UserRole } from '@app/shared'
 import { CacheService } from '../../../cache/cache.service'
-import { IDoctorsRepository } from '../../doctors/repositories/doctors.repository.interface'
+import { IProfessionalsRepository } from '../../professionals/repositories/professionals.repository.interface'
 import { ICurrentUser } from '../../auth/types/current-user.type'
 import { IScheduleExceptionsRepository } from '../repositories/schedule-exceptions.repository.interface'
 import { DeleteScheduleExceptionUseCase } from '../use-cases/delete-schedule-exception.use-case'
@@ -17,11 +17,11 @@ const mockScheduleExceptionsRepository: jest.Mocked<IScheduleExceptionsRepositor
   delete: jest.fn(),
 }
 
-const mockDoctorsRepository: jest.Mocked<IDoctorsRepository> = {
+const mockProfessionalsRepository: jest.Mocked<IProfessionalsRepository> = {
   findAll: jest.fn(),
   findById: jest.fn(),
   findByUserId: jest.fn(),
-  findByCrm: jest.fn(),
+  findByRegistration: jest.fn(),
   create: jest.fn(),
   update: jest.fn(),
   delete: jest.fn(),
@@ -68,7 +68,7 @@ describe('DeleteScheduleExceptionUseCase', () => {
     useCase = new DeleteScheduleExceptionUseCase(
       {} as DataSource,
       mockScheduleExceptionsRepository,
-      mockDoctorsRepository,
+      mockProfessionalsRepository,
       mockCacheService,
     )
     mockCacheService.delByPrefix.mockResolvedValue(undefined)
@@ -83,13 +83,13 @@ describe('DeleteScheduleExceptionUseCase', () => {
 
   it('throws ForbiddenException when DOCTOR tries to delete exception of another doctor', async () => {
     mockScheduleExceptionsRepository.findById.mockResolvedValue(makeException({ doctorId: 'other-doctor' }) as any)
-    mockDoctorsRepository.findByUserId.mockResolvedValue(makeDoctor())
+    mockProfessionalsRepository.findByUserId.mockResolvedValue(makeDoctor())
     await expect(useCase.execute(EXCEPTION_ID, doctorUser)).rejects.toThrow(ForbiddenException)
   })
 
   it('allows DOCTOR to delete own exception', async () => {
     mockScheduleExceptionsRepository.findById.mockResolvedValue(makeException() as any)
-    mockDoctorsRepository.findByUserId.mockResolvedValue(makeDoctor())
+    mockProfessionalsRepository.findByUserId.mockResolvedValue(makeDoctor())
 
     await useCase.execute(EXCEPTION_ID, doctorUser)
 

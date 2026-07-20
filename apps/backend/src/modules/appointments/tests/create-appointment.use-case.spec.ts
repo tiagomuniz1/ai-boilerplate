@@ -10,7 +10,7 @@ import { AppointmentStatus, DayOfWeek, UserRole } from '@app/shared'
 import { CacheService } from '../../../cache/cache.service'
 import { DistributedLockService } from '../../../cache/distributed-lock.service'
 import { ICurrentUser } from '../../auth/types/current-user.type'
-import { IDoctorsRepository } from '../../doctors/repositories/doctors.repository.interface'
+import { IProfessionalsRepository } from '../../professionals/repositories/professionals.repository.interface'
 import { IPatientsRepository } from '../../patients/repositories/patients.repository.interface'
 import { GetActiveSchedulesForDoctorUseCase } from '../../schedules/use-cases/get-active-schedules-for-doctor.use-case'
 import { IAppointmentsRepository } from '../repositories/appointments.repository.interface'
@@ -25,8 +25,8 @@ const makeDoctor = (overrides: any = {}) => {
   const { specialties = [{ id: specialtyId, name: specialtyName }], ...rest } = overrides
   return {
     id: doctorId,
-    crms: [{ id: 'crm-1', number: '12345', state: 'SP', isPrimary: true }],
-    doctorSpecialties: specialties.map((s: any) => ({ specialtyId: s.id, specialty: { id: s.id, name: s.name } })),
+    registrations: [{ id: 'crm-1', number: '12345', state: 'SP', isPrimary: true }],
+    professionalSpecialties: specialties.map((s: any) => ({ specialtyId: s.id, specialty: { id: s.id, name: s.name } })),
     ...rest,
   }
 }
@@ -96,11 +96,11 @@ const mockAppointmentsRepository: jest.Mocked<IAppointmentsRepository> = {
   update: jest.fn(),
 }
 
-const mockDoctorsRepository: jest.Mocked<IDoctorsRepository> = {
+const mockProfessionalsRepository: jest.Mocked<IProfessionalsRepository> = {
   findAll: jest.fn(),
   findById: jest.fn(),
   findByUserId: jest.fn(),
-  findByCrm: jest.fn(),
+  findByRegistration: jest.fn(),
   create: jest.fn(),
   update: jest.fn(),
   delete: jest.fn(),
@@ -163,15 +163,15 @@ describe('CreateAppointmentUseCase', () => {
     useCase = new CreateAppointmentUseCase(
       makeMockDataSource(),
       mockAppointmentsRepository,
-      mockDoctorsRepository,
+      mockProfessionalsRepository,
       mockPatientsRepository,
       mockGetActiveSchedules,
       mockCacheService,
       mockDistributedLockService,
     )
 
-    mockDoctorsRepository.findByUserId.mockResolvedValue(makeDoctor() as any)
-    mockDoctorsRepository.findById.mockResolvedValue(makeDoctor() as any)
+    mockProfessionalsRepository.findByUserId.mockResolvedValue(makeDoctor() as any)
+    mockProfessionalsRepository.findById.mockResolvedValue(makeDoctor() as any)
     mockPatientsRepository.findById.mockResolvedValue({ id: faker.string.uuid() } as any)
     mockGetActiveSchedules.execute.mockResolvedValue([makeSchedule() as any])
     mockAppointmentsRepository.findActiveBySlot.mockResolvedValue(null)
@@ -186,12 +186,12 @@ describe('CreateAppointmentUseCase', () => {
         { patientId: faker.string.uuid(), date: tomorrowStr, startTime: '08:00', doctorId: faker.string.uuid() },
         doctorUser,
       )
-      expect(mockDoctorsRepository.findByUserId).toHaveBeenCalledWith(doctorUserId, CLINIC_ID)
+      expect(mockProfessionalsRepository.findByUserId).toHaveBeenCalledWith(doctorUserId, CLINIC_ID)
       expect(mockAppointmentsRepository.create).toHaveBeenCalled()
     })
 
     it('throws NotFoundException when doctor profile not found', async () => {
-      mockDoctorsRepository.findByUserId.mockResolvedValue(null)
+      mockProfessionalsRepository.findByUserId.mockResolvedValue(null)
       await expect(
         useCase.execute({ patientId: faker.string.uuid(), date: tomorrowStr, startTime: '08:00' }, doctorUser),
       ).rejects.toThrow(NotFoundException)
@@ -204,7 +204,7 @@ describe('CreateAppointmentUseCase', () => {
         { patientId: faker.string.uuid(), date: tomorrowStr, startTime: '08:00', doctorId },
         adminUser,
       )
-      expect(mockDoctorsRepository.findById).toHaveBeenCalledWith(doctorId, CLINIC_ID)
+      expect(mockProfessionalsRepository.findById).toHaveBeenCalledWith(doctorId, CLINIC_ID)
     })
 
     it('throws UnprocessableEntityException when doctorId not provided', async () => {
@@ -214,7 +214,7 @@ describe('CreateAppointmentUseCase', () => {
     })
 
     it('throws NotFoundException when doctor not found', async () => {
-      mockDoctorsRepository.findById.mockResolvedValue(null)
+      mockProfessionalsRepository.findById.mockResolvedValue(null)
       await expect(
         useCase.execute({ patientId: faker.string.uuid(), date: tomorrowStr, startTime: '08:00', doctorId }, adminUser),
       ).rejects.toThrow(NotFoundException)
@@ -359,7 +359,7 @@ describe('CreateAppointmentUseCase', () => {
     const useCaseEmpty = new CreateAppointmentUseCase(
       emptyDataSource,
       mockAppointmentsRepository,
-      mockDoctorsRepository,
+      mockProfessionalsRepository,
       mockPatientsRepository,
       mockGetActiveSchedules,
       mockCacheService,
@@ -390,7 +390,7 @@ describe('CreateAppointmentUseCase', () => {
 
     it('uses the provided specialtyId when it belongs to the doctor', async () => {
       const second = { id: faker.string.uuid(), name: 'Neurologia' }
-      mockDoctorsRepository.findByUserId.mockResolvedValue(
+      mockProfessionalsRepository.findByUserId.mockResolvedValue(
         makeDoctor({ specialties: [{ id: specialtyId, name: specialtyName }, second] }) as any,
       )
       mockAppointmentsRepository.create.mockResolvedValue(
@@ -407,7 +407,7 @@ describe('CreateAppointmentUseCase', () => {
     })
 
     it('throws 422 when specialtyId is omitted and the doctor has multiple specialties', async () => {
-      mockDoctorsRepository.findByUserId.mockResolvedValue(
+      mockProfessionalsRepository.findByUserId.mockResolvedValue(
         makeDoctor({
           specialties: [
             { id: specialtyId, name: specialtyName },
@@ -433,7 +433,7 @@ describe('CreateAppointmentUseCase', () => {
     })
 
     it('books a generalist appointment (null specialty) when the doctor has no specialty', async () => {
-      mockDoctorsRepository.findByUserId.mockResolvedValue(makeDoctor({ specialties: [] }) as any)
+      mockProfessionalsRepository.findByUserId.mockResolvedValue(makeDoctor({ specialties: [] }) as any)
       mockAppointmentsRepository.create.mockResolvedValue(
         makeAppointment({ specialtyId: null }) as any,
       )

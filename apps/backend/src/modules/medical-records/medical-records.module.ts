@@ -2,7 +2,7 @@ import { Module } from '@nestjs/common'
 import { TypeOrmModule } from '@nestjs/typeorm'
 import { CacheModule } from '../../cache/cache.module'
 import { AppointmentsModule } from '../appointments/appointments.module'
-import { DoctorsModule } from '../doctors/doctors.module'
+import { ProfessionalsModule } from '../professionals/professionals.module'
 import { MedicalRecordTemplatesModule } from '../medical-record-templates/medical-record-templates.module'
 import { MedicalRecord } from './entities/medical-record.entity'
 import { MedicalRecordsController } from './controllers/medical-records.controller'
@@ -21,7 +21,7 @@ import { ValidateRecordDataService } from './services/validate-record-data.servi
     TypeOrmModule.forFeature([MedicalRecord]),
     CacheModule,
     AppointmentsModule,
-    DoctorsModule,
+    ProfessionalsModule,
     MedicalRecordTemplatesModule,
   ],
   controllers: [MedicalRecordsController],

@@ -3,7 +3,7 @@ import { DataSource } from 'typeorm'
 import { CreatePrescriptionTemplateDto, PrescriptionTemplateResponseDto, UserRole } from '@app/shared'
 import { BaseUseCase } from '../../../common/base.use-case'
 import { ICurrentUser } from '../../auth/types/current-user.type'
-import { IDoctorsRepository } from '../../doctors/repositories/doctors.repository.interface'
+import { IProfessionalsRepository } from '../../professionals/repositories/professionals.repository.interface'
 import { IMedicationsRepository } from '../../medications/repositories/medications.repository.interface'
 import { IPrescriptionTemplatesRepository } from '../repositories/prescription-templates.repository.interface'
 import { PrescriptionTemplate, PrescriptionTemplateItem } from '../entities/prescription-template.entity'
@@ -33,7 +33,7 @@ export class CreatePrescriptionTemplateUseCase extends BaseUseCase {
   constructor(
     dataSource: DataSource,
     private readonly prescriptionTemplatesRepository: IPrescriptionTemplatesRepository,
-    private readonly doctorsRepository: IDoctorsRepository,
+    private readonly professionalsRepository: IProfessionalsRepository,
     private readonly medicationsRepository: IMedicationsRepository,
   ) {
     super(dataSource)
@@ -46,14 +46,14 @@ export class CreatePrescriptionTemplateUseCase extends BaseUseCase {
     let doctorName: string
 
     if (currentUser.role === UserRole.DOCTOR) {
-      const doctor = await this.doctorsRepository.findByUserId(currentUser.id, clinicId)
+      const doctor = await this.professionalsRepository.findByUserId(currentUser.id, clinicId)
       if (!doctor) throw new ForbiddenException('Insufficient permissions')
       doctorId = doctor.id
       doctorName = doctor.user.fullName
     } else {
       if (!dto.doctorId) throw new UnprocessableEntityException('doctorId is required for ADMIN')
-      const doctor = await this.doctorsRepository.findById(dto.doctorId, clinicId)
-      if (!doctor) throw new NotFoundException('Doctor not found')
+      const doctor = await this.professionalsRepository.findById(dto.doctorId, clinicId)
+      if (!doctor) throw new NotFoundException('Professional not found')
       doctorId = doctor.id
       doctorName = doctor.user.fullName
     }

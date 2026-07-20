@@ -4,7 +4,7 @@ import { AvailabilityResponseDto, AvailableSlotDto, UserRole } from '@app/shared
 import { BaseUseCase } from '../../../common/base.use-case'
 import { CacheService } from '../../../cache/cache.service'
 import { ICurrentUser } from '../../auth/types/current-user.type'
-import { IDoctorsRepository } from '../../doctors/repositories/doctors.repository.interface'
+import { IProfessionalsRepository } from '../../professionals/repositories/professionals.repository.interface'
 import { GetActiveSchedulesForDoctorUseCase } from '../../schedules/use-cases/get-active-schedules-for-doctor.use-case'
 import { GetActiveExceptionsForDoctorUseCase } from '../../schedule-exceptions/use-cases/get-active-exceptions-for-doctor.use-case'
 import { Schedule } from '../../schedules/entities/schedule.entity'
@@ -46,7 +46,7 @@ export class GetAvailabilityUseCase extends BaseUseCase {
   constructor(
     dataSource: DataSource,
     private readonly appointmentsRepository: IAppointmentsRepository,
-    private readonly doctorsRepository: IDoctorsRepository,
+    private readonly professionalsRepository: IProfessionalsRepository,
     private readonly getActiveSchedulesUseCase: GetActiveSchedulesForDoctorUseCase,
     private readonly getActiveExceptionsUseCase: GetActiveExceptionsForDoctorUseCase,
     private readonly cacheService: CacheService,
@@ -59,13 +59,13 @@ export class GetAvailabilityUseCase extends BaseUseCase {
 
     let doctorId: string
     if (currentUser.role === UserRole.DOCTOR) {
-      const doctor = await this.doctorsRepository.findByUserId(currentUser.id, clinicId)
-      if (!doctor) throw new NotFoundException('Doctor not found')
+      const doctor = await this.professionalsRepository.findByUserId(currentUser.id, clinicId)
+      if (!doctor) throw new NotFoundException('Professional not found')
       doctorId = doctor.id
     } else {
       if (!query.doctorId) throw new UnprocessableEntityException('doctorId is required')
-      const doctor = await this.doctorsRepository.findById(query.doctorId, clinicId)
-      if (!doctor) throw new NotFoundException('Doctor not found')
+      const doctor = await this.professionalsRepository.findById(query.doctorId, clinicId)
+      if (!doctor) throw new NotFoundException('Professional not found')
       doctorId = doctor.id
     }
 

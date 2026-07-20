@@ -3,7 +3,7 @@ import { DataSource } from 'typeorm'
 import { BaseUseCase } from '../../../common/base.use-case'
 import { CacheService } from '../../../cache/cache.service'
 import { ICurrentUser } from '../../auth/types/current-user.type'
-import { DeleteDoctorUseCase } from '../../doctors/use-cases/delete-doctor.use-case'
+import { DeleteProfessionalUseCase } from '../../professionals/use-cases/delete-professional.use-case'
 import { DeletePatientUseCase } from '../../patients/use-cases/delete-patient.use-case'
 import { IUsersRepository } from '../repositories/users.repository.interface'
 
@@ -15,7 +15,7 @@ export class DeleteUserUseCase extends BaseUseCase {
     dataSource: DataSource,
     private readonly usersRepository: IUsersRepository,
     private readonly cacheService: CacheService,
-    private readonly deleteDoctorUseCase: DeleteDoctorUseCase,
+    private readonly deleteProfessionalUseCase: DeleteProfessionalUseCase,
     private readonly deletePatientUseCase: DeletePatientUseCase,
   ) {
     super(dataSource)
@@ -29,7 +29,7 @@ export class DeleteUserUseCase extends BaseUseCase {
     if (!user) throw new NotFoundException('User not found')
 
     await this.runInTransaction(async (queryRunner) => {
-      await this.deleteDoctorUseCase.deleteByUserId(id, clinicId, queryRunner)
+      await this.deleteProfessionalUseCase.deleteByUserId(id, clinicId, queryRunner)
       await this.deletePatientUseCase.deleteByUserId(id, clinicId, queryRunner)
       await this.usersRepository.delete(id, queryRunner)
     })

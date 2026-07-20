@@ -4,7 +4,7 @@ import { AppointmentStatus, DashboardResponseDto, UserRole } from '@app/shared'
 import { BaseUseCase } from '../../../common/base.use-case'
 import { CacheService } from '../../../cache/cache.service'
 import { ICurrentUser } from '../../auth/types/current-user.type'
-import { IDoctorsRepository } from '../../doctors/repositories/doctors.repository.interface'
+import { IProfessionalsRepository } from '../../professionals/repositories/professionals.repository.interface'
 import { DashboardQueryDto } from '../dto/dashboard-query.dto'
 import { IDashboardRepository } from '../repositories/dashboard.repository.interface'
 
@@ -15,7 +15,7 @@ export class GetDashboardStatsUseCase extends BaseUseCase {
   constructor(
     dataSource: DataSource,
     private readonly dashboardRepository: IDashboardRepository,
-    private readonly doctorsRepository: IDoctorsRepository,
+    private readonly professionalsRepository: IProfessionalsRepository,
     private readonly cacheService: CacheService,
   ) {
     super(dataSource)
@@ -37,7 +37,7 @@ export class GetDashboardStatsUseCase extends BaseUseCase {
     let effectiveDoctorId: string | undefined
 
     if (currentUser.role === UserRole.DOCTOR) {
-      const doctor = await this.doctorsRepository.findByUserId(currentUser.id, clinicId)
+      const doctor = await this.professionalsRepository.findByUserId(currentUser.id, clinicId)
       if (!doctor) throw new ForbiddenException('No doctor profile found for current user')
       effectiveDoctorId = doctor.id
     } else {

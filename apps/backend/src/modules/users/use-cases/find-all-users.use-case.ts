@@ -61,7 +61,7 @@ export class FindAllUsersUseCase extends BaseUseCase {
     const rows: Array<{ user_id: string }> = await this.dataSource
       .createQueryBuilder()
       .select('d.user_id', 'user_id')
-      .from('doctors', 'd')
+      .from('professionals', 'd')
       .where('d.user_id IN (:...userIds)', { userIds })
       .andWhere('d.deleted_at IS NULL')
       .getRawMany()

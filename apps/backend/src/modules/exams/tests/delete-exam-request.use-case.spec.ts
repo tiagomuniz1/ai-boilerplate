@@ -2,7 +2,7 @@ import { ForbiddenException, NotFoundException } from '@nestjs/common'
 import { DataSource, QueryRunner } from 'typeorm'
 import { ExamRequestStatus, UserRole } from '@app/shared'
 import { ICurrentUser } from '../../auth/types/current-user.type'
-import { IDoctorsRepository } from '../../doctors/repositories/doctors.repository.interface'
+import { IProfessionalsRepository } from '../../professionals/repositories/professionals.repository.interface'
 import { IExamRequestsRepository } from '../repositories/exam-requests.repository.interface'
 import { IExamResultsRepository } from '../repositories/exam-results.repository.interface'
 import { DeleteExamRequestUseCase } from '../use-cases/delete-exam-request.use-case'
@@ -68,11 +68,11 @@ const mockExamResultsRepository: jest.Mocked<IExamResultsRepository> = {
   delete: jest.fn(),
 }
 
-const mockDoctorsRepository: jest.Mocked<IDoctorsRepository> = {
+const mockProfessionalsRepository: jest.Mocked<IProfessionalsRepository> = {
   findAll: jest.fn(),
   findById: jest.fn(),
   findByUserId: jest.fn(),
-  findByCrm: jest.fn(),
+  findByRegistration: jest.fn(),
   create: jest.fn(),
   update: jest.fn(),
   delete: jest.fn(),
@@ -95,11 +95,11 @@ describe('DeleteExamRequestUseCase', () => {
       mockDataSource,
       mockExamRequestsRepository,
       mockExamResultsRepository,
-      mockDoctorsRepository,
+      mockProfessionalsRepository,
       mockCacheService,
     )
     mockExamRequestsRepository.findById.mockResolvedValue(makeExamRequest() as any)
-    mockDoctorsRepository.findByUserId.mockResolvedValue({ id: doctorId } as any)
+    mockProfessionalsRepository.findByUserId.mockResolvedValue({ id: doctorId } as any)
     mockExamRequestsRepository.delete.mockResolvedValue(undefined)
     mockExamResultsRepository.deleteByExamRequestId.mockResolvedValue(undefined)
     mockCacheService.del.mockResolvedValue(undefined)
@@ -109,14 +109,14 @@ describe('DeleteExamRequestUseCase', () => {
     await useCase.execute(examRequestId, adminUser)
 
     expect(mockExamRequestsRepository.delete).toHaveBeenCalledWith(examRequestId, mockQueryRunner)
-    expect(mockDoctorsRepository.findByUserId).not.toHaveBeenCalled()
+    expect(mockProfessionalsRepository.findByUserId).not.toHaveBeenCalled()
   })
 
   it('deletes exam request for DOCTOR on own exam request', async () => {
     await useCase.execute(examRequestId, doctorUser)
 
     expect(mockExamRequestsRepository.delete).toHaveBeenCalledWith(examRequestId, mockQueryRunner)
-    expect(mockDoctorsRepository.findByUserId).toHaveBeenCalledWith(doctorUser.id, clinicId)
+    expect(mockProfessionalsRepository.findByUserId).toHaveBeenCalledWith(doctorUser.id, clinicId)
   })
 
   it('cascades soft-delete of exam results before deleting the request, in the same transaction', async () => {
@@ -155,19 +155,19 @@ describe('DeleteExamRequestUseCase', () => {
   })
 
   it('throws ForbiddenException when DOCTOR deletes another doctor exam request', async () => {
-    mockDoctorsRepository.findByUserId.mockResolvedValue({ id: 'other-doctor' } as any)
+    mockProfessionalsRepository.findByUserId.mockResolvedValue({ id: 'other-doctor' } as any)
 
     await expect(useCase.execute(examRequestId, doctorUser)).rejects.toThrow(ForbiddenException)
   })
 
   it('throws ForbiddenException when DOCTOR has no doctor profile', async () => {
-    mockDoctorsRepository.findByUserId.mockResolvedValue(null)
+    mockProfessionalsRepository.findByUserId.mockResolvedValue(null)
 
     await expect(useCase.execute(examRequestId, doctorUser)).rejects.toThrow(ForbiddenException)
   })
 
   it('does not delete when RBAC fails', async () => {
-    mockDoctorsRepository.findByUserId.mockResolvedValue({ id: 'other-doctor' } as any)
+    mockProfessionalsRepository.findByUserId.mockResolvedValue({ id: 'other-doctor' } as any)
 
     await expect(useCase.execute(examRequestId, doctorUser)).rejects.toThrow(ForbiddenException)
     expect(mockExamRequestsRepository.delete).not.toHaveBeenCalled()

@@ -1,7 +1,7 @@
 import { forwardRef, Module } from '@nestjs/common'
 import { TypeOrmModule } from '@nestjs/typeorm'
 import { CacheModule } from '../../cache/cache.module'
-import { DoctorsModule } from '../doctors/doctors.module'
+import { ProfessionalsModule } from '../professionals/professionals.module'
 import { PatientsModule } from '../patients/patients.module'
 import { User } from './entities/user.entity'
 import { INotificationAdapter } from './adapters/notification.adapter.interface'
@@ -20,7 +20,7 @@ import { UsersRepository } from './repositories/users.repository'
   imports: [
     TypeOrmModule.forFeature([User]),
     CacheModule,
-    forwardRef(() => DoctorsModule),
+    forwardRef(() => ProfessionalsModule),
     forwardRef(() => PatientsModule),
   ],
   controllers: [UsersController],

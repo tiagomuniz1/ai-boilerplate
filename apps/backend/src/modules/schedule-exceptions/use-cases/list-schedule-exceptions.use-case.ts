@@ -4,7 +4,7 @@ import { PaginatedScheduleExceptionsResponseDto, ScheduleExceptionResponseDto, U
 import { BaseUseCase } from '../../../common/base.use-case'
 import { CacheService } from '../../../cache/cache.service'
 import { ICurrentUser } from '../../auth/types/current-user.type'
-import { IDoctorsRepository } from '../../doctors/repositories/doctors.repository.interface'
+import { IProfessionalsRepository } from '../../professionals/repositories/professionals.repository.interface'
 import { IScheduleExceptionsRepository } from '../repositories/schedule-exceptions.repository.interface'
 import { ListScheduleExceptionsQueryDto } from '../dto/list-schedule-exceptions-query.dto'
 import { ScheduleException } from '../entities/schedule-exception.entity'
@@ -16,7 +16,7 @@ export class ListScheduleExceptionsUseCase extends BaseUseCase {
   constructor(
     dataSource: DataSource,
     private readonly scheduleExceptionsRepository: IScheduleExceptionsRepository,
-    private readonly doctorsRepository: IDoctorsRepository,
+    private readonly professionalsRepository: IProfessionalsRepository,
     private readonly cacheService: CacheService,
   ) {
     super(dataSource)
@@ -30,8 +30,8 @@ export class ListScheduleExceptionsUseCase extends BaseUseCase {
     const effectiveQuery = { ...query }
 
     if (currentUser.role === UserRole.DOCTOR) {
-      const doctor = await this.doctorsRepository.findByUserId(currentUser.id, clinicId)
-      if (!doctor) throw new NotFoundException('Doctor not found')
+      const doctor = await this.professionalsRepository.findByUserId(currentUser.id, clinicId)
+      if (!doctor) throw new NotFoundException('Professional not found')
       effectiveQuery.doctorId = doctor.id
     }
 

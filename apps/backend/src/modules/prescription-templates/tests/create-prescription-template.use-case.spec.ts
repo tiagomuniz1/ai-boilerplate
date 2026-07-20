@@ -2,7 +2,7 @@ import { ForbiddenException, NotFoundException, UnprocessableEntityException } f
 import { DataSource } from 'typeorm'
 import { UserRole } from '@app/shared'
 import { ICurrentUser } from '../../auth/types/current-user.type'
-import { IDoctorsRepository } from '../../doctors/repositories/doctors.repository.interface'
+import { IProfessionalsRepository } from '../../professionals/repositories/professionals.repository.interface'
 import { IMedicationsRepository } from '../../medications/repositories/medications.repository.interface'
 import { IPrescriptionTemplatesRepository } from '../repositories/prescription-templates.repository.interface'
 import { CreatePrescriptionTemplateUseCase } from '../use-cases/create-prescription-template.use-case'
@@ -50,11 +50,11 @@ const mockRepository: jest.Mocked<IPrescriptionTemplatesRepository> = {
   delete: jest.fn(),
 }
 
-const mockDoctorsRepository: jest.Mocked<IDoctorsRepository> = {
+const mockProfessionalsRepository: jest.Mocked<IProfessionalsRepository> = {
   findAll: jest.fn(),
   findById: jest.fn(),
   findByUserId: jest.fn(),
-  findByCrm: jest.fn(),
+  findByRegistration: jest.fn(),
   create: jest.fn(),
   update: jest.fn(),
   delete: jest.fn(),
@@ -82,11 +82,11 @@ describe('CreatePrescriptionTemplateUseCase', () => {
     useCase = new CreatePrescriptionTemplateUseCase(
       {} as DataSource,
       mockRepository,
-      mockDoctorsRepository,
+      mockProfessionalsRepository,
       mockMedicationsRepository,
     )
-    mockDoctorsRepository.findByUserId.mockResolvedValue(makeDoctor() as any)
-    mockDoctorsRepository.findById.mockResolvedValue(makeDoctor() as any)
+    mockProfessionalsRepository.findByUserId.mockResolvedValue(makeDoctor() as any)
+    mockProfessionalsRepository.findById.mockResolvedValue(makeDoctor() as any)
     mockMedicationsRepository.findById.mockResolvedValue(makeMedication() as any)
     mockRepository.create.mockResolvedValue(makeSavedTemplate() as any)
   })
@@ -94,8 +94,8 @@ describe('CreatePrescriptionTemplateUseCase', () => {
   it('creates template for DOCTOR using own doctorId from session', async () => {
     const result = await useCase.execute(baseDto, doctorUser)
 
-    expect(mockDoctorsRepository.findByUserId).toHaveBeenCalledWith(doctorUser.id, clinicId)
-    expect(mockDoctorsRepository.findById).not.toHaveBeenCalled()
+    expect(mockProfessionalsRepository.findByUserId).toHaveBeenCalledWith(doctorUser.id, clinicId)
+    expect(mockProfessionalsRepository.findById).not.toHaveBeenCalled()
     expect(result.doctorId).toBe(doctorId)
     expect(result.name).toBe('Hipertensão leve')
   })
@@ -103,8 +103,8 @@ describe('CreatePrescriptionTemplateUseCase', () => {
   it('creates template for ADMIN using doctorId from DTO', async () => {
     const result = await useCase.execute({ ...baseDto, doctorId }, adminUser)
 
-    expect(mockDoctorsRepository.findById).toHaveBeenCalledWith(doctorId, clinicId)
-    expect(mockDoctorsRepository.findByUserId).not.toHaveBeenCalled()
+    expect(mockProfessionalsRepository.findById).toHaveBeenCalledWith(doctorId, clinicId)
+    expect(mockProfessionalsRepository.findByUserId).not.toHaveBeenCalled()
     expect(result.doctorId).toBe(doctorId)
   })
 
@@ -157,7 +157,7 @@ describe('CreatePrescriptionTemplateUseCase', () => {
   })
 
   it('throws ForbiddenException when DOCTOR has no doctor profile', async () => {
-    mockDoctorsRepository.findByUserId.mockResolvedValue(null)
+    mockProfessionalsRepository.findByUserId.mockResolvedValue(null)
 
     await expect(useCase.execute(baseDto, doctorUser)).rejects.toThrow(ForbiddenException)
   })
@@ -167,7 +167,7 @@ describe('CreatePrescriptionTemplateUseCase', () => {
   })
 
   it('throws NotFoundException when ADMIN provides unknown doctorId', async () => {
-    mockDoctorsRepository.findById.mockResolvedValue(null)
+    mockProfessionalsRepository.findById.mockResolvedValue(null)
 
     await expect(useCase.execute({ ...baseDto, doctorId }, adminUser)).rejects.toThrow(NotFoundException)
   })

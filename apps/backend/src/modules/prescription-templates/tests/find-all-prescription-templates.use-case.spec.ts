@@ -2,7 +2,7 @@ import { ForbiddenException } from '@nestjs/common'
 import { DataSource } from 'typeorm'
 import { UserRole } from '@app/shared'
 import { ICurrentUser } from '../../auth/types/current-user.type'
-import { IDoctorsRepository } from '../../doctors/repositories/doctors.repository.interface'
+import { IProfessionalsRepository } from '../../professionals/repositories/professionals.repository.interface'
 import { IPrescriptionTemplatesRepository } from '../repositories/prescription-templates.repository.interface'
 import { FindAllPrescriptionTemplatesUseCase } from '../use-cases/find-all-prescription-templates.use-case'
 
@@ -37,11 +37,11 @@ const mockRepository: jest.Mocked<IPrescriptionTemplatesRepository> = {
   delete: jest.fn(),
 }
 
-const mockDoctorsRepository: jest.Mocked<IDoctorsRepository> = {
+const mockProfessionalsRepository: jest.Mocked<IProfessionalsRepository> = {
   findAll: jest.fn(),
   findById: jest.fn(),
   findByUserId: jest.fn(),
-  findByCrm: jest.fn(),
+  findByRegistration: jest.fn(),
   create: jest.fn(),
   update: jest.fn(),
   delete: jest.fn(),
@@ -52,15 +52,15 @@ describe('FindAllPrescriptionTemplatesUseCase', () => {
 
   beforeEach(() => {
     jest.clearAllMocks()
-    useCase = new FindAllPrescriptionTemplatesUseCase({} as DataSource, mockRepository, mockDoctorsRepository)
-    mockDoctorsRepository.findByUserId.mockResolvedValue(makeDoctor() as any)
+    useCase = new FindAllPrescriptionTemplatesUseCase({} as DataSource, mockRepository, mockProfessionalsRepository)
+    mockProfessionalsRepository.findByUserId.mockResolvedValue(makeDoctor() as any)
     mockRepository.findAll.mockResolvedValue([makeTemplate() as any])
   })
 
   it('returns own templates for DOCTOR filtered by doctorId', async () => {
     const result = await useCase.execute(doctorUser)
 
-    expect(mockDoctorsRepository.findByUserId).toHaveBeenCalledWith(doctorUser.id, clinicId)
+    expect(mockProfessionalsRepository.findByUserId).toHaveBeenCalledWith(doctorUser.id, clinicId)
     expect(mockRepository.findAll).toHaveBeenCalledWith(clinicId, doctorId)
     expect(result).toHaveLength(1)
   })
@@ -68,7 +68,7 @@ describe('FindAllPrescriptionTemplatesUseCase', () => {
   it('returns all templates for ADMIN without doctorId filter', async () => {
     await useCase.execute(adminUser)
 
-    expect(mockDoctorsRepository.findByUserId).not.toHaveBeenCalled()
+    expect(mockProfessionalsRepository.findByUserId).not.toHaveBeenCalled()
     expect(mockRepository.findAll).toHaveBeenCalledWith(clinicId, undefined)
   })
 
@@ -79,7 +79,7 @@ describe('FindAllPrescriptionTemplatesUseCase', () => {
   })
 
   it('throws ForbiddenException when DOCTOR has no profile', async () => {
-    mockDoctorsRepository.findByUserId.mockResolvedValue(null)
+    mockProfessionalsRepository.findByUserId.mockResolvedValue(null)
 
     await expect(useCase.execute(doctorUser)).rejects.toThrow(ForbiddenException)
   })

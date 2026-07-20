@@ -38,7 +38,7 @@ export class FindUserByIdUseCase extends BaseUseCase {
     if (!user) throw new NotFoundException('User not found')
 
     const [isDoctor, isPatient] = await Promise.all([
-      this.hasProfile('doctors', user.id),
+      this.hasProfile('professionals', user.id),
       this.hasProfile('patients', user.id),
     ])
 
@@ -53,7 +53,7 @@ export class FindUserByIdUseCase extends BaseUseCase {
     return response
   }
 
-  private async hasProfile(table: 'doctors' | 'patients', userId: string): Promise<boolean> {
+  private async hasProfile(table: 'professionals' | 'patients', userId: string): Promise<boolean> {
     const rows: unknown[] = await this.dataSource
       .createQueryBuilder()
       .select('1')

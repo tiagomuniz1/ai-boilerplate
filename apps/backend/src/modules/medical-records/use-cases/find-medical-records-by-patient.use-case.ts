@@ -3,7 +3,7 @@ import { DataSource } from 'typeorm'
 import { MedicalRecordResponseDto, PaginatedMedicalRecordsResponseDto, UserRole } from '@app/shared'
 import { BaseUseCase } from '../../../common/base.use-case'
 import { ICurrentUser } from '../../auth/types/current-user.type'
-import { IDoctorsRepository } from '../../doctors/repositories/doctors.repository.interface'
+import { IProfessionalsRepository } from '../../professionals/repositories/professionals.repository.interface'
 import { IMedicalRecordsRepository } from '../repositories/medical-records.repository.interface'
 import { MedicalRecordListQueryDto } from '../dto/medical-record-list-query.dto'
 import { toMedicalRecordResponse } from './create-medical-record.use-case'
@@ -16,7 +16,7 @@ export class FindMedicalRecordsByPatientUseCase extends BaseUseCase {
   constructor(
     dataSource: DataSource,
     private readonly medicalRecordsRepository: IMedicalRecordsRepository,
-    private readonly doctorsRepository: IDoctorsRepository,
+    private readonly professionalsRepository: IProfessionalsRepository,
     private readonly cacheService: CacheService,
   ) {
     super(dataSource)
@@ -33,7 +33,7 @@ export class FindMedicalRecordsByPatientUseCase extends BaseUseCase {
     let doctorIdFilter: string | undefined = query.doctorId
 
     if (currentUser.role === UserRole.DOCTOR) {
-      const doctor = await this.doctorsRepository.findByUserId(currentUser.id, clinicId)
+      const doctor = await this.professionalsRepository.findByUserId(currentUser.id, clinicId)
       doctorIdFilter = doctor?.id
     }
 

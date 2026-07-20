@@ -11,7 +11,7 @@ import { ScheduleResponseDto, UpdateScheduleDto, UserRole } from '@app/shared'
 import { BaseUseCase } from '../../../common/base.use-case'
 import { CacheService } from '../../../cache/cache.service'
 import { ICurrentUser } from '../../auth/types/current-user.type'
-import { IDoctorsRepository } from '../../doctors/repositories/doctors.repository.interface'
+import { IProfessionalsRepository } from '../../professionals/repositories/professionals.repository.interface'
 import { IAppointmentsRepository } from '../repositories/appointments.repository.adapter'
 import { ISchedulesRepository } from '../repositories/schedules.repository.interface'
 import { Schedule } from '../entities/schedule.entity'
@@ -28,7 +28,7 @@ export class UpdateScheduleUseCase extends BaseUseCase {
   constructor(
     dataSource: DataSource,
     private readonly schedulesRepository: ISchedulesRepository,
-    private readonly doctorsRepository: IDoctorsRepository,
+    private readonly professionalsRepository: IProfessionalsRepository,
     private readonly appointmentsRepository: IAppointmentsRepository,
     private readonly cacheService: CacheService,
   ) {
@@ -49,8 +49,8 @@ export class UpdateScheduleUseCase extends BaseUseCase {
       if (currentUser.role !== UserRole.DOCTOR) {
         throw new ForbiddenException('Only doctors and admins can manage schedules')
       }
-      const doctor = await this.doctorsRepository.findByUserId(currentUser.id, clinicId)
-      if (!doctor) throw new NotFoundException('Doctor not found')
+      const doctor = await this.professionalsRepository.findByUserId(currentUser.id, clinicId)
+      if (!doctor) throw new NotFoundException('Professional not found')
       if (schedule.doctorId !== doctor.id) {
         throw new ForbiddenException('You are not allowed to manage this schedule')
       }
@@ -132,7 +132,7 @@ export class UpdateScheduleUseCase extends BaseUseCase {
     const rows: Array<{ fullName: string }> = await this.dataSource
       .createQueryBuilder()
       .select('u.full_name', 'fullName')
-      .from('doctors', 'd')
+      .from('professionals', 'd')
       .innerJoin('users', 'u', 'u.id = d.user_id AND u.deleted_at IS NULL')
       .where('d.id = :doctorId', { doctorId })
       .andWhere('d.deleted_at IS NULL')

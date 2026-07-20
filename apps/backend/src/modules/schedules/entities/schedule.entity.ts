@@ -11,16 +11,16 @@ import {
 } from 'typeorm'
 import { DayOfWeek } from '@app/shared'
 import { Clinic } from '../../clinics/entities/clinic.entity'
-import { Doctor } from '../../doctors/entities/doctor.entity'
+import { Professional } from '../../professionals/entities/professional.entity'
 
 @Entity('schedules')
 export class Schedule {
   @PrimaryGeneratedColumn('uuid')
   id: string
 
-  @ManyToOne(() => Doctor, { eager: false })
+  @ManyToOne(() => Professional, { eager: false })
   @JoinColumn({ name: 'doctor_id' })
-  doctor: Doctor
+  doctor: Professional
 
   @Column({ name: 'doctor_id' })
   doctorId: string

@@ -4,7 +4,7 @@ import { UserRole } from '@app/shared'
 import { BaseUseCase } from '../../../common/base.use-case'
 import { CacheService } from '../../../cache/cache.service'
 import { ICurrentUser } from '../../auth/types/current-user.type'
-import { IDoctorsRepository } from '../../doctors/repositories/doctors.repository.interface'
+import { IProfessionalsRepository } from '../../professionals/repositories/professionals.repository.interface'
 import { IPrescriptionsRepository } from '../repositories/prescriptions.repository.interface'
 
 @Injectable()
@@ -14,7 +14,7 @@ export class DeletePrescriptionUseCase extends BaseUseCase {
   constructor(
     dataSource: DataSource,
     private readonly prescriptionsRepository: IPrescriptionsRepository,
-    private readonly doctorsRepository: IDoctorsRepository,
+    private readonly professionalsRepository: IProfessionalsRepository,
     private readonly cacheService: CacheService,
   ) {
     super(dataSource)
@@ -27,7 +27,7 @@ export class DeletePrescriptionUseCase extends BaseUseCase {
     if (!prescription) throw new NotFoundException('Prescription not found')
 
     if (currentUser.role === UserRole.DOCTOR) {
-      const doctor = await this.doctorsRepository.findByUserId(currentUser.id, clinicId)
+      const doctor = await this.professionalsRepository.findByUserId(currentUser.id, clinicId)
       if (!doctor || doctor.id !== prescription.doctorId) {
         throw new ForbiddenException('Insufficient permissions')
       }

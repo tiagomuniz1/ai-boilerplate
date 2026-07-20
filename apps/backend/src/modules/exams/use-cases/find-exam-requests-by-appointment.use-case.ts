@@ -5,7 +5,7 @@ import { BaseUseCase } from '../../../common/base.use-case'
 import { CacheService } from '../../../cache/cache.service'
 import { ICurrentUser } from '../../auth/types/current-user.type'
 import { IAppointmentsRepository } from '../../appointments/repositories/appointments.repository.interface'
-import { IDoctorsRepository } from '../../doctors/repositories/doctors.repository.interface'
+import { IProfessionalsRepository } from '../../professionals/repositories/professionals.repository.interface'
 import { IExamRequestsRepository } from '../repositories/exam-requests.repository.interface'
 import { IExamResultsRepository } from '../repositories/exam-results.repository.interface'
 import { ExamResult } from '../entities/exam-result.entity'
@@ -20,7 +20,7 @@ export class FindExamRequestsByAppointmentUseCase extends BaseUseCase {
     private readonly examRequestsRepository: IExamRequestsRepository,
     private readonly examResultsRepository: IExamResultsRepository,
     private readonly appointmentsRepository: IAppointmentsRepository,
-    private readonly doctorsRepository: IDoctorsRepository,
+    private readonly professionalsRepository: IProfessionalsRepository,
     private readonly cacheService: CacheService,
   ) {
     super(dataSource)
@@ -32,7 +32,7 @@ export class FindExamRequestsByAppointmentUseCase extends BaseUseCase {
     if (currentUser.role === UserRole.DOCTOR) {
       const appointment = await this.appointmentsRepository.findById(appointmentId, clinicId)
       if (!appointment) throw new NotFoundException('Appointment not found')
-      const doctor = await this.doctorsRepository.findByUserId(currentUser.id, clinicId)
+      const doctor = await this.professionalsRepository.findByUserId(currentUser.id, clinicId)
       if (!doctor || doctor.id !== appointment.doctorId) {
         throw new ForbiddenException('Insufficient permissions')
       }

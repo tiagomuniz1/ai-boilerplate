@@ -1,6 +1,7 @@
 import * as bcrypt from 'bcrypt'
 import { DataSource } from 'typeorm'
 import {
+  CouncilType,
   DayOfWeek,
   MedicalRecordFieldType,
   UserRole,
@@ -9,9 +10,9 @@ import { Clinic } from '../../../modules/clinics/entities/clinic.entity'
 import { User } from '../../../modules/users/entities/user.entity'
 import { Specialty } from '../../../modules/specialties/entities/specialty.entity'
 import { ClinicSpecialty } from '../../../modules/clinic-specialties/entities/clinic-specialty.entity'
-import { Doctor } from '../../../modules/doctors/entities/doctor.entity'
-import { DoctorCrm } from '../../../modules/doctors/entities/doctor-crm.entity'
-import { DoctorSpecialty } from '../../../modules/doctors/entities/doctor-specialty.entity'
+import { Professional } from '../../../modules/professionals/entities/professional.entity'
+import { ProfessionalRegistration } from '../../../modules/professionals/entities/professional-registration.entity'
+import { ProfessionalSpecialty } from '../../../modules/professionals/entities/professional-specialty.entity'
 import { Schedule } from '../../../modules/schedules/entities/schedule.entity'
 import {
   MedicalRecordTemplate,
@@ -326,7 +327,7 @@ const SCHEDULE_CONFIGS = [
 
 async function seedDoctors(dataSource: DataSource, specialties: Specialty[], passwordHash: string): Promise<void> {
   const userRepo = dataSource.getRepository(User)
-  const doctorRepo = dataSource.getRepository(Doctor)
+  const doctorRepo = dataSource.getRepository(Professional)
   const scheduleRepo = dataSource.getRepository(Schedule)
 
   const existing = await doctorRepo.count({ where: { clinicId: CARGA_CLINIC_ID } })
@@ -364,10 +365,14 @@ async function seedDoctors(dataSource: DataSource, specialties: Specialty[], pas
         let doctor = await doctorRepo.findOneBy({ userId: user.id })
         if (!doctor) {
           const d = doctorRepo.create({ userId: user.id, clinicId: CARGA_CLINIC_ID })
-          d.crms = [
-            dataSource.getRepository(DoctorCrm).create({ clinicId: CARGA_CLINIC_ID, number: `${100000 + idx}`, state: 'SP', isPrimary: true }),
+          d.registrations = [
+            dataSource
+              .getRepository(ProfessionalRegistration)
+              .create({ clinicId: CARGA_CLINIC_ID, councilType: CouncilType.CRM, number: `${100000 + idx}`, state: 'SP', isPrimary: true }),
           ]
-          d.doctorSpecialties = [dataSource.getRepository(DoctorSpecialty).create({ specialtyId: specialty.id, rqe: null })]
+          d.professionalSpecialties = [
+            dataSource.getRepository(ProfessionalSpecialty).create({ specialtyId: specialty.id, registryNumber: null }),
+          ]
           doctor = await doctorRepo.save(d)
         }
 
@@ -440,7 +445,7 @@ async function seedPrescriptionTemplatesBulk(dataSource: DataSource): Promise<vo
     await qr.query(`SET search_path TO "${schema}", public`)
 
     const doctorCount = parseInt(
-      (await qr.query(`SELECT COUNT(*) as cnt FROM doctors WHERE clinic_id = $1`, [CARGA_CLINIC_ID]))[0].cnt,
+      (await qr.query(`SELECT COUNT(*) as cnt FROM professionals WHERE clinic_id = $1`, [CARGA_CLINIC_ID]))[0].cnt,
       10,
     )
     if (doctorCount === 0) {
@@ -500,7 +505,7 @@ async function seedPrescriptionTemplatesBulk(dataSource: DataSource): Promise<vo
           d.id AS doctor_id,
           u.full_name AS doctor_name,
           (ROW_NUMBER() OVER (ORDER BY d.created_at, d.id))::int AS rn
-        FROM doctors d
+        FROM professionals d
         JOIN users u ON u.id = d.user_id
         WHERE d.clinic_id = $1
       ) doc
@@ -625,11 +630,11 @@ async function seedAppointmentsBulk(dataSource: DataSource): Promise<void> {
         d.id                                                         AS doctor_id,
         s.id                                                         AS schedule_id,
         (SELECT ds.specialty_id
-         FROM doctor_specialties ds
-         WHERE ds.doctor_id = d.id
+         FROM professional_specialties ds
+         WHERE ds.professional_id = d.id
          LIMIT 1)                                                    AS specialty_id,
         (ROW_NUMBER() OVER (ORDER BY d.created_at, d.id))::int - 1  AS rn
-      FROM doctors d
+      FROM professionals d
       JOIN schedules s ON s.doctor_id = d.id AND s.clinic_id = d.clinic_id
       WHERE d.clinic_id = $1
       LIMIT $2

@@ -3,7 +3,7 @@ import { DataSource } from 'typeorm'
 import { faker } from '@faker-js/faker'
 import { AppointmentStatus, PatientGender, UserRole } from '@app/shared'
 import { ICurrentUser } from '../../auth/types/current-user.type'
-import { IDoctorsRepository } from '../../doctors/repositories/doctors.repository.interface'
+import { IProfessionalsRepository } from '../../professionals/repositories/professionals.repository.interface'
 import { IAppointmentsRepository } from '../repositories/appointments.repository.interface'
 import { FindAppointmentByIdUseCase } from '../use-cases/find-appointment-by-id.use-case'
 
@@ -56,11 +56,11 @@ const mockAppointmentsRepository: jest.Mocked<IAppointmentsRepository> = {
   update: jest.fn(),
 }
 
-const mockDoctorsRepository: jest.Mocked<IDoctorsRepository> = {
+const mockProfessionalsRepository: jest.Mocked<IProfessionalsRepository> = {
   findAll: jest.fn(),
   findById: jest.fn(),
   findByUserId: jest.fn(),
-  findByCrm: jest.fn(),
+  findByRegistration: jest.fn(),
   create: jest.fn(),
   update: jest.fn(),
   delete: jest.fn(),
@@ -87,9 +87,9 @@ describe('FindAppointmentByIdUseCase', () => {
     useCase = new FindAppointmentByIdUseCase(
       makeMockDataSource(),
       mockAppointmentsRepository,
-      mockDoctorsRepository,
+      mockProfessionalsRepository,
     )
-    mockDoctorsRepository.findByUserId.mockResolvedValue({ id: doctorId } as any)
+    mockProfessionalsRepository.findByUserId.mockResolvedValue({ id: doctorId } as any)
   })
 
   it('throws NotFoundException when appointment not found', async () => {
@@ -160,7 +160,7 @@ describe('FindAppointmentByIdUseCase', () => {
     const useCaseWithEmpty = new FindAppointmentByIdUseCase(
       makeMockDataSource([]),
       mockAppointmentsRepository,
-      mockDoctorsRepository,
+      mockProfessionalsRepository,
     )
 
     const result = await useCaseWithEmpty.execute(appointment.id, adminUser)
@@ -180,7 +180,7 @@ describe('FindAppointmentByIdUseCase', () => {
     const useCaseWithEmpty = new FindAppointmentByIdUseCase(
       makeMockDataSource([]),
       mockAppointmentsRepository,
-      mockDoctorsRepository,
+      mockProfessionalsRepository,
     )
 
     const result = await useCaseWithEmpty.execute(appointment.id, adminUser)
@@ -207,7 +207,7 @@ describe('FindAppointmentByIdUseCase', () => {
     const useCaseWithSpecialty = new FindAppointmentByIdUseCase(
       ds,
       mockAppointmentsRepository,
-      mockDoctorsRepository,
+      mockProfessionalsRepository,
     )
 
     const result = await useCaseWithSpecialty.execute(appointment.id, adminUser)

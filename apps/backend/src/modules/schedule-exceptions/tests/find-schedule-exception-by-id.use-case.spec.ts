@@ -2,7 +2,7 @@ import { ForbiddenException, NotFoundException } from '@nestjs/common'
 import { DataSource } from 'typeorm'
 import { faker } from '@faker-js/faker'
 import { UserRole } from '@app/shared'
-import { IDoctorsRepository } from '../../doctors/repositories/doctors.repository.interface'
+import { IProfessionalsRepository } from '../../professionals/repositories/professionals.repository.interface'
 import { ICurrentUser } from '../../auth/types/current-user.type'
 import { IScheduleExceptionsRepository } from '../repositories/schedule-exceptions.repository.interface'
 import { FindScheduleExceptionByIdUseCase } from '../use-cases/find-schedule-exception-by-id.use-case'
@@ -16,11 +16,11 @@ const mockScheduleExceptionsRepository: jest.Mocked<IScheduleExceptionsRepositor
   delete: jest.fn(),
 }
 
-const mockDoctorsRepository: jest.Mocked<IDoctorsRepository> = {
+const mockProfessionalsRepository: jest.Mocked<IProfessionalsRepository> = {
   findAll: jest.fn(),
   findById: jest.fn(),
   findByUserId: jest.fn(),
-  findByCrm: jest.fn(),
+  findByRegistration: jest.fn(),
   create: jest.fn(),
   update: jest.fn(),
   delete: jest.fn(),
@@ -58,7 +58,7 @@ describe('FindScheduleExceptionByIdUseCase', () => {
     useCase = new FindScheduleExceptionByIdUseCase(
       {} as DataSource,
       mockScheduleExceptionsRepository,
-      mockDoctorsRepository,
+      mockProfessionalsRepository,
     )
   })
 
@@ -75,20 +75,20 @@ describe('FindScheduleExceptionByIdUseCase', () => {
 
   it('returns own exception for DOCTOR', async () => {
     mockScheduleExceptionsRepository.findById.mockResolvedValue(makeException() as any)
-    mockDoctorsRepository.findByUserId.mockResolvedValue(makeDoctor())
+    mockProfessionalsRepository.findByUserId.mockResolvedValue(makeDoctor())
     const result = await useCase.execute(EXCEPTION_ID, doctorUser)
     expect(result.id).toBe(EXCEPTION_ID)
   })
 
   it('throws ForbiddenException when DOCTOR views exception of another doctor', async () => {
     mockScheduleExceptionsRepository.findById.mockResolvedValue(makeException({ doctorId: 'other-doctor' }) as any)
-    mockDoctorsRepository.findByUserId.mockResolvedValue(makeDoctor())
+    mockProfessionalsRepository.findByUserId.mockResolvedValue(makeDoctor())
     await expect(useCase.execute(EXCEPTION_ID, doctorUser)).rejects.toThrow(ForbiddenException)
   })
 
   it('throws ForbiddenException when DOCTOR has no doctor profile', async () => {
     mockScheduleExceptionsRepository.findById.mockResolvedValue(makeException() as any)
-    mockDoctorsRepository.findByUserId.mockResolvedValue(null)
+    mockProfessionalsRepository.findByUserId.mockResolvedValue(null)
     await expect(useCase.execute(EXCEPTION_ID, doctorUser)).rejects.toThrow(ForbiddenException)
   })
 })
