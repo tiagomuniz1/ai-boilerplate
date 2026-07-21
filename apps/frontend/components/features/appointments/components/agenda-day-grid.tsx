@@ -13,7 +13,7 @@ import { AppointmentDetailsDialog } from './appointment-details-dialog'
 import type { IAgendaSlot } from '../types/appointment-model.types'
 
 interface AgendaDayGridProps {
-  doctorId: string | null
+  professionalId: string | null
   date: string
   role: UserRole
   currentDoctorId?: string
@@ -21,7 +21,7 @@ interface AgendaDayGridProps {
 }
 
 export function AgendaDayGrid({
-  doctorId,
+  professionalId,
   date,
   role,
   currentDoctorId,
@@ -30,9 +30,9 @@ export function AgendaDayGrid({
   const [bookingSlot, setBookingSlot] = useState<IAgendaSlot | null>(null)
   const [detailsId, setDetailsId] = useState<string | null>(null)
 
-  const { slots, isLoading, isError } = useDayAgenda(doctorId, date)
+  const { slots, isLoading, isError } = useDayAgenda(professionalId, date)
   const { data: exceptions = [] } = useScheduleExceptions(
-    doctorId !== null ? { doctorId: doctorId === 'self' ? undefined : doctorId, from: date, to: date } : undefined,
+    professionalId !== null ? { professionalId: professionalId === 'self' ? undefined : professionalId, from: date, to: date } : undefined,
   )
 
   const canManage = role === UserRole.ADMIN || role === UserRole.PROFESSIONAL
@@ -41,10 +41,10 @@ export function AgendaDayGrid({
     return new Date(`${date}T${startTime}:00`) < new Date()
   }
 
-  if (doctorId === null) {
+  if (professionalId === null) {
     return (
       <div data-testid="agenda-empty-doctor" className="py-12 text-center text-sm text-text/50">
-        Selecione um médico para visualizar a agenda.
+        Selecione um profissional para visualizar a agenda.
       </div>
     )
   }
@@ -92,7 +92,7 @@ export function AgendaDayGrid({
         date={date}
         startTime={bookingSlot?.startTime ?? ''}
         endTime={bookingSlot?.endTime ?? ''}
-        doctorId={effectiveDoctorId ?? currentDoctorId}
+        professionalId={effectiveDoctorId ?? currentDoctorId}
       />
 
       <AppointmentDetailsDialog

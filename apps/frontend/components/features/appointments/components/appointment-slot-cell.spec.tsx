@@ -65,8 +65,8 @@ describe('AppointmentSlotCell', () => {
   it('renders booked slot when appointment is present', () => {
     const slot = makeBookedSlot({
       id: 'appt-1',
-      doctorId: 'doc-1',
-      doctorName: 'Dr. A',
+      professionalId: 'doc-1',
+      professionalName: 'Dr. A',
       patientId: 'pat-1',
       patientName: 'Patient One',
       specialtyId: null,

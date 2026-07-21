@@ -21,8 +21,8 @@ const makeDto = (overrides = {}) => ({
   appointmentId: 'appt-uuid',
   patientId: 'patient-uuid',
   patientName: 'Ana Lima',
-  doctorId: 'doctor-uuid',
-  doctorName: 'Dr. João',
+  professionalId: 'doctor-uuid',
+  professionalName: 'Dr. João',
   specialtyId: 'spec-uuid',
   specialtyName: 'Cardiologia',
   templateId: 'tpl-uuid',
@@ -41,8 +41,8 @@ describe('toMedicalRecordModel', () => {
     expect(model.appointmentId).toBe('appt-uuid')
     expect(model.patientId).toBe('patient-uuid')
     expect(model.patientName).toBe('Ana Lima')
-    expect(model.doctorId).toBe('doctor-uuid')
-    expect(model.doctorName).toBe('Dr. João')
+    expect(model.professionalId).toBe('doctor-uuid')
+    expect(model.professionalName).toBe('Dr. João')
     expect(model.specialtyId).toBe('spec-uuid')
     expect(model.specialtyName).toBe('Cardiologia')
     expect(model.notes).toBe('Observação')

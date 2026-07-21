@@ -5,8 +5,8 @@ const makeDto = () => ({
   appointmentId: 'appt-uuid',
   patientId: 'patient-uuid',
   patientName: 'Maria Santos',
-  doctorId: 'doctor-uuid',
-  doctorName: 'Dr. João',
+  professionalId: 'doctor-uuid',
+  professionalName: 'Dr. João',
   issuedAt: '2026-06-28T10:00:00.000Z' as unknown as Date,
   items: [
     { medicationId: 'med-uuid', name: 'Dipirona 500mg', activeIngredient: 'dipirona sódica', dosage: '500mg', quantity: '1 caixa', instructions: 'Tomar 1 cp 8/8h' },
@@ -23,8 +23,8 @@ describe('toPrescriptionModel', () => {
     expect(model.appointmentId).toBe('appt-uuid')
     expect(model.patientId).toBe('patient-uuid')
     expect(model.patientName).toBe('Maria Santos')
-    expect(model.doctorId).toBe('doctor-uuid')
-    expect(model.doctorName).toBe('Dr. João')
+    expect(model.professionalId).toBe('doctor-uuid')
+    expect(model.professionalName).toBe('Dr. João')
     expect(model.notes).toBe('Retornar em 7 dias.')
   })
 

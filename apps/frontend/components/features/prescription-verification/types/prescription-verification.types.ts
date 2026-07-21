@@ -1,3 +1,5 @@
+import type { CouncilType } from '@app/shared'
+
 export interface IPrescriptionVerificationItem {
   name: string
   activeIngredient: string | null
@@ -7,8 +9,9 @@ export interface IPrescriptionVerificationItem {
 
 export interface IPrescriptionVerificationModel {
   clinicName: string
-  doctorName: string
-  doctorCrmNumber: string
+  professionalName: string
+  professionalCouncilType: CouncilType
+  professionalRegistrationNumber: string
   specialtyName: string | null
   patientNameMasked: string
   patientDocumentMasked: string

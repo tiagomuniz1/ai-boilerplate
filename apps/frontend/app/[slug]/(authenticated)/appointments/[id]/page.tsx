@@ -34,9 +34,9 @@ export default function AppointmentDetailPage() {
   const currentUser = useAuthStore((s) => s.user)
   const role = currentUser?.role ?? UserRole.USER
 
-  const isDoctor = role === UserRole.PROFESSIONAL
+  const isProfessional = role === UserRole.PROFESSIONAL
   const { data: doctors } = useProfessionals({ limit: 100 })
-  const currentDoctorId = isDoctor ? doctors?.[0]?.id : undefined
+  const currentDoctorId = isProfessional ? doctors?.[0]?.id : undefined
 
   const { data: appointment, isLoading, isError } = useAppointment(id)
 
@@ -49,11 +49,11 @@ export default function AppointmentDetailPage() {
 
   const canManage =
     role === UserRole.ADMIN ||
-    (role === UserRole.PROFESSIONAL && appointment?.doctorId === currentDoctorId)
+    (role === UserRole.PROFESSIONAL && appointment?.professionalId === currentDoctorId)
 
   const canSeeMedicalRecord =
     role === UserRole.ADMIN ||
-    (role === UserRole.PROFESSIONAL && appointment?.doctorId === currentDoctorId)
+    (role === UserRole.PROFESSIONAL && appointment?.professionalId === currentDoctorId)
 
   const canAct = canManage && appointment?.status === AppointmentStatus.SCHEDULED
 
@@ -182,7 +182,7 @@ export default function AppointmentDetailPage() {
               {activeTab === 'receitas' && canManage && (
                 <PrescriptionSection
                   appointmentId={id}
-                  doctorId={appointment.doctorId}
+                  professionalId={appointment.professionalId}
                   canManage={canManage}
                   userRole={role}
                 />
@@ -191,7 +191,7 @@ export default function AppointmentDetailPage() {
               {activeTab === 'atestados' && canManage && (
                 <AtestadoSection
                   appointmentId={id}
-                  doctorId={appointment.doctorId}
+                  professionalId={appointment.professionalId}
                   canManage={canManage}
                   userRole={role}
                 />
@@ -200,7 +200,7 @@ export default function AppointmentDetailPage() {
               {activeTab === 'exames' && canManage && (
                 <ExameSection
                   appointmentId={id}
-                  doctorId={appointment.doctorId}
+                  professionalId={appointment.professionalId}
                   canManage={canManage}
                   userRole={role}
                 />

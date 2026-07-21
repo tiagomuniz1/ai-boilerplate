@@ -23,7 +23,7 @@ import type { IApiError } from '@/types/api.types'
 
 export interface ExameSectionProps {
   appointmentId: string
-  doctorId: string
+  professionalId: string
   canManage: boolean
   userRole: UserRole
 }
@@ -33,7 +33,7 @@ const statusLabel: Record<ExamRequestStatus, string> = {
   [ExamRequestStatus.COMPLETED]: 'Concluído',
 }
 
-export function ExameSection({ appointmentId, doctorId, canManage, userRole }: ExameSectionProps) {
+export function ExameSection({ appointmentId, professionalId, canManage, userRole }: ExameSectionProps) {
   const [showForm, setShowForm] = useState(false)
   const [deletingId, setDeletingId] = useState<string | null>(null)
   const [deletingResultId, setDeletingResultId] = useState<string | null>(null)
@@ -51,7 +51,7 @@ export function ExameSection({ appointmentId, doctorId, canManage, userRole }: E
     variables: downloadResultVars,
   } = useDownloadExamResultFile()
 
-  const isDoctor = userRole === UserRole.PROFESSIONAL
+  const isProfessional = userRole === UserRole.PROFESSIONAL
   const previewExamRequest = examRequests?.find((examRequest) => examRequest.id === previewId) ?? null
 
   function handleCreate(input: ICreateExamRequestInput) {
@@ -98,7 +98,7 @@ export function ExameSection({ appointmentId, doctorId, canManage, userRole }: E
             <h2 className="text-lg font-semibold text-text">Exames</h2>
             <p className="text-sm text-text-mute">Exames solicitados nesta consulta.</p>
           </div>
-          {isDoctor && canManage && (
+          {isProfessional && canManage && (
             <Button
               type="button"
               onClick={() => setShowForm(true)}
@@ -211,7 +211,7 @@ export function ExameSection({ appointmentId, doctorId, canManage, userRole }: E
       >
         <ExameForm
           appointmentId={appointmentId}
-          doctorId={doctorId}
+          professionalId={professionalId}
           isPending={isCreating}
           globalError={createGlobalError}
           onSubmit={handleCreate}
@@ -221,7 +221,7 @@ export function ExameSection({ appointmentId, doctorId, canManage, userRole }: E
       <ExamePreviewModal
         examRequest={previewExamRequest}
         onClose={() => setPreviewId(null)}
-        canManageResults={isDoctor && canManage}
+        canManageResults={isProfessional && canManage}
         isUploading={isUploading}
         uploadError={uploadGlobalError}
         onUpload={(files) => previewId && addResult({ examRequestId: previewId, files })}

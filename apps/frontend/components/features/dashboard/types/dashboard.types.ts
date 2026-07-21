@@ -18,5 +18,5 @@ export interface IDashboardModel {
 export interface IDashboardFilters {
   from?: string
   to?: string
-  doctorId?: string
+  professionalId?: string
 }

@@ -14,7 +14,7 @@ interface AgendaToolbarProps {
   role: UserRole
   doctors?: IProfessionalModel[]
   selectedDoctorId: string | null
-  onDoctorChange: (doctorId: string | null) => void
+  onDoctorChange: (professionalId: string | null) => void
   onBlockTime?: () => void
 }
 
@@ -105,7 +105,7 @@ export function AgendaToolbar({
             onChange={(e) => onDoctorChange(e.target.value || null)}
             className="w-full rounded-md border border-line bg-surface-2 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-accent sm:w-auto"
           >
-            <option value="">Selecione um médico</option>
+            <option value="">Selecione um profissional</option>
             {doctors?.map((doctor) => (
               <option key={doctor.id} value={doctor.id}>
                 {doctor.user.fullName}

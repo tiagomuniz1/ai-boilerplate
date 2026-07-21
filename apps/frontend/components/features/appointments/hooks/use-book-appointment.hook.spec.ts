@@ -21,8 +21,8 @@ const makeInput = () => ({
 
 const makeModel = (): IAppointmentModel => ({
   id: 'uuid-1',
-  doctorId: 'doc-uuid',
-  doctorName: 'Dr. Test',
+  professionalId: 'doc-uuid',
+  professionalName: 'Dr. Test',
   patientId: 'pat-uuid',
   patientName: 'Patient',
   scheduleId: 'sched-uuid',

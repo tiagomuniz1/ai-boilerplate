@@ -23,7 +23,7 @@ const mockDoctors = [
 
 const mockDefaultValues: IScheduleModel = {
   id: 'uuid-1',
-  doctorId: 'doc-uuid-1',
+  professionalId: 'doc-uuid-1',
   dayOfWeek: DayOfWeek.MONDAY,
   startTime: '08:00',
   endTime: '12:00',
@@ -153,11 +153,11 @@ describe('ScheduleForm — create mode', () => {
     await userEvent.click(screen.getByTestId('schedule-form-submit'))
 
     await waitFor(() => {
-      expect(screen.getByText('Selecione um médico')).toBeInTheDocument()
+      expect(screen.getByText('Selecione um profissional')).toBeInTheDocument()
     })
   })
 
-  it('calls onSubmit for DOCTOR without doctorId on valid submit', async () => {
+  it('calls onSubmit for DOCTOR without professionalId on valid submit', async () => {
     const onSubmit = jest.fn()
     renderWithProviders(
       <ScheduleForm mode="create" role={UserRole.PROFESSIONAL} isPending={false} onSubmit={onSubmit} />,
@@ -183,7 +183,7 @@ describe('ScheduleForm — create mode', () => {
       )
     })
 
-    expect(onSubmit.mock.calls[0][0]).not.toHaveProperty('doctorId')
+    expect(onSubmit.mock.calls[0][0]).not.toHaveProperty('professionalId')
   })
 
   it('shows error when slot duration does not evenly divide the time interval', async () => {
@@ -209,7 +209,7 @@ describe('ScheduleForm — create mode', () => {
     })
   })
 
-  it('calls onSubmit for ADMIN with doctorId on valid submit', async () => {
+  it('calls onSubmit for ADMIN with professionalId on valid submit', async () => {
     const onSubmit = jest.fn()
     renderWithProviders(
       <ScheduleForm
@@ -235,7 +235,7 @@ describe('ScheduleForm — create mode', () => {
     await waitFor(() => {
       expect(onSubmit).toHaveBeenCalledWith(
         expect.objectContaining({
-          doctorId: DOC_UUID_1,
+          professionalId: DOC_UUID_1,
           dayOfWeek: 'MONDAY',
           startTime: '08:00',
           endTime: '12:00',

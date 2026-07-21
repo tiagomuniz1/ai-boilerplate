@@ -49,7 +49,7 @@ const makeDoctorsResponse = (doctors: { id: string; fullName: string }[] = []) =
   limit: 200,
 })
 
-const emptyAvailability = { doctorId: 'doctor-uuid', date: '2025-07-01', slots: [] }
+const emptyAvailability = { professionalId: 'doctor-uuid', date: '2025-07-01', slots: [] }
 const emptyAppointments = { data: [], total: 0, page: 1, limit: 100 }
 
 describe('AppointmentAgenda (integration)', () => {

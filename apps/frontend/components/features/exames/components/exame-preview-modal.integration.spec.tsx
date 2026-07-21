@@ -11,8 +11,8 @@ function makeExamRequest(overrides: Partial<IExamRequestModel> = {}): IExamReque
     appointmentId: 'appt-uuid',
     patientId: 'patient-uuid',
     patientName: 'Maria Santos',
-    doctorId: 'doctor-uuid',
-    doctorName: 'Dr. João',
+    professionalId: 'doctor-uuid',
+    professionalName: 'Dr. João',
     items: [
       { name: 'Hemograma completo', observations: 'Jejum de 8 horas' },
       { name: 'Raio-X de tórax', observations: null },

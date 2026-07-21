@@ -14,11 +14,11 @@ describe('dashboardService', () => {
     expect(mockApiClient.get).toHaveBeenCalledWith('/dashboard')
   })
 
-  it('appends from, to and doctorId to the URL', async () => {
+  it('appends from, to and professionalId to the URL', async () => {
     mockApiClient.get.mockResolvedValue({} as any)
-    await dashboardService.getStats({ from: '2026-01-01', to: '2026-01-31', doctorId: 'doc-uuid' })
+    await dashboardService.getStats({ from: '2026-01-01', to: '2026-01-31', professionalId: 'doc-uuid' })
     expect(mockApiClient.get).toHaveBeenCalledWith(
-      '/dashboard?from=2026-01-01&to=2026-01-31&doctorId=doc-uuid',
+      '/dashboard?from=2026-01-01&to=2026-01-31&professionalId=doc-uuid',
     )
   })
 

@@ -312,7 +312,7 @@ describe('UsersController (integration)', () => {
       })
     })
 
-    it('returns isDoctor false and isPatient false for plain users', async () => {
+    it('returns isProfessional false and isPatient false for plain users', async () => {
       const { body: created } = await createUser().expect(201)
 
       const { body } = await request(app.getHttpServer())
@@ -321,11 +321,11 @@ describe('UsersController (integration)', () => {
         .expect(200)
 
       const found = body.data.find((u: any) => u.id === created.id)
-      expect(found.isDoctor).toBe(false)
+      expect(found.isProfessional).toBe(false)
       expect(found.isPatient).toBe(false)
     })
 
-    it('returns isDoctor true for users with a linked doctor profile', async () => {
+    it('returns isProfessional true for users with a linked doctor profile', async () => {
       const specialty = await specialtyRepository.save(
         specialtyRepository.create({ name: `Spec ${faker.string.alphanumeric(6)}` }),
       )
@@ -346,7 +346,7 @@ describe('UsersController (integration)', () => {
         .expect(200)
 
       const found = body.data.find((u: any) => u.id === doctorUserId)
-      expect(found.isDoctor).toBe(true)
+      expect(found.isProfessional).toBe(true)
       expect(found.isPatient).toBe(false)
 
       await doctorRepository.softDelete(doctor.id)

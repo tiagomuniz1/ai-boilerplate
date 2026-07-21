@@ -25,7 +25,7 @@ interface BookAppointmentDialogProps {
   date: string
   startTime: string
   endTime: string
-  doctorId?: string
+  professionalId?: string
 }
 
 export function BookAppointmentDialog({
@@ -34,17 +34,17 @@ export function BookAppointmentDialog({
   date,
   startTime,
   endTime,
-  doctorId,
+  professionalId,
 }: BookAppointmentDialogProps) {
   const { data: patientsData } = usePatients({ limit: 100 })
-  const { data: doctor, isPending: isDoctorLoading } = useProfessional(doctorId ?? '', {
-    enabled: isOpen && !!doctorId,
+  const { data: doctor, isPending: isDoctorLoading } = useProfessional(professionalId ?? '', {
+    enabled: isOpen && !!professionalId,
   })
   const { mutate, isPending, isError, error, reset } = useBookAppointment()
 
   const specialties = doctor?.specialties ?? []
   const specialtyCount = specialties.length
-  const doctorLoaded = !isDoctorLoading && !!doctorId
+  const doctorLoaded = !isDoctorLoading && !!professionalId
 
   const bookSchema = z.object({
     patientId: z.string().uuid('Selecione um paciente'),
@@ -84,7 +84,7 @@ export function BookAppointmentDialog({
   function onSubmit(values: BookFormValues) {
     mutate(
       {
-        doctorId,
+        professionalId,
         patientId: values.patientId,
         date,
         startTime,
@@ -111,7 +111,7 @@ export function BookAppointmentDialog({
   const errorMessage = is409
     ? 'Este horário acabou de ser reservado. Por favor, escolha outro slot.'
     : is422Specialty
-      ? 'Especialidade inválida ou não pertence ao médico.'
+      ? 'Especialidade inválida ou não pertence ao profissional.'
       : is422
         ? 'Horário inválido ou no passado. Por favor, selecione outro horário.'
         : isError
@@ -149,7 +149,7 @@ export function BookAppointmentDialog({
 
         {doctorLoaded && specialtyCount === 0 && (
           <Alert variant="info" data-testid="book-dialog-no-specialty">
-            Médico sem especialidade — a consulta será registrada como clínica geral.
+            Profissional sem especialidade — o atendimento será registrado como atendimento geral.
           </Alert>
         )}
 

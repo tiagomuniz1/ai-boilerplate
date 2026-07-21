@@ -17,8 +17,8 @@ const makeSlot = (startTime = '08:00'): IAvailableSlotModel => ({
 
 const makeAppointment = (startTime = '09:00'): IAppointmentModel => ({
   id: 'apt-uuid',
-  doctorId: 'doc-uuid',
-  doctorName: 'Dr. Test',
+  professionalId: 'doc-uuid',
+  professionalName: 'Dr. Test',
   patientId: 'pat-uuid',
   patientName: 'Patient',
   scheduleId: 'sched-uuid',
@@ -42,7 +42,7 @@ const makeQueryResult = (data: unknown, extra = {}) => ({
 describe('useDayAgenda', () => {
   beforeEach(() => jest.clearAllMocks())
 
-  it('returns empty slots and disabled when doctorId is null', () => {
+  it('returns empty slots and disabled when professionalId is null', () => {
     ;(useAvailability as jest.Mock).mockReturnValue(makeQueryResult([]))
     ;(useAppointments as jest.Mock).mockReturnValue(makeQueryResult({ data: [] }))
 
@@ -71,26 +71,26 @@ describe('useDayAgenda', () => {
     expect(slots[2].status).toBe('free')
   })
 
-  it('uses "self" as doctorId key when doctorId is "self"', () => {
+  it('uses "self" as professionalId key when professionalId is "self"', () => {
     ;(useAvailability as jest.Mock).mockReturnValue(makeQueryResult([]))
     ;(useAppointments as jest.Mock).mockReturnValue(makeQueryResult({ data: [] }))
 
     renderHook(() => useDayAgenda('self', '2025-06-20'))
 
     const availCall = (useAvailability as jest.Mock).mock.calls[0][0]
-    expect(availCall.doctorIdKey).toBe('self')
-    expect(availCall.doctorId).toBeUndefined()
+    expect(availCall.professionalIdKey).toBe('self')
+    expect(availCall.professionalId).toBeUndefined()
   })
 
-  it('passes doctorId for ADMIN/USER selection', () => {
+  it('passes professionalId for ADMIN/USER selection', () => {
     ;(useAvailability as jest.Mock).mockReturnValue(makeQueryResult([]))
     ;(useAppointments as jest.Mock).mockReturnValue(makeQueryResult({ data: [] }))
 
     renderHook(() => useDayAgenda('doc-uuid-123', '2025-06-20'))
 
     const availCall = (useAvailability as jest.Mock).mock.calls[0][0]
-    expect(availCall.doctorId).toBe('doc-uuid-123')
-    expect(availCall.doctorIdKey).toBe('doc-uuid-123')
+    expect(availCall.professionalId).toBe('doc-uuid-123')
+    expect(availCall.professionalIdKey).toBe('doc-uuid-123')
   })
 
   it('propagates isLoading state', () => {

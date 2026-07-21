@@ -4,8 +4,8 @@ import type { IPrescriptionTemplateModel } from '../types/prescription-template-
 export function toPrescriptionTemplateModel(dto: PrescriptionTemplateResponseDto): IPrescriptionTemplateModel {
   return {
     id: dto.id,
-    doctorId: dto.doctorId,
-    doctorName: dto.doctorName,
+    professionalId: dto.professionalId,
+    professionalName: dto.professionalName,
     name: dto.name,
     items: dto.items.map((item) => ({
       medicationId: item.medicationId,

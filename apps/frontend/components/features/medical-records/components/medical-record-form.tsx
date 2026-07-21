@@ -182,7 +182,7 @@ export function MedicalRecordForm({
     return (
       <div className="flex flex-col gap-1.5">
         <label htmlFor="field-notes" className="text-sm font-medium text-text">
-          Notas do médico
+          Notas do profissional
         </label>
         <Controller
           name="__notes__"

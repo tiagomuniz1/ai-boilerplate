@@ -65,7 +65,7 @@ export function ScheduleList() {
   const [successMessage, setSuccessMessage] = useState<string | null>(null)
 
   const params = {
-    ...(filterDoctorId ? { doctorId: filterDoctorId } : {}),
+    ...(filterDoctorId ? { professionalId: filterDoctorId } : {}),
     ...(filterDayOfWeek ? { dayOfWeek: filterDayOfWeek as DayOfWeek } : {}),
     ...(filterActiveOn ? { activeOn: filterActiveOn } : {}),
   }
@@ -128,7 +128,7 @@ export function ScheduleList() {
         {isAdmin && (
           <div className="flex flex-col gap-1.5 min-w-[200px]" data-testid="schedule-filter-doctor">
             <label htmlFor="filter-doctor" className="text-sm font-medium text-text">
-              Médico
+              Profissional
             </label>
             <select
               id="filter-doctor"
@@ -141,7 +141,7 @@ export function ScheduleList() {
               )}
               data-testid="schedule-filter-doctor-select"
             >
-              <option value="">Todos os médicos</option>
+              <option value="">Todos os profissionais</option>
               {doctors.map((doctor) => (
                 <option key={doctor.id} value={doctor.id}>
                   {doctor.user.fullName}
@@ -224,7 +224,7 @@ export function ScheduleList() {
                 <tr className="border-b border-line">
                   {isAdmin && (
                     <th className="px-6 py-3 text-xs font-medium uppercase tracking-wider text-text-mute">
-                      Médico
+                      Profissional
                     </th>
                   )}
                   <th className="px-6 py-3 text-xs font-medium uppercase tracking-wider text-text-mute">
@@ -246,7 +246,7 @@ export function ScheduleList() {
               </thead>
               <tbody>
                 {schedules.map((schedule) => {
-                  const doctorName = isAdmin ? schedule.doctorName : null
+                  const professionalName = isAdmin ? schedule.professionalName : null
                   return (
                     <tr
                       key={schedule.id}
@@ -258,7 +258,7 @@ export function ScheduleList() {
                           className="px-6 py-4 text-sm text-text whitespace-nowrap"
                           data-testid={`schedule-doctor-${schedule.id}`}
                         >
-                          {doctorName}
+                          {professionalName}
                         </td>
                       )}
                       <td
@@ -333,7 +333,7 @@ export function ScheduleList() {
               <MobileListCard
                 key={schedule.id}
                 data-testid={`schedule-card-${schedule.id}`}
-                title={isAdmin ? schedule.doctorName : DAY_OF_WEEK_LABELS[schedule.dayOfWeek]}
+                title={isAdmin ? schedule.professionalName : DAY_OF_WEEK_LABELS[schedule.dayOfWeek]}
                 rows={[
                   ...(isAdmin
                     ? [{ icon: <CalendarIcon />, label: 'Dia da semana', value: DAY_OF_WEEK_LABELS[schedule.dayOfWeek] }]

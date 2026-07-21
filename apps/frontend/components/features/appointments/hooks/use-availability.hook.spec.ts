@@ -28,7 +28,7 @@ describe('useAvailability', () => {
     ;(getAvailabilityUseCase as jest.Mock).mockResolvedValue(slots)
 
     const { result } = renderHook(
-      () => useAvailability({ doctorId: 'doc-uuid', date: '2025-06-20', doctorIdKey: 'doc-uuid' }),
+      () => useAvailability({ professionalId: 'doc-uuid', date: '2025-06-20', professionalIdKey: 'doc-uuid' }),
       { wrapper },
     )
 
@@ -41,23 +41,23 @@ describe('useAvailability', () => {
     expect(getAvailabilityUseCase).not.toHaveBeenCalled()
   })
 
-  it('uses doctorIdKey as stable query key for DOCTOR self', async () => {
+  it('uses professionalIdKey as stable query key for DOCTOR self', async () => {
     ;(getAvailabilityUseCase as jest.Mock).mockResolvedValue([])
 
     renderHook(
-      () => useAvailability({ date: '2025-06-20', doctorIdKey: 'self' }),
+      () => useAvailability({ date: '2025-06-20', professionalIdKey: 'self' }),
       { wrapper },
     )
 
     await waitFor(() => expect(getAvailabilityUseCase).toHaveBeenCalled())
-    expect(getAvailabilityUseCase).toHaveBeenCalledWith({ date: '2025-06-20', doctorIdKey: 'self' })
+    expect(getAvailabilityUseCase).toHaveBeenCalledWith({ date: '2025-06-20', professionalIdKey: 'self' })
   })
 
   it('returns error state on failure', async () => {
     ;(getAvailabilityUseCase as jest.Mock).mockRejectedValue(new Error('Network error'))
 
     const { result } = renderHook(
-      () => useAvailability({ date: '2025-06-20', doctorIdKey: 'self' }),
+      () => useAvailability({ date: '2025-06-20', professionalIdKey: 'self' }),
       { wrapper },
     )
 

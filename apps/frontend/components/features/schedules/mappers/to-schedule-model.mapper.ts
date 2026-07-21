@@ -4,8 +4,8 @@ import type { IScheduleModel } from '../types/schedule-model.types'
 export function toScheduleModel(dto: ScheduleResponseDto): IScheduleModel {
   return {
     id: dto.id,
-    doctorId: dto.doctorId,
-    doctorName: dto.doctorName,
+    professionalId: dto.professionalId,
+    professionalName: dto.professionalName,
     dayOfWeek: dto.dayOfWeek,
     startTime: dto.startTime,
     endTime: dto.endTime,

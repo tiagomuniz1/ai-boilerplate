@@ -22,7 +22,7 @@ const makeDto = (overrides = {}) => ({
   email: 'alice@example.com',
   role: UserRole.USER,
   isActive: true,
-  isDoctor: false,
+  isProfessional: false,
   isPatient: false,
   createdAt: '2024-01-15T10:00:00.000Z',
   updatedAt: '2024-01-16T10:00:00.000Z',
@@ -259,7 +259,7 @@ describe('UserList (integration)', () => {
 
   it('shows dash when user has no profile', async () => {
     ;(userService.getAll as jest.Mock).mockResolvedValue({
-      data: [makeDto({ isDoctor: false, isPatient: false })],
+      data: [makeDto({ isProfessional: false, isPatient: false })],
       total: 1,
       page: 1,
       limit: 20,
@@ -271,14 +271,14 @@ describe('UserList (integration)', () => {
       expect(screen.getByTestId('user-profiles-uuid-1')).toBeInTheDocument()
     })
 
-    expect(screen.queryByTestId('user-profile-doctor-uuid-1')).not.toBeInTheDocument()
+    expect(screen.queryByTestId('user-profile-professional-uuid-1')).not.toBeInTheDocument()
     expect(screen.queryByTestId('user-profile-patient-uuid-1')).not.toBeInTheDocument()
     expect(screen.getByTestId('user-profiles-uuid-1')).toHaveTextContent('—')
   })
 
-  it('shows Médico badge when user is a doctor', async () => {
+  it('shows Profissional badge when user is a professional', async () => {
     ;(userService.getAll as jest.Mock).mockResolvedValue({
-      data: [makeDto({ isDoctor: true, isPatient: false })],
+      data: [makeDto({ isProfessional: true, isPatient: false })],
       total: 1,
       page: 1,
       limit: 20,
@@ -287,16 +287,16 @@ describe('UserList (integration)', () => {
     renderWithProviders(<UserList />)
 
     await waitFor(() => {
-      expect(screen.getByTestId('user-profile-doctor-uuid-1')).toBeInTheDocument()
+      expect(screen.getByTestId('user-profile-professional-uuid-1')).toBeInTheDocument()
     })
 
-    expect(screen.getByTestId('user-profile-doctor-uuid-1')).toHaveTextContent('Médico')
+    expect(screen.getByTestId('user-profile-professional-uuid-1')).toHaveTextContent('Profissional')
     expect(screen.queryByTestId('user-profile-patient-uuid-1')).not.toBeInTheDocument()
   })
 
   it('shows Paciente badge when user is a patient', async () => {
     ;(userService.getAll as jest.Mock).mockResolvedValue({
-      data: [makeDto({ isDoctor: false, isPatient: true })],
+      data: [makeDto({ isProfessional: false, isPatient: true })],
       total: 1,
       page: 1,
       limit: 20,
@@ -309,12 +309,12 @@ describe('UserList (integration)', () => {
     })
 
     expect(screen.getByTestId('user-profile-patient-uuid-1')).toHaveTextContent('Paciente')
-    expect(screen.queryByTestId('user-profile-doctor-uuid-1')).not.toBeInTheDocument()
+    expect(screen.queryByTestId('user-profile-professional-uuid-1')).not.toBeInTheDocument()
   })
 
   it('shows both badges when user has doctor and patient profiles', async () => {
     ;(userService.getAll as jest.Mock).mockResolvedValue({
-      data: [makeDto({ isDoctor: true, isPatient: true })],
+      data: [makeDto({ isProfessional: true, isPatient: true })],
       total: 1,
       page: 1,
       limit: 20,
@@ -323,10 +323,10 @@ describe('UserList (integration)', () => {
     renderWithProviders(<UserList />)
 
     await waitFor(() => {
-      expect(screen.getByTestId('user-profile-doctor-uuid-1')).toBeInTheDocument()
+      expect(screen.getByTestId('user-profile-professional-uuid-1')).toBeInTheDocument()
     })
 
-    expect(screen.getByTestId('user-profile-doctor-uuid-1')).toHaveTextContent('Médico')
+    expect(screen.getByTestId('user-profile-professional-uuid-1')).toHaveTextContent('Profissional')
     expect(screen.getByTestId('user-profile-patient-uuid-1')).toHaveTextContent('Paciente')
   })
 

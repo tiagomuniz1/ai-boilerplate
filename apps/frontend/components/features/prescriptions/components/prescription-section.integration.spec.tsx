@@ -23,8 +23,8 @@ const makePrescriptionDto = (overrides: object = {}) => ({
   appointmentId: 'appt-uuid',
   patientId: 'patient-uuid',
   patientName: 'Maria Santos',
-  doctorId: 'doctor-uuid',
-  doctorName: 'Dr. João',
+  professionalId: 'doctor-uuid',
+  professionalName: 'Dr. João',
   issuedAt: '2026-06-28T10:00:00.000Z',
   items: [
     { medicationId: 'med-uuid', name: 'Dipirona 500mg', activeIngredient: 'dipirona sódica', dosage: null, quantity: null, instructions: 'Tomar 1 cp 8/8h' },
@@ -49,8 +49,8 @@ const makeMed = () => ({
   createdAt: new Date().toISOString(),
 })
 
-const doctorProps = { appointmentId: 'appt-uuid', doctorId: 'doctor-uuid', canManage: true, userRole: UserRole.PROFESSIONAL }
-const adminProps = { appointmentId: 'appt-uuid', doctorId: 'doctor-uuid', canManage: true, userRole: UserRole.ADMIN }
+const doctorProps = { appointmentId: 'appt-uuid', professionalId: 'doctor-uuid', canManage: true, userRole: UserRole.PROFESSIONAL }
+const adminProps = { appointmentId: 'appt-uuid', professionalId: 'doctor-uuid', canManage: true, userRole: UserRole.ADMIN }
 
 describe('PrescriptionSection (integration)', () => {
   beforeEach(() => {

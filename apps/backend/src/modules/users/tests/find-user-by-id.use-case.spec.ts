@@ -38,12 +38,12 @@ function makeQueryBuilder(rawResult: unknown[] = []) {
 }
 
 function makeMockDataSource(
-  isDoctorResult: unknown[] = [],
+  isProfessionalResult: unknown[] = [],
   isPatientResult: unknown[] = [],
 ): DataSource {
   return {
     createQueryBuilder: jest.fn()
-      .mockReturnValueOnce(makeQueryBuilder(isDoctorResult))
+      .mockReturnValueOnce(makeQueryBuilder(isProfessionalResult))
       .mockReturnValueOnce(makeQueryBuilder(isPatientResult)),
     createQueryRunner: jest.fn(),
   } as unknown as DataSource
@@ -79,7 +79,7 @@ describe('FindUserByIdUseCase', () => {
 
   it('returns cached result when cache hit', async () => {
     const id = faker.string.uuid()
-    const cached = { id, fullName: 'Alice', email: 'a@b.com', role: UserRole.USER, isActive: true, isDoctor: false, isPatient: false, createdAt: new Date(), updatedAt: new Date() }
+    const cached = { id, fullName: 'Alice', email: 'a@b.com', role: UserRole.USER, isActive: true, isProfessional: false, isPatient: false, createdAt: new Date(), updatedAt: new Date() }
     mockCacheService.get.mockResolvedValue(cached)
 
     const result = await useCase.execute(id, adminUser)
@@ -120,7 +120,7 @@ describe('FindUserByIdUseCase', () => {
     expect(result).not.toHaveProperty('version')
   })
 
-  it('response includes isDoctor false and isPatient false when no profiles exist', async () => {
+  it('response includes isProfessional false and isPatient false when no profiles exist', async () => {
     const user = makeUser()
     mockCacheService.get.mockResolvedValue(null)
     mockUsersRepository.findById.mockResolvedValue(user)
@@ -128,11 +128,11 @@ describe('FindUserByIdUseCase', () => {
 
     const result = await useCase.execute(user.id, adminUser)
 
-    expect(result.isDoctor).toBe(false)
+    expect(result.isProfessional).toBe(false)
     expect(result.isPatient).toBe(false)
   })
 
-  it('response includes isDoctor true when user has a doctor profile', async () => {
+  it('response includes isProfessional true when user has a doctor profile', async () => {
     const user = makeUser()
     useCase = new FindUserByIdUseCase(makeMockDataSource([1], []), mockUsersRepository, mockCacheService)
     mockCacheService.get.mockResolvedValue(null)
@@ -141,7 +141,7 @@ describe('FindUserByIdUseCase', () => {
 
     const result = await useCase.execute(user.id, adminUser)
 
-    expect(result.isDoctor).toBe(true)
+    expect(result.isProfessional).toBe(true)
     expect(result.isPatient).toBe(false)
   })
 

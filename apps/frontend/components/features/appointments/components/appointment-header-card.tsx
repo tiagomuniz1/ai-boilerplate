@@ -213,8 +213,8 @@ export function AppointmentHeaderCard({
 
       <dl className="grid grid-cols-2 sm:grid-cols-5 gap-4 text-sm">
         <div className="flex flex-col gap-0.5">
-          <dt className="text-xs font-medium uppercase tracking-wider text-text-mute">Médico</dt>
-          <dd data-testid="appointment-detail-doctor">{appointment.doctorName}</dd>
+          <dt className="text-xs font-medium uppercase tracking-wider text-text-mute">Profissional</dt>
+          <dd data-testid="appointment-detail-doctor">{appointment.professionalName}</dd>
         </div>
 
         {appointment.specialtyName && (

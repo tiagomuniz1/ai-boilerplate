@@ -12,8 +12,8 @@ export interface IPrescriptionModel {
   appointmentId: string
   patientId: string
   patientName: string
-  doctorId: string
-  doctorName: string
+  professionalId: string
+  professionalName: string
   issuedAt: Date
   items: IPrescriptionItemModel[]
   notes: string | null

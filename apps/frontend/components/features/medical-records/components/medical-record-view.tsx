@@ -111,9 +111,9 @@ export function MedicalRecordView({ record, sections = [] }: MedicalRecordViewPr
           </p>
         </div>
         <div>
-          <p className="text-xs font-medium uppercase tracking-wider text-text-mute">Médico</p>
+          <p className="text-xs font-medium uppercase tracking-wider text-text-mute">Profissional</p>
           <p className="mt-0.5 text-sm font-medium text-text" data-testid="record-doctor-name">
-            {record.doctorName}
+            {record.professionalName}
           </p>
         </div>
         <div>
@@ -137,7 +137,7 @@ export function MedicalRecordView({ record, sections = [] }: MedicalRecordViewPr
             {effectiveTab === NOTES_TAB && (
               <div className="rounded-lg border border-line bg-surface p-4" data-testid="record-notes">
                 <p className="text-xs font-medium uppercase tracking-wider text-text-mute mb-1">
-                  Notas do médico
+                  Notas do profissional
                 </p>
                 <p className="text-sm text-text whitespace-pre-wrap">{record.notes}</p>
               </div>
@@ -176,7 +176,7 @@ export function MedicalRecordView({ record, sections = [] }: MedicalRecordViewPr
           {record.notes && (
             <div className="rounded-lg border border-line bg-surface p-4" data-testid="record-notes">
               <p className="text-xs font-medium uppercase tracking-wider text-text-mute mb-1">
-                Notas do médico
+                Notas do profissional
               </p>
               <p className="text-sm text-text whitespace-pre-wrap">{record.notes}</p>
             </div>

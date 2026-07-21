@@ -34,7 +34,7 @@ type FormValues = z.infer<typeof schema>
 
 export interface PrescriptionFormProps {
   appointmentId: string
-  doctorId: string
+  professionalId: string
   isPending: boolean
   globalError: string | null
   onSubmit: (input: ICreatePrescriptionInput) => void
@@ -52,7 +52,7 @@ function toFormItem(templateItem: IPrescriptionTemplateItemModel) {
   }
 }
 
-export function PrescriptionForm({ appointmentId, doctorId, isPending, globalError, onSubmit }: PrescriptionFormProps) {
+export function PrescriptionForm({ appointmentId, professionalId, isPending, globalError, onSubmit }: PrescriptionFormProps) {
   const [search, setSearch] = useState('')
   const [crmId, setCrmId] = useState('')
   const [specialtyId, setSpecialtyId] = useState('')
@@ -397,7 +397,7 @@ export function PrescriptionForm({ appointmentId, doctorId, isPending, globalErr
       </div>
 
       <ProfessionalSignatureSelect
-        professionalId={doctorId}
+        professionalId={professionalId}
         registrationId={crmId}
         specialtyId={specialtyId}
         onRegistrationIdChange={setCrmId}

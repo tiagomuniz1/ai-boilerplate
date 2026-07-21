@@ -17,19 +17,19 @@ describe('toCreateScheduleDto', () => {
     expect(dto.slotDurationInMinutes).toBe(60)
   })
 
-  it('includes doctorId when provided', () => {
+  it('includes professionalId when provided', () => {
     const input = {
-      doctorId: 'doc-uuid',
+      professionalId: 'doc-uuid',
       dayOfWeek: DayOfWeek.MONDAY,
       startTime: '08:00',
       endTime: '12:00',
       slotDurationInMinutes: 30,
     }
     const dto = toCreateScheduleDto(input)
-    expect(dto.doctorId).toBe('doc-uuid')
+    expect(dto.professionalId).toBe('doc-uuid')
   })
 
-  it('does not include doctorId when undefined', () => {
+  it('does not include professionalId when undefined', () => {
     const input = {
       dayOfWeek: DayOfWeek.MONDAY,
       startTime: '08:00',
@@ -37,7 +37,7 @@ describe('toCreateScheduleDto', () => {
       slotDurationInMinutes: 30,
     }
     const dto = toCreateScheduleDto(input)
-    expect(dto.doctorId).toBeUndefined()
+    expect(dto.professionalId).toBeUndefined()
   })
 
   it('converts empty string validFrom to undefined', () => {

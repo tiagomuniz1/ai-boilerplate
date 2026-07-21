@@ -23,7 +23,7 @@ const roleBadge: Record<UserRole, { label: string; className: string }> = {
     className: 'border border-line text-text-dim bg-transparent',
   },
   [UserRole.PROFESSIONAL]: {
-    label: 'Médico',
+    label: 'Profissional',
     className: 'border border-line text-text-dim bg-transparent',
   },
   [UserRole.PATIENT]: {
@@ -95,12 +95,12 @@ export function UserTableRow({ user, isCurrentUser, onDeleteClick }: UserTableRo
 
       <td className="px-6 py-4" data-testid={`user-profiles-${user.id}`}>
         <div className="flex items-center gap-1.5">
-          {user.isDoctor && (
+          {user.isProfessional && (
             <span
               className="inline-flex items-center rounded-full bg-accent-soft px-2.5 py-0.5 text-xs font-medium text-accent"
-              data-testid={`user-profile-doctor-${user.id}`}
+              data-testid={`user-profile-professional-${user.id}`}
             >
-              Médico
+              Profissional
             </span>
           )}
           {user.isPatient && (
@@ -111,7 +111,7 @@ export function UserTableRow({ user, isCurrentUser, onDeleteClick }: UserTableRo
               Paciente
             </span>
           )}
-          {!user.isDoctor && !user.isPatient && (
+          {!user.isProfessional && !user.isPatient && (
             <span className="text-xs text-text-mute">—</span>
           )}
         </div>

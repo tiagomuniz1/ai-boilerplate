@@ -8,8 +8,8 @@ import type { IAppointmentDetailModel } from '../types/appointment-model.types'
 function makeAppointment(overrides: Partial<IAppointmentDetailModel> = {}): IAppointmentDetailModel {
   return {
     id: 'appt-uuid',
-    doctorId: 'doc-uuid',
-    doctorName: 'Dr. João Silva',
+    professionalId: 'doc-uuid',
+    professionalName: 'Dr. João Silva',
     patientId: 'patient-uuid',
     patientName: 'Maria Santos',
     specialtyId: 'spec-uuid',

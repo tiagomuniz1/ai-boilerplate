@@ -10,7 +10,7 @@ import type { IScheduleListParams } from '../types/schedule-input.types'
 export const schedulesService = {
   getAll: (params?: IScheduleListParams): Promise<PaginatedSchedulesResponseDto> => {
     const searchParams = new URLSearchParams()
-    if (params?.doctorId) searchParams.set('doctorId', params.doctorId)
+    if (params?.professionalId) searchParams.set('professionalId', params.professionalId)
     if (params?.dayOfWeek) searchParams.set('dayOfWeek', params.dayOfWeek)
     if (params?.activeOn) searchParams.set('activeOn', params.activeOn)
     if (params?.page) searchParams.set('page', String(params.page))

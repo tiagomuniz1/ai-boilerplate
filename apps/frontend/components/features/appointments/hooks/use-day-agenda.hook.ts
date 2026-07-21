@@ -3,23 +3,23 @@ import { useAvailability } from './use-availability.hook'
 import type { IAgendaSlot } from '../types/appointment-model.types'
 
 export function useDayAgenda(
-  doctorId: string | null,
+  professionalId: string | null,
   date: string,
 ): { slots: IAgendaSlot[]; isLoading: boolean; isError: boolean } {
-  const isSelf = doctorId === 'self'
-  const enabled = doctorId !== null
+  const isSelf = professionalId === 'self'
+  const enabled = professionalId !== null
 
   const availabilityParams = enabled
     ? {
-        doctorId: isSelf ? undefined : (doctorId ?? /* c8 ignore next */ undefined),
+        professionalId: isSelf ? undefined : (professionalId ?? /* c8 ignore next */ undefined),
         date,
-        doctorIdKey: isSelf ? 'self' : doctorId!,
+        professionalIdKey: isSelf ? 'self' : professionalId!,
       }
     : null
 
   const appointmentParams = enabled
     ? {
-        doctorId: isSelf ? undefined : (doctorId ?? /* c8 ignore next */ undefined),
+        professionalId: isSelf ? undefined : (professionalId ?? /* c8 ignore next */ undefined),
         from: date,
         to: date,
         limit: 100,

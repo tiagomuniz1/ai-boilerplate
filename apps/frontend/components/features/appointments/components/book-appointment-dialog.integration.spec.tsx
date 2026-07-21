@@ -49,8 +49,8 @@ const makeDoctorResponse = (specialties: { id: string; name: string }[]) => ({
 
 const makeAppointmentResponse = () => ({
   id: 'appt-new-uuid',
-  doctorId: 'doctor-uuid',
-  doctorName: 'Dr. Test',
+  professionalId: 'doctor-uuid',
+  professionalName: 'Dr. Test',
   patientId: 'patient-uuid',
   patientName: 'Patient One',
   specialtyId: null,
@@ -72,7 +72,7 @@ const defaultProps = {
   date: '2025-07-04',
   startTime: '09:00',
   endTime: '09:30',
-  doctorId: 'doctor-uuid',
+  professionalId: 'doctor-uuid',
 }
 
 describe('BookAppointmentDialog (integration)', () => {
@@ -111,7 +111,7 @@ describe('BookAppointmentDialog (integration)', () => {
     mockAppointmentsService.book.mockResolvedValue(makeAppointmentResponse())
     mockAppointmentsService.getAll.mockResolvedValue({ data: [], total: 0, page: 1, limit: 100 })
     mockAppointmentsService.getAvailability.mockResolvedValue({
-      doctorId: 'doctor-uuid',
+      professionalId: 'doctor-uuid',
       date: '2025-07-04',
       slots: [],
     })
@@ -224,7 +224,7 @@ describe('BookAppointmentDialog (integration)', () => {
       mockAppointmentsService.book.mockResolvedValue(makeAppointmentResponse())
       mockAppointmentsService.getAll.mockResolvedValue({ data: [], total: 0, page: 1, limit: 100 })
       mockAppointmentsService.getAvailability.mockResolvedValue({
-        doctorId: 'doctor-uuid',
+        professionalId: 'doctor-uuid',
         date: '2025-07-04',
         slots: [],
       })
@@ -300,7 +300,7 @@ describe('BookAppointmentDialog (integration)', () => {
       mockAppointmentsService.book.mockResolvedValue(makeAppointmentResponse())
       mockAppointmentsService.getAll.mockResolvedValue({ data: [], total: 0, page: 1, limit: 100 })
       mockAppointmentsService.getAvailability.mockResolvedValue({
-        doctorId: 'doctor-uuid',
+        professionalId: 'doctor-uuid',
         date: '2025-07-04',
         slots: [],
       })
@@ -333,7 +333,7 @@ describe('BookAppointmentDialog (integration)', () => {
       })
 
       expect(screen.getByTestId('book-dialog-no-specialty')).toHaveTextContent(
-        'a consulta será registrada como clínica geral',
+        'o atendimento será registrado como atendimento geral',
       )
       expect(screen.getByTestId('book-dialog-submit')).not.toBeDisabled()
     })
@@ -361,7 +361,7 @@ describe('BookAppointmentDialog (integration)', () => {
       mockAppointmentsService.book.mockRejectedValue({
         status: 422,
         title: 'Unprocessable',
-        detail: 'Especialidade não pertence ao médico',
+        detail: 'Especialidade não pertence ao profissional',
       })
 
       renderWithProviders(<BookAppointmentDialog {...defaultProps} />)
@@ -378,7 +378,7 @@ describe('BookAppointmentDialog (integration)', () => {
       })
 
       expect(screen.getByTestId('book-dialog-error')).toHaveTextContent(
-        'Especialidade inválida ou não pertence ao médico',
+        'Especialidade inválida ou não pertence ao profissional',
       )
     })
   })

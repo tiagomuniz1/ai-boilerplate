@@ -8,7 +8,7 @@ describe('toCreateProfessionalDto', () => {
       { specialtyId: 'spec-uuid-1', registryNumber: '6789' },
       { specialtyId: 'spec-uuid-2', registryNumber: undefined },
     ],
-    bio: 'Bio do médico.',
+    bio: 'Bio do profissional.',
   }
 
   it('maps all fields to DTO correctly', () => {

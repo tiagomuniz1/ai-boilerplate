@@ -15,8 +15,8 @@ const mockUseRouter = useRouter as jest.Mock
 
 const makeAppointmentDto = (overrides: object = {}) => ({
   id: 'appt-uuid',
-  doctorId: 'doctor-uuid',
-  doctorName: 'Dr. Test',
+  professionalId: 'doctor-uuid',
+  professionalName: 'Dr. Test',
   patientId: 'patient-uuid',
   patientName: 'Patient One',
   specialtyId: 'spec-uuid',

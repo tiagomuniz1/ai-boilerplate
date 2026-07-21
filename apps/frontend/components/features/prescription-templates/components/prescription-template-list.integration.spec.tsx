@@ -23,8 +23,8 @@ const makeUser = (role: UserRole) => ({
 
 const makeTemplateDto = (overrides: object = {}) => ({
   id: 'tpl-uuid',
-  doctorId: 'doctor-uuid',
-  doctorName: 'Dr. House',
+  professionalId: 'doctor-uuid',
+  professionalName: 'Dr. House',
   name: 'Modelo A',
   items: [
     { medicationId: 'med-uuid', name: 'Dipirona 500mg', activeIngredient: 'dipirona sódica', dosage: null, quantity: null, instructions: 'Tomar 1 cp' },
@@ -387,7 +387,7 @@ describe('PrescriptionTemplateList (integration)', () => {
     expect(screen.getByTestId('prescription-template-card-edit-tpl-uuid')).toBeInTheDocument()
   })
 
-  it('mobile card shows Médico row for ADMIN and hides the edit action (read-only)', async () => {
+  it('mobile card shows Profissional row for ADMIN and hides the edit action (read-only)', async () => {
     useAuthStore.setState({ user: makeUser(UserRole.ADMIN) })
     mockService.getAll.mockResolvedValue([makeTemplateDto()] as any)
 

@@ -14,7 +14,7 @@ const input: IUpdateScheduleInput = { startTime: '10:00' }
 const mockDto = { startTime: '10:00' }
 const mockResponse = {
   id: 'uuid-1',
-  doctorId: 'doc-uuid',
+  professionalId: 'doc-uuid',
   dayOfWeek: DayOfWeek.MONDAY,
   startTime: '10:00',
   endTime: '12:00',

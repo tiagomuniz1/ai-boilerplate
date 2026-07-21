@@ -9,8 +9,8 @@ import type { IAppointmentDetailModel } from '../types/appointment-model.types'
 
 const makeDto = () => ({
   id: 'uuid-1',
-  doctorId: 'doc-uuid',
-  doctorName: 'Dr. Test',
+  professionalId: 'doc-uuid',
+  professionalName: 'Dr. Test',
   patientId: 'pat-uuid',
   patientName: 'Patient',
   specialtyId: null,

@@ -12,7 +12,7 @@ import type { IAppointmentListParams, IAvailabilityParams } from '../types/appoi
 export const appointmentsService = {
   getAll: (params?: IAppointmentListParams): Promise<PaginatedAppointmentsResponseDto> => {
     const sp = new URLSearchParams()
-    if (params?.doctorId) sp.set('doctorId', params.doctorId)
+    if (params?.professionalId) sp.set('professionalId', params.professionalId)
     if (params?.patientId) sp.set('patientId', params.patientId)
     if (params?.status) sp.set('status', params.status)
     if (params?.from) sp.set('from', params.from)
@@ -26,7 +26,7 @@ export const appointmentsService = {
     apiClient.get<AppointmentDetailResponseDto>(`/appointments/${id}`),
   getAvailability: (params: IAvailabilityParams): Promise<AvailabilityResponseDto> => {
     const sp = new URLSearchParams()
-    if (params.doctorId) sp.set('doctorId', params.doctorId)
+    if (params.professionalId) sp.set('professionalId', params.professionalId)
     sp.set('date', params.date)
     return apiClient.get<AvailabilityResponseDto>(`/appointments/availability?${sp.toString()}`)
   },

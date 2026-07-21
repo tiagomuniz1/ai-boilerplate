@@ -38,12 +38,12 @@ function makeQueryBuilder(rawResult: unknown[] = []) {
 }
 
 function makeMockDataSource(
-  isDoctorResult: unknown[] = [],
+  isProfessionalResult: unknown[] = [],
   isPatientResult: unknown[] = [],
 ): DataSource {
   return {
     createQueryBuilder: jest.fn()
-      .mockReturnValueOnce(makeQueryBuilder(isDoctorResult))
+      .mockReturnValueOnce(makeQueryBuilder(isProfessionalResult))
       .mockReturnValueOnce(makeQueryBuilder(isPatientResult)),
     createQueryRunner: jest.fn(),
   } as unknown as DataSource
@@ -94,14 +94,14 @@ describe('UpdateUserUseCase', () => {
     expect(result).not.toHaveProperty('version')
   })
 
-  it('response includes isDoctor and isPatient flags', async () => {
+  it('response includes isProfessional and isPatient flags', async () => {
     const user = makeUser()
     mockUsersRepository.findById.mockResolvedValue(user)
     mockUsersRepository.update.mockResolvedValue(user)
 
     const result = await useCase.execute(user.id, { fullName: 'X' }, adminUser)
 
-    expect(result.isDoctor).toBe(false)
+    expect(result.isProfessional).toBe(false)
     expect(result.isPatient).toBe(false)
   })
 

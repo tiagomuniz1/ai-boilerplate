@@ -198,7 +198,7 @@ const ROLE_LABELS: Record<UserRole, string> = {
   [UserRole.USER]: 'Usuário',
   [UserRole.ADMIN]: 'Administrador',
   [UserRole.PLATFORM_ADMIN]: 'Platform Admin',
-  [UserRole.PROFESSIONAL]: 'Médico',
+  [UserRole.PROFESSIONAL]: 'Profissional',
   [UserRole.PATIENT]: 'Paciente',
 }
 

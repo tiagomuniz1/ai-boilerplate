@@ -1,7 +1,7 @@
 import type { AppointmentStatus } from '@app/shared'
 
 export interface IBookAppointmentInput {
-  doctorId?: string
+  professionalId?: string
   patientId: string
   date: string
   startTime: string
@@ -14,7 +14,7 @@ export interface ICancelAppointmentInput {
 }
 
 export interface IAppointmentListParams {
-  doctorId?: string
+  professionalId?: string
   patientId?: string
   status?: AppointmentStatus
   from?: string
@@ -24,6 +24,6 @@ export interface IAppointmentListParams {
 }
 
 export interface IAvailabilityParams {
-  doctorId?: string
+  professionalId?: string
   date: string
 }

@@ -32,7 +32,7 @@ export function MedicationToggleDialog({
     >
       <p className="text-sm text-text-dim mb-6">
         {isDeactivating
-          ? `Deseja desativar "${medication.name}"? Ele deixará de aparecer para os médicos ao prescrever.`
+          ? `Deseja desativar "${medication.name}"? Ele deixará de aparecer para os profissionais ao prescrever.`
           : `Deseja ativar "${medication.name}"?`}
       </p>
       <div className="flex gap-3 justify-end">

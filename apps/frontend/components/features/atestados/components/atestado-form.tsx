@@ -58,13 +58,13 @@ type FormValues = z.infer<typeof schema>
 
 export interface AtestadoFormProps {
   appointmentId: string
-  doctorId: string
+  professionalId: string
   isPending: boolean
   globalError: string | null
   onSubmit: (input: ICreateAtestadoInput) => void
 }
 
-export function AtestadoForm({ appointmentId, doctorId, isPending, globalError, onSubmit }: AtestadoFormProps) {
+export function AtestadoForm({ appointmentId, professionalId, isPending, globalError, onSubmit }: AtestadoFormProps) {
   const [crmId, setCrmId] = useState('')
   const [specialtyId, setSpecialtyId] = useState('')
   const { register, handleSubmit, watch, setValue, control, formState: { errors } } = useForm<FormValues>({
@@ -287,7 +287,7 @@ export function AtestadoForm({ appointmentId, doctorId, isPending, globalError, 
       </div>
 
       <ProfessionalSignatureSelect
-        professionalId={doctorId}
+        professionalId={professionalId}
         registrationId={crmId}
         specialtyId={specialtyId}
         onRegistrationIdChange={setCrmId}

@@ -196,8 +196,8 @@ export function UserList() {
                     },
                     {
                       label: 'Perfis',
-                      value: user.isDoctor
-                        ? 'Médico'
+                      value: user.isProfessional
+                        ? 'Profissional'
                         /* c8 ignore next */
                         : user.isPatient
                           ? 'Paciente'

@@ -1,6 +1,7 @@
 jest.mock('../services/prescription-verification.service')
 
 import { screen, waitFor } from '@testing-library/react'
+import { CouncilType } from '@app/shared'
 import type { VerifyPrescriptionResponseDto } from '@app/shared'
 import { prescriptionVerificationService } from '../services/prescription-verification.service'
 import { renderWithProviders } from '@/tests/utils/render-with-providers'
@@ -10,8 +11,9 @@ const mockService = prescriptionVerificationService as jest.Mocked<typeof prescr
 
 const makeDto = (overrides: Partial<VerifyPrescriptionResponseDto> = {}): VerifyPrescriptionResponseDto => ({
   clinicName: 'Clínica Saúde',
-  doctorName: 'Dr. João Silva',
-  doctorCrmNumber: '12345/SP',
+  professionalName: 'Dr. João Silva',
+  professionalCouncilType: CouncilType.CRM,
+  professionalRegistrationNumber: '12345/SP',
   specialtyName: 'Cardiologia',
   patientNameMasked: 'Maria S.',
   patientDocumentMasked: '***.***.789-**',
@@ -48,6 +50,20 @@ describe('PrescriptionVerification', () => {
     expect(screen.getByTestId('verification-doctor')).toHaveTextContent('Dr. João Silva')
     expect(screen.getByText('CRM 12345/SP')).toBeInTheDocument()
     expect(screen.getByText('Cardiologia')).toBeInTheDocument()
+  })
+
+  it('renders the correct council label for a non-CRM professional', async () => {
+    mockService.getByToken.mockResolvedValue(
+      makeDto({ professionalName: 'Ana Nutricionista', professionalCouncilType: CouncilType.CRN, professionalRegistrationNumber: '9876543/SP' }),
+    )
+
+    renderWithProviders(<PrescriptionVerification token="token-123" />)
+
+    await waitFor(() => {
+      expect(screen.getByTestId('verification-success')).toBeInTheDocument()
+    })
+
+    expect(screen.getByText('CRN 9876543/SP')).toBeInTheDocument()
     expect(screen.getByTestId('verification-patient')).toHaveTextContent('Maria S.')
     expect(screen.getByText('CPF ***.***.789-**')).toBeInTheDocument()
     expect(screen.getByText('Dipirona 500mg')).toBeInTheDocument()

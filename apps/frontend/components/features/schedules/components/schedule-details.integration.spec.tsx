@@ -14,7 +14,7 @@ beforeEach(() => {
 
 const makeSchedule = (overrides: Partial<IScheduleModel> = {}): IScheduleModel => ({
   id: 'uuid-1',
-  doctorId: 'doc-uuid-1',
+  professionalId: 'doc-uuid-1',
   dayOfWeek: DayOfWeek.MONDAY,
   startTime: '08:00',
   endTime: '12:00',

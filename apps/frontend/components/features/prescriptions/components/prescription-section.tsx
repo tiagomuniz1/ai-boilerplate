@@ -19,12 +19,12 @@ import type { IApiError } from '@/types/api.types'
 
 export interface PrescriptionSectionProps {
   appointmentId: string
-  doctorId: string
+  professionalId: string
   canManage: boolean
   userRole: UserRole
 }
 
-export function PrescriptionSection({ appointmentId, doctorId, canManage, userRole }: PrescriptionSectionProps) {
+export function PrescriptionSection({ appointmentId, professionalId, canManage, userRole }: PrescriptionSectionProps) {
   const [showForm, setShowForm] = useState(false)
   const [deletingId, setDeletingId] = useState<string | null>(null)
   const [previewPrescription, setPreviewPrescription] = useState<IPrescriptionModel | null>(null)
@@ -34,7 +34,7 @@ export function PrescriptionSection({ appointmentId, doctorId, canManage, userRo
   const { mutate: deletePrescription, isPending: isDeleting } = useDeletePrescription(appointmentId)
   const { mutate: download, isPending: isDownloading, variables: downloadingVars } = useDownloadPrescriptionPdf()
 
-  const isDoctor = userRole === UserRole.PROFESSIONAL
+  const isProfessional = userRole === UserRole.PROFESSIONAL
 
   function handleCreate(input: ICreatePrescriptionInput) {
     create(input, { onSuccess: () => setShowForm(false) })
@@ -64,7 +64,7 @@ export function PrescriptionSection({ appointmentId, doctorId, canManage, userRo
             <h2 className="text-lg font-semibold text-text">Receitas</h2>
             <p className="text-sm text-text-mute">Prescrições médicas emitidas nesta consulta.</p>
           </div>
-          {isDoctor && canManage && (
+          {isProfessional && canManage && (
             <Button
               type="button"
               onClick={() => setShowForm(true)}
@@ -160,7 +160,7 @@ export function PrescriptionSection({ appointmentId, doctorId, canManage, userRo
       >
         <PrescriptionForm
           appointmentId={appointmentId}
-          doctorId={doctorId}
+          professionalId={professionalId}
           isPending={isCreating}
           globalError={createGlobalError}
           onSubmit={handleCreate}

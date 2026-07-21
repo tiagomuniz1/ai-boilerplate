@@ -1,5 +1,5 @@
 export interface ICreateScheduleExceptionInput {
-  doctorId?: string
+  professionalId?: string
   date: string
   startTime?: string | null
   endTime?: string | null
@@ -7,7 +7,7 @@ export interface ICreateScheduleExceptionInput {
 }
 
 export interface IScheduleExceptionListParams {
-  doctorId?: string
+  professionalId?: string
   from?: string
   to?: string
   page?: number

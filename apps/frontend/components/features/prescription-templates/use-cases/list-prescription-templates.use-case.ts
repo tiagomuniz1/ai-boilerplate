@@ -2,7 +2,7 @@ import type { IPrescriptionTemplateModel } from '../types/prescription-template-
 import { prescriptionTemplatesService } from '../services/prescription-templates.service'
 import { toPrescriptionTemplateModel } from '../mappers/to-prescription-template-model.mapper'
 
-export async function listPrescriptionTemplatesUseCase(params?: { doctorId?: string }): Promise<IPrescriptionTemplateModel[]> {
+export async function listPrescriptionTemplatesUseCase(params?: { professionalId?: string }): Promise<IPrescriptionTemplateModel[]> {
   const dtos = await prescriptionTemplatesService.getAll(params)
   return dtos.map(toPrescriptionTemplateModel)
 }

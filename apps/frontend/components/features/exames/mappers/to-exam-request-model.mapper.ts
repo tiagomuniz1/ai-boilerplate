@@ -17,8 +17,8 @@ export function toExamRequestModel(dto: ExamRequestResponseDto): IExamRequestMod
     appointmentId: dto.appointmentId,
     patientId: dto.patientId,
     patientName: dto.patientName,
-    doctorId: dto.doctorId,
-    doctorName: dto.doctorName,
+    professionalId: dto.professionalId,
+    professionalName: dto.professionalName,
     items: dto.items.map((item) => ({
       name: item.name,
       observations: item.observations,

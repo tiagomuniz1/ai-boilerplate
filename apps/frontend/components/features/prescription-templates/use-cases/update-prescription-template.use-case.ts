@@ -11,7 +11,7 @@ export async function updatePrescriptionTemplateUseCase(
     ...(input.name !== undefined && { name: input.name }),
     ...(input.notes !== undefined && { notes: input.notes }),
     ...(input.isActive !== undefined && { isActive: input.isActive }),
-    ...(input.doctorId !== undefined && { doctorId: input.doctorId }),
+    ...(input.professionalId !== undefined && { professionalId: input.professionalId }),
     ...(input.items !== undefined && {
       items: input.items.map((item) => ({
         ...(item.medicationId ? { medicationId: item.medicationId } : {}),

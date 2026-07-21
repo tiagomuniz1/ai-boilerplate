@@ -28,7 +28,7 @@ describe('useAppointments', () => {
 
   it('passes params to listAppointmentsUseCase', async () => {
     ;(listAppointmentsUseCase as jest.Mock).mockResolvedValue(makeResult())
-    const params = { doctorId: 'doc-uuid', status: AppointmentStatus.SCHEDULED }
+    const params = { professionalId: 'doc-uuid', status: AppointmentStatus.SCHEDULED }
     renderHook(() => useAppointments(params), { wrapper })
     await waitFor(() => expect(listAppointmentsUseCase).toHaveBeenCalled())
     expect(listAppointmentsUseCase).toHaveBeenCalledWith(params)

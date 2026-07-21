@@ -19,7 +19,7 @@ import type { IApiError } from '@/types/api.types'
 
 export interface AtestadoSectionProps {
   appointmentId: string
-  doctorId: string
+  professionalId: string
   canManage: boolean
   userRole: UserRole
 }
@@ -47,7 +47,7 @@ function atestadoDetail(atestado: IAtestadoModel): string | null {
   return null
 }
 
-export function AtestadoSection({ appointmentId, doctorId, canManage, userRole }: AtestadoSectionProps) {
+export function AtestadoSection({ appointmentId, professionalId, canManage, userRole }: AtestadoSectionProps) {
   const [showForm, setShowForm] = useState(false)
   const [deletingId, setDeletingId] = useState<string | null>(null)
   const [previewAtestado, setPreviewAtestado] = useState<IAtestadoModel | null>(null)
@@ -57,7 +57,7 @@ export function AtestadoSection({ appointmentId, doctorId, canManage, userRole }
   const { mutate: deleteAtestado, isPending: isDeleting } = useDeleteAtestado(appointmentId)
   const { mutate: download, isPending: isDownloading, variables: downloadingVars } = useDownloadAtestadoPdf()
 
-  const isDoctor = userRole === UserRole.PROFESSIONAL
+  const isProfessional = userRole === UserRole.PROFESSIONAL
 
   function handleCreate(input: ICreateAtestadoInput) {
     create(input, { onSuccess: () => setShowForm(false) })
@@ -85,9 +85,9 @@ export function AtestadoSection({ appointmentId, doctorId, canManage, userRole }
         <div className="flex items-start justify-between mb-4">
           <div>
             <h2 className="text-lg font-semibold text-text">Atestados</h2>
-            <p className="text-sm text-text-mute">Atestados médicos emitidos nesta consulta.</p>
+            <p className="text-sm text-text-mute">Atestados emitidos nesta consulta.</p>
           </div>
-          {isDoctor && canManage && (
+          {isProfessional && canManage && (
             <Button
               type="button"
               onClick={() => setShowForm(true)}
@@ -193,7 +193,7 @@ export function AtestadoSection({ appointmentId, doctorId, canManage, userRole }
       >
         <AtestadoForm
           appointmentId={appointmentId}
-          doctorId={doctorId}
+          professionalId={professionalId}
           isPending={isCreating}
           globalError={createGlobalError}
           onSubmit={handleCreate}

@@ -26,7 +26,7 @@ function getWeekDates(startDate: string): string[] {
 }
 
 interface DayColumnProps {
-  doctorId: string
+  professionalId: string
   date: string
   dayLabel: string
   role: UserRole
@@ -34,13 +34,13 @@ interface DayColumnProps {
   effectiveDoctorId?: string
 }
 
-function DayColumn({ doctorId, date, dayLabel, role, currentDoctorId, effectiveDoctorId }: DayColumnProps) {
+function DayColumn({ professionalId, date, dayLabel, role, currentDoctorId, effectiveDoctorId }: DayColumnProps) {
   const [bookingSlot, setBookingSlot] = useState<IAgendaSlot | null>(null)
   const [detailsId, setDetailsId] = useState<string | null>(null)
 
-  const { slots, isLoading, isError } = useDayAgenda(doctorId, date)
+  const { slots, isLoading, isError } = useDayAgenda(professionalId, date)
   const { data: exceptions = [] } = useScheduleExceptions(
-    { doctorId: doctorId === 'self' ? undefined : doctorId, from: date, to: date },
+    { professionalId: professionalId === 'self' ? undefined : professionalId, from: date, to: date },
   )
   const canManage = role === UserRole.ADMIN || role === UserRole.PROFESSIONAL
 
@@ -90,7 +90,7 @@ function DayColumn({ doctorId, date, dayLabel, role, currentDoctorId, effectiveD
         date={date}
         startTime={bookingSlot?.startTime ?? ''}
         endTime={bookingSlot?.endTime ?? ''}
-        doctorId={effectiveDoctorId ?? currentDoctorId}
+        professionalId={effectiveDoctorId ?? currentDoctorId}
       />
 
       <AppointmentDetailsDialog
@@ -105,7 +105,7 @@ function DayColumn({ doctorId, date, dayLabel, role, currentDoctorId, effectiveD
 }
 
 interface AgendaWeekGridProps {
-  doctorId: string | null
+  professionalId: string | null
   startDate: string
   role: UserRole
   currentDoctorId?: string
@@ -113,7 +113,7 @@ interface AgendaWeekGridProps {
 }
 
 export function AgendaWeekGrid({
-  doctorId,
+  professionalId,
   startDate,
   role,
   currentDoctorId,
@@ -121,10 +121,10 @@ export function AgendaWeekGrid({
 }: AgendaWeekGridProps) {
   const dates = getWeekDates(startDate)
 
-  if (doctorId === null) {
+  if (professionalId === null) {
     return (
       <div data-testid="agenda-empty-doctor" className="py-12 text-center text-sm text-text/50">
-        Selecione um médico para visualizar a agenda.
+        Selecione um profissional para visualizar a agenda.
       </div>
     )
   }
@@ -139,7 +139,7 @@ export function AgendaWeekGrid({
         return (
           <DayColumn
             key={date}
-            doctorId={doctorId}
+            professionalId={professionalId}
             date={date}
             dayLabel={WEEK_DAY_LABELS[dayOfWeek]}
             role={role}

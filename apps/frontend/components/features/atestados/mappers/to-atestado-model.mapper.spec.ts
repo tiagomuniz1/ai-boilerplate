@@ -6,8 +6,8 @@ const makeLeaveDto = () => ({
   appointmentId: 'appt-uuid',
   patientId: 'patient-uuid',
   patientName: 'Maria Santos',
-  doctorId: 'doctor-uuid',
-  doctorName: 'Dr. João',
+  professionalId: 'doctor-uuid',
+  professionalName: 'Dr. João',
   type: MedicalCertificateType.LEAVE,
   daysOff: 3,
   startDate: '2026-01-05' as unknown as string,
@@ -37,7 +37,7 @@ describe('toAtestadoModel', () => {
     expect(model.id).toBe('cert-uuid')
     expect(model.appointmentId).toBe('appt-uuid')
     expect(model.patientName).toBe('Maria Santos')
-    expect(model.doctorName).toBe('Dr. João')
+    expect(model.professionalName).toBe('Dr. João')
     expect(model.type).toBe(MedicalCertificateType.LEAVE)
     expect(model.daysOff).toBe(3)
     expect(model.cidCode).toBe('M54.5')

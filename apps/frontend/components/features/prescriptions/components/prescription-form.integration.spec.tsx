@@ -32,8 +32,8 @@ const makeMed = (overrides: object = {}) => ({
 
 const makeTemplateDto = (overrides: object = {}) => ({
   id: 'tpl-uuid',
-  doctorId: 'doctor-uuid',
-  doctorName: 'Dr. House',
+  professionalId: 'doctor-uuid',
+  professionalName: 'Dr. House',
   name: 'Modelo A',
   items: [
     { medicationId: 'med-uuid', name: 'Dipirona 500mg', activeIngredient: 'dipirona sódica', dosage: '500mg', quantity: '1 caixa', instructions: 'Tomar 1 cp 8/8h' },
@@ -46,7 +46,7 @@ const makeTemplateDto = (overrides: object = {}) => ({
 
 const defaultProps = {
   appointmentId: 'appt-uuid',
-  doctorId: 'doctor-uuid',
+  professionalId: 'doctor-uuid',
   isPending: false,
   globalError: null,
   onSubmit: jest.fn(),

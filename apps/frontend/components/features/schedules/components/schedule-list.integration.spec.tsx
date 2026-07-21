@@ -26,8 +26,8 @@ function mockAuthStoreAs(role: UserRole) {
 
 const makeScheduleDto = (overrides = {}) => ({
   id: 'uuid-1',
-  doctorId: 'doc-uuid-1',
-  doctorName: 'Dr. João Silva',
+  professionalId: 'doc-uuid-1',
+  professionalName: 'Dr. João Silva',
   dayOfWeek: DayOfWeek.MONDAY,
   startTime: '08:00',
   endTime: '12:00',
@@ -247,7 +247,7 @@ describe('ScheduleList (integration)', () => {
       expect(screen.getByTestId('schedule-doctor-uuid-1')).toBeInTheDocument()
     })
 
-    it('updates doctorId filter when doctor select is changed', async () => {
+    it('updates professionalId filter when doctor select is changed', async () => {
       ;(schedulesService.getAll as jest.Mock).mockResolvedValue(makePaginatedResponse())
 
       renderWithProviders(<ScheduleList />)
@@ -265,7 +265,7 @@ describe('ScheduleList (integration)', () => {
 
     it('shows plural count when more than one schedule is found', async () => {
       ;(schedulesService.getAll as jest.Mock).mockResolvedValue(
-        makePaginatedResponse([makeScheduleDto(), makeScheduleDto({ id: 'uuid-2', doctorId: 'doc-uuid-1' })]),
+        makePaginatedResponse([makeScheduleDto(), makeScheduleDto({ id: 'uuid-2', professionalId: 'doc-uuid-1' })]),
       )
 
       renderWithProviders(<ScheduleList />)
@@ -285,9 +285,9 @@ describe('ScheduleList (integration)', () => {
       expect(screen.getByText('1 agenda encontrada')).toBeInTheDocument()
     })
 
-    it('renders doctorName from the schedule DTO', async () => {
+    it('renders professionalName from the schedule DTO', async () => {
       ;(schedulesService.getAll as jest.Mock).mockResolvedValue(
-        makePaginatedResponse([makeScheduleDto({ doctorName: 'Dr. Maria Santos' })]),
+        makePaginatedResponse([makeScheduleDto({ professionalName: 'Dr. Maria Santos' })]),
       )
 
       renderWithProviders(<ScheduleList />)
@@ -299,7 +299,7 @@ describe('ScheduleList (integration)', () => {
 
     it('renders a mobile card per schedule with the doctor name as title', async () => {
       ;(schedulesService.getAll as jest.Mock).mockResolvedValue(
-        makePaginatedResponse([makeScheduleDto({ doctorName: 'Dr. Maria Santos' })]),
+        makePaginatedResponse([makeScheduleDto({ professionalName: 'Dr. Maria Santos' })]),
       )
 
       renderWithProviders(<ScheduleList />)

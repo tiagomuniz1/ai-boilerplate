@@ -6,6 +6,6 @@ export function useScheduleExceptions(params?: IScheduleExceptionListParams) {
   return useQuery({
     queryKey: ['schedule-exceptions', params],
     queryFn: () => listScheduleExceptionsUseCase(params),
-    enabled: params?.doctorId !== undefined || params?.from !== undefined,
+    enabled: params?.professionalId !== undefined || params?.from !== undefined,
   })
 }

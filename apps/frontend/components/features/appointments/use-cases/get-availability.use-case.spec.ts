@@ -24,7 +24,7 @@ describe('getAvailabilityUseCase', () => {
   beforeEach(() => jest.clearAllMocks())
 
   it('calls appointmentsService.getAvailability with params', async () => {
-    ;(appointmentsService.getAvailability as jest.Mock).mockResolvedValue({ doctorId: 'doc-uuid', date: '2025-06-20', slots: [] })
+    ;(appointmentsService.getAvailability as jest.Mock).mockResolvedValue({ professionalId: 'doc-uuid', date: '2025-06-20', slots: [] })
     await getAvailabilityUseCase({ date: '2025-06-20' })
     expect(appointmentsService.getAvailability).toHaveBeenCalledWith({ date: '2025-06-20' })
   })
@@ -33,20 +33,20 @@ describe('getAvailabilityUseCase', () => {
     const dto = makeSlotDto()
     const model = makeSlotModel()
     ;(appointmentsService.getAvailability as jest.Mock).mockResolvedValue({
-      doctorId: 'doc-uuid',
+      professionalId: 'doc-uuid',
       date: '2025-06-20',
       slots: [dto],
     })
     ;(toAvailableSlotModel as jest.Mock).mockReturnValue(model)
 
-    const result = await getAvailabilityUseCase({ doctorId: 'doc-uuid', date: '2025-06-20' })
+    const result = await getAvailabilityUseCase({ professionalId: 'doc-uuid', date: '2025-06-20' })
 
     expect(toAvailableSlotModel).toHaveBeenCalledWith(dto, 0, [dto])
     expect(result).toEqual([model])
   })
 
   it('returns empty array when no slots', async () => {
-    ;(appointmentsService.getAvailability as jest.Mock).mockResolvedValue({ doctorId: 'doc-uuid', date: '2025-06-20', slots: [] })
+    ;(appointmentsService.getAvailability as jest.Mock).mockResolvedValue({ professionalId: 'doc-uuid', date: '2025-06-20', slots: [] })
     const result = await getAvailabilityUseCase({ date: '2025-06-20' })
     expect(result).toEqual([])
   })

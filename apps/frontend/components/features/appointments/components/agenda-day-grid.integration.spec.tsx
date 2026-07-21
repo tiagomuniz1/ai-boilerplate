@@ -29,7 +29,7 @@ const makeAvailabilityResponse = (
   slots: { startTime: string; endTime: string }[] = [],
   date = FUTURE_DATE,
 ) => ({
-  doctorId: 'doctor-uuid',
+  professionalId: 'doctor-uuid',
   date,
   slots: slots.map((s) => ({
     ...s,
@@ -47,8 +47,8 @@ const makePaginatedAppointments = (appointments: object[] = []) => ({
 
 const makeAppointmentDto = (overrides: object = {}) => ({
   id: 'appt-uuid',
-  doctorId: 'doctor-uuid',
-  doctorName: 'Dr. Test',
+  professionalId: 'doctor-uuid',
+  professionalName: 'Dr. Test',
   patientId: 'patient-uuid',
   patientName: 'Patient One',
   specialtyId: 'spec-uuid',
@@ -66,7 +66,7 @@ const makeAppointmentDto = (overrides: object = {}) => ({
 })
 
 const defaultProps = {
-  doctorId: 'doctor-uuid',
+  professionalId: 'doctor-uuid',
   date: FUTURE_DATE,
   role: UserRole.ADMIN,
 }
@@ -80,8 +80,8 @@ describe('AgendaDayGrid (integration)', () => {
     mockMedicalRecordTemplatesService.getAll.mockResolvedValue({ data: [], total: 0, page: 1, limit: 1 })
   })
 
-  it('renders empty message when doctorId is null', () => {
-    renderWithProviders(<AgendaDayGrid {...defaultProps} doctorId={null} />)
+  it('renders empty message when professionalId is null', () => {
+    renderWithProviders(<AgendaDayGrid {...defaultProps} professionalId={null} />)
     expect(screen.getByTestId('agenda-empty-doctor')).toBeInTheDocument()
   })
 
@@ -200,7 +200,7 @@ describe('AgendaDayGrid (integration)', () => {
       data: [
         {
           id: 'exc-1',
-          doctorId: 'doctor-uuid',
+          professionalId: 'doctor-uuid',
           date: FUTURE_DATE,
           startTime: '14:00',
           endTime: '18:00',

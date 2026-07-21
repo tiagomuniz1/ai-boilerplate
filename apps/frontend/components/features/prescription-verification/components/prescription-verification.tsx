@@ -1,5 +1,6 @@
 'use client'
 
+import { COUNCIL_TYPE_LABELS } from '@app/shared'
 import { usePrescriptionVerification } from '../hooks/use-prescription-verification.hook'
 import type { IPrescriptionVerificationItem } from '../types/prescription-verification.types'
 
@@ -33,9 +34,11 @@ export function PrescriptionVerification({ token }: PrescriptionVerificationProp
             </header>
 
             <section className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-              <Field label="Médico">
-                <span data-testid="verification-doctor">{data.doctorName}</span>
-                <span className="block text-sm text-text-dim">CRM {data.doctorCrmNumber}</span>
+              <Field label="Profissional">
+                <span data-testid="verification-doctor">{data.professionalName}</span>
+                <span className="block text-sm text-text-dim">
+                  {COUNCIL_TYPE_LABELS[data.professionalCouncilType]} {data.professionalRegistrationNumber}
+                </span>
                 {data.specialtyName && (
                   <span className="block text-sm text-text-dim">{data.specialtyName}</span>
                 )}

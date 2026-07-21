@@ -7,8 +7,8 @@ const mockApiClient = apiClient as jest.Mocked<typeof apiClient>
 
 const makeDto = () => ({
   id: 'tpl-uuid',
-  doctorId: 'doctor-uuid',
-  doctorName: 'Dr. House',
+  professionalId: 'doctor-uuid',
+  professionalName: 'Dr. House',
   name: 'Modelo A',
   items: [{ medicationId: 'med-uuid', name: 'Dipirona', activeIngredient: null, dosage: null, quantity: null, instructions: 'Tomar 1 cp' }],
   notes: null,
@@ -28,11 +28,11 @@ describe('prescriptionTemplatesService', () => {
       expect(result).toBe(dtos)
     })
 
-    it('calls GET /prescription-templates?doctorId= when doctorId provided', async () => {
+    it('calls GET /prescription-templates?professionalId= when professionalId provided', async () => {
       const dtos = [makeDto()]
       mockApiClient.get.mockResolvedValue(dtos as any)
-      const result = await prescriptionTemplatesService.getAll({ doctorId: 'doctor-uuid' })
-      expect(mockApiClient.get).toHaveBeenCalledWith('/prescription-templates?doctorId=doctor-uuid')
+      const result = await prescriptionTemplatesService.getAll({ professionalId: 'doctor-uuid' })
+      expect(mockApiClient.get).toHaveBeenCalledWith('/prescription-templates?professionalId=doctor-uuid')
       expect(result).toBe(dtos)
     })
   })

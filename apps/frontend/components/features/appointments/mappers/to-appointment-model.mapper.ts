@@ -4,8 +4,8 @@ import type { IAppointmentModel } from '../types/appointment-model.types'
 export function toAppointmentModel(dto: AppointmentResponseDto): IAppointmentModel {
   return {
     id: dto.id,
-    doctorId: dto.doctorId,
-    doctorName: dto.doctorName,
+    professionalId: dto.professionalId,
+    professionalName: dto.professionalName,
     patientId: dto.patientId,
     patientName: dto.patientName,
     specialtyId: dto.specialtyId,

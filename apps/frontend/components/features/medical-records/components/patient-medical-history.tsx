@@ -74,7 +74,7 @@ function HistoryCard({ record, onClick }: HistoryCardProps) {
         </span>
       </div>
       <p className="mt-1 text-xs text-text/60" data-testid="history-card-doctor">
-        {record.doctorName}
+        {record.professionalName}
       </p>
     </button>
   )

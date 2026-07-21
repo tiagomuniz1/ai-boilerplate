@@ -12,7 +12,7 @@ const mockService = scheduleExceptionsService as jest.Mocked<typeof scheduleExce
 
 const makeException = (overrides: Partial<IScheduleExceptionModel> = {}): IScheduleExceptionModel => ({
   id: 'exc-uuid',
-  doctorId: 'doc-uuid',
+  professionalId: 'doc-uuid',
   date: '2099-06-20',
   startTime: '14:00',
   endTime: '18:00',

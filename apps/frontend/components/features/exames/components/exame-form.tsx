@@ -23,13 +23,13 @@ type FormValues = z.infer<typeof schema>
 
 export interface ExameFormProps {
   appointmentId: string
-  doctorId: string
+  professionalId: string
   isPending: boolean
   globalError: string | null
   onSubmit: (input: ICreateExamRequestInput) => void
 }
 
-export function ExameForm({ appointmentId, doctorId, isPending, globalError, onSubmit }: ExameFormProps) {
+export function ExameForm({ appointmentId, professionalId, isPending, globalError, onSubmit }: ExameFormProps) {
   const [crmId, setCrmId] = useState('')
   const [specialtyId, setSpecialtyId] = useState('')
   const { control, register, handleSubmit, formState: { errors } } = useForm<FormValues>({
@@ -155,7 +155,7 @@ export function ExameForm({ appointmentId, doctorId, isPending, globalError, onS
       </div>
 
       <ProfessionalSignatureSelect
-        professionalId={doctorId}
+        professionalId={professionalId}
         registrationId={crmId}
         specialtyId={specialtyId}
         onRegistrationIdChange={setCrmId}

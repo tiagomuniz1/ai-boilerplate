@@ -2,8 +2,8 @@ import type { DayOfWeek } from '@app/shared'
 
 export interface IScheduleModel {
   id: string
-  doctorId: string
-  doctorName: string
+  professionalId: string
+  professionalName: string
   dayOfWeek: DayOfWeek
   startTime: string
   endTime: string

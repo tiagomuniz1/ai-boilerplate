@@ -21,7 +21,7 @@ import type { IApiError } from '@/types/api.types'
 export function PrescriptionTemplateList() {
   const role = useAuthStore((s) => s.user?.role)
   const isAdmin = role === UserRole.ADMIN
-  const isDoctor = role === UserRole.PROFESSIONAL
+  const isProfessional = role === UserRole.PROFESSIONAL
 
   const { data: templates, isPending, isError } = usePrescriptionTemplates()
 
@@ -87,7 +87,7 @@ export function PrescriptionTemplateList() {
             </p>
           )}
         </div>
-        {isDoctor && (
+        {isProfessional && (
           <Button
             variant="primary"
             onClick={() => { setCreateError(null); setIsCreateOpen(true) }}
@@ -126,7 +126,7 @@ export function PrescriptionTemplateList() {
                   </th>
                   {isAdmin && (
                     <th className="px-6 py-3 text-xs font-medium uppercase tracking-wider text-text-mute">
-                      Médico
+                      Profissional
                     </th>
                   )}
                   <th className="px-6 py-3 text-xs font-medium uppercase tracking-wider text-text-mute">
@@ -155,7 +155,7 @@ export function PrescriptionTemplateList() {
                         className="px-6 py-4 text-sm text-text-dim"
                         data-testid={`prescription-template-doctor-${template.id}`}
                       >
-                        {template.doctorName}
+                        {template.professionalName}
                       </td>
                     )}
                     <td className="px-6 py-4 text-sm text-text-dim">
@@ -165,7 +165,7 @@ export function PrescriptionTemplateList() {
                     </td>
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-2">
-                        {isDoctor && (
+                        {isProfessional && (
                           <button
                             type="button"
                             onClick={() => { setEditError(null); setEditingTemplate(template) }}
@@ -200,7 +200,7 @@ export function PrescriptionTemplateList() {
                 data-testid={`prescription-template-card-${template.id}`}
                 title={template.name}
                 rows={[
-                  ...(isAdmin ? [{ label: 'Médico', value: template.doctorName }] : []),
+                  ...(isAdmin ? [{ label: 'Profissional', value: template.professionalName }] : []),
                   {
                     label: 'Medicamentos',
                     value: template.items.length === 1 ? '1 medicamento' : `${template.items.length} medicamentos`,
@@ -208,7 +208,7 @@ export function PrescriptionTemplateList() {
                 ]}
                 actions={
                   <>
-                    {isDoctor && (
+                    {isProfessional && (
                       <Button
                         variant="ghost"
                         size="sm"

@@ -21,8 +21,8 @@ export function toMedicalRecordModel(dto: MedicalRecordResponseDto): IMedicalRec
     appointmentId: dto.appointmentId,
     patientId: dto.patientId,
     patientName: dto.patientName,
-    doctorId: dto.doctorId,
-    doctorName: dto.doctorName,
+    professionalId: dto.professionalId,
+    professionalName: dto.professionalName,
     specialtyId: dto.specialtyId,
     specialtyName: dto.specialtyName,
     schema: dto.templateSchemaSnapshot

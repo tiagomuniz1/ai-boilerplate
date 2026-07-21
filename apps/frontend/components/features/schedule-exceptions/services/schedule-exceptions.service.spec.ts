@@ -15,10 +15,10 @@ describe('scheduleExceptionsService', () => {
       expect(mockApiClient.get).toHaveBeenCalledWith('/schedule-exceptions')
     })
 
-    it('calls GET /schedule-exceptions with doctorId param', async () => {
+    it('calls GET /schedule-exceptions with professionalId param', async () => {
       mockApiClient.get.mockResolvedValue({ data: [], total: 0, page: 1, limit: 20 })
-      await scheduleExceptionsService.getAll({ doctorId: 'doc-uuid' })
-      expect(mockApiClient.get).toHaveBeenCalledWith('/schedule-exceptions?doctorId=doc-uuid')
+      await scheduleExceptionsService.getAll({ professionalId: 'doc-uuid' })
+      expect(mockApiClient.get).toHaveBeenCalledWith('/schedule-exceptions?professionalId=doc-uuid')
     })
 
     it('calls GET /schedule-exceptions with from and to params', async () => {
@@ -35,15 +35,15 @@ describe('scheduleExceptionsService', () => {
 
     it('calls GET /schedule-exceptions with all params combined', async () => {
       mockApiClient.get.mockResolvedValue({ data: [], total: 0, page: 2, limit: 10 })
-      await scheduleExceptionsService.getAll({ doctorId: 'doc-uuid', from: '2024-01-01', to: '2024-01-31', page: 2, limit: 10 })
+      await scheduleExceptionsService.getAll({ professionalId: 'doc-uuid', from: '2024-01-01', to: '2024-01-31', page: 2, limit: 10 })
       expect(mockApiClient.get).toHaveBeenCalledWith(
-        '/schedule-exceptions?doctorId=doc-uuid&from=2024-01-01&to=2024-01-31&page=2&limit=10',
+        '/schedule-exceptions?professionalId=doc-uuid&from=2024-01-01&to=2024-01-31&page=2&limit=10',
       )
     })
   })
 
   it('create calls POST /schedule-exceptions with data', async () => {
-    const data = { doctorId: 'doc-uuid', date: '2024-01-15', isAllDay: true } as any
+    const data = { professionalId: 'doc-uuid', date: '2024-01-15', isAllDay: true } as any
     mockApiClient.post.mockResolvedValue({ id: 'uuid-1' })
     const result = await scheduleExceptionsService.create(data)
     expect(mockApiClient.post).toHaveBeenCalledWith('/schedule-exceptions', data)

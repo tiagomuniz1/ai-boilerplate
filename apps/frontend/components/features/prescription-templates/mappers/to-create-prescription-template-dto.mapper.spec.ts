@@ -63,13 +63,13 @@ describe('toCreatePrescriptionTemplateDto', () => {
     expect(dto.notes).toBe('Retornar em 7 dias.')
   })
 
-  it('omits doctorId when not provided', () => {
+  it('omits professionalId when not provided', () => {
     const dto = toCreatePrescriptionTemplateDto(baseInput)
-    expect(dto).not.toHaveProperty('doctorId')
+    expect(dto).not.toHaveProperty('professionalId')
   })
 
-  it('includes doctorId when provided', () => {
-    const dto = toCreatePrescriptionTemplateDto({ ...baseInput, doctorId: 'doctor-uuid' })
-    expect(dto.doctorId).toBe('doctor-uuid')
+  it('includes professionalId when provided', () => {
+    const dto = toCreatePrescriptionTemplateDto({ ...baseInput, professionalId: 'doctor-uuid' })
+    expect(dto.professionalId).toBe('doctor-uuid')
   })
 })

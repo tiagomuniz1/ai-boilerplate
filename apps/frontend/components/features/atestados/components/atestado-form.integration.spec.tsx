@@ -10,7 +10,7 @@ const mockUseProfessional = useProfessional as jest.Mock
 
 const defaultProps = {
   appointmentId: 'appt-uuid',
-  doctorId: 'doctor-uuid',
+  professionalId: 'doctor-uuid',
   isPending: false,
   globalError: null,
   onSubmit: jest.fn(),
