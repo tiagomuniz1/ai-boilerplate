@@ -27,7 +27,7 @@ export class ExamRequestsController {
   ) {}
 
   @Post()
-  @Roles(UserRole.DOCTOR)
+  @Roles(UserRole.PROFESSIONAL)
   @Throttle({ default: { limit: 30, ttl: 60000 } })
   create(
     @Body() dto: CreateExamRequestDto,
@@ -37,7 +37,7 @@ export class ExamRequestsController {
   }
 
   @Get()
-  @Roles(UserRole.ADMIN, UserRole.DOCTOR)
+  @Roles(UserRole.ADMIN, UserRole.PROFESSIONAL)
   findByAppointment(
     @Query() query: ListExamRequestsQueryDto,
     @CurrentUser() currentUser: ICurrentUser,
@@ -46,7 +46,7 @@ export class ExamRequestsController {
   }
 
   @Get(':id')
-  @Roles(UserRole.ADMIN, UserRole.DOCTOR)
+  @Roles(UserRole.ADMIN, UserRole.PROFESSIONAL)
   findById(
     @Param('id') id: string,
     @CurrentUser() currentUser: ICurrentUser,
@@ -56,7 +56,7 @@ export class ExamRequestsController {
 
   @Delete(':id')
   @HttpCode(204)
-  @Roles(UserRole.ADMIN, UserRole.DOCTOR)
+  @Roles(UserRole.ADMIN, UserRole.PROFESSIONAL)
   delete(
     @Param('id') id: string,
     @CurrentUser() currentUser: ICurrentUser,
@@ -65,7 +65,7 @@ export class ExamRequestsController {
   }
 
   @Get(':id/pdf')
-  @Roles(UserRole.ADMIN, UserRole.DOCTOR)
+  @Roles(UserRole.ADMIN, UserRole.PROFESSIONAL)
   async downloadPdf(
     @Param('id') id: string,
     @CurrentUser() currentUser: ICurrentUser,
@@ -81,7 +81,7 @@ export class ExamRequestsController {
   }
 
   @Post(':id/results')
-  @Roles(UserRole.DOCTOR)
+  @Roles(UserRole.PROFESSIONAL)
   @UseInterceptors(FilesInterceptor('files', 5, { storage: memoryStorage() }))
   addResult(
     @Param('id') id: string,

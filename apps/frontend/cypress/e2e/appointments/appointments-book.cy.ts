@@ -5,33 +5,33 @@ const PATIENT_UUID = '00000000-0000-4000-e000-000000000001'
 const SPEC_UUID_1 = '00000000-0000-4000-d000-000000000001'
 const SPEC_UUID_2 = '00000000-0000-4000-d000-000000000002'
 
-const mockDoctorUser = {
-  id: 'doctor-user-uuid',
+const mockProfessionalUser = {
+  id: 'professional-user-uuid',
   fullName: 'Dr. Test',
-  email: 'doctor@pulso.center',
-  role: 'doctor',
+  email: 'professional@pulso.center',
+  role: 'professional',
   clinicId: '10000000-0000-4000-8000-000000000000',
 }
 
-const makeDoctor = (specialties: { id: string; name: string }[]) => ({
+const makeProfessional = (specialties: { id: string; name: string }[]) => ({
   id: DOC_UUID,
-  user: { id: 'doctor-user-uuid', fullName: 'Dr. Test', email: 'doctor@pulso.center', isActive: true },
-  crmNumber: '12345/SP',
+  user: { id: 'professional-user-uuid', fullName: 'Dr. Test', email: 'professional@pulso.center', isActive: true },
+  registrations: [{ id: 'reg-1', councilType: 'crm', number: '12345/SP', state: 'SP', isPrimary: true }],
   specialties,
   bio: null,
   createdAt: '2025-01-01T10:00:00.000Z',
   updatedAt: '2025-01-01T10:00:00.000Z',
 })
 
-const mockDoctorsList = {
-  data: [makeDoctor([{ id: SPEC_UUID_1, name: 'Cardiologia' }])],
+const mockProfessionalsList = {
+  data: [makeProfessional([{ id: SPEC_UUID_1, name: 'Cardiologia' }])],
   total: 1,
   page: 1,
   limit: 200,
 }
 
 const mockAvailability = {
-  doctorId: DOC_UUID,
+  professionalId: DOC_UUID,
   date: '2025-07-04',
   slots: [
     { startTime: '09:00', endTime: '09:30', scheduleId: 'sched-uuid', slotDurationInMinutes: 30 },
@@ -59,8 +59,8 @@ const mockPatientsList = {
 
 const mockCreatedAppointment = {
   id: 'new-appt-uuid',
-  doctorId: DOC_UUID,
-  doctorName: 'Dr. Test',
+  professionalId: DOC_UUID,
+  professionalName: 'Dr. Test',
   patientId: PATIENT_UUID,
   patientName: 'Patient One',
   specialtyId: SPEC_UUID_1,
@@ -80,19 +80,19 @@ describe('Appointments — book', () => {
   beforeEach(() => {
     cy.clearCookies()
     cy.clearLocalStorage()
-    cy.intercept('GET', `${Cypress.env('API_URL')}/doctors*`, { statusCode: 200, body: mockDoctorsList }).as('getDoctors')
-    cy.intercept('GET', `${Cypress.env('API_URL')}/doctors/${DOC_UUID}`, { statusCode: 200, body: makeDoctor([{ id: SPEC_UUID_1, name: 'Cardiologia' }]) }).as('getDoctor')
+    cy.intercept('GET', `${Cypress.env('API_URL')}/professionals*`, { statusCode: 200, body: mockProfessionalsList }).as('getProfessionals')
+    cy.intercept('GET', `${Cypress.env('API_URL')}/professionals/${DOC_UUID}`, { statusCode: 200, body: makeProfessional([{ id: SPEC_UUID_1, name: 'Cardiologia' }]) }).as('getProfessional')
     cy.intercept('GET', `${Cypress.env('API_URL')}/appointments/availability*`, { statusCode: 200, body: mockAvailability }).as('getAvailability')
     cy.intercept('GET', `${Cypress.env('API_URL')}/appointments*`, { statusCode: 200, body: { data: [], total: 0, page: 1, limit: 100 } }).as('getAppointments')
     cy.intercept('GET', `${Cypress.env('API_URL')}/patients*`, { statusCode: 200, body: mockPatientsList }).as('getPatients')
     cy.intercept('GET', `${Cypress.env('API_URL')}/schedule-exceptions*`, { statusCode: 200, body: { data: [], total: 0, page: 1, limit: 20 } })
-    visitClinic('/appointments', mockDoctorUser)
+    visitClinic('/appointments', mockProfessionalUser)
     // Navigate 2 weeks forward so all slots are definitively in the future
     cy.get('[data-testid="toolbar-next"]', { timeout: 10000 }).click()
     cy.get('[data-testid="toolbar-next"]').click()
   })
 
-  it('DOCTOR clicks free slot and sees BookAppointmentDialog', () => {
+  it('PROFESSIONAL clicks free slot and sees BookAppointmentDialog', () => {
     cy.get('[data-testid="agenda-slot-free"]:not([disabled])', { timeout: 10000 }).first().click()
 
     cy.get('[data-testid="book-appointment-dialog"]').should('be.visible')
@@ -106,7 +106,7 @@ describe('Appointments — book', () => {
     cy.get('[data-testid="book-dialog-patient-error"]').should('be.visible')
   })
 
-  it('DOCTOR books appointment successfully and dialog closes', () => {
+  it('PROFESSIONAL books appointment successfully and dialog closes', () => {
     cy.intercept('POST', `${Cypress.env('API_URL')}/appointments`, {
       statusCode: 201,
       body: mockCreatedAppointment,
@@ -141,11 +141,11 @@ describe('Appointments — book', () => {
     cy.get('[data-testid="book-appointment-dialog"]').should('not.exist')
   })
 
-  it('ADMIN books appointment with single-specialty doctor without choosing specialty', () => {
-    cy.intercept('GET', `${Cypress.env('API_URL')}/doctors/${DOC_UUID}`, {
+  it('ADMIN books appointment with single-specialty professional without choosing specialty', () => {
+    cy.intercept('GET', `${Cypress.env('API_URL')}/professionals/${DOC_UUID}`, {
       statusCode: 200,
-      body: makeDoctor([{ id: SPEC_UUID_1, name: 'Cardiologia' }]),
-    }).as('getDoctorSingle')
+      body: makeProfessional([{ id: SPEC_UUID_1, name: 'Cardiologia' }]),
+    }).as('getProfessionalSingle')
 
     cy.intercept('POST', `${Cypress.env('API_URL')}/appointments`, {
       statusCode: 201,
@@ -164,14 +164,14 @@ describe('Appointments — book', () => {
     cy.get('[data-testid="book-appointment-dialog"]').should('not.exist')
   })
 
-  it('ADMIN books appointment with multi-specialty doctor by choosing specialty', () => {
-    cy.intercept('GET', `${Cypress.env('API_URL')}/doctors/${DOC_UUID}`, {
+  it('ADMIN books appointment with multi-specialty professional by choosing specialty', () => {
+    cy.intercept('GET', `${Cypress.env('API_URL')}/professionals/${DOC_UUID}`, {
       statusCode: 200,
-      body: makeDoctor([
+      body: makeProfessional([
         { id: SPEC_UUID_1, name: 'Cardiologia' },
         { id: SPEC_UUID_2, name: 'Clínica Geral' },
       ]),
-    }).as('getDoctorMulti')
+    }).as('getProfessionalMulti')
 
     cy.intercept('POST', `${Cypress.env('API_URL')}/appointments`, {
       statusCode: 201,

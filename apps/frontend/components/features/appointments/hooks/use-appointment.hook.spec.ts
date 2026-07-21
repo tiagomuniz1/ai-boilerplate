@@ -17,8 +17,8 @@ function wrapper({ children }: { children: React.ReactNode }) {
 
 const makeModel = (): IAppointmentDetailModel => ({
   id: 'uuid-1',
-  doctorId: 'doc-uuid',
-  doctorName: 'Dr. Test',
+  professionalId: 'doc-uuid',
+  professionalName: 'Dr. Test',
   patientId: 'pat-uuid',
   patientName: 'Patient',
   specialtyId: null,

@@ -3,20 +3,20 @@ import { visitClinic } from '../../support/clinic'
 const DOC_UUID = '00000000-0000-4000-b000-000000000001'
 const APPT_UUID = '00000000-0000-4000-d000-000000000001'
 
-const mockDoctorUser = {
-  id: 'doctor-user-uuid',
+const mockProfessionalUser = {
+  id: 'professional-user-uuid',
   fullName: 'Dr. Test',
-  email: 'doctor@pulso.center',
-  role: 'doctor',
+  email: 'professional@pulso.center',
+  role: 'professional',
   clinicId: '10000000-0000-4000-8000-000000000000',
 }
 
-const mockDoctorsList = {
+const mockProfessionalsList = {
   data: [
     {
       id: DOC_UUID,
-      user: { id: 'doctor-user-uuid', fullName: 'Dr. Test', email: 'doctor@pulso.center', isActive: true },
-      crmNumber: '12345/SP',
+      user: { id: 'professional-user-uuid', fullName: 'Dr. Test', email: 'professional@pulso.center', isActive: true },
+      registrations: [{ id: 'reg-1', councilType: 'crm', number: '12345/SP', state: 'SP', isPrimary: true }],
       specialties: [],
       bio: null,
       createdAt: '2025-01-01T10:00:00.000Z',
@@ -30,8 +30,8 @@ const mockDoctorsList = {
 
 const mockScheduledAppointment = {
   id: APPT_UUID,
-  doctorId: DOC_UUID,
-  doctorName: 'Dr. Test',
+  professionalId: DOC_UUID,
+  professionalName: 'Dr. Test',
   patientId: 'patient-uuid',
   patientName: 'Patient One',
   scheduleId: 'sched-uuid',
@@ -65,7 +65,7 @@ describe('Appointments — cancel', () => {
   beforeEach(() => {
     cy.clearCookies()
     cy.clearLocalStorage()
-    cy.intercept('GET', `${Cypress.env('API_URL')}/doctors*`, { statusCode: 200, body: mockDoctorsList })
+    cy.intercept('GET', `${Cypress.env('API_URL')}/professionals*`, { statusCode: 200, body: mockProfessionalsList })
     cy.intercept('GET', `${Cypress.env('API_URL')}/appointments/${APPT_UUID}`, {
       statusCode: 200,
       body: mockScheduledAppointment,
@@ -86,16 +86,20 @@ describe('Appointments — cancel', () => {
       statusCode: 200,
       body: [],
     })
+    cy.intercept('GET', `${Cypress.env('API_URL')}/exam-requests*`, {
+      statusCode: 200,
+      body: [],
+    })
   })
 
-  it('DOCTOR sees cancel button on appointment detail page', () => {
-    visitClinic(`/appointments/${APPT_UUID}`, mockDoctorUser)
+  it('PROFESSIONAL sees cancel button on appointment detail page', () => {
+    visitClinic(`/appointments/${APPT_UUID}`, mockProfessionalUser)
 
     cy.get('[data-testid="appointment-detail-cancel-button"]').should('be.visible')
   })
 
   it('clicking cancel button opens CancelAppointmentDialog', () => {
-    visitClinic(`/appointments/${APPT_UUID}`, mockDoctorUser)
+    visitClinic(`/appointments/${APPT_UUID}`, mockProfessionalUser)
 
     cy.get('[data-testid="appointment-detail-cancel-button"]').click()
 
@@ -108,7 +112,7 @@ describe('Appointments — cancel', () => {
       body: mockCancelledAppointment,
     }).as('cancelAppointment')
 
-    visitClinic(`/appointments/${APPT_UUID}`, mockDoctorUser)
+    visitClinic(`/appointments/${APPT_UUID}`, mockProfessionalUser)
 
     cy.get('[data-testid="appointment-detail-cancel-button"]').click()
     cy.get('[data-testid="cancel-dialog-confirm"]').click()
@@ -118,7 +122,7 @@ describe('Appointments — cancel', () => {
   })
 
   it('aborts cancellation when clicking close on cancel dialog', () => {
-    visitClinic(`/appointments/${APPT_UUID}`, mockDoctorUser)
+    visitClinic(`/appointments/${APPT_UUID}`, mockProfessionalUser)
 
     cy.get('[data-testid="appointment-detail-cancel-button"]').click()
     cy.get('[data-testid="cancel-dialog-cancel"]').click()

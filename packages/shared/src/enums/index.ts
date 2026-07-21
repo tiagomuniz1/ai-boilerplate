@@ -1,4 +1,5 @@
 export * from './user-role.enum'
+export * from './council-type.enum'
 export * from './patient-gender.enum'
 export * from './day-of-week.enum'
 export * from './theme-border-radius.enum'

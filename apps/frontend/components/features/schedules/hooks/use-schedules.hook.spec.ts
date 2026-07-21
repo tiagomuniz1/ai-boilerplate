@@ -43,7 +43,7 @@ describe('useSchedules', () => {
   it('includes params in queryKey', async () => {
     ;(listSchedulesUseCase as jest.Mock).mockResolvedValue(makeResult())
 
-    const params = { doctorId: 'doc-uuid' }
+    const params = { professionalId: 'doc-uuid' }
     renderHook(() => useSchedules(params), { wrapper })
 
     await waitFor(() => expect(listSchedulesUseCase).toHaveBeenCalled())

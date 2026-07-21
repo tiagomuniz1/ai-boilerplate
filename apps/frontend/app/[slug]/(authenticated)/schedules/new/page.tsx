@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/atoms/button/button'
 import { Alert } from '@/components/ui/molecules/alert/alert'
 import { useAuthStore } from '@/stores/auth.store'
 import { UserRole } from '@app/shared'
-import { useDoctors } from '@/components/features/doctors/hooks/use-doctors.hook'
+import { useProfessionals } from '@/components/features/professionals/hooks/use-professionals.hook'
 import { useCreateSchedule } from '@/components/features/schedules/hooks/use-create-schedule.hook'
 import { ScheduleForm } from '@/components/features/schedules/components/schedule-form'
 import type { ICreateScheduleInput } from '@/components/features/schedules/types/schedule-input.types'
@@ -20,7 +20,7 @@ export default function NewSchedulePage() {
 
   const basePath = useBasePath()
   const { mutate: createSchedule, isPending } = useCreateSchedule()
-  const { data: doctorsList } = useDoctors({ limit: 100 })
+  const { data: doctorsList } = useProfessionals({ limit: 100 })
   const doctors = doctorsList ?? []
 
   function handleSubmit(
@@ -31,9 +31,9 @@ export default function NewSchedulePage() {
     createSchedule(data, {
       onError: (error: IApiError) => {
         if (error.status === 409) {
-          setGlobalError('Esta agenda conflita com outra já existente para este médico.')
+          setGlobalError('Esta agenda conflita com outra já existente para este profissional.')
         } else if (error.status === 404) {
-          setGlobalError('Médico não encontrado. Verifique se o perfil está cadastrado.')
+          setGlobalError('Profissional não encontrado. Verifique se o perfil está cadastrado.')
         } else if (error.errors) {
           error.errors.forEach(({ field, message }) => {
             setError(field, { message })
@@ -59,7 +59,7 @@ export default function NewSchedulePage() {
       <div className="overflow-hidden rounded-xl border border-line bg-surface shadow-sm p-6">
         <ScheduleForm
           mode="create"
-          role={user?.role ?? UserRole.DOCTOR}
+          role={user?.role ?? UserRole.PROFESSIONAL}
           doctors={isAdmin ? doctors : undefined}
           isPending={isPending}
           globalError={globalError}

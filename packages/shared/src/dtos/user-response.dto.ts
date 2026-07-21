@@ -6,7 +6,7 @@ export class UserResponseDto {
   email!: string
   role!: UserRole
   isActive!: boolean
-  isDoctor!: boolean
+  isProfessional!: boolean
   isPatient!: boolean
   createdAt!: Date
   updatedAt!: Date

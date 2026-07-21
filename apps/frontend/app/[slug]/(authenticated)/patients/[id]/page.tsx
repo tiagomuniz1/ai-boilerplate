@@ -24,7 +24,7 @@ export default function PatientDetailsPage() {
   const [showDeleteDialog, setShowDeleteDialog] = useState(false)
   const currentUser = useAuthStore((s) => s.user)
   const canSeeMedicalHistory =
-    currentUser?.role === UserRole.ADMIN || currentUser?.role === UserRole.DOCTOR
+    currentUser?.role === UserRole.ADMIN || currentUser?.role === UserRole.PROFESSIONAL
 
   function handleDeleteConfirm() {
     deletePatient(id, {

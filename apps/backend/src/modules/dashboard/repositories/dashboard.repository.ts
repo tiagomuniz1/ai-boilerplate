@@ -19,7 +19,7 @@ export class DashboardRepository implements IDashboardRepository {
     clinicId: string,
     from: string,
     to: string,
-    doctorId?: string,
+    professionalId?: string,
   ): Promise<Record<AppointmentStatus, number>> {
     const qb = this.appointmentRepository
       .createQueryBuilder('a')
@@ -31,7 +31,7 @@ export class DashboardRepository implements IDashboardRepository {
       .andWhere('a.deleted_at IS NULL')
       .groupBy('a.status')
 
-    if (doctorId) qb.andWhere('a.doctor_id = :doctorId', { doctorId })
+    if (professionalId) qb.andWhere('a.professional_id = :professionalId', { professionalId })
 
     const rows: Array<{ status: string; count: string }> = await qb.getRawMany()
 
@@ -54,17 +54,17 @@ export class DashboardRepository implements IDashboardRepository {
     clinicId: string,
     from: string,
     to: string,
-    doctorId?: string,
+    professionalId?: string,
   ): Promise<{ total: number; newPatients: number; returning: number; male: number; female: number }> {
     // Single CTE query to avoid passing large patient ID arrays as bind parameters.
     // period_patients: distinct patients with a non-cancelled appointment in the period.
     // first_appts: earliest appointment date per patient across the whole clinic history.
     // Result classifies each patient as new (first appointment falls within period) or returning.
     const params: unknown[] = [clinicId, from, to]
-    let doctorFilter = ''
-    if (doctorId) {
-      params.push(doctorId)
-      doctorFilter = `AND a.doctor_id = $${params.length}`
+    let professionalFilter = ''
+    if (professionalId) {
+      params.push(professionalId)
+      professionalFilter = `AND a.professional_id = $${params.length}`
     }
 
     const sql = `
@@ -77,7 +77,7 @@ export class DashboardRepository implements IDashboardRepository {
           AND a.date <= $3
           AND a.status != 'cancelled'
           AND a.deleted_at IS NULL
-          ${doctorFilter}
+          ${professionalFilter}
         GROUP BY a.patient_id, p.gender
       ),
       first_appts AS (
@@ -127,7 +127,7 @@ export class DashboardRepository implements IDashboardRepository {
     clinicId: string,
     from: string,
     to: string,
-    doctorId?: string,
+    professionalId?: string,
   ): Promise<{ label: string; value: number }[]> {
     const qb = this.appointmentRepository
       .createQueryBuilder('a')
@@ -142,7 +142,7 @@ export class DashboardRepository implements IDashboardRepository {
       .groupBy("COALESCE(s.name, 'Sem especialidade')")
       .orderBy('value', 'DESC')
 
-    if (doctorId) qb.andWhere('a.doctor_id = :doctorId', { doctorId })
+    if (professionalId) qb.andWhere('a.professional_id = :professionalId', { professionalId })
 
     const rows: Array<{ label: string; value: string }> = await qb.getRawMany()
     return rows.map((r) => ({ label: r.label, value: parseInt(r.value, 10) }))
@@ -152,7 +152,7 @@ export class DashboardRepository implements IDashboardRepository {
     clinicId: string,
     from: string,
     to: string,
-    doctorId?: string,
+    professionalId?: string,
   ): Promise<{ particular: number; convenio: number }> {
     const qb = this.appointmentRepository
       .createQueryBuilder('a')
@@ -165,7 +165,7 @@ export class DashboardRepository implements IDashboardRepository {
       .andWhere('a.deleted_at IS NULL')
       .groupBy('a.insurance_type')
 
-    if (doctorId) qb.andWhere('a.doctor_id = :doctorId', { doctorId })
+    if (professionalId) qb.andWhere('a.professional_id = :professionalId', { professionalId })
 
     const rows: Array<{ insuranceType: string; count: string }> = await qb.getRawMany()
 
@@ -183,7 +183,7 @@ export class DashboardRepository implements IDashboardRepository {
     clinicId: string,
     from: string,
     to: string,
-    doctorId?: string,
+    professionalId?: string,
   ): Promise<{ label: string; value: number }[]> {
     const qb = this.medicalCertificateRepository
       .createQueryBuilder('mc')
@@ -199,7 +199,7 @@ export class DashboardRepository implements IDashboardRepository {
       .orderBy('value', 'DESC')
       .limit(10)
 
-    if (doctorId) qb.andWhere('mc.doctor_id = :doctorId', { doctorId })
+    if (professionalId) qb.andWhere('mc.professional_id = :professionalId', { professionalId })
 
     const rows: Array<{ label: string; value: string }> = await qb.getRawMany()
     return rows.map((r) => ({ label: r.label, value: parseInt(r.value, 10) }))
@@ -209,7 +209,7 @@ export class DashboardRepository implements IDashboardRepository {
     clinicId: string,
     from: string,
     to: string,
-    doctorId?: string,
+    professionalId?: string,
   ): Promise<{ date: string; count: number }[]> {
     const qb = this.appointmentRepository
       .createQueryBuilder('a')
@@ -223,7 +223,7 @@ export class DashboardRepository implements IDashboardRepository {
       .groupBy('a.date')
       .orderBy('a.date', 'ASC')
 
-    if (doctorId) qb.andWhere('a.doctor_id = :doctorId', { doctorId })
+    if (professionalId) qb.andWhere('a.professional_id = :professionalId', { professionalId })
 
     const rows: Array<{ date: string; count: string }> = await qb.getRawMany()
     return rows.map((r) => ({ date: r.date, count: parseInt(r.count, 10) }))
@@ -233,7 +233,7 @@ export class DashboardRepository implements IDashboardRepository {
     clinicId: string,
     from: string,
     to: string,
-    doctorId?: string,
+    professionalId?: string,
   ): Promise<{ age: number; count: number }[]> {
     const qb = this.appointmentRepository
       .createQueryBuilder('a')
@@ -248,7 +248,7 @@ export class DashboardRepository implements IDashboardRepository {
       .groupBy("DATE_PART('year', AGE(p.birth_date::date))")
       .orderBy('age', 'ASC')
 
-    if (doctorId) qb.andWhere('a.doctor_id = :doctorId', { doctorId })
+    if (professionalId) qb.andWhere('a.professional_id = :professionalId', { professionalId })
 
     const rows: Array<{ age: string; count: string }> = await qb.getRawMany()
     return rows.map((r) => ({ age: parseInt(r.age, 10), count: parseInt(r.count, 10) }))
@@ -256,10 +256,10 @@ export class DashboardRepository implements IDashboardRepository {
 
   async getTodayBirthdays(
     clinicId: string,
-    doctorId?: string,
+    professionalId?: string,
   ): Promise<{ patientId: string; fullName: string; age: number }[]> {
     // Query patients directly using the expression index on (month, day) of birth_date.
-    // When doctorId is provided, restrict to patients of that doctor via appointments.
+    // When professionalId is provided, restrict to patients of that doctor via appointments.
     const connection = this.appointmentRepository.manager.connection
     const schema = (connection.options as any).schema ?? 'public'
     const qr = connection.createQueryRunner()
@@ -267,7 +267,7 @@ export class DashboardRepository implements IDashboardRepository {
     try {
       await qr.query(`SET search_path TO "${schema}", public`)
 
-      if (!doctorId) {
+      if (!professionalId) {
         const rows: Array<{ patientId: string; fullName: string; age: string }> =
           await qr.query(
             `SELECT p.id AS "patientId", u.full_name AS "fullName",
@@ -284,7 +284,7 @@ export class DashboardRepository implements IDashboardRepository {
         return rows.map((r) => ({ patientId: r.patientId, fullName: r.fullName, age: parseInt(r.age, 10) }))
       }
 
-      // With doctorId filter: join appointments to restrict to that doctor's patients.
+      // With professionalId filter: join appointments to restrict to that doctor's patients.
       const rows: Array<{ patientId: string; fullName: string; age: string }> =
         await qr.query(
           `SELECT p.id AS "patientId", u.full_name AS "fullName",
@@ -298,10 +298,10 @@ export class DashboardRepository implements IDashboardRepository {
              AND EXISTS (
                SELECT 1 FROM appointments a
                WHERE a.patient_id = p.id AND a.clinic_id = $1
-                 AND a.doctor_id = $2 AND a.deleted_at IS NULL
+                 AND a.professional_id = $2 AND a.deleted_at IS NULL
              )
            ORDER BY u.full_name`,
-          [clinicId, doctorId],
+          [clinicId, professionalId],
         )
       return rows.map((r) => ({ patientId: r.patientId, fullName: r.fullName, age: parseInt(r.age, 10) }))
     } finally {

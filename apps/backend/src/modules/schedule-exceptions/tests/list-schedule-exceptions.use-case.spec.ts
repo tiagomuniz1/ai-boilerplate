@@ -3,7 +3,7 @@ import { DataSource } from 'typeorm'
 import { faker } from '@faker-js/faker'
 import { UserRole } from '@app/shared'
 import { CacheService } from '../../../cache/cache.service'
-import { IDoctorsRepository } from '../../doctors/repositories/doctors.repository.interface'
+import { IProfessionalsRepository } from '../../professionals/repositories/professionals.repository.interface'
 import { ICurrentUser } from '../../auth/types/current-user.type'
 import { IScheduleExceptionsRepository } from '../repositories/schedule-exceptions.repository.interface'
 import { ListScheduleExceptionsUseCase } from '../use-cases/list-schedule-exceptions.use-case'
@@ -11,17 +11,17 @@ import { ListScheduleExceptionsUseCase } from '../use-cases/list-schedule-except
 const mockScheduleExceptionsRepository: jest.Mocked<IScheduleExceptionsRepository> = {
   findAll: jest.fn(),
   findById: jest.fn(),
-  findActiveByDoctorAndDate: jest.fn(),
+  findActiveByProfessionalAndDate: jest.fn(),
   create: jest.fn(),
   update: jest.fn(),
   delete: jest.fn(),
 }
 
-const mockDoctorsRepository: jest.Mocked<IDoctorsRepository> = {
+const mockProfessionalsRepository: jest.Mocked<IProfessionalsRepository> = {
   findAll: jest.fn(),
   findById: jest.fn(),
   findByUserId: jest.fn(),
-  findByCrm: jest.fn(),
+  findByRegistration: jest.fn(),
   create: jest.fn(),
   update: jest.fn(),
   delete: jest.fn(),
@@ -44,7 +44,7 @@ const makeDoctor = (id = DOCTOR_ID) => ({ id } as any)
 const makeException = (overrides = {}) => ({
   id: faker.string.uuid(),
   clinicId: CLINIC_ID,
-  doctorId: DOCTOR_ID,
+  professionalId: DOCTOR_ID,
   date: '2099-06-20',
   startTime: null,
   endTime: null,
@@ -56,7 +56,7 @@ const makeException = (overrides = {}) => ({
   ...overrides,
 })
 
-const doctorUser: ICurrentUser = { id: faker.string.uuid(), role: UserRole.DOCTOR, clinicId: CLINIC_ID }
+const doctorUser: ICurrentUser = { id: faker.string.uuid(), role: UserRole.PROFESSIONAL, clinicId: CLINIC_ID }
 const adminUser: ICurrentUser = { id: faker.string.uuid(), role: UserRole.ADMIN, clinicId: CLINIC_ID }
 
 describe('ListScheduleExceptionsUseCase', () => {
@@ -67,37 +67,37 @@ describe('ListScheduleExceptionsUseCase', () => {
     useCase = new ListScheduleExceptionsUseCase(
       {} as DataSource,
       mockScheduleExceptionsRepository,
-      mockDoctorsRepository,
+      mockProfessionalsRepository,
       mockCacheService,
     )
     mockCacheService.get.mockResolvedValue(null)
     mockCacheService.set.mockResolvedValue(undefined)
   })
 
-  it('DOCTOR list is forced to own doctorId', async () => {
-    mockDoctorsRepository.findByUserId.mockResolvedValue(makeDoctor())
+  it('DOCTOR list is forced to own professionalId', async () => {
+    mockProfessionalsRepository.findByUserId.mockResolvedValue(makeDoctor())
     mockScheduleExceptionsRepository.findAll.mockResolvedValue([[makeException() as any], 1])
 
-    await useCase.execute({ doctorId: 'other-doctor-id' } as any, doctorUser)
+    await useCase.execute({ professionalId: 'other-doctor-id' } as any, doctorUser)
 
     expect(mockScheduleExceptionsRepository.findAll).toHaveBeenCalledWith(
-      expect.objectContaining({ doctorId: DOCTOR_ID }),
+      expect.objectContaining({ professionalId: DOCTOR_ID }),
       CLINIC_ID,
     )
   })
 
   it('throws NotFoundException when DOCTOR has no doctor profile', async () => {
-    mockDoctorsRepository.findByUserId.mockResolvedValue(null)
+    mockProfessionalsRepository.findByUserId.mockResolvedValue(null)
     await expect(useCase.execute({} as any, doctorUser)).rejects.toThrow(NotFoundException)
   })
 
-  it('ADMIN can list all exceptions without doctorId filter', async () => {
+  it('ADMIN can list all exceptions without professionalId filter', async () => {
     mockScheduleExceptionsRepository.findAll.mockResolvedValue([[makeException() as any], 1])
 
     const result = await useCase.execute({} as any, adminUser)
 
     expect(mockScheduleExceptionsRepository.findAll).toHaveBeenCalledWith(
-      expect.not.objectContaining({ doctorId: expect.any(String) }),
+      expect.not.objectContaining({ professionalId: expect.any(String) }),
       CLINIC_ID,
     )
     expect(result.total).toBe(1)
@@ -153,7 +153,7 @@ describe('ListScheduleExceptionsUseCase', () => {
     expect(result).toMatchObject({ total: 1, page: 2, limit: 10 })
     expect(result.data[0]).toMatchObject({
       id: exception.id,
-      doctorId: exception.doctorId,
+      professionalId: exception.professionalId,
       date: exception.date,
     })
   })

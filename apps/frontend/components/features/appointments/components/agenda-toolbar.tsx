@@ -2,7 +2,7 @@
 
 import { UserRole } from '@app/shared'
 import { Button } from '@/components/ui/atoms/button/button'
-import type { IDoctorModel } from '@/components/features/doctors/types/doctor-model.types'
+import type { IProfessionalModel } from '@/components/features/professionals/types/professional-model.types'
 
 type AgendaView = 'day' | 'week'
 
@@ -12,9 +12,9 @@ interface AgendaToolbarProps {
   onDateChange: (date: Date) => void
   onViewChange: (view: AgendaView) => void
   role: UserRole
-  doctors?: IDoctorModel[]
+  doctors?: IProfessionalModel[]
   selectedDoctorId: string | null
-  onDoctorChange: (doctorId: string | null) => void
+  onDoctorChange: (professionalId: string | null) => void
   onBlockTime?: () => void
 }
 
@@ -57,7 +57,7 @@ export function AgendaToolbar({
   }
 
   const showDoctorSelector = role === UserRole.ADMIN || role === UserRole.USER
-  const canBlockTime = role === UserRole.ADMIN || role === UserRole.DOCTOR
+  const canBlockTime = role === UserRole.ADMIN || role === UserRole.PROFESSIONAL
   const blockTimeDisabled = role === UserRole.ADMIN && !selectedDoctorId
 
   return (
@@ -98,14 +98,14 @@ export function AgendaToolbar({
       </div>
 
       {showDoctorSelector && (
-        <div data-testid="toolbar-doctor-selector">
+        <div data-testid="toolbar-professional-selector">
           <select
-            data-testid="toolbar-doctor-select"
+            data-testid="toolbar-professional-select"
             value={selectedDoctorId ?? ''}
             onChange={(e) => onDoctorChange(e.target.value || null)}
             className="w-full rounded-md border border-line bg-surface-2 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-accent sm:w-auto"
           >
-            <option value="">Selecione um médico</option>
+            <option value="">Selecione um profissional</option>
             {doctors?.map((doctor) => (
               <option key={doctor.id} value={doctor.id}>
                 {doctor.user.fullName}

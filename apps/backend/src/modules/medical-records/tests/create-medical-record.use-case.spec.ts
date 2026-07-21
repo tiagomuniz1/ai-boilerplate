@@ -8,7 +8,7 @@ import { DataSource } from 'typeorm'
 import { AppointmentStatus, MedicalRecordFieldType, UserRole } from '@app/shared'
 import { ICurrentUser } from '../../auth/types/current-user.type'
 import { IAppointmentsRepository } from '../../appointments/repositories/appointments.repository.interface'
-import { IDoctorsRepository } from '../../doctors/repositories/doctors.repository.interface'
+import { IProfessionalsRepository } from '../../professionals/repositories/professionals.repository.interface'
 import { FindTemplateByClinicAndSpecialtyUseCase } from '../../medical-record-templates/use-cases/find-template-by-clinic-and-specialty.use-case'
 import { IMedicalRecordsRepository } from '../repositories/medical-records.repository.interface'
 import { ValidateRecordDataService } from '../services/validate-record-data.service'
@@ -16,19 +16,19 @@ import { CreateMedicalRecordUseCase } from '../use-cases/create-medical-record.u
 import { CacheService } from '../../../cache/cache.service'
 
 const clinicId = 'clinic-uuid'
-const doctorId = 'doctor-uuid'
+const professionalId = 'doctor-uuid'
 const patientId = 'patient-uuid'
 const specialtyId = 'specialty-uuid'
 const templateId = 'template-uuid'
 const appointmentId = 'appt-uuid'
 
 const adminUser: ICurrentUser = { id: 'admin-id', role: UserRole.ADMIN, clinicId }
-const doctorUser: ICurrentUser = { id: 'doctor-user-id', role: UserRole.DOCTOR, clinicId }
+const doctorUser: ICurrentUser = { id: 'doctor-user-id', role: UserRole.PROFESSIONAL, clinicId }
 
 const makeAppointment = (overrides = {}) => ({
   id: appointmentId,
   clinicId,
-  doctorId,
+  professionalId,
   patientId,
   specialtyId,
   status: AppointmentStatus.SCHEDULED,
@@ -60,14 +60,14 @@ const makeRecord = () => ({
   id: 'record-uuid',
   appointmentId,
   patientId,
-  doctorId,
+  professionalId,
   specialtyId,
   templateId,
   templateSchemaSnapshot: makeTemplate().fields,
   data: {},
   notes: null,
   patient: { user: { fullName: 'Patient Name' } },
-  doctor: { user: { fullName: 'Doctor Name' } },
+  professional: { user: { fullName: 'Doctor Name' } },
   specialty: { name: 'Cardiologia' },
   createdAt: new Date(),
   updatedAt: new Date(),
@@ -85,18 +85,18 @@ const mockMedicalRecordsRepository: jest.Mocked<IMedicalRecordsRepository> = {
 const mockAppointmentsRepository: jest.Mocked<IAppointmentsRepository> = {
   findAll: jest.fn(),
   findById: jest.fn(),
-  findActiveByDoctorAndDate: jest.fn(),
+  findActiveByProfessionalAndDate: jest.fn(),
   findActiveBySlot: jest.fn(),
   hasFutureByScheduleId: jest.fn(),
   create: jest.fn(),
   update: jest.fn(),
 }
 
-const mockDoctorsRepository: jest.Mocked<IDoctorsRepository> = {
+const mockProfessionalsRepository: jest.Mocked<IProfessionalsRepository> = {
   findAll: jest.fn(),
   findById: jest.fn(),
   findByUserId: jest.fn(),
-  findByCrm: jest.fn(),
+  findByRegistration: jest.fn(),
   create: jest.fn(),
   update: jest.fn(),
   delete: jest.fn(),
@@ -123,7 +123,7 @@ describe('CreateMedicalRecordUseCase', () => {
       {} as DataSource,
       mockMedicalRecordsRepository,
       mockAppointmentsRepository,
-      mockDoctorsRepository,
+      mockProfessionalsRepository,
       mockFindTemplate,
       mockValidate,
       mockCache,
@@ -140,20 +140,20 @@ describe('CreateMedicalRecordUseCase', () => {
     const result = await useCase.execute(dto, adminUser)
     expect(result.appointmentId).toBe(appointmentId)
     expect(result.patientName).toBe('Patient Name')
-    expect(result.doctorName).toBe('Doctor Name')
+    expect(result.professionalName).toBe('Doctor Name')
     expect(result.specialtyName).toBe('Cardiologia')
     expect(mockMedicalRecordsRepository.create).toHaveBeenCalled()
   })
 
   it('creates a medical record for DOCTOR (own appointment)', async () => {
-    mockDoctorsRepository.findByUserId.mockResolvedValue({ id: doctorId } as any)
+    mockProfessionalsRepository.findByUserId.mockResolvedValue({ id: professionalId } as any)
     const dto = { appointmentId, data: {} }
     await useCase.execute(dto, doctorUser)
     expect(mockMedicalRecordsRepository.create).toHaveBeenCalled()
   })
 
   it('throws ForbiddenException when DOCTOR creates for another doctor appointment', async () => {
-    mockDoctorsRepository.findByUserId.mockResolvedValue({ id: 'other-doctor' } as any)
+    mockProfessionalsRepository.findByUserId.mockResolvedValue({ id: 'other-doctor' } as any)
     await expect(useCase.execute({ appointmentId, data: {} }, doctorUser)).rejects.toThrow(ForbiddenException)
   })
 

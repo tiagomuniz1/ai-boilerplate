@@ -254,8 +254,8 @@ describe('PrescriptionTemplateForm (integration)', () => {
   describe('edit mode (initialData)', () => {
     const initialData = {
       id: 'tpl-uuid',
-      doctorId: 'doctor-uuid',
-      doctorName: 'Dr. House',
+      professionalId: 'doctor-uuid',
+      professionalName: 'Dr. House',
       name: 'Modelo Existente',
       items: [
         { medicationId: 'med-uuid', name: 'Dipirona 500mg', activeIngredient: 'dipirona sódica', dosage: '500mg', quantity: '1 caixa', instructions: 'Tomar 1 cp 8/8h' },

@@ -4,7 +4,7 @@ import { PaginatedSchedulesResponseDto, ScheduleResponseDto, UserRole } from '@a
 import { BaseUseCase } from '../../../common/base.use-case'
 import { CacheService } from '../../../cache/cache.service'
 import { ICurrentUser } from '../../auth/types/current-user.type'
-import { IDoctorsRepository } from '../../doctors/repositories/doctors.repository.interface'
+import { IProfessionalsRepository } from '../../professionals/repositories/professionals.repository.interface'
 import { ISchedulesRepository } from '../repositories/schedules.repository.interface'
 import { ListSchedulesQueryDto } from '../dto/list-schedules-query.dto'
 import { Schedule } from '../entities/schedule.entity'
@@ -16,7 +16,7 @@ export class ListSchedulesUseCase extends BaseUseCase {
   constructor(
     dataSource: DataSource,
     private readonly schedulesRepository: ISchedulesRepository,
-    private readonly doctorsRepository: IDoctorsRepository,
+    private readonly professionalsRepository: IProfessionalsRepository,
     private readonly cacheService: CacheService,
   ) {
     super(dataSource)
@@ -29,15 +29,15 @@ export class ListSchedulesUseCase extends BaseUseCase {
     const clinicId = currentUser.clinicId!
     const effectiveQuery = { ...query }
 
-    if (currentUser.role === UserRole.DOCTOR) {
-      const doctor = await this.doctorsRepository.findByUserId(currentUser.id, clinicId)
-      if (!doctor) throw new NotFoundException('Doctor not found')
-      effectiveQuery.doctorId = doctor.id
+    if (currentUser.role === UserRole.PROFESSIONAL) {
+      const professional = await this.professionalsRepository.findByUserId(currentUser.id, clinicId)
+      if (!professional) throw new NotFoundException('Professional not found')
+      effectiveQuery.professionalId = professional.id
     }
 
-    const { doctorId, dayOfWeek, activeOn, page = 1, limit = 20 } = effectiveQuery
+    const { professionalId, dayOfWeek, activeOn, page = 1, limit = 20 } = effectiveQuery
 
-    const cacheKey = `schedules:list:${clinicId}:${doctorId ?? 'all'}:${dayOfWeek ?? 'all'}:${activeOn ?? 'all'}:${page}:${limit}`
+    const cacheKey = `schedules:list:${clinicId}:${professionalId ?? 'all'}:${dayOfWeek ?? 'all'}:${activeOn ?? 'all'}:${page}:${limit}`
 
     try {
       const cached = await this.cacheService.get<PaginatedSchedulesResponseDto>(cacheKey)
@@ -48,11 +48,11 @@ export class ListSchedulesUseCase extends BaseUseCase {
 
     const [schedules, total] = await this.schedulesRepository.findAll(effectiveQuery, clinicId)
 
-    const doctorIds = [...new Set(schedules.map((s) => s.doctorId))]
-    const doctorNames = await this.fetchDoctorNames(doctorIds)
+    const professionalIds = [...new Set(schedules.map((s) => s.professionalId))]
+    const professionalNames = await this.fetchProfessionalNames(professionalIds)
 
     const result: PaginatedSchedulesResponseDto = {
-      data: schedules.map((s) => this.toResponse(s, doctorNames.get(s.doctorId) ?? '')),
+      data: schedules.map((s) => this.toResponse(s, professionalNames.get(s.professionalId) ?? '')),
       total,
       page,
       limit,
@@ -67,25 +67,25 @@ export class ListSchedulesUseCase extends BaseUseCase {
     return result
   }
 
-  private async fetchDoctorNames(doctorIds: string[]): Promise<Map<string, string>> {
-    if (doctorIds.length === 0) return new Map()
-    const rows: Array<{ doctorId: string; fullName: string }> = await this.dataSource
+  private async fetchProfessionalNames(professionalIds: string[]): Promise<Map<string, string>> {
+    if (professionalIds.length === 0) return new Map()
+    const rows: Array<{ professionalId: string; fullName: string }> = await this.dataSource
       .createQueryBuilder()
-      .select('d.id', 'doctorId')
+      .select('d.id', 'professionalId')
       .addSelect('u.full_name', 'fullName')
-      .from('doctors', 'd')
+      .from('professionals', 'd')
       .innerJoin('users', 'u', 'u.id = d.user_id AND u.deleted_at IS NULL')
-      .where('d.id IN (:...ids)', { ids: doctorIds })
+      .where('d.id IN (:...ids)', { ids: professionalIds })
       .andWhere('d.deleted_at IS NULL')
       .getRawMany()
-    return new Map(rows.map((r) => [r.doctorId, r.fullName]))
+    return new Map(rows.map((r) => [r.professionalId, r.fullName]))
   }
 
-  private toResponse(schedule: Schedule, doctorName: string): ScheduleResponseDto {
+  private toResponse(schedule: Schedule, professionalName: string): ScheduleResponseDto {
     return {
       id: schedule.id,
-      doctorId: schedule.doctorId,
-      doctorName,
+      professionalId: schedule.professionalId,
+      professionalName,
       dayOfWeek: schedule.dayOfWeek,
       startTime: schedule.startTime,
       endTime: schedule.endTime,

@@ -18,8 +18,8 @@ function makeRepo(): jest.Mocked<Repository<PrescriptionTemplate>> {
 function makeTemplateData(): CreatePrescriptionTemplateData {
   return {
     clinicId: 'clinic-uuid',
-    doctorId: 'doctor-uuid',
-    doctorName: 'Dr. House',
+    professionalId: 'doctor-uuid',
+    professionalName: 'Dr. House',
     name: 'Modelo A',
     items: [{ medicationId: 'med-uuid', name: 'Dipirona', activeIngredient: null, dosage: null, quantity: null, instructions: 'Tomar 1 cp' }],
     notes: null,
@@ -37,7 +37,7 @@ describe('PrescriptionTemplatesRepository', () => {
   })
 
   describe('findAll', () => {
-    it('queries by clinicId and isActive without doctorId filter', async () => {
+    it('queries by clinicId and isActive without professionalId filter', async () => {
       mockRepo.find.mockResolvedValue([])
       await repository.findAll('clinic-uuid')
       expect(mockRepo.find).toHaveBeenCalledWith({
@@ -46,11 +46,11 @@ describe('PrescriptionTemplatesRepository', () => {
       })
     })
 
-    it('adds doctorId to the where clause when provided', async () => {
+    it('adds professionalId to the where clause when provided', async () => {
       mockRepo.find.mockResolvedValue([])
       await repository.findAll('clinic-uuid', 'doctor-uuid')
       expect(mockRepo.find).toHaveBeenCalledWith({
-        where: { clinicId: 'clinic-uuid', isActive: true, doctorId: 'doctor-uuid' },
+        where: { clinicId: 'clinic-uuid', isActive: true, professionalId: 'doctor-uuid' },
         order: { createdAt: 'DESC' },
       })
     })

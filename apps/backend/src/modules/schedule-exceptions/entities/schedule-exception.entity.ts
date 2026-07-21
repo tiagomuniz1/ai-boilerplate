@@ -10,7 +10,7 @@ import {
   VersionColumn,
 } from 'typeorm'
 import { Clinic } from '../../clinics/entities/clinic.entity'
-import { Doctor } from '../../doctors/entities/doctor.entity'
+import { Professional } from '../../professionals/entities/professional.entity'
 
 @Entity('schedule_exceptions')
 export class ScheduleException {
@@ -24,12 +24,12 @@ export class ScheduleException {
   @Column({ name: 'clinic_id' })
   clinicId: string
 
-  @ManyToOne(() => Doctor, { eager: false })
-  @JoinColumn({ name: 'doctor_id' })
-  doctor: Doctor
+  @ManyToOne(() => Professional, { eager: false })
+  @JoinColumn({ name: 'professional_id' })
+  professional: Professional
 
-  @Column({ name: 'doctor_id' })
-  doctorId: string
+  @Column({ name: 'professional_id' })
+  professionalId: string
 
   @Column({ type: 'varchar' })
   date: string

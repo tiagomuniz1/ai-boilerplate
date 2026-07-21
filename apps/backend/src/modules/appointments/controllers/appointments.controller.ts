@@ -35,7 +35,7 @@ export class AppointmentsController {
   ) {}
 
   @Post()
-  @Roles(UserRole.ADMIN, UserRole.DOCTOR)
+  @Roles(UserRole.ADMIN, UserRole.PROFESSIONAL)
   @HttpCode(201)
   create(
     @Body() dto: CreateAppointmentDto,
@@ -45,7 +45,7 @@ export class AppointmentsController {
   }
 
   @Get('availability')
-  @Roles(UserRole.ADMIN, UserRole.DOCTOR, UserRole.USER)
+  @Roles(UserRole.ADMIN, UserRole.PROFESSIONAL, UserRole.USER)
   getAvailability(
     @Query() query: AvailabilityQueryDto,
     @CurrentUser() currentUser: ICurrentUser,
@@ -54,7 +54,7 @@ export class AppointmentsController {
   }
 
   @Get()
-  @Roles(UserRole.ADMIN, UserRole.DOCTOR, UserRole.USER)
+  @Roles(UserRole.ADMIN, UserRole.PROFESSIONAL, UserRole.USER)
   findAll(
     @Query() query: ListAppointmentsQueryDto,
     @CurrentUser() currentUser: ICurrentUser,
@@ -63,7 +63,7 @@ export class AppointmentsController {
   }
 
   @Get(':id')
-  @Roles(UserRole.ADMIN, UserRole.DOCTOR, UserRole.USER)
+  @Roles(UserRole.ADMIN, UserRole.PROFESSIONAL, UserRole.USER)
   findById(
     @Param('id') id: string,
     @CurrentUser() currentUser: ICurrentUser,
@@ -72,7 +72,7 @@ export class AppointmentsController {
   }
 
   @Patch(':id/confirm')
-  @Roles(UserRole.ADMIN, UserRole.DOCTOR)
+  @Roles(UserRole.ADMIN, UserRole.PROFESSIONAL)
   confirm(
     @Param('id') id: string,
     @CurrentUser() currentUser: ICurrentUser,
@@ -81,7 +81,7 @@ export class AppointmentsController {
   }
 
   @Patch(':id/no-show')
-  @Roles(UserRole.ADMIN, UserRole.DOCTOR)
+  @Roles(UserRole.ADMIN, UserRole.PROFESSIONAL)
   noShow(
     @Param('id') id: string,
     @CurrentUser() currentUser: ICurrentUser,
@@ -90,7 +90,7 @@ export class AppointmentsController {
   }
 
   @Patch(':id/cancel')
-  @Roles(UserRole.ADMIN, UserRole.DOCTOR)
+  @Roles(UserRole.ADMIN, UserRole.PROFESSIONAL)
   cancel(
     @Param('id') id: string,
     @Body() dto: CancelAppointmentDto,
@@ -100,7 +100,7 @@ export class AppointmentsController {
   }
 
   @Patch(':id/complete')
-  @Roles(UserRole.ADMIN, UserRole.DOCTOR)
+  @Roles(UserRole.ADMIN, UserRole.PROFESSIONAL)
   complete(
     @Param('id') id: string,
     @CurrentUser() currentUser: ICurrentUser,

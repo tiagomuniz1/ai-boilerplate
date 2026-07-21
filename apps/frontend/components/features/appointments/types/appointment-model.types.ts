@@ -15,8 +15,8 @@ export interface IAppointmentDetailModel extends IAppointmentModel {
 
 export interface IAppointmentModel {
   id: string
-  doctorId: string
-  doctorName: string
+  professionalId: string
+  professionalName: string
   patientId: string
   patientName: string
   specialtyId: string | null

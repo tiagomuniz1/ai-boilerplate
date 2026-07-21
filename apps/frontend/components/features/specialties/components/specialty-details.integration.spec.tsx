@@ -94,7 +94,7 @@ describe('SpecialtyDetails (integration)', () => {
   })
 
   describe('as DOCTOR', () => {
-    beforeEach(() => mockAuthStoreAs(UserRole.DOCTOR))
+    beforeEach(() => mockAuthStoreAs(UserRole.PROFESSIONAL))
 
     it('hides edit and delete buttons', () => {
       renderWithProviders(<SpecialtyDetails specialty={specialty} onDeleteClick={jest.fn()} />)

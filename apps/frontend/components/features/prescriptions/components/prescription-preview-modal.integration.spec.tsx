@@ -10,8 +10,8 @@ function makePrescription(overrides: Partial<IPrescriptionModel> = {}): IPrescri
     appointmentId: 'appt-uuid',
     patientId: 'patient-uuid',
     patientName: 'Maria Santos',
-    doctorId: 'doctor-uuid',
-    doctorName: 'Dr. João',
+    professionalId: 'doctor-uuid',
+    professionalName: 'Dr. João',
     issuedAt: new Date('2026-06-28T10:00:00.000Z'),
     items: [
       {
@@ -39,7 +39,7 @@ describe('PrescriptionPreviewModal (integration)', () => {
 
   it('renders doctor, date and patient', () => {
     renderWithProviders(<PrescriptionPreviewModal prescription={makePrescription()} onClose={jest.fn()} />)
-    expect(screen.getByTestId('prescription-preview-doctor')).toHaveTextContent('Dr. João')
+    expect(screen.getByTestId('prescription-preview-professional')).toHaveTextContent('Dr. João')
     expect(screen.getByTestId('prescription-preview-patient')).toHaveTextContent('Maria Santos')
   })
 

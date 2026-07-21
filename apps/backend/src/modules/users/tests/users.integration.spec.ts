@@ -5,11 +5,11 @@ import { faker } from '@faker-js/faker'
 import * as bcrypt from 'bcrypt'
 import * as request from 'supertest'
 import { Repository } from 'typeorm'
-import { UserRole } from '@app/shared'
+import { CouncilType, UserRole } from '@app/shared'
 import { AppModule } from '../../../app.module'
 import { CacheService } from '../../../cache/cache.service'
 import { Clinic } from '../../clinics/entities/clinic.entity'
-import { Doctor } from '../../doctors/entities/doctor.entity'
+import { Professional } from '../../professionals/entities/professional.entity'
 import { Patient } from '../../patients/entities/patient.entity'
 import { Specialty } from '../../specialties/entities/specialty.entity'
 import { User } from '../entities/user.entity'
@@ -34,7 +34,7 @@ describe('UsersController (integration)', () => {
   let app: INestApplication
   let userRepository: Repository<User>
   let clinicRepository: Repository<Clinic>
-  let doctorRepository: Repository<Doctor>
+  let doctorRepository: Repository<Professional>
   let patientRepository: Repository<Patient>
   let specialtyRepository: Repository<Specialty>
   let cacheService: CacheService
@@ -106,7 +106,7 @@ describe('UsersController (integration)', () => {
 
     userRepository = module.get(getRepositoryToken(User))
     clinicRepository = module.get(getRepositoryToken(Clinic))
-    doctorRepository = module.get(getRepositoryToken(Doctor))
+    doctorRepository = module.get(getRepositoryToken(Professional))
     patientRepository = module.get(getRepositoryToken(Patient))
     specialtyRepository = module.get(getRepositoryToken(Specialty))
     cacheService = module.get(CacheService)
@@ -120,7 +120,7 @@ describe('UsersController (integration)', () => {
     const admin = await loginAs(UserRole.ADMIN)
     accessToken = admin.token
     authUserId = admin.id
-    const doctor = await loginAs(UserRole.DOCTOR)
+    const doctor = await loginAs(UserRole.PROFESSIONAL)
     doctorToken = doctor.token
     doctorUserId = doctor.id
     const user = await loginAs(UserRole.USER)
@@ -131,8 +131,8 @@ describe('UsersController (integration)', () => {
 
   afterEach(async () => {
     await doctorRepository.query('DELETE FROM test.schedules')
-    await doctorRepository.query('DELETE FROM test.doctor_specialties')
-    await doctorRepository.query('DELETE FROM test.doctors')
+    await doctorRepository.query('DELETE FROM test.professional_specialties')
+    await doctorRepository.query('DELETE FROM test.professionals')
     await patientRepository.query('DELETE FROM test.patients')
     await specialtyRepository.query('DELETE FROM test.specialties')
     await userRepository.query('DELETE FROM test.refresh_tokens')
@@ -312,7 +312,7 @@ describe('UsersController (integration)', () => {
       })
     })
 
-    it('returns isDoctor false and isPatient false for plain users', async () => {
+    it('returns isProfessional false and isPatient false for plain users', async () => {
       const { body: created } = await createUser().expect(201)
 
       const { body } = await request(app.getHttpServer())
@@ -321,11 +321,11 @@ describe('UsersController (integration)', () => {
         .expect(200)
 
       const found = body.data.find((u: any) => u.id === created.id)
-      expect(found.isDoctor).toBe(false)
+      expect(found.isProfessional).toBe(false)
       expect(found.isPatient).toBe(false)
     })
 
-    it('returns isDoctor true for users with a linked doctor profile', async () => {
+    it('returns isProfessional true for users with a linked doctor profile', async () => {
       const specialty = await specialtyRepository.save(
         specialtyRepository.create({ name: `Spec ${faker.string.alphanumeric(6)}` }),
       )
@@ -333,8 +333,10 @@ describe('UsersController (integration)', () => {
         doctorRepository.create({
           userId: doctorUserId,
           clinicId: SEED_CLINIC_ID,
-          crms: [{ clinicId: SEED_CLINIC_ID, number: faker.string.numeric(5), state: 'SP', isPrimary: true }],
-          doctorSpecialties: [{ specialtyId: specialty.id, rqe: null }],
+          registrations: [
+            { clinicId: SEED_CLINIC_ID, councilType: CouncilType.CRM, number: faker.string.numeric(5), state: 'SP', isPrimary: true },
+          ],
+          professionalSpecialties: [{ specialtyId: specialty.id, registryNumber: null }],
         }),
       )
 
@@ -344,7 +346,7 @@ describe('UsersController (integration)', () => {
         .expect(200)
 
       const found = body.data.find((u: any) => u.id === doctorUserId)
-      expect(found.isDoctor).toBe(true)
+      expect(found.isProfessional).toBe(true)
       expect(found.isPatient).toBe(false)
 
       await doctorRepository.softDelete(doctor.id)
@@ -674,16 +676,20 @@ describe('UsersController (integration)', () => {
     })
 
     it('soft-deletes linked doctor when user is deleted', async () => {
-      const { body: targetUser } = await createUser({ role: UserRole.DOCTOR }).expect(201)
+      const { body: targetUser } = await createUser({ role: UserRole.PROFESSIONAL }).expect(201)
 
       const specialty = await specialtyRepository.save(
         specialtyRepository.create({ name: 'Cardiologia' }),
       )
 
       const { body: doctor } = await request(app.getHttpServer())
-        .post('/doctors')
+        .post('/professionals')
         .set('Authorization', `Bearer ${accessToken}`)
-        .send({ userId: targetUser.id, crms: [{ number: '11111', state: 'SP', isPrimary: true }], specialties: [{ specialtyId: specialty.id }] })
+        .send({
+          userId: targetUser.id,
+          registrations: [{ councilType: CouncilType.CRM, number: '11111', state: 'SP', isPrimary: true }],
+          specialties: [{ specialtyId: specialty.id }],
+        })
         .expect(201)
 
       await request(app.getHttpServer())

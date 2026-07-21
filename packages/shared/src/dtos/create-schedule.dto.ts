@@ -4,7 +4,7 @@ import { DayOfWeek } from '../enums/day-of-week.enum'
 export class CreateScheduleDto {
   @IsOptional()
   @IsUUID()
-  doctorId?: string
+  professionalId?: string
 
   @IsEnum(DayOfWeek)
   dayOfWeek: DayOfWeek

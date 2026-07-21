@@ -19,8 +19,8 @@ function makeRecord(id: string, overrides: Partial<IMedicalRecordModel> = {}): I
     appointmentId: `appt-${id}`,
     patientId: 'patient-uuid',
     patientName: 'Ana Lima',
-    doctorId: 'doctor-uuid',
-    doctorName: 'Dr. João',
+    professionalId: 'doctor-uuid',
+    professionalName: 'Dr. João',
     specialtyId: 'spec-uuid',
     specialtyName: 'Cardiologia',
     schema: [{ key: 'symptom', label: 'Sintoma', type: MedicalRecordFieldType.TEXT, required: false, order: 0, options: null, placeholder: null, helpText: null }],
@@ -78,7 +78,7 @@ describe('PatientMedicalHistory', () => {
     })
     renderWithProviders(<PatientMedicalHistory patientId="patient-uuid" />)
     expect(screen.getByTestId('history-card-specialty')).toHaveTextContent('Cardiologia')
-    expect(screen.getByTestId('history-card-doctor')).toHaveTextContent('Dr. João')
+    expect(screen.getByTestId('history-card-professional')).toHaveTextContent('Dr. João')
   })
 
   it('labels a generalist record (null specialty) as "Clínica geral"', () => {

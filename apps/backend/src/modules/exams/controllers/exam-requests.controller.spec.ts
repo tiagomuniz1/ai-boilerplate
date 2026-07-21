@@ -17,15 +17,15 @@ const mockDelete = { execute: jest.fn() } as unknown as jest.Mocked<DeleteExamRe
 const mockGeneratePdf = { execute: jest.fn() } as unknown as jest.Mocked<GenerateExamRequestPdfUseCase>
 const mockAddResult = { execute: jest.fn() } as unknown as jest.Mocked<AddExamResultUseCase>
 
-const currentUser: ICurrentUser = { id: 'doctor-uuid', role: UserRole.DOCTOR, clinicId: 'clinic-uuid' }
+const currentUser: ICurrentUser = { id: 'doctor-uuid', role: UserRole.PROFESSIONAL, clinicId: 'clinic-uuid' }
 
 const makeExamRequestResponse = () => ({
   id: 'exam-uuid',
   appointmentId: 'appt-uuid',
   patientId: 'patient-uuid',
   patientName: 'Patient Jones',
-  doctorId: 'doctor-uuid',
-  doctorName: 'Doctor Smith',
+  professionalId: 'doctor-uuid',
+  professionalName: 'Doctor Smith',
   items: [{ name: 'Hemograma', observations: null }],
   notes: null,
   status: ExamRequestStatus.REQUESTED,

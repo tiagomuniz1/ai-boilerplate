@@ -2,7 +2,7 @@ jest.mock('next/navigation', () => ({ useRouter: jest.fn() }))
 jest.mock('@/stores/auth.store')
 jest.mock('../services/schedules.service')
 jest.mock('../use-cases/delete-schedule.use-case')
-jest.mock('@/components/features/doctors/services/doctors.service')
+jest.mock('@/components/features/professionals/services/professionals.service')
 
 import { screen, waitFor, fireEvent } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
@@ -11,7 +11,7 @@ import { UserRole, DayOfWeek } from '@app/shared'
 import { useAuthStore } from '@/stores/auth.store'
 import { schedulesService } from '../services/schedules.service'
 import { deleteScheduleUseCase } from '../use-cases/delete-schedule.use-case'
-import { doctorsService } from '@/components/features/doctors/services/doctors.service'
+import { professionalsService } from '@/components/features/professionals/services/professionals.service'
 import { renderWithProviders } from '@/tests/utils/render-with-providers'
 import { ScheduleList } from './schedule-list'
 
@@ -26,8 +26,8 @@ function mockAuthStoreAs(role: UserRole) {
 
 const makeScheduleDto = (overrides = {}) => ({
   id: 'uuid-1',
-  doctorId: 'doc-uuid-1',
-  doctorName: 'Dr. João Silva',
+  professionalId: 'doc-uuid-1',
+  professionalName: 'Dr. João Silva',
   dayOfWeek: DayOfWeek.MONDAY,
   startTime: '08:00',
   endTime: '12:00',
@@ -49,7 +49,7 @@ const makePaginatedResponse = (items = [makeScheduleDto()]) => ({
 const makeDoctorDto = (overrides = {}) => ({
   id: 'doc-uuid-1',
   user: { id: 'user-uuid-1', fullName: 'Dr. João Silva', email: 'joao@example.com', isActive: true },
-  crms: [{ id: 'crm-1', number: '12345', state: 'SP', isPrimary: true }],
+  registrations: [{ id: 'crm-1', councilType: 'crm', number: '12345', state: 'SP', isPrimary: true }],
   specialties: [],
   bio: null,
   createdAt: '2025-01-01T10:00:00.000Z',
@@ -61,11 +61,11 @@ describe('ScheduleList (integration)', () => {
   beforeEach(() => {
     jest.clearAllMocks()
     ;(useRouter as jest.Mock).mockReturnValue({ push: mockPush })
-    ;(doctorsService.getAll as jest.Mock).mockResolvedValue({ data: [makeDoctorDto()], total: 1, page: 1, limit: 100 })
+    ;(professionalsService.getAll as jest.Mock).mockResolvedValue({ data: [makeDoctorDto()], total: 1, page: 1, limit: 100 })
   })
 
   describe('as DOCTOR', () => {
-    beforeEach(() => mockAuthStoreAs(UserRole.DOCTOR))
+    beforeEach(() => mockAuthStoreAs(UserRole.PROFESSIONAL))
 
     it('renders skeleton while loading', () => {
       ;(schedulesService.getAll as jest.Mock).mockReturnValue(new Promise(() => {}))
@@ -96,8 +96,8 @@ describe('ScheduleList (integration)', () => {
 
       await waitFor(() => expect(screen.getByTestId('schedule-list-table')).toBeInTheDocument())
 
-      expect(screen.queryByTestId('schedule-filter-doctor')).not.toBeInTheDocument()
-      expect(screen.queryByTestId('schedule-doctor-uuid-1')).not.toBeInTheDocument()
+      expect(screen.queryByTestId('schedule-filter-professional')).not.toBeInTheDocument()
+      expect(screen.queryByTestId('schedule-professional-uuid-1')).not.toBeInTheDocument()
     })
 
     it('renders empty state when no schedules', async () => {
@@ -234,7 +234,7 @@ describe('ScheduleList (integration)', () => {
 
       renderWithProviders(<ScheduleList />)
 
-      expect(screen.getByTestId('schedule-filter-doctor')).toBeInTheDocument()
+      expect(screen.getByTestId('schedule-filter-professional')).toBeInTheDocument()
     })
 
     it('renders doctor column in table', async () => {
@@ -244,20 +244,20 @@ describe('ScheduleList (integration)', () => {
 
       await waitFor(() => expect(screen.getByTestId('schedule-list-table')).toBeInTheDocument())
 
-      expect(screen.getByTestId('schedule-doctor-uuid-1')).toBeInTheDocument()
+      expect(screen.getByTestId('schedule-professional-uuid-1')).toBeInTheDocument()
     })
 
-    it('updates doctorId filter when doctor select is changed', async () => {
+    it('updates professionalId filter when doctor select is changed', async () => {
       ;(schedulesService.getAll as jest.Mock).mockResolvedValue(makePaginatedResponse())
 
       renderWithProviders(<ScheduleList />)
 
       await waitFor(() => {
-        const select = screen.getByTestId('schedule-filter-doctor-select') as HTMLSelectElement
+        const select = screen.getByTestId('schedule-filter-professional-select') as HTMLSelectElement
         expect(select.options.length).toBeGreaterThan(1)
       })
 
-      const select = screen.getByTestId('schedule-filter-doctor-select') as HTMLSelectElement
+      const select = screen.getByTestId('schedule-filter-professional-select') as HTMLSelectElement
       fireEvent.change(select, { target: { value: 'doc-uuid-1' } })
 
       expect(select.value).toBe('doc-uuid-1')
@@ -265,7 +265,7 @@ describe('ScheduleList (integration)', () => {
 
     it('shows plural count when more than one schedule is found', async () => {
       ;(schedulesService.getAll as jest.Mock).mockResolvedValue(
-        makePaginatedResponse([makeScheduleDto(), makeScheduleDto({ id: 'uuid-2', doctorId: 'doc-uuid-1' })]),
+        makePaginatedResponse([makeScheduleDto(), makeScheduleDto({ id: 'uuid-2', professionalId: 'doc-uuid-1' })]),
       )
 
       renderWithProviders(<ScheduleList />)
@@ -285,21 +285,21 @@ describe('ScheduleList (integration)', () => {
       expect(screen.getByText('1 agenda encontrada')).toBeInTheDocument()
     })
 
-    it('renders doctorName from the schedule DTO', async () => {
+    it('renders professionalName from the schedule DTO', async () => {
       ;(schedulesService.getAll as jest.Mock).mockResolvedValue(
-        makePaginatedResponse([makeScheduleDto({ doctorName: 'Dr. Maria Santos' })]),
+        makePaginatedResponse([makeScheduleDto({ professionalName: 'Dr. Maria Santos' })]),
       )
 
       renderWithProviders(<ScheduleList />)
 
-      await waitFor(() => expect(screen.getByTestId('schedule-doctor-uuid-1')).toBeInTheDocument())
+      await waitFor(() => expect(screen.getByTestId('schedule-professional-uuid-1')).toBeInTheDocument())
 
-      expect(screen.getByTestId('schedule-doctor-uuid-1')).toHaveTextContent('Dr. Maria Santos')
+      expect(screen.getByTestId('schedule-professional-uuid-1')).toHaveTextContent('Dr. Maria Santos')
     })
 
     it('renders a mobile card per schedule with the doctor name as title', async () => {
       ;(schedulesService.getAll as jest.Mock).mockResolvedValue(
-        makePaginatedResponse([makeScheduleDto({ doctorName: 'Dr. Maria Santos' })]),
+        makePaginatedResponse([makeScheduleDto({ professionalName: 'Dr. Maria Santos' })]),
       )
 
       renderWithProviders(<ScheduleList />)

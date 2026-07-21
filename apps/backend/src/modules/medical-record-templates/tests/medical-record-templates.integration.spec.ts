@@ -100,7 +100,7 @@ describe('MedicalRecordTemplatesController (integration)', () => {
     )
 
     adminToken = await loginAs(UserRole.ADMIN, CLINIC_A_ID, 'clinic-a')
-    doctorToken = await loginAs(UserRole.DOCTOR, CLINIC_A_ID, 'clinic-a')
+    doctorToken = await loginAs(UserRole.PROFESSIONAL, CLINIC_A_ID, 'clinic-a')
     userToken = await loginAs(UserRole.USER, CLINIC_A_ID, 'clinic-a')
     adminBToken = await loginAs(UserRole.ADMIN, CLINIC_B_ID, 'clinic-b')
   })

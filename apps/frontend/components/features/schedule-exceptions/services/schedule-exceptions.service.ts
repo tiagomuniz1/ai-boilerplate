@@ -10,7 +10,7 @@ import type { IScheduleExceptionListParams } from '../types/schedule-exception-i
 export const scheduleExceptionsService = {
   getAll: (params?: IScheduleExceptionListParams): Promise<PaginatedScheduleExceptionsResponseDto> => {
     const sp = new URLSearchParams()
-    if (params?.doctorId) sp.set('doctorId', params.doctorId)
+    if (params?.professionalId) sp.set('professionalId', params.professionalId)
     if (params?.from) sp.set('from', params.from)
     if (params?.to) sp.set('to', params.to)
     if (params?.page) sp.set('page', String(params.page))

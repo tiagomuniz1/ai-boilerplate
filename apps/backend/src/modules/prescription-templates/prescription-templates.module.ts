@@ -1,6 +1,6 @@
 import { Module } from '@nestjs/common'
 import { TypeOrmModule } from '@nestjs/typeorm'
-import { DoctorsModule } from '../doctors/doctors.module'
+import { ProfessionalsModule } from '../professionals/professionals.module'
 import { MedicationsModule } from '../medications/medications.module'
 import { PrescriptionTemplate } from './entities/prescription-template.entity'
 import { PrescriptionTemplatesController } from './controllers/prescription-templates.controller'
@@ -15,7 +15,7 @@ import { PrescriptionTemplatesRepository } from './repositories/prescription-tem
 @Module({
   imports: [
     TypeOrmModule.forFeature([PrescriptionTemplate]),
-    DoctorsModule,
+    ProfessionalsModule,
     MedicationsModule,
   ],
   controllers: [PrescriptionTemplatesController],

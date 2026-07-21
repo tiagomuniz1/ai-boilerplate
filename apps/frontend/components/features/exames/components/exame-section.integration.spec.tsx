@@ -1,7 +1,7 @@
 jest.mock('../services/exams.service')
 jest.mock('../use-cases/download-exam-request-pdf.use-case')
 jest.mock('../use-cases/download-exam-result-file.use-case')
-jest.mock('@/components/features/doctors/hooks/use-doctor.hook')
+jest.mock('@/components/features/professionals/hooks/use-professional.hook')
 
 import { screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
@@ -9,22 +9,22 @@ import { ExamRequestStatus, UserRole } from '@app/shared'
 import { examsService } from '../services/exams.service'
 import { downloadExamRequestPdfUseCase } from '../use-cases/download-exam-request-pdf.use-case'
 import { downloadExamResultFileUseCase } from '../use-cases/download-exam-result-file.use-case'
-import { useDoctor } from '@/components/features/doctors/hooks/use-doctor.hook'
+import { useProfessional } from '@/components/features/professionals/hooks/use-professional.hook'
 import { renderWithProviders } from '@/tests/utils/render-with-providers'
 import { ExameSection } from './exame-section'
 
 const mockExamsService = examsService as jest.Mocked<typeof examsService>
 const mockDownload = downloadExamRequestPdfUseCase as jest.Mock
 const mockDownloadResultFile = downloadExamResultFileUseCase as jest.Mock
-const mockUseDoctor = useDoctor as jest.Mock
+const mockUseProfessional = useProfessional as jest.Mock
 
 const makeExamRequestDto = (overrides: object = {}) => ({
   id: 'exam-uuid',
   appointmentId: 'appt-uuid',
   patientId: 'patient-uuid',
   patientName: 'Maria Santos',
-  doctorId: 'doctor-uuid',
-  doctorName: 'Dr. João',
+  professionalId: 'doctor-uuid',
+  professionalName: 'Dr. João',
   items: [{ name: 'Hemograma completo', observations: 'Jejum de 8 horas' }],
   notes: null,
   status: ExamRequestStatus.REQUESTED,
@@ -44,15 +44,15 @@ const makeResultDto = (overrides: object = {}) => ({
   ...overrides,
 })
 
-const doctorProps = { appointmentId: 'appt-uuid', doctorId: 'doctor-uuid', canManage: true, userRole: UserRole.DOCTOR }
-const adminProps = { appointmentId: 'appt-uuid', doctorId: 'doctor-uuid', canManage: true, userRole: UserRole.ADMIN }
+const doctorProps = { appointmentId: 'appt-uuid', professionalId: 'doctor-uuid', canManage: true, userRole: UserRole.PROFESSIONAL }
+const adminProps = { appointmentId: 'appt-uuid', professionalId: 'doctor-uuid', canManage: true, userRole: UserRole.ADMIN }
 
 describe('ExameSection (integration)', () => {
   beforeEach(() => {
     jest.clearAllMocks()
     mockDownload.mockResolvedValue(undefined)
     mockDownloadResultFile.mockResolvedValue(undefined)
-    mockUseDoctor.mockReturnValue({ data: undefined })
+    mockUseProfessional.mockReturnValue({ data: undefined })
   })
 
   it('shows skeleton while loading', () => {
@@ -293,7 +293,7 @@ describe('ExameSection (integration)', () => {
     await waitFor(() => {
       expect(screen.getByTestId('exame-preview-modal')).toBeInTheDocument()
     })
-    expect(screen.getByTestId('exame-preview-doctor')).toHaveTextContent('Dr. João')
+    expect(screen.getByTestId('exame-preview-professional')).toHaveTextContent('Dr. João')
     expect(screen.getByTestId('exame-preview-item-0')).toHaveTextContent('Hemograma completo')
   })
 

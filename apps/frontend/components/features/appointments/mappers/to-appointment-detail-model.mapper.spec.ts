@@ -4,8 +4,8 @@ import type { AppointmentDetailResponseDto } from '@app/shared'
 
 const makeDto = (overrides: Partial<AppointmentDetailResponseDto> = {}): AppointmentDetailResponseDto => ({
   id: 'appt-uuid',
-  doctorId: 'doc-uuid',
-  doctorName: 'Dr. Test',
+  professionalId: 'doc-uuid',
+  professionalName: 'Dr. Test',
   patientId: 'pat-uuid',
   patientName: 'Patient One',
   specialtyId: 'spec-uuid',
@@ -37,8 +37,8 @@ describe('toAppointmentDetailModel', () => {
     const model = toAppointmentDetailModel(dto)
 
     expect(model.id).toBe(dto.id)
-    expect(model.doctorId).toBe(dto.doctorId)
-    expect(model.doctorName).toBe(dto.doctorName)
+    expect(model.professionalId).toBe(dto.professionalId)
+    expect(model.professionalName).toBe(dto.professionalName)
     expect(model.patientId).toBe(dto.patientId)
     expect(model.patientName).toBe(dto.patientName)
     expect(model.specialtyId).toBe(dto.specialtyId)

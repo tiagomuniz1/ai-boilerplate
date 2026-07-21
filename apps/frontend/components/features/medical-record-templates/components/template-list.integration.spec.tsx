@@ -155,7 +155,7 @@ describe('TemplateList (integration)', () => {
   })
 
   describe('as DOCTOR', () => {
-    beforeEach(() => mockAuthStoreAs(UserRole.DOCTOR))
+    beforeEach(() => mockAuthStoreAs(UserRole.PROFESSIONAL))
 
     it('does not show new template button', async () => {
       ;(medicalRecordTemplatesService.getAll as jest.Mock).mockResolvedValue(makePaginated([]))

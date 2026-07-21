@@ -3,7 +3,7 @@ import { DataSource } from 'typeorm'
 import { faker } from '@faker-js/faker'
 import { UserRole } from '@app/shared'
 import { CacheService } from '../../../cache/cache.service'
-import { IDoctorsRepository } from '../../doctors/repositories/doctors.repository.interface'
+import { IProfessionalsRepository } from '../../professionals/repositories/professionals.repository.interface'
 import { ICurrentUser } from '../../auth/types/current-user.type'
 import { IAppointmentsRepository } from '../repositories/appointments.repository.adapter'
 import { IScheduleExceptionsRepository } from '../repositories/schedule-exceptions.repository.interface'
@@ -12,17 +12,17 @@ import { CreateScheduleExceptionUseCase } from '../use-cases/create-schedule-exc
 const mockScheduleExceptionsRepository: jest.Mocked<IScheduleExceptionsRepository> = {
   findAll: jest.fn(),
   findById: jest.fn(),
-  findActiveByDoctorAndDate: jest.fn(),
+  findActiveByProfessionalAndDate: jest.fn(),
   create: jest.fn(),
   update: jest.fn(),
   delete: jest.fn(),
 }
 
-const mockDoctorsRepository: jest.Mocked<IDoctorsRepository> = {
+const mockProfessionalsRepository: jest.Mocked<IProfessionalsRepository> = {
   findAll: jest.fn(),
   findById: jest.fn(),
   findByUserId: jest.fn(),
-  findByCrm: jest.fn(),
+  findByRegistration: jest.fn(),
   create: jest.fn(),
   update: jest.fn(),
   delete: jest.fn(),
@@ -49,7 +49,7 @@ const makeDoctor = (id = DOCTOR_ID) => ({ id } as any)
 const makeException = (overrides = {}) => ({
   id: faker.string.uuid(),
   clinicId: CLINIC_ID,
-  doctorId: DOCTOR_ID,
+  professionalId: DOCTOR_ID,
   date: '2099-06-20',
   startTime: null,
   endTime: null,
@@ -61,14 +61,14 @@ const makeException = (overrides = {}) => ({
   ...overrides,
 })
 
-const doctorUser: ICurrentUser = { id: faker.string.uuid(), role: UserRole.DOCTOR, clinicId: CLINIC_ID }
+const doctorUser: ICurrentUser = { id: faker.string.uuid(), role: UserRole.PROFESSIONAL, clinicId: CLINIC_ID }
 const adminUser: ICurrentUser = { id: faker.string.uuid(), role: UserRole.ADMIN, clinicId: CLINIC_ID }
 
 function makeUseCase() {
   return new CreateScheduleExceptionUseCase(
     {} as DataSource,
     mockScheduleExceptionsRepository,
-    mockDoctorsRepository,
+    mockProfessionalsRepository,
     mockAppointmentsRepository,
     mockCacheService,
   )
@@ -85,62 +85,62 @@ describe('CreateScheduleExceptionUseCase', () => {
     mockAppointmentsRepository.findScheduledAppointmentsInWindow.mockResolvedValue([])
   })
 
-  it('creates all-day exception as DOCTOR using own profile (ignores dto.doctorId)', async () => {
+  it('creates all-day exception as DOCTOR using own profile (ignores dto.professionalId)', async () => {
     const doctor = makeDoctor()
-    const exception = makeException({ doctorId: doctor.id })
-    mockDoctorsRepository.findByUserId.mockResolvedValue(doctor)
+    const exception = makeException({ professionalId: doctor.id })
+    mockProfessionalsRepository.findByUserId.mockResolvedValue(doctor)
     mockScheduleExceptionsRepository.create.mockResolvedValue(exception as any)
 
-    const result = await useCase.execute({ date: '2099-06-20', doctorId: faker.string.uuid() }, doctorUser)
+    const result = await useCase.execute({ date: '2099-06-20', professionalId: faker.string.uuid() }, doctorUser)
 
-    expect(mockDoctorsRepository.findByUserId).toHaveBeenCalledWith(doctorUser.id, CLINIC_ID)
-    expect(mockDoctorsRepository.findById).not.toHaveBeenCalled()
+    expect(mockProfessionalsRepository.findByUserId).toHaveBeenCalledWith(doctorUser.id, CLINIC_ID)
+    expect(mockProfessionalsRepository.findById).not.toHaveBeenCalled()
     expect(result.id).toBeDefined()
   })
 
-  it('creates exception as ADMIN using dto.doctorId', async () => {
+  it('creates exception as ADMIN using dto.professionalId', async () => {
     const exception = makeException()
-    mockDoctorsRepository.findById.mockResolvedValue(makeDoctor())
+    mockProfessionalsRepository.findById.mockResolvedValue(makeDoctor())
     mockScheduleExceptionsRepository.create.mockResolvedValue(exception as any)
 
-    await useCase.execute({ date: '2099-06-20', doctorId: DOCTOR_ID }, adminUser)
+    await useCase.execute({ date: '2099-06-20', professionalId: DOCTOR_ID }, adminUser)
 
-    expect(mockDoctorsRepository.findById).toHaveBeenCalledWith(DOCTOR_ID, CLINIC_ID)
+    expect(mockProfessionalsRepository.findById).toHaveBeenCalledWith(DOCTOR_ID, CLINIC_ID)
   })
 
   it('throws NotFoundException when DOCTOR has no doctor profile', async () => {
-    mockDoctorsRepository.findByUserId.mockResolvedValue(null)
+    mockProfessionalsRepository.findByUserId.mockResolvedValue(null)
     await expect(useCase.execute({ date: '2099-06-20' }, doctorUser)).rejects.toThrow(NotFoundException)
     expect(mockScheduleExceptionsRepository.create).not.toHaveBeenCalled()
   })
 
-  it('throws UnprocessableEntityException when ADMIN omits doctorId', async () => {
+  it('throws UnprocessableEntityException when ADMIN omits professionalId', async () => {
     await expect(useCase.execute({ date: '2099-06-20' }, adminUser)).rejects.toThrow(UnprocessableEntityException)
     expect(mockScheduleExceptionsRepository.create).not.toHaveBeenCalled()
   })
 
-  it('throws NotFoundException when ADMIN provides non-existent doctorId', async () => {
-    mockDoctorsRepository.findById.mockResolvedValue(null)
-    await expect(useCase.execute({ date: '2099-06-20', doctorId: DOCTOR_ID }, adminUser)).rejects.toThrow(NotFoundException)
+  it('throws NotFoundException when ADMIN provides non-existent professionalId', async () => {
+    mockProfessionalsRepository.findById.mockResolvedValue(null)
+    await expect(useCase.execute({ date: '2099-06-20', professionalId: DOCTOR_ID }, adminUser)).rejects.toThrow(NotFoundException)
     expect(mockScheduleExceptionsRepository.create).not.toHaveBeenCalled()
   })
 
   it('throws UnprocessableEntityException when startTime >= endTime', async () => {
-    mockDoctorsRepository.findByUserId.mockResolvedValue(makeDoctor())
+    mockProfessionalsRepository.findByUserId.mockResolvedValue(makeDoctor())
     await expect(
       useCase.execute({ date: '2099-06-20', startTime: '14:00', endTime: '08:00' }, doctorUser),
     ).rejects.toThrow(UnprocessableEntityException)
   })
 
   it('throws UnprocessableEntityException when startTime equals endTime', async () => {
-    mockDoctorsRepository.findByUserId.mockResolvedValue(makeDoctor())
+    mockProfessionalsRepository.findByUserId.mockResolvedValue(makeDoctor())
     await expect(
       useCase.execute({ date: '2099-06-20', startTime: '10:00', endTime: '10:00' }, doctorUser),
     ).rejects.toThrow(UnprocessableEntityException)
   })
 
   it('throws ConflictException with time list when appointment conflicts exist', async () => {
-    mockDoctorsRepository.findByUserId.mockResolvedValue(makeDoctor())
+    mockProfessionalsRepository.findByUserId.mockResolvedValue(makeDoctor())
     mockAppointmentsRepository.findScheduledAppointmentsInWindow.mockResolvedValue([
       { id: 'appt-1', startTime: '09:00', endTime: '09:30', patientName: 'Patient A' },
       { id: 'appt-2', startTime: '10:00', endTime: '10:30', patientName: 'Patient B' },
@@ -159,7 +159,7 @@ describe('CreateScheduleExceptionUseCase', () => {
 
   it('creates partial block (14:00-18:00) successfully', async () => {
     const exception = makeException({ startTime: '14:00', endTime: '18:00' })
-    mockDoctorsRepository.findByUserId.mockResolvedValue(makeDoctor())
+    mockProfessionalsRepository.findByUserId.mockResolvedValue(makeDoctor())
     mockScheduleExceptionsRepository.create.mockResolvedValue(exception as any)
 
     const result = await useCase.execute({ date: '2099-06-20', startTime: '14:00', endTime: '18:00' }, doctorUser)
@@ -170,7 +170,7 @@ describe('CreateScheduleExceptionUseCase', () => {
 
   it('creates all-day block when startTime/endTime are null', async () => {
     const exception = makeException()
-    mockDoctorsRepository.findByUserId.mockResolvedValue(makeDoctor())
+    mockProfessionalsRepository.findByUserId.mockResolvedValue(makeDoctor())
     mockScheduleExceptionsRepository.create.mockResolvedValue(exception as any)
 
     const result = await useCase.execute({ date: '2099-06-20' }, doctorUser)
@@ -184,7 +184,7 @@ describe('CreateScheduleExceptionUseCase', () => {
 
   it('invalidates listing and availability cache after creation', async () => {
     const exception = makeException()
-    mockDoctorsRepository.findByUserId.mockResolvedValue(makeDoctor())
+    mockProfessionalsRepository.findByUserId.mockResolvedValue(makeDoctor())
     mockScheduleExceptionsRepository.create.mockResolvedValue(exception as any)
 
     await useCase.execute({ date: '2099-06-20' }, doctorUser)
@@ -196,7 +196,7 @@ describe('CreateScheduleExceptionUseCase', () => {
 
   it('continues when cache invalidation fails', async () => {
     const exception = makeException()
-    mockDoctorsRepository.findByUserId.mockResolvedValue(makeDoctor())
+    mockProfessionalsRepository.findByUserId.mockResolvedValue(makeDoctor())
     mockScheduleExceptionsRepository.create.mockResolvedValue(exception as any)
     mockCacheService.delByPrefix.mockRejectedValue(new Error('Redis error'))
 

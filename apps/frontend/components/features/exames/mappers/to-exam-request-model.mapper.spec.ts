@@ -6,8 +6,8 @@ const makeDto = (overrides: object = {}) => ({
   appointmentId: 'appt-uuid',
   patientId: 'patient-uuid',
   patientName: 'Maria Santos',
-  doctorId: 'doctor-uuid',
-  doctorName: 'Dr. João',
+  professionalId: 'doctor-uuid',
+  professionalName: 'Dr. João',
   items: [
     { name: 'Hemograma completo', observations: 'Jejum de 8 horas' },
     { name: 'Raio-X de tórax', observations: null },
@@ -26,7 +26,7 @@ describe('toExamRequestModel', () => {
     expect(model.id).toBe('exam-uuid')
     expect(model.appointmentId).toBe('appt-uuid')
     expect(model.patientName).toBe('Maria Santos')
-    expect(model.doctorName).toBe('Dr. João')
+    expect(model.professionalName).toBe('Dr. João')
     expect(model.status).toBe(ExamRequestStatus.REQUESTED)
     expect(model.notes).toBe('Retornar em 7 dias')
   })

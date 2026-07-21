@@ -35,6 +35,17 @@
 - Camadas service/mappers/use-cases/hooks (dados via React Query); testes unitários e de integração com 100% de cobertura
 - Testes E2E Cypress: listagem, criação, edição e exclusão
 
+### Changed
+
+#### BREAKING: generalização de "médico" para "profissional de saúde"
+- Feature `doctors` renomeada para `professionals` (rotas, componentes, hooks, services, use-cases, mappers, types); rota `/doctors` não existe mais — não há redirect, URLs antigas retornam 404
+- `ProfessionalForm` reformulado com múltiplos registros profissionais dinâmicos (`councilType` por registro — CRM, CRN, CREFITO, CRP, CRO, COREN, CREF, CRFA), com máscara e validação de número específicas por conselho; RQE segue exclusivo de especialidades assinadas por CRM
+- `DoctorSignatureSelect` renomeado para `ProfessionalSignatureSelect`; exibe o conselho de cada registro (não mais fixo em "CRM")
+- Campo `isDoctor` de `IUserModel` renomeado para `isProfessional`; badges e labels de perfil trocam "Médico" por "Profissional" em toda a aplicação (usuários, agenda, consultas, prontuários, atestados, exames, receitas, templates)
+- Campos `doctorId`/`doctorName` renomeados para `professionalId`/`professionalName` em todas as features consumidoras (consultas, agendas, exceções de agenda, exames, atestados, receitas, templates de receita, prontuários, dashboard)
+- Página pública de verificação de receita exibe o conselho e número de registro do profissional (`professionalCouncilType`/`professionalRegistrationNumber`) em vez de CRM fixo
+- Suíte E2E (Cypress) migrada por completo para o novo modelo: specs de `doctors/*` renomeadas para `professionals/*` e reescritas para o formulário multi-registro; demais specs (consultas, agendas, exames, prontuários, usuários, mobile) atualizadas para os novos testids e payloads (`registrations` em vez de `crmNumber`)
+
 ## [1.1.0] - 2026-06-20
 
 ### Added

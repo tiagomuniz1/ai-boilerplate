@@ -6,7 +6,7 @@ export interface CreateMedicalRecordData {
   clinicId: string
   appointmentId: string
   patientId: string
-  doctorId: string
+  professionalId: string
   specialtyId: string | null
   templateId: string
   templateSchemaSnapshot: MedicalRecordTemplateField[]
@@ -27,7 +27,7 @@ export abstract class IMedicalRecordsRepository {
     patientId: string,
     page: number,
     limit: number,
-    doctorId?: string,
+    professionalId?: string,
   ): Promise<[MedicalRecord[], number]>
   abstract create(data: CreateMedicalRecordData, queryRunner?: QueryRunner): Promise<MedicalRecord>
   abstract update(id: string, data: UpdateMedicalRecordData, clinicId: string, queryRunner?: QueryRunner): Promise<MedicalRecord>

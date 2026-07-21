@@ -9,7 +9,7 @@ import type { IScheduleModel } from '../types/schedule-model.types'
 
 const makeDto = (id = 'uuid-1') => ({
   id,
-  doctorId: 'doc-uuid',
+  professionalId: 'doc-uuid',
   dayOfWeek: DayOfWeek.MONDAY,
   startTime: '08:00',
   endTime: '12:00',
@@ -22,7 +22,7 @@ const makeDto = (id = 'uuid-1') => ({
 
 const makeModel = (id = 'uuid-1'): IScheduleModel => ({
   id,
-  doctorId: 'doc-uuid',
+  professionalId: 'doc-uuid',
   dayOfWeek: DayOfWeek.MONDAY,
   startTime: '08:00',
   endTime: '12:00',
@@ -45,7 +45,7 @@ describe('listSchedulesUseCase', () => {
   })
 
   it('passes params to schedulesService.getAll', async () => {
-    const params = { doctorId: 'doc-uuid', dayOfWeek: DayOfWeek.FRIDAY }
+    const params = { professionalId: 'doc-uuid', dayOfWeek: DayOfWeek.FRIDAY }
     ;(schedulesService.getAll as jest.Mock).mockResolvedValue({ data: [], total: 0, page: 1, limit: 20 })
 
     await listSchedulesUseCase(params)

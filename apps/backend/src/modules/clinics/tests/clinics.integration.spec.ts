@@ -103,14 +103,14 @@ describe('ClinicsController (integration)', () => {
 
     platformAdminToken = await loginAsPlatformAdmin()
     adminToken = await loginAs(UserRole.ADMIN)
-    doctorToken = await loginAs(UserRole.DOCTOR)
+    doctorToken = await loginAs(UserRole.PROFESSIONAL)
     userToken = await loginAs(UserRole.USER)
   })
 
   afterEach(async () => {
     await clinicRepository.query('DELETE FROM test.schedules')
-    await clinicRepository.query('DELETE FROM test.doctor_specialties')
-    await clinicRepository.query('DELETE FROM test.doctors')
+    await clinicRepository.query('DELETE FROM test.professional_specialties')
+    await clinicRepository.query('DELETE FROM test.professionals')
     await clinicRepository.query('DELETE FROM test.patients')
     await clinicRepository.query('DELETE FROM test.specialties')
     await clinicRepository.query('DELETE FROM test.refresh_tokens')

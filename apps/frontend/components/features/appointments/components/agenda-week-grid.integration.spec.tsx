@@ -16,12 +16,12 @@ const mockAppointmentsService = appointmentsService as jest.Mocked<typeof appoin
 const mockPatientsService = patientsService as jest.Mocked<typeof patientsService>
 const mockScheduleExceptionsService = scheduleExceptionsService as jest.Mocked<typeof scheduleExceptionsService>
 
-const emptyAvailability = { doctorId: 'doctor-uuid', date: '2025-06-30', slots: [] }
+const emptyAvailability = { professionalId: 'doctor-uuid', date: '2025-06-30', slots: [] }
 const emptyAppointments = { data: [], total: 0, page: 1, limit: 100 }
 const emptyExceptions = { data: [], total: 0, page: 1, limit: 20 }
 
 const defaultProps = {
-  doctorId: 'doctor-uuid',
+  professionalId: 'doctor-uuid',
   startDate: '2025-06-29',
   role: UserRole.ADMIN,
 }
@@ -35,12 +35,12 @@ describe('AgendaWeekGrid (integration)', () => {
     mockScheduleExceptionsService.getAll.mockResolvedValue(emptyExceptions)
   })
 
-  it('renders empty state when doctorId is null', () => {
-    renderWithProviders(<AgendaWeekGrid {...defaultProps} doctorId={null} />)
-    expect(screen.getByTestId('agenda-empty-doctor')).toBeInTheDocument()
+  it('renders empty state when professionalId is null', () => {
+    renderWithProviders(<AgendaWeekGrid {...defaultProps} professionalId={null} />)
+    expect(screen.getByTestId('agenda-empty-professional')).toBeInTheDocument()
   })
 
-  it('renders week grid with 7 columns when doctorId is provided', async () => {
+  it('renders week grid with 7 columns when professionalId is provided', async () => {
     renderWithProviders(<AgendaWeekGrid {...defaultProps} />)
 
     await waitFor(() => {
@@ -76,7 +76,7 @@ describe('AgendaWeekGrid (integration)', () => {
           data: [
             {
               id: 'exc-1',
-              doctorId: 'doctor-uuid',
+              professionalId: 'doctor-uuid',
               date: '2025-06-30',
               startTime: '08:00',
               endTime: '12:00',
@@ -142,7 +142,7 @@ describe('AgendaWeekGrid (integration)', () => {
     mockAppointmentsService.getAvailability.mockImplementation((params) => {
       if (params?.date === SLOT_DATE) {
         return Promise.resolve({
-          doctorId: 'doctor-uuid',
+          professionalId: 'doctor-uuid',
           date: SLOT_DATE,
           slots: [{ startTime: '09:00', endTime: '09:30' }],
         })
@@ -165,7 +165,7 @@ describe('AgendaWeekGrid (integration)', () => {
     mockAppointmentsService.getAvailability.mockImplementation((params) => {
       if (params?.date === SLOT_DATE) {
         return Promise.resolve({
-          doctorId: 'doctor-uuid',
+          professionalId: 'doctor-uuid',
           date: SLOT_DATE,
           slots: [{ startTime: '09:00', endTime: '09:30' }],
         })
@@ -195,8 +195,8 @@ describe('AgendaWeekGrid (integration)', () => {
         return Promise.resolve({
           data: [{
             id: 'appt-1',
-            doctorId: 'doctor-uuid',
-            doctorName: 'Dr. Test',
+            professionalId: 'doctor-uuid',
+            professionalName: 'Dr. Test',
             patientId: 'patient-uuid',
             patientName: 'Patient One',
             specialtyId: null,
@@ -236,8 +236,8 @@ describe('AgendaWeekGrid (integration)', () => {
         return Promise.resolve({
           data: [{
             id: 'appt-1',
-            doctorId: 'doctor-uuid',
-            doctorName: 'Dr. Test',
+            professionalId: 'doctor-uuid',
+            professionalName: 'Dr. Test',
             patientId: 'patient-uuid',
             patientName: 'Patient One',
             specialtyId: null,
@@ -285,8 +285,8 @@ describe('AgendaWeekGrid (integration)', () => {
           data: [
             {
               id: 'appt-1',
-              doctorId: 'doctor-uuid',
-              doctorName: 'Dr. Test',
+              professionalId: 'doctor-uuid',
+              professionalName: 'Dr. Test',
               patientId: 'patient-uuid',
               patientName: 'Patient One',
               scheduleId: 'sched-uuid',

@@ -11,7 +11,7 @@ import { AppointmentStatus, MedicalRecordResponseDto, UpdateMedicalRecordDto, Us
 import { BaseUseCase } from '../../../common/base.use-case'
 import { ICurrentUser } from '../../auth/types/current-user.type'
 import { IAppointmentsRepository } from '../../appointments/repositories/appointments.repository.interface'
-import { IDoctorsRepository } from '../../doctors/repositories/doctors.repository.interface'
+import { IProfessionalsRepository } from '../../professionals/repositories/professionals.repository.interface'
 import { IMedicalRecordsRepository } from '../repositories/medical-records.repository.interface'
 import { ValidateRecordDataService } from '../services/validate-record-data.service'
 import { CacheService } from '../../../cache/cache.service'
@@ -25,7 +25,7 @@ export class UpdateMedicalRecordUseCase extends BaseUseCase {
     dataSource: DataSource,
     private readonly medicalRecordsRepository: IMedicalRecordsRepository,
     private readonly appointmentsRepository: IAppointmentsRepository,
-    private readonly doctorsRepository: IDoctorsRepository,
+    private readonly professionalsRepository: IProfessionalsRepository,
     private readonly validateRecordDataService: ValidateRecordDataService,
     private readonly cacheService: CacheService,
   ) {
@@ -38,9 +38,9 @@ export class UpdateMedicalRecordUseCase extends BaseUseCase {
     const record = await this.medicalRecordsRepository.findById(id, clinicId)
     if (!record) throw new NotFoundException('Medical record not found')
 
-    if (currentUser.role === UserRole.DOCTOR) {
-      const doctor = await this.doctorsRepository.findByUserId(currentUser.id, clinicId)
-      if (!doctor || doctor.id !== record.doctorId) {
+    if (currentUser.role === UserRole.PROFESSIONAL) {
+      const professional = await this.professionalsRepository.findByUserId(currentUser.id, clinicId)
+      if (!professional || professional.id !== record.professionalId) {
         throw new ForbiddenException('Insufficient permissions')
       }
     }

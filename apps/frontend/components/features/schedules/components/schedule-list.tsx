@@ -8,7 +8,7 @@ import { Alert } from '@/components/ui/molecules/alert/alert'
 import { Button } from '@/components/ui/atoms/button/button'
 import { MobileListCard } from '@/components/ui/molecules/mobile-list-card/mobile-list-card'
 import { useAuthStore } from '@/stores/auth.store'
-import { useDoctors } from '@/components/features/doctors/hooks/use-doctors.hook'
+import { useProfessionals } from '@/components/features/professionals/hooks/use-professionals.hook'
 import { useSchedules } from '../hooks/use-schedules.hook'
 import { useDeleteSchedule } from '../hooks/use-delete-schedule.hook'
 import { ScheduleListSkeleton } from './schedule-list-skeleton'
@@ -56,7 +56,7 @@ export function ScheduleList() {
   const basePath = useBasePath()
   const user = useAuthStore((state) => state.user)
   const isAdmin = user?.role === UserRole.ADMIN
-  const canManageSchedules = user?.role === UserRole.ADMIN || user?.role === UserRole.DOCTOR
+  const canManageSchedules = user?.role === UserRole.ADMIN || user?.role === UserRole.PROFESSIONAL
 
   const [filterDoctorId, setFilterDoctorId] = useState('')
   const [filterDayOfWeek, setFilterDayOfWeek] = useState('')
@@ -65,14 +65,14 @@ export function ScheduleList() {
   const [successMessage, setSuccessMessage] = useState<string | null>(null)
 
   const params = {
-    ...(filterDoctorId ? { doctorId: filterDoctorId } : {}),
+    ...(filterDoctorId ? { professionalId: filterDoctorId } : {}),
     ...(filterDayOfWeek ? { dayOfWeek: filterDayOfWeek as DayOfWeek } : {}),
     ...(filterActiveOn ? { activeOn: filterActiveOn } : {}),
   }
 
   const { data: schedulesPage, isPending, isError } = useSchedules(params)
   const { mutate: deleteSchedule, isPending: isDeleting } = useDeleteSchedule()
-  const { data: doctorsList } = useDoctors({ limit: 100 })
+  const { data: doctorsList } = useProfessionals({ limit: 100 })
   const doctors = doctorsList ?? []
 
   const schedules = schedulesPage?.data ?? []
@@ -126,9 +126,9 @@ export function ScheduleList() {
 
       <div className="flex flex-wrap gap-4">
         {isAdmin && (
-          <div className="flex flex-col gap-1.5 min-w-[200px]" data-testid="schedule-filter-doctor">
+          <div className="flex flex-col gap-1.5 min-w-[200px]" data-testid="schedule-filter-professional">
             <label htmlFor="filter-doctor" className="text-sm font-medium text-text">
-              Médico
+              Profissional
             </label>
             <select
               id="filter-doctor"
@@ -139,9 +139,9 @@ export function ScheduleList() {
                 'bg-surface border border-line text-text',
                 'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent',
               )}
-              data-testid="schedule-filter-doctor-select"
+              data-testid="schedule-filter-professional-select"
             >
-              <option value="">Todos os médicos</option>
+              <option value="">Todos os profissionais</option>
               {doctors.map((doctor) => (
                 <option key={doctor.id} value={doctor.id}>
                   {doctor.user.fullName}
@@ -224,7 +224,7 @@ export function ScheduleList() {
                 <tr className="border-b border-line">
                   {isAdmin && (
                     <th className="px-6 py-3 text-xs font-medium uppercase tracking-wider text-text-mute">
-                      Médico
+                      Profissional
                     </th>
                   )}
                   <th className="px-6 py-3 text-xs font-medium uppercase tracking-wider text-text-mute">
@@ -246,7 +246,7 @@ export function ScheduleList() {
               </thead>
               <tbody>
                 {schedules.map((schedule) => {
-                  const doctorName = isAdmin ? schedule.doctorName : null
+                  const professionalName = isAdmin ? schedule.professionalName : null
                   return (
                     <tr
                       key={schedule.id}
@@ -256,9 +256,9 @@ export function ScheduleList() {
                       {isAdmin && (
                         <td
                           className="px-6 py-4 text-sm text-text whitespace-nowrap"
-                          data-testid={`schedule-doctor-${schedule.id}`}
+                          data-testid={`schedule-professional-${schedule.id}`}
                         >
-                          {doctorName}
+                          {professionalName}
                         </td>
                       )}
                       <td
@@ -333,7 +333,7 @@ export function ScheduleList() {
               <MobileListCard
                 key={schedule.id}
                 data-testid={`schedule-card-${schedule.id}`}
-                title={isAdmin ? schedule.doctorName : DAY_OF_WEEK_LABELS[schedule.dayOfWeek]}
+                title={isAdmin ? schedule.professionalName : DAY_OF_WEEK_LABELS[schedule.dayOfWeek]}
                 rows={[
                   ...(isAdmin
                     ? [{ icon: <CalendarIcon />, label: 'Dia da semana', value: DAY_OF_WEEK_LABELS[schedule.dayOfWeek] }]

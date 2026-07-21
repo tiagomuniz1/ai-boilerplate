@@ -1,3 +1,5 @@
+import { CouncilType } from '../enums/council-type.enum'
+
 export interface ExamRequestSnapshot {
   issuedAt: string
   clinic: {
@@ -13,7 +15,13 @@ export interface ExamRequestSnapshot {
     } | null
     logoUrl: string | null
   }
-  doctor: { name: string; crmNumber: string; rqe: string | null; specialtyName: string | null }
+  professional: {
+    name: string
+    councilType: CouncilType
+    registrationNumber: string
+    registryNumber: string | null
+    specialtyName: string | null
+  }
   patient: { name: string; documentNumber: string }
   items: Array<{ name: string; observations: string | null }>
   notes: string | null

@@ -10,7 +10,7 @@ import { UserRole } from '@app/shared'
 import { BaseUseCase } from '../../../common/base.use-case'
 import { CacheService } from '../../../cache/cache.service'
 import { ICurrentUser } from '../../auth/types/current-user.type'
-import { IDoctorsRepository } from '../../doctors/repositories/doctors.repository.interface'
+import { IProfessionalsRepository } from '../../professionals/repositories/professionals.repository.interface'
 import { IAppointmentsRepository } from '../repositories/appointments.repository.adapter'
 import { ISchedulesRepository } from '../repositories/schedules.repository.interface'
 
@@ -21,7 +21,7 @@ export class DeleteScheduleUseCase extends BaseUseCase {
   constructor(
     dataSource: DataSource,
     private readonly schedulesRepository: ISchedulesRepository,
-    private readonly doctorsRepository: IDoctorsRepository,
+    private readonly professionalsRepository: IProfessionalsRepository,
     private readonly appointmentsRepository: IAppointmentsRepository,
     private readonly cacheService: CacheService,
   ) {
@@ -35,12 +35,12 @@ export class DeleteScheduleUseCase extends BaseUseCase {
     if (!schedule) throw new NotFoundException('Schedule not found')
 
     if (currentUser.role !== UserRole.ADMIN) {
-      if (currentUser.role !== UserRole.DOCTOR) {
+      if (currentUser.role !== UserRole.PROFESSIONAL) {
         throw new ForbiddenException('Only doctors and admins can manage schedules')
       }
-      const doctor = await this.doctorsRepository.findByUserId(currentUser.id, clinicId)
-      if (!doctor) throw new NotFoundException('Doctor not found')
-      if (schedule.doctorId !== doctor.id) {
+      const professional = await this.professionalsRepository.findByUserId(currentUser.id, clinicId)
+      if (!professional) throw new NotFoundException('Professional not found')
+      if (schedule.professionalId !== professional.id) {
         throw new ForbiddenException('You are not allowed to manage this schedule')
       }
     }
@@ -60,8 +60,8 @@ export class DeleteScheduleUseCase extends BaseUseCase {
     }
   }
 
-  async deleteByDoctorId(doctorId: string, clinicId: string, queryRunner?: QueryRunner): Promise<void> {
-    await this.schedulesRepository.deleteAllByDoctorId(doctorId, clinicId, queryRunner)
+  async deleteByProfessionalId(professionalId: string, clinicId: string, queryRunner?: QueryRunner): Promise<void> {
+    await this.schedulesRepository.deleteAllByDoctorId(professionalId, clinicId, queryRunner)
 
     try {
       await this.cacheService.delByPrefix(`schedules:list:${clinicId}:`)

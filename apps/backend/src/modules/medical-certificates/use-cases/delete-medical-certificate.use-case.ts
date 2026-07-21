@@ -4,7 +4,7 @@ import { UserRole } from '@app/shared'
 import { BaseUseCase } from '../../../common/base.use-case'
 import { CacheService } from '../../../cache/cache.service'
 import { ICurrentUser } from '../../auth/types/current-user.type'
-import { IDoctorsRepository } from '../../doctors/repositories/doctors.repository.interface'
+import { IProfessionalsRepository } from '../../professionals/repositories/professionals.repository.interface'
 import { IMedicalCertificatesRepository } from '../repositories/medical-certificates.repository.interface'
 
 @Injectable()
@@ -14,7 +14,7 @@ export class DeleteMedicalCertificateUseCase extends BaseUseCase {
   constructor(
     dataSource: DataSource,
     private readonly medicalCertificatesRepository: IMedicalCertificatesRepository,
-    private readonly doctorsRepository: IDoctorsRepository,
+    private readonly professionalsRepository: IProfessionalsRepository,
     private readonly cacheService: CacheService,
   ) {
     super(dataSource)
@@ -26,9 +26,9 @@ export class DeleteMedicalCertificateUseCase extends BaseUseCase {
     const certificate = await this.medicalCertificatesRepository.findById(id, clinicId)
     if (!certificate) throw new NotFoundException('Medical certificate not found')
 
-    if (currentUser.role === UserRole.DOCTOR) {
-      const doctor = await this.doctorsRepository.findByUserId(currentUser.id, clinicId)
-      if (!doctor || doctor.id !== certificate.doctorId) {
+    if (currentUser.role === UserRole.PROFESSIONAL) {
+      const professional = await this.professionalsRepository.findByUserId(currentUser.id, clinicId)
+      if (!professional || professional.id !== certificate.professionalId) {
         throw new ForbiddenException('Insufficient permissions')
       }
     }

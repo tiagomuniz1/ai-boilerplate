@@ -17,7 +17,7 @@ export class ClinicSpecialtiesController {
   ) {}
 
   @Get()
-  @Roles(UserRole.PLATFORM_ADMIN, UserRole.ADMIN, UserRole.DOCTOR, UserRole.USER)
+  @Roles(UserRole.PLATFORM_ADMIN, UserRole.ADMIN, UserRole.PROFESSIONAL, UserRole.USER)
   findAll(
     @Param('clinicId') clinicId: string,
     @Query() query: ClinicSpecialtiesListQueryDto,

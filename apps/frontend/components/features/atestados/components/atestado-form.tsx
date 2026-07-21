@@ -7,7 +7,7 @@ import { MedicalCertificateType } from '@app/shared'
 import { useState } from 'react'
 import { Button } from '@/components/ui/atoms/button/button'
 import { Alert } from '@/components/ui/molecules/alert/alert'
-import { DoctorSignatureSelect } from '@/components/features/doctors/components/doctor-signature-select'
+import { ProfessionalSignatureSelect } from '@/components/features/professionals/components/professional-signature-select'
 import type { ICreateAtestadoInput } from '../types/atestado-input.types'
 
 const TIME_REGEX = /^([01]\d|2[0-3]):[0-5]\d$/
@@ -58,13 +58,13 @@ type FormValues = z.infer<typeof schema>
 
 export interface AtestadoFormProps {
   appointmentId: string
-  doctorId: string
+  professionalId: string
   isPending: boolean
   globalError: string | null
   onSubmit: (input: ICreateAtestadoInput) => void
 }
 
-export function AtestadoForm({ appointmentId, doctorId, isPending, globalError, onSubmit }: AtestadoFormProps) {
+export function AtestadoForm({ appointmentId, professionalId, isPending, globalError, onSubmit }: AtestadoFormProps) {
   const [crmId, setCrmId] = useState('')
   const [specialtyId, setSpecialtyId] = useState('')
   const { register, handleSubmit, watch, setValue, control, formState: { errors } } = useForm<FormValues>({
@@ -286,11 +286,11 @@ export function AtestadoForm({ appointmentId, doctorId, isPending, globalError, 
         )}
       </div>
 
-      <DoctorSignatureSelect
-        doctorId={doctorId}
-        crmId={crmId}
+      <ProfessionalSignatureSelect
+        professionalId={professionalId}
+        registrationId={crmId}
         specialtyId={specialtyId}
-        onCrmIdChange={setCrmId}
+        onRegistrationIdChange={setCrmId}
         onSpecialtyIdChange={setSpecialtyId}
       />
 

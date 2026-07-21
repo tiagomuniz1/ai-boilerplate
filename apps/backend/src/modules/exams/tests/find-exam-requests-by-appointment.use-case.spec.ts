@@ -1,33 +1,33 @@
 import { ForbiddenException, NotFoundException } from '@nestjs/common'
 import { DataSource } from 'typeorm'
-import { ExamRequestStatus, UserRole } from '@app/shared'
+import { CouncilType, ExamRequestStatus, UserRole } from '@app/shared'
 import { ICurrentUser } from '../../auth/types/current-user.type'
 import { IAppointmentsRepository } from '../../appointments/repositories/appointments.repository.interface'
-import { IDoctorsRepository } from '../../doctors/repositories/doctors.repository.interface'
+import { IProfessionalsRepository } from '../../professionals/repositories/professionals.repository.interface'
 import { IExamRequestsRepository } from '../repositories/exam-requests.repository.interface'
 import { IExamResultsRepository } from '../repositories/exam-results.repository.interface'
 import { FindExamRequestsByAppointmentUseCase } from '../use-cases/find-exam-requests-by-appointment.use-case'
 import { CacheService } from '../../../cache/cache.service'
 
 const clinicId = 'clinic-uuid'
-const doctorId = 'doctor-uuid'
+const professionalId = 'doctor-uuid'
 const appointmentId = 'appt-uuid'
 
 const adminUser: ICurrentUser = { id: 'admin-id', role: UserRole.ADMIN, clinicId }
-const doctorUser: ICurrentUser = { id: 'doctor-user-id', role: UserRole.DOCTOR, clinicId }
+const doctorUser: ICurrentUser = { id: 'doctor-user-id', role: UserRole.PROFESSIONAL, clinicId }
 
 const makeExamRequest = () => ({
   id: 'exam-uuid',
   clinicId,
   appointmentId,
   patientId: 'patient-uuid',
-  doctorId,
+  professionalId,
   issuedAt: new Date(),
   status: ExamRequestStatus.REQUESTED,
   snapshot: {
     issuedAt: new Date().toISOString(),
     clinic: { name: 'Clinic', address: null, logoUrl: null },
-    doctor: { name: 'Doctor', crmNumber: '12345/SP', rqe: null, specialtyName: null },
+    professional: { name: 'Doctor', councilType: CouncilType.CRM, registrationNumber: '12345/SP', registryNumber: null, specialtyName: null },
     patient: { name: 'Patient', documentNumber: '12345678900' },
     items: [],
     notes: null,
@@ -57,18 +57,18 @@ const mockExamResultsRepository: jest.Mocked<IExamResultsRepository> = {
 const mockAppointmentsRepository: jest.Mocked<IAppointmentsRepository> = {
   findAll: jest.fn(),
   findById: jest.fn(),
-  findActiveByDoctorAndDate: jest.fn(),
+  findActiveByProfessionalAndDate: jest.fn(),
   findActiveBySlot: jest.fn(),
   hasFutureByScheduleId: jest.fn(),
   create: jest.fn(),
   update: jest.fn(),
 }
 
-const mockDoctorsRepository: jest.Mocked<IDoctorsRepository> = {
+const mockProfessionalsRepository: jest.Mocked<IProfessionalsRepository> = {
   findAll: jest.fn(),
   findById: jest.fn(),
   findByUserId: jest.fn(),
-  findByCrm: jest.fn(),
+  findByRegistration: jest.fn(),
   create: jest.fn(),
   update: jest.fn(),
   delete: jest.fn(),
@@ -92,13 +92,13 @@ describe('FindExamRequestsByAppointmentUseCase', () => {
       mockExamRequestsRepository,
       mockExamResultsRepository,
       mockAppointmentsRepository,
-      mockDoctorsRepository,
+      mockProfessionalsRepository,
       mockCacheService,
     )
     mockExamRequestsRepository.findByAppointment.mockResolvedValue([makeExamRequest() as any])
     mockExamResultsRepository.findByExamRequestIds.mockResolvedValue([])
-    mockAppointmentsRepository.findById.mockResolvedValue({ id: appointmentId, doctorId } as any)
-    mockDoctorsRepository.findByUserId.mockResolvedValue({ id: doctorId } as any)
+    mockAppointmentsRepository.findById.mockResolvedValue({ id: appointmentId, professionalId } as any)
+    mockProfessionalsRepository.findByUserId.mockResolvedValue({ id: professionalId } as any)
     mockCacheService.get.mockResolvedValue(null)
     mockCacheService.set.mockResolvedValue(undefined)
   })
@@ -109,14 +109,14 @@ describe('FindExamRequestsByAppointmentUseCase', () => {
     expect(result).toHaveLength(1)
     expect(result[0].appointmentId).toBe(appointmentId)
     expect(mockAppointmentsRepository.findById).not.toHaveBeenCalled()
-    expect(mockDoctorsRepository.findByUserId).not.toHaveBeenCalled()
+    expect(mockProfessionalsRepository.findByUserId).not.toHaveBeenCalled()
   })
 
   it('returns exam requests for DOCTOR on own appointment', async () => {
     const result = await useCase.execute(appointmentId, doctorUser)
 
     expect(result).toHaveLength(1)
-    expect(mockDoctorsRepository.findByUserId).toHaveBeenCalledWith(doctorUser.id, clinicId)
+    expect(mockProfessionalsRepository.findByUserId).toHaveBeenCalledWith(doctorUser.id, clinicId)
   })
 
   it('returns cached result on cache hit', async () => {
@@ -146,13 +146,13 @@ describe('FindExamRequestsByAppointmentUseCase', () => {
   })
 
   it('throws ForbiddenException when DOCTOR accesses another doctor appointment', async () => {
-    mockDoctorsRepository.findByUserId.mockResolvedValue({ id: 'other-doctor' } as any)
+    mockProfessionalsRepository.findByUserId.mockResolvedValue({ id: 'other-doctor' } as any)
 
     await expect(useCase.execute(appointmentId, doctorUser)).rejects.toThrow(ForbiddenException)
   })
 
   it('throws ForbiddenException when DOCTOR has no doctor profile', async () => {
-    mockDoctorsRepository.findByUserId.mockResolvedValue(null)
+    mockProfessionalsRepository.findByUserId.mockResolvedValue(null)
 
     await expect(useCase.execute(appointmentId, doctorUser)).rejects.toThrow(ForbiddenException)
   })
@@ -178,7 +178,7 @@ describe('FindExamRequestsByAppointmentUseCase', () => {
       fileName: 'hemograma.pdf',
       mimeType: 'application/pdf',
       fileSizeBytes: 1000,
-      uploadedByUserId: doctorId,
+      uploadedByUserId: professionalId,
       createdAt: new Date(),
       updatedAt: new Date(),
       deletedAt: null,

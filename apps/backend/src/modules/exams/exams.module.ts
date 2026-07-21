@@ -5,7 +5,7 @@ import { IStorageAdapter } from '../../common/adapters/storage.adapter.interface
 import { StorageAdapter } from '../../common/adapters/storage.adapter'
 import { LocalStorageAdapter } from '../../common/adapters/local-storage.adapter'
 import { AppointmentsModule } from '../appointments/appointments.module'
-import { DoctorsModule } from '../doctors/doctors.module'
+import { ProfessionalsModule } from '../professionals/professionals.module'
 import { PatientsModule } from '../patients/patients.module'
 import { ClinicsModule } from '../clinics/clinics.module'
 import { ExamRequest } from './entities/exam-request.entity'
@@ -32,7 +32,7 @@ import { ExamRequestPdfBuilderService } from './services/exam-request-pdf-builde
     TypeOrmModule.forFeature([ExamRequest, ExamResult]),
     CacheModule,
     AppointmentsModule,
-    DoctorsModule,
+    ProfessionalsModule,
     PatientsModule,
     ClinicsModule,
   ],

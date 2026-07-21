@@ -11,7 +11,7 @@ const mockService = scheduleExceptionsService as jest.Mocked<typeof scheduleExce
 
 const makeExceptionResponse = (overrides = {}) => ({
   id: 'exc-uuid',
-  doctorId: 'doc-uuid',
+  professionalId: 'doc-uuid',
   date: '2099-06-20',
   startTime: '08:00',
   endTime: '12:00',
@@ -25,7 +25,7 @@ const defaultProps = {
   isOpen: true,
   onClose: jest.fn(),
   date: '2099-06-20',
-  role: UserRole.DOCTOR,
+  role: UserRole.PROFESSIONAL,
 }
 
 describe('BlockTimeDialog (integration)', () => {
@@ -109,7 +109,7 @@ describe('BlockTimeDialog (integration)', () => {
   it('calls service with correct payload for partial block (DOCTOR)', async () => {
     mockService.create.mockResolvedValue(makeExceptionResponse())
 
-    renderWithProviders(<BlockTimeDialog {...defaultProps} role={UserRole.DOCTOR} />)
+    renderWithProviders(<BlockTimeDialog {...defaultProps} role={UserRole.PROFESSIONAL} />)
 
     await userEvent.type(screen.getByTestId('block-dialog-start-time'), '08:00')
     await userEvent.type(screen.getByTestId('block-dialog-end-time'), '12:00')
@@ -126,14 +126,14 @@ describe('BlockTimeDialog (integration)', () => {
     })
 
     const callArg = mockService.create.mock.calls[0][0]
-    expect(callArg.doctorId).toBeUndefined()
+    expect(callArg.professionalId).toBeUndefined()
   })
 
-  it('includes doctorId in payload for ADMIN', async () => {
+  it('includes professionalId in payload for ADMIN', async () => {
     mockService.create.mockResolvedValue(makeExceptionResponse())
 
     renderWithProviders(
-      <BlockTimeDialog {...defaultProps} role={UserRole.ADMIN} doctorId="doc-uuid" />,
+      <BlockTimeDialog {...defaultProps} role={UserRole.ADMIN} professionalId="doc-uuid" />,
     )
 
     await userEvent.click(screen.getByTestId('block-dialog-all-day'))
@@ -141,7 +141,7 @@ describe('BlockTimeDialog (integration)', () => {
 
     await waitFor(() => {
       expect(mockService.create).toHaveBeenCalledWith(
-        expect.objectContaining({ doctorId: 'doc-uuid' }),
+        expect.objectContaining({ professionalId: 'doc-uuid' }),
       )
     })
   })

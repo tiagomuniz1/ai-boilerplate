@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
 import { ILike, In, QueryRunner, Repository } from 'typeorm'
 import { CreateSpecialtyDto, UpdateSpecialtyDto } from '@app/shared'
-import { Doctor } from '../../doctors/entities/doctor.entity'
+import { Professional } from '../../professionals/entities/professional.entity'
 import { Specialty } from '../entities/specialty.entity'
 import { ISpecialtiesRepository } from './specialties.repository.interface'
 
@@ -54,8 +54,8 @@ export class SpecialtiesRepository implements ISpecialtiesRepository {
 
   async countLinkedDoctors(id: string): Promise<number> {
     return this.repository.manager
-      .createQueryBuilder(Doctor, 'doctor')
-      .innerJoin('doctor.doctorSpecialties', 'doctorSpecialty')
+      .createQueryBuilder(Professional, 'doctor')
+      .innerJoin('doctor.professionalSpecialties', 'doctorSpecialty')
       .innerJoin('doctorSpecialty.specialty', 'specialty')
       .where('specialty.id = :id', { id })
       .getCount()

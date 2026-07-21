@@ -18,8 +18,8 @@ import { BaseUseCase } from '../../../common/base.use-case'
 import { CacheService } from '../../../cache/cache.service'
 import { ICurrentUser } from '../../auth/types/current-user.type'
 import { IAppointmentsRepository } from '../../appointments/repositories/appointments.repository.interface'
-import { IDoctorsRepository } from '../../doctors/repositories/doctors.repository.interface'
-import { resolveDoctorSigningIdentity } from '../../doctors/utils/resolve-doctor-signing-identity'
+import { IProfessionalsRepository } from '../../professionals/repositories/professionals.repository.interface'
+import { resolveProfessionalSigningIdentity } from '../../professionals/utils/resolve-professional-signing-identity'
 import { IPatientsRepository } from '../../patients/repositories/patients.repository.interface'
 import { FindClinicByIdUseCase } from '../../clinics/use-cases/find-clinic-by-id.use-case'
 import { IExamRequestsRepository } from '../repositories/exam-requests.repository.interface'
@@ -43,8 +43,8 @@ export function toExamRequestResponse(examRequest: ExamRequest, results: ExamRes
     appointmentId: examRequest.appointmentId,
     patientId: examRequest.patientId,
     patientName: examRequest.snapshot.patient.name,
-    doctorId: examRequest.doctorId,
-    doctorName: examRequest.snapshot.doctor.name,
+    professionalId: examRequest.professionalId,
+    professionalName: examRequest.snapshot.professional.name,
     items: examRequest.snapshot.items.map((item) => ({
       name: item.name,
       observations: item.observations ?? null,
@@ -65,7 +65,7 @@ export class CreateExamRequestUseCase extends BaseUseCase {
     dataSource: DataSource,
     private readonly examRequestsRepository: IExamRequestsRepository,
     private readonly appointmentsRepository: IAppointmentsRepository,
-    private readonly doctorsRepository: IDoctorsRepository,
+    private readonly professionalsRepository: IProfessionalsRepository,
     private readonly patientsRepository: IPatientsRepository,
     private readonly findClinicByIdUseCase: FindClinicByIdUseCase,
     private readonly cacheService: CacheService,
@@ -80,9 +80,9 @@ export class CreateExamRequestUseCase extends BaseUseCase {
     if (!appointment) throw new NotFoundException('Appointment not found')
 
     let doctorForRbac = null
-    if (currentUser.role === UserRole.DOCTOR) {
-      doctorForRbac = await this.doctorsRepository.findByUserId(currentUser.id, clinicId)
-      if (!doctorForRbac || doctorForRbac.id !== appointment.doctorId) {
+    if (currentUser.role === UserRole.PROFESSIONAL) {
+      doctorForRbac = await this.professionalsRepository.findByUserId(currentUser.id, clinicId)
+      if (!doctorForRbac || doctorForRbac.id !== appointment.professionalId) {
         throw new ForbiddenException('Insufficient permissions')
       }
     }
@@ -93,11 +93,11 @@ export class CreateExamRequestUseCase extends BaseUseCase {
 
     const clinic = await this.findClinicByIdUseCase.execute(clinicId)
 
-    const doctor = doctorForRbac ?? (await this.doctorsRepository.findById(appointment.doctorId, clinicId))
-    if (!doctor) throw new NotFoundException('Doctor not found')
+    const professional = doctorForRbac ?? (await this.professionalsRepository.findById(appointment.professionalId, clinicId))
+    if (!professional) throw new NotFoundException('Professional not found')
 
-    const { crmNumber, rqe, specialtyName } = resolveDoctorSigningIdentity(
-      doctor,
+    const { councilType, registrationNumber, registryNumber, specialtyName } = resolveProfessionalSigningIdentity(
+      professional,
       appointment.specialtyId,
       dto.crmId,
       dto.specialtyId,
@@ -125,10 +125,11 @@ export class CreateExamRequestUseCase extends BaseUseCase {
           : null,
         logoUrl: clinic.logoUrl,
       },
-      doctor: {
-        name: doctor.user.fullName,
-        crmNumber,
-        rqe,
+      professional: {
+        name: professional.user.fullName,
+        councilType,
+        registrationNumber,
+        registryNumber,
         specialtyName,
       },
       patient: {
@@ -146,7 +147,7 @@ export class CreateExamRequestUseCase extends BaseUseCase {
       clinicId,
       appointmentId: dto.appointmentId,
       patientId: appointment.patientId,
-      doctorId: appointment.doctorId,
+      professionalId: appointment.professionalId,
       snapshot,
       issuedAt,
     })

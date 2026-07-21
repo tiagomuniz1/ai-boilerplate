@@ -4,8 +4,8 @@ import { PrescriptionTemplate } from '../entities/prescription-template.entity'
 
 export interface CreatePrescriptionTemplateData {
   clinicId: string
-  doctorId: string
-  doctorName: string
+  professionalId: string
+  professionalName: string
   name: string
   items: PrescriptionTemplateItem[]
   notes: string | null
@@ -19,7 +19,7 @@ export interface UpdatePrescriptionTemplateData {
 }
 
 export abstract class IPrescriptionTemplatesRepository {
-  abstract findAll(clinicId: string, doctorId?: string): Promise<PrescriptionTemplate[]>
+  abstract findAll(clinicId: string, professionalId?: string): Promise<PrescriptionTemplate[]>
   abstract findById(id: string, clinicId: string): Promise<PrescriptionTemplate | null>
   abstract create(data: CreatePrescriptionTemplateData, queryRunner?: QueryRunner): Promise<PrescriptionTemplate>
   abstract update(id: string, data: UpdatePrescriptionTemplateData, queryRunner?: QueryRunner): Promise<PrescriptionTemplate>

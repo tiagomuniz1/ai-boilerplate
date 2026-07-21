@@ -5,7 +5,7 @@ import { BaseUseCase } from '../../../common/base.use-case'
 import { CacheService } from '../../../cache/cache.service'
 import { ICurrentUser } from '../../auth/types/current-user.type'
 import { IAppointmentsRepository } from '../../appointments/repositories/appointments.repository.interface'
-import { IDoctorsRepository } from '../../doctors/repositories/doctors.repository.interface'
+import { IProfessionalsRepository } from '../../professionals/repositories/professionals.repository.interface'
 import { IMedicalCertificatesRepository } from '../repositories/medical-certificates.repository.interface'
 import { toMedicalCertificateResponse } from './create-medical-certificate.use-case'
 
@@ -17,7 +17,7 @@ export class FindMedicalCertificatesByAppointmentUseCase extends BaseUseCase {
     dataSource: DataSource,
     private readonly medicalCertificatesRepository: IMedicalCertificatesRepository,
     private readonly appointmentsRepository: IAppointmentsRepository,
-    private readonly doctorsRepository: IDoctorsRepository,
+    private readonly professionalsRepository: IProfessionalsRepository,
     private readonly cacheService: CacheService,
   ) {
     super(dataSource)
@@ -26,11 +26,11 @@ export class FindMedicalCertificatesByAppointmentUseCase extends BaseUseCase {
   async execute(appointmentId: string, currentUser: ICurrentUser): Promise<MedicalCertificateResponseDto[]> {
     const clinicId = currentUser.clinicId!
 
-    if (currentUser.role === UserRole.DOCTOR) {
+    if (currentUser.role === UserRole.PROFESSIONAL) {
       const appointment = await this.appointmentsRepository.findById(appointmentId, clinicId)
       if (!appointment) throw new NotFoundException('Appointment not found')
-      const doctor = await this.doctorsRepository.findByUserId(currentUser.id, clinicId)
-      if (!doctor || doctor.id !== appointment.doctorId) {
+      const professional = await this.professionalsRepository.findByUserId(currentUser.id, clinicId)
+      if (!professional || professional.id !== appointment.professionalId) {
         throw new ForbiddenException('Insufficient permissions')
       }
     }

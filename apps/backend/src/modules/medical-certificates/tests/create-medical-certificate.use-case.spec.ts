@@ -1,9 +1,9 @@
 import { ForbiddenException, NotFoundException, UnprocessableEntityException } from '@nestjs/common'
 import { DataSource } from 'typeorm'
-import { AppointmentStatus, MedicalCertificateType, UserRole } from '@app/shared'
+import { CouncilType, AppointmentStatus, MedicalCertificateType, UserRole } from '@app/shared'
 import { ICurrentUser } from '../../auth/types/current-user.type'
 import { IAppointmentsRepository } from '../../appointments/repositories/appointments.repository.interface'
-import { IDoctorsRepository } from '../../doctors/repositories/doctors.repository.interface'
+import { IProfessionalsRepository } from '../../professionals/repositories/professionals.repository.interface'
 import { IPatientsRepository } from '../../patients/repositories/patients.repository.interface'
 import { FindClinicByIdUseCase } from '../../clinics/use-cases/find-clinic-by-id.use-case'
 import { IMedicalCertificatesRepository } from '../repositories/medical-certificates.repository.interface'
@@ -11,18 +11,18 @@ import { CreateMedicalCertificateUseCase } from '../use-cases/create-medical-cer
 import { CacheService } from '../../../cache/cache.service'
 
 const clinicId = 'clinic-uuid'
-const doctorId = 'doctor-uuid'
+const professionalId = 'doctor-uuid'
 const patientId = 'patient-uuid'
 const appointmentId = 'appt-uuid'
 const specialtyId = 'specialty-uuid'
 
 const adminUser: ICurrentUser = { id: 'admin-id', role: UserRole.ADMIN, clinicId }
-const doctorUser: ICurrentUser = { id: 'doctor-user-id', role: UserRole.DOCTOR, clinicId }
+const doctorUser: ICurrentUser = { id: 'doctor-user-id', role: UserRole.PROFESSIONAL, clinicId }
 
 const makeAppointment = (overrides = {}) => ({
   id: appointmentId,
   clinicId,
-  doctorId,
+  professionalId,
   patientId,
   specialtyId,
   status: AppointmentStatus.SCHEDULED,
@@ -32,10 +32,10 @@ const makeAppointment = (overrides = {}) => ({
 const makeDoctor = (overrides: any = {}) => {
   const { specialties = [{ id: specialtyId, name: 'Cardiologia' }], ...rest } = overrides
   return {
-    id: doctorId,
+    id: professionalId,
     user: { fullName: 'Doctor Smith' },
-    crms: [{ id: 'crm-1', number: '12345', state: 'SP', isPrimary: true }],
-    doctorSpecialties: specialties.map((s: any) => ({ specialtyId: s.id, specialty: { id: s.id, name: s.name } })),
+    registrations: [{ id: 'crm-1', number: '12345', state: 'SP', isPrimary: true }],
+    professionalSpecialties: specialties.map((s: any) => ({ specialtyId: s.id, specialty: { id: s.id, name: s.name } })),
     ...rest,
   }
 }
@@ -67,13 +67,13 @@ const makeSavedCertificate = (overrides = {}) => ({
   clinicId,
   appointmentId,
   patientId,
-  doctorId,
+  professionalId,
   issuedAt: new Date(),
   snapshot: {
     issuedAt: new Date().toISOString(),
     type: MedicalCertificateType.LEAVE,
     clinic: { name: 'Test Clinic', address: null, logoUrl: null },
-    doctor: { name: 'Doctor Smith', crmNumber: '12345/SP', rqe: null, specialtyName: 'Cardiologia' },
+    professional: { name: 'Doctor Smith', councilType: CouncilType.CRM, registrationNumber: '12345/SP', registryNumber: null, specialtyName: 'Cardiologia' },
     patient: { name: 'Patient Jones', documentNumber: '12345678900' },
     daysOff: 3,
     startDate: '2026-01-05',
@@ -99,18 +99,18 @@ const mockMedicalCertificatesRepository: jest.Mocked<IMedicalCertificatesReposit
 const mockAppointmentsRepository: jest.Mocked<IAppointmentsRepository> = {
   findAll: jest.fn(),
   findById: jest.fn(),
-  findActiveByDoctorAndDate: jest.fn(),
+  findActiveByProfessionalAndDate: jest.fn(),
   findActiveBySlot: jest.fn(),
   hasFutureByScheduleId: jest.fn(),
   create: jest.fn(),
   update: jest.fn(),
 }
 
-const mockDoctorsRepository: jest.Mocked<IDoctorsRepository> = {
+const mockProfessionalsRepository: jest.Mocked<IProfessionalsRepository> = {
   findAll: jest.fn(),
   findById: jest.fn(),
   findByUserId: jest.fn(),
-  findByCrm: jest.fn(),
+  findByRegistration: jest.fn(),
   create: jest.fn(),
   update: jest.fn(),
   delete: jest.fn(),
@@ -160,14 +160,14 @@ describe('CreateMedicalCertificateUseCase', () => {
       {} as DataSource,
       mockMedicalCertificatesRepository,
       mockAppointmentsRepository,
-      mockDoctorsRepository,
+      mockProfessionalsRepository,
       mockPatientsRepository,
       mockFindClinicByIdUseCase,
       mockCacheService,
     )
     mockAppointmentsRepository.findById.mockResolvedValue(makeAppointment() as any)
-    mockDoctorsRepository.findByUserId.mockResolvedValue(makeDoctor() as any)
-    mockDoctorsRepository.findById.mockResolvedValue(makeDoctor() as any)
+    mockProfessionalsRepository.findByUserId.mockResolvedValue(makeDoctor() as any)
+    mockProfessionalsRepository.findById.mockResolvedValue(makeDoctor() as any)
     mockPatientsRepository.findById.mockResolvedValue(makePatient() as any)
     ;(mockFindClinicByIdUseCase.execute as jest.Mock).mockResolvedValue(makeClinic())
     mockMedicalCertificatesRepository.create.mockResolvedValue(makeSavedCertificate() as any)
@@ -179,7 +179,7 @@ describe('CreateMedicalCertificateUseCase', () => {
 
     expect(result.appointmentId).toBe(appointmentId)
     expect(result.patientName).toBe('Patient Jones')
-    expect(result.doctorName).toBe('Doctor Smith')
+    expect(result.professionalName).toBe('Doctor Smith')
     expect(mockMedicalCertificatesRepository.create).toHaveBeenCalled()
   })
 
@@ -187,22 +187,22 @@ describe('CreateMedicalCertificateUseCase', () => {
     const result = await useCase.execute(leaveDto as any, doctorUser)
 
     expect(result.appointmentId).toBe(appointmentId)
-    expect(mockDoctorsRepository.findByUserId).toHaveBeenCalledWith(doctorUser.id, clinicId)
+    expect(mockProfessionalsRepository.findByUserId).toHaveBeenCalledWith(doctorUser.id, clinicId)
     expect(mockMedicalCertificatesRepository.create).toHaveBeenCalled()
   })
 
   it('reuses DOCTOR from RBAC check when loading doctor for snapshot', async () => {
     await useCase.execute(leaveDto as any, doctorUser)
 
-    expect(mockDoctorsRepository.findByUserId).toHaveBeenCalledTimes(1)
-    expect(mockDoctorsRepository.findById).not.toHaveBeenCalled()
+    expect(mockProfessionalsRepository.findByUserId).toHaveBeenCalledTimes(1)
+    expect(mockProfessionalsRepository.findById).not.toHaveBeenCalled()
   })
 
   it('loads doctor by ID for ADMIN (no RBAC check)', async () => {
     await useCase.execute(leaveDto as any, adminUser)
 
-    expect(mockDoctorsRepository.findByUserId).not.toHaveBeenCalled()
-    expect(mockDoctorsRepository.findById).toHaveBeenCalledWith(doctorId, clinicId)
+    expect(mockProfessionalsRepository.findByUserId).not.toHaveBeenCalled()
+    expect(mockProfessionalsRepository.findById).toHaveBeenCalledWith(professionalId, clinicId)
   })
 
   it('builds snapshot with LEAVE fields and null ATTENDANCE fields', async () => {
@@ -250,8 +250,8 @@ describe('CreateMedicalCertificateUseCase', () => {
 
     const createCall = mockMedicalCertificatesRepository.create.mock.calls[0][0]
     expect(createCall.snapshot.clinic.name).toBe('Test Clinic')
-    expect(createCall.snapshot.doctor.crmNumber).toBe('12345/SP')
-    expect(createCall.snapshot.doctor.specialtyName).toBe('Cardiologia')
+    expect(createCall.snapshot.professional.registrationNumber).toBe('12345/SP')
+    expect(createCall.snapshot.professional.specialtyName).toBe('Cardiologia')
     expect(createCall.snapshot.patient.documentNumber).toBe('12345678900')
   })
 
@@ -261,16 +261,16 @@ describe('CreateMedicalCertificateUseCase', () => {
     await useCase.execute(leaveDto as any, adminUser)
 
     const createCall = mockMedicalCertificatesRepository.create.mock.calls[0][0]
-    expect(createCall.snapshot.doctor.specialtyName).toBeNull()
+    expect(createCall.snapshot.professional.specialtyName).toBeNull()
   })
 
   it('sets specialtyName to null when doctor has no matching specialty', async () => {
-    mockDoctorsRepository.findById.mockResolvedValue(makeDoctor({ specialties: [] }) as any)
+    mockProfessionalsRepository.findById.mockResolvedValue(makeDoctor({ specialties: [] }) as any)
 
     await useCase.execute(leaveDto as any, adminUser)
 
     const createCall = mockMedicalCertificatesRepository.create.mock.calls[0][0]
-    expect(createCall.snapshot.doctor.specialtyName).toBeNull()
+    expect(createCall.snapshot.professional.specialtyName).toBeNull()
   })
 
   it('preserves observations in snapshot', async () => {
@@ -306,13 +306,13 @@ describe('CreateMedicalCertificateUseCase', () => {
   })
 
   it('throws ForbiddenException when DOCTOR tries to create for another doctor appointment', async () => {
-    mockDoctorsRepository.findByUserId.mockResolvedValue(makeDoctor({ id: 'other-doctor' }) as any)
+    mockProfessionalsRepository.findByUserId.mockResolvedValue(makeDoctor({ id: 'other-doctor' }) as any)
 
     await expect(useCase.execute(leaveDto as any, doctorUser)).rejects.toThrow(ForbiddenException)
   })
 
   it('throws ForbiddenException when DOCTOR has no doctor profile', async () => {
-    mockDoctorsRepository.findByUserId.mockResolvedValue(null)
+    mockProfessionalsRepository.findByUserId.mockResolvedValue(null)
 
     await expect(useCase.execute(leaveDto as any, doctorUser)).rejects.toThrow(ForbiddenException)
   })
@@ -324,7 +324,7 @@ describe('CreateMedicalCertificateUseCase', () => {
   })
 
   it('throws NotFoundException when doctor not found during snapshot', async () => {
-    mockDoctorsRepository.findById.mockResolvedValue(null)
+    mockProfessionalsRepository.findById.mockResolvedValue(null)
 
     await expect(useCase.execute(leaveDto as any, adminUser)).rejects.toThrow(NotFoundException)
   })

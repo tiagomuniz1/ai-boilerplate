@@ -18,8 +18,8 @@ export interface IExamRequestModel {
   appointmentId: string
   patientId: string
   patientName: string
-  doctorId: string
-  doctorName: string
+  professionalId: string
+  professionalName: string
   items: IExamRequestItemModel[]
   notes: string | null
   status: ExamRequestStatus

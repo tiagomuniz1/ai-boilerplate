@@ -9,7 +9,7 @@ import type { IScheduleModel } from '../types/schedule-model.types'
 
 const makeDto = () => ({
   id: 'uuid-1',
-  doctorId: 'doc-uuid',
+  professionalId: 'doc-uuid',
   dayOfWeek: DayOfWeek.MONDAY,
   startTime: '08:00',
   endTime: '12:00',

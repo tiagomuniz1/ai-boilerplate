@@ -1,6 +1,6 @@
 import { visitClinic, CLINIC_ID } from '../../support/clinic'
 
-const DOCTOR_ID = '00000000-0000-4000-b000-000000000001'
+const PROFESSIONAL_ID = '00000000-0000-4000-b000-000000000001'
 const APPT_ID = '00000000-0000-4000-d000-000000000002'
 
 const mockAdminUser = {
@@ -11,18 +11,18 @@ const mockAdminUser = {
   clinicId: CLINIC_ID,
 }
 
-const mockDoctorUser = {
-  id: 'doctor-user-uuid',
+const mockProfessionalUser = {
+  id: 'professional-user-uuid',
   fullName: 'Dr. Owner',
-  email: 'doctor@clinic.com',
-  role: 'doctor',
+  email: 'professional@clinic.com',
+  role: 'professional',
   clinicId: CLINIC_ID,
 }
 
 const mockAppointmentDetail = {
   id: APPT_ID,
-  doctorId: DOCTOR_ID,
-  doctorName: 'Dr. Owner',
+  professionalId: PROFESSIONAL_ID,
+  professionalName: 'Dr. Owner',
   patientId: 'patient-uuid',
   patientName: 'João Silva',
   specialtyId: 'spec-uuid',
@@ -47,12 +47,12 @@ const mockAppointmentDetail = {
   },
 }
 
-const mockDoctorsResponse = {
+const mockProfessionalsResponse = {
   data: [
     {
-      id: DOCTOR_ID,
-      user: { id: 'doctor-user-uuid', fullName: 'Dr. Owner', email: 'doctor@clinic.com', isActive: true },
-      crmNumber: '12345/SP',
+      id: PROFESSIONAL_ID,
+      user: { id: 'professional-user-uuid', fullName: 'Dr. Owner', email: 'professional@clinic.com', isActive: true },
+      registrations: [{ id: 'reg-1', councilType: 'crm', number: '12345/SP', state: 'SP', isPrimary: true }],
       specialties: [],
       bio: null,
       createdAt: '2025-01-01T00:00:00.000Z',
@@ -71,11 +71,11 @@ function stubAppointmentDetail(overrides: object = {}) {
   }).as('getAppointmentDetail')
 }
 
-function stubDoctors() {
-  cy.intercept('GET', `${Cypress.env('API_URL')}/doctors*`, {
+function stubProfessionals() {
+  cy.intercept('GET', `${Cypress.env('API_URL')}/professionals*`, {
     statusCode: 200,
-    body: mockDoctorsResponse,
-  }).as('getDoctors')
+    body: mockProfessionalsResponse,
+  }).as('getProfessionals')
 }
 
 function stubMedicalRecord(body: object | null = null) {
@@ -106,14 +106,22 @@ function stubAtestados() {
   }).as('getAtestados')
 }
 
+function stubExamRequests() {
+  cy.intercept('GET', `${Cypress.env('API_URL')}/exam-requests*`, {
+    statusCode: 200,
+    body: [],
+  }).as('getExamRequests')
+}
+
 describe('Appointment Detail Page', () => {
   describe('ADMIN', () => {
     beforeEach(() => {
-      stubDoctors()
+      stubProfessionals()
       stubMedicalRecord()
       stubTemplates()
       stubPrescriptions()
       stubAtestados()
+      stubExamRequests()
     })
 
     it('renders appointment summary with patient info', () => {
@@ -121,8 +129,8 @@ describe('Appointment Detail Page', () => {
       visitClinic(`/appointments/${APPT_ID}`, mockAdminUser)
 
       cy.get('[data-testid="appointment-detail-page"]').should('exist')
-      cy.get('[data-testid="appointment-detail-doctor"]').should('contain', 'Dr. Owner')
-      cy.get('[data-testid="appointment-detail-date"]').should('contain', '2025-06-10')
+      cy.get('[data-testid="appointment-detail-professional"]').should('contain', 'Dr. Owner')
+      cy.get('[data-testid="appointment-detail-date"]').should('contain', '10/06/2025')
       cy.get('[data-testid="appointment-detail-status"]').should('contain', 'Agendada')
     })
 
@@ -179,15 +187,16 @@ describe('Appointment Detail Page', () => {
     })
   })
 
-  describe('DOCTOR (own appointment)', () => {
+  describe('PROFESSIONAL (own appointment)', () => {
     it('sees actions and medical record section', () => {
-      stubDoctors()
+      stubProfessionals()
       stubMedicalRecord()
       stubTemplates()
       stubPrescriptions()
       stubAtestados()
-      stubAppointmentDetail({ doctorId: DOCTOR_ID })
-      visitClinic(`/appointments/${APPT_ID}`, mockDoctorUser)
+      stubExamRequests()
+      stubAppointmentDetail({ professionalId: PROFESSIONAL_ID })
+      visitClinic(`/appointments/${APPT_ID}`, mockProfessionalUser)
 
       cy.get('[data-testid="appointment-detail-cancel-button"]').should('exist')
       cy.get('[data-testid="tab-prontuario"]').click()
@@ -197,11 +206,12 @@ describe('Appointment Detail Page', () => {
 
   describe('USER', () => {
     it('does not see action buttons or medical record section', () => {
-      stubDoctors()
+      stubProfessionals()
       stubMedicalRecord()
       stubTemplates()
       stubPrescriptions()
       stubAtestados()
+      stubExamRequests()
       stubAppointmentDetail()
 
       const mockUserRole = { ...mockAdminUser, role: 'user' }

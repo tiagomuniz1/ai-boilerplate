@@ -6,7 +6,7 @@ export interface CreateExamRequestData {
   clinicId: string
   appointmentId: string
   patientId: string
-  doctorId: string
+  professionalId: string
   snapshot: ExamRequestSnapshot
   issuedAt: Date
 }

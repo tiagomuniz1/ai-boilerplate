@@ -30,7 +30,7 @@ export default function EditSchedulePage() {
       {
         onError: (error: IApiError) => {
           if (error.status === 409) {
-            setGlobalError('Esta agenda conflita com outra já existente para este médico.')
+            setGlobalError('Esta agenda conflita com outra já existente para este profissional.')
           } else if (error.errors) {
             error.errors.forEach(({ field, message }) => {
               setError(field, { message })

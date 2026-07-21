@@ -11,7 +11,7 @@ import { Tabs } from '@/components/ui/atoms/tabs/tabs'
 import { useAppointment } from '@/components/features/appointments/hooks/use-appointment.hook'
 import { useCompleteAppointment } from '@/components/features/appointments/hooks/use-complete-appointment.hook'
 import { useCancelAppointment } from '@/components/features/appointments/hooks/use-cancel-appointment.hook'
-import { useDoctors } from '@/components/features/doctors/hooks/use-doctors.hook'
+import { useProfessionals } from '@/components/features/professionals/hooks/use-professionals.hook'
 import { usePrescriptions } from '@/components/features/prescriptions/hooks/use-prescriptions.hook'
 import { useAtestados } from '@/components/features/atestados/hooks/use-atestados.hook'
 import { useExamRequests } from '@/components/features/exames/hooks/use-exam-requests.hook'
@@ -34,9 +34,9 @@ export default function AppointmentDetailPage() {
   const currentUser = useAuthStore((s) => s.user)
   const role = currentUser?.role ?? UserRole.USER
 
-  const isDoctor = role === UserRole.DOCTOR
-  const { data: doctors } = useDoctors({ limit: 100 })
-  const currentDoctorId = isDoctor ? doctors?.[0]?.id : undefined
+  const isProfessional = role === UserRole.PROFESSIONAL
+  const { data: doctors } = useProfessionals({ limit: 100 })
+  const currentDoctorId = isProfessional ? doctors?.[0]?.id : undefined
 
   const { data: appointment, isLoading, isError } = useAppointment(id)
 
@@ -49,11 +49,11 @@ export default function AppointmentDetailPage() {
 
   const canManage =
     role === UserRole.ADMIN ||
-    (role === UserRole.DOCTOR && appointment?.doctorId === currentDoctorId)
+    (role === UserRole.PROFESSIONAL && appointment?.professionalId === currentDoctorId)
 
   const canSeeMedicalRecord =
     role === UserRole.ADMIN ||
-    (role === UserRole.DOCTOR && appointment?.doctorId === currentDoctorId)
+    (role === UserRole.PROFESSIONAL && appointment?.professionalId === currentDoctorId)
 
   const canAct = canManage && appointment?.status === AppointmentStatus.SCHEDULED
 
@@ -182,7 +182,7 @@ export default function AppointmentDetailPage() {
               {activeTab === 'receitas' && canManage && (
                 <PrescriptionSection
                   appointmentId={id}
-                  doctorId={appointment.doctorId}
+                  professionalId={appointment.professionalId}
                   canManage={canManage}
                   userRole={role}
                 />
@@ -191,7 +191,7 @@ export default function AppointmentDetailPage() {
               {activeTab === 'atestados' && canManage && (
                 <AtestadoSection
                   appointmentId={id}
-                  doctorId={appointment.doctorId}
+                  professionalId={appointment.professionalId}
                   canManage={canManage}
                   userRole={role}
                 />
@@ -200,7 +200,7 @@ export default function AppointmentDetailPage() {
               {activeTab === 'exames' && canManage && (
                 <ExameSection
                   appointmentId={id}
-                  doctorId={appointment.doctorId}
+                  professionalId={appointment.professionalId}
                   canManage={canManage}
                   userRole={role}
                 />

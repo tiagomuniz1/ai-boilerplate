@@ -6,7 +6,7 @@ import { BaseUseCase } from '../../../common/base.use-case'
 import { IStorageAdapter } from '../../../common/adapters/storage.adapter.interface'
 import { CacheService } from '../../../cache/cache.service'
 import { ICurrentUser } from '../../auth/types/current-user.type'
-import { IDoctorsRepository } from '../../doctors/repositories/doctors.repository.interface'
+import { IProfessionalsRepository } from '../../professionals/repositories/professionals.repository.interface'
 import { IExamRequestsRepository } from '../repositories/exam-requests.repository.interface'
 import { IExamResultsRepository } from '../repositories/exam-results.repository.interface'
 import { FindExamRequestByIdUseCase } from './find-exam-request-by-id.use-case'
@@ -29,7 +29,7 @@ export class AddExamResultUseCase extends BaseUseCase {
     dataSource: DataSource,
     private readonly examRequestsRepository: IExamRequestsRepository,
     private readonly examResultsRepository: IExamResultsRepository,
-    private readonly doctorsRepository: IDoctorsRepository,
+    private readonly professionalsRepository: IProfessionalsRepository,
     private readonly storageAdapter: IStorageAdapter,
     private readonly cacheService: CacheService,
     private readonly findExamRequestByIdUseCase: FindExamRequestByIdUseCase,
@@ -47,8 +47,8 @@ export class AddExamResultUseCase extends BaseUseCase {
     const examRequest = await this.examRequestsRepository.findById(examRequestId, clinicId)
     if (!examRequest) throw new NotFoundException('Exam request not found')
 
-    const doctor = await this.doctorsRepository.findByUserId(currentUser.id, clinicId)
-    if (!doctor || doctor.id !== examRequest.doctorId) {
+    const professional = await this.professionalsRepository.findByUserId(currentUser.id, clinicId)
+    if (!professional || professional.id !== examRequest.professionalId) {
       throw new ForbiddenException('Insufficient permissions')
     }
 

@@ -7,7 +7,7 @@ import { DownloadExamResultFileUseCase } from '../use-cases/download-exam-result
 const mockDelete = { execute: jest.fn() } as unknown as jest.Mocked<DeleteExamResultUseCase>
 const mockDownloadFile = { execute: jest.fn() } as unknown as jest.Mocked<DownloadExamResultFileUseCase>
 
-const currentUser: ICurrentUser = { id: 'doctor-uuid', role: UserRole.DOCTOR, clinicId: 'clinic-uuid' }
+const currentUser: ICurrentUser = { id: 'doctor-uuid', role: UserRole.PROFESSIONAL, clinicId: 'clinic-uuid' }
 
 function makeResponse() {
   return {

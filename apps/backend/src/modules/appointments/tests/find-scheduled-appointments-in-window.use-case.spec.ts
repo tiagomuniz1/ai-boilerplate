@@ -5,12 +5,12 @@ import { IAppointmentsRepository } from '../repositories/appointments.repository
 import { FindScheduledAppointmentsInWindowUseCase } from '../use-cases/find-scheduled-appointments-in-window.use-case'
 
 const CLINIC_ID = 'clinic-uuid'
-const doctorId = faker.string.uuid()
+const professionalId = faker.string.uuid()
 
 const makeAppointment = (overrides = {}) => ({
   id: faker.string.uuid(),
   clinicId: CLINIC_ID,
-  doctorId,
+  professionalId,
   patientId: faker.string.uuid(),
   scheduleId: faker.string.uuid(),
   date: '2099-06-20',
@@ -29,7 +29,7 @@ const makeAppointment = (overrides = {}) => ({
 const mockAppointmentsRepository: jest.Mocked<IAppointmentsRepository> = {
   findAll: jest.fn(),
   findById: jest.fn(),
-  findActiveByDoctorAndDate: jest.fn(),
+  findActiveByProfessionalAndDate: jest.fn(),
   findActiveBySlot: jest.fn(),
   hasFutureByScheduleId: jest.fn(),
   create: jest.fn(),
@@ -57,21 +57,21 @@ describe('FindScheduledAppointmentsInWindowUseCase', () => {
   })
 
   it('returns empty array when no appointments exist on that day', async () => {
-    mockAppointmentsRepository.findActiveByDoctorAndDate.mockResolvedValue([])
+    mockAppointmentsRepository.findActiveByProfessionalAndDate.mockResolvedValue([])
     useCase = new FindScheduledAppointmentsInWindowUseCase(makeMockDataSource(), mockAppointmentsRepository)
 
-    const result = await useCase.execute(doctorId, '2099-06-20', '08:00', '12:00', CLINIC_ID)
+    const result = await useCase.execute(professionalId, '2099-06-20', '08:00', '12:00', CLINIC_ID)
 
     expect(result).toEqual([])
-    expect(mockAppointmentsRepository.findActiveByDoctorAndDate).toHaveBeenCalledWith(doctorId, '2099-06-20', CLINIC_ID)
+    expect(mockAppointmentsRepository.findActiveByProfessionalAndDate).toHaveBeenCalledWith(professionalId, '2099-06-20', CLINIC_ID)
   })
 
   it('returns empty array when appointments do not overlap the block window', async () => {
     const appointment = makeAppointment({ startTime: '13:00', endTime: '13:30' })
-    mockAppointmentsRepository.findActiveByDoctorAndDate.mockResolvedValue([appointment as any])
+    mockAppointmentsRepository.findActiveByProfessionalAndDate.mockResolvedValue([appointment as any])
     useCase = new FindScheduledAppointmentsInWindowUseCase(makeMockDataSource(), mockAppointmentsRepository)
 
-    const result = await useCase.execute(doctorId, '2099-06-20', '08:00', '12:00', CLINIC_ID)
+    const result = await useCase.execute(professionalId, '2099-06-20', '08:00', '12:00', CLINIC_ID)
 
     expect(result).toEqual([])
   })
@@ -79,10 +79,10 @@ describe('FindScheduledAppointmentsInWindowUseCase', () => {
   it('returns conflicting appointments that overlap the block window', async () => {
     const appointment = makeAppointment({ startTime: '09:00', endTime: '09:30' })
     const patientRows = [{ apptId: appointment.id, patientName: 'Patient Name' }]
-    mockAppointmentsRepository.findActiveByDoctorAndDate.mockResolvedValue([appointment as any])
+    mockAppointmentsRepository.findActiveByProfessionalAndDate.mockResolvedValue([appointment as any])
     useCase = new FindScheduledAppointmentsInWindowUseCase(makeMockDataSource(patientRows), mockAppointmentsRepository)
 
-    const result = await useCase.execute(doctorId, '2099-06-20', '08:00', '12:00', CLINIC_ID)
+    const result = await useCase.execute(professionalId, '2099-06-20', '08:00', '12:00', CLINIC_ID)
 
     expect(result).toHaveLength(1)
     expect(result[0].id).toBe(appointment.id)
@@ -94,10 +94,10 @@ describe('FindScheduledAppointmentsInWindowUseCase', () => {
   it('handles null startTime (full-day block from midnight)', async () => {
     const appointment = makeAppointment({ startTime: '00:30', endTime: '01:00' })
     const patientRows = [{ apptId: appointment.id, patientName: 'Patient A' }]
-    mockAppointmentsRepository.findActiveByDoctorAndDate.mockResolvedValue([appointment as any])
+    mockAppointmentsRepository.findActiveByProfessionalAndDate.mockResolvedValue([appointment as any])
     useCase = new FindScheduledAppointmentsInWindowUseCase(makeMockDataSource(patientRows), mockAppointmentsRepository)
 
-    const result = await useCase.execute(doctorId, '2099-06-20', null, '06:00', CLINIC_ID)
+    const result = await useCase.execute(professionalId, '2099-06-20', null, '06:00', CLINIC_ID)
 
     expect(result).toHaveLength(1)
     expect(result[0].id).toBe(appointment.id)
@@ -106,10 +106,10 @@ describe('FindScheduledAppointmentsInWindowUseCase', () => {
   it('handles null endTime (full-day block until midnight)', async () => {
     const appointment = makeAppointment({ startTime: '20:00', endTime: '20:30' })
     const patientRows = [{ apptId: appointment.id, patientName: 'Patient B' }]
-    mockAppointmentsRepository.findActiveByDoctorAndDate.mockResolvedValue([appointment as any])
+    mockAppointmentsRepository.findActiveByProfessionalAndDate.mockResolvedValue([appointment as any])
     useCase = new FindScheduledAppointmentsInWindowUseCase(makeMockDataSource(patientRows), mockAppointmentsRepository)
 
-    const result = await useCase.execute(doctorId, '2099-06-20', '18:00', null, CLINIC_ID)
+    const result = await useCase.execute(professionalId, '2099-06-20', '18:00', null, CLINIC_ID)
 
     expect(result).toHaveLength(1)
   })
@@ -117,10 +117,10 @@ describe('FindScheduledAppointmentsInWindowUseCase', () => {
   it('handles null startTime and null endTime (full-day block)', async () => {
     const appointment = makeAppointment({ startTime: '10:00', endTime: '10:30' })
     const patientRows = [{ apptId: appointment.id, patientName: 'Patient C' }]
-    mockAppointmentsRepository.findActiveByDoctorAndDate.mockResolvedValue([appointment as any])
+    mockAppointmentsRepository.findActiveByProfessionalAndDate.mockResolvedValue([appointment as any])
     useCase = new FindScheduledAppointmentsInWindowUseCase(makeMockDataSource(patientRows), mockAppointmentsRepository)
 
-    const result = await useCase.execute(doctorId, '2099-06-20', null, null, CLINIC_ID)
+    const result = await useCase.execute(professionalId, '2099-06-20', null, null, CLINIC_ID)
 
     expect(result).toHaveLength(1)
   })
@@ -128,20 +128,20 @@ describe('FindScheduledAppointmentsInWindowUseCase', () => {
   it('filters out non-SCHEDULED appointments', async () => {
     const cancelled = makeAppointment({ startTime: '09:00', endTime: '09:30', status: AppointmentStatus.CANCELLED })
     const completed = makeAppointment({ startTime: '10:00', endTime: '10:30', status: AppointmentStatus.COMPLETED })
-    mockAppointmentsRepository.findActiveByDoctorAndDate.mockResolvedValue([cancelled as any, completed as any])
+    mockAppointmentsRepository.findActiveByProfessionalAndDate.mockResolvedValue([cancelled as any, completed as any])
     useCase = new FindScheduledAppointmentsInWindowUseCase(makeMockDataSource(), mockAppointmentsRepository)
 
-    const result = await useCase.execute(doctorId, '2099-06-20', '08:00', '12:00', CLINIC_ID)
+    const result = await useCase.execute(professionalId, '2099-06-20', '08:00', '12:00', CLINIC_ID)
 
     expect(result).toEqual([])
   })
 
   it('returns empty patientName when no patient row found in DB', async () => {
     const appointment = makeAppointment({ startTime: '09:00', endTime: '09:30' })
-    mockAppointmentsRepository.findActiveByDoctorAndDate.mockResolvedValue([appointment as any])
+    mockAppointmentsRepository.findActiveByProfessionalAndDate.mockResolvedValue([appointment as any])
     useCase = new FindScheduledAppointmentsInWindowUseCase(makeMockDataSource([]), mockAppointmentsRepository)
 
-    const result = await useCase.execute(doctorId, '2099-06-20', '08:00', '12:00', CLINIC_ID)
+    const result = await useCase.execute(professionalId, '2099-06-20', '08:00', '12:00', CLINIC_ID)
 
     expect(result).toHaveLength(1)
     expect(result[0].patientName).toBe('')
@@ -149,20 +149,20 @@ describe('FindScheduledAppointmentsInWindowUseCase', () => {
 
   it('handles overlap at block boundary — appointment ending exactly at block start is not conflicting', async () => {
     const appointment = makeAppointment({ startTime: '07:30', endTime: '08:00' })
-    mockAppointmentsRepository.findActiveByDoctorAndDate.mockResolvedValue([appointment as any])
+    mockAppointmentsRepository.findActiveByProfessionalAndDate.mockResolvedValue([appointment as any])
     useCase = new FindScheduledAppointmentsInWindowUseCase(makeMockDataSource(), mockAppointmentsRepository)
 
-    const result = await useCase.execute(doctorId, '2099-06-20', '08:00', '12:00', CLINIC_ID)
+    const result = await useCase.execute(professionalId, '2099-06-20', '08:00', '12:00', CLINIC_ID)
 
     expect(result).toEqual([])
   })
 
   it('handles overlap at block boundary — appointment starting exactly at block end is not conflicting', async () => {
     const appointment = makeAppointment({ startTime: '12:00', endTime: '12:30' })
-    mockAppointmentsRepository.findActiveByDoctorAndDate.mockResolvedValue([appointment as any])
+    mockAppointmentsRepository.findActiveByProfessionalAndDate.mockResolvedValue([appointment as any])
     useCase = new FindScheduledAppointmentsInWindowUseCase(makeMockDataSource(), mockAppointmentsRepository)
 
-    const result = await useCase.execute(doctorId, '2099-06-20', '08:00', '12:00', CLINIC_ID)
+    const result = await useCase.execute(professionalId, '2099-06-20', '08:00', '12:00', CLINIC_ID)
 
     expect(result).toEqual([])
   })
@@ -174,10 +174,10 @@ describe('FindScheduledAppointmentsInWindowUseCase', () => {
       { apptId: appt1.id, patientName: 'Alice' },
       { apptId: appt2.id, patientName: 'Bob' },
     ]
-    mockAppointmentsRepository.findActiveByDoctorAndDate.mockResolvedValue([appt1 as any, appt2 as any])
+    mockAppointmentsRepository.findActiveByProfessionalAndDate.mockResolvedValue([appt1 as any, appt2 as any])
     useCase = new FindScheduledAppointmentsInWindowUseCase(makeMockDataSource(patientRows), mockAppointmentsRepository)
 
-    const result = await useCase.execute(doctorId, '2099-06-20', '08:00', '12:00', CLINIC_ID)
+    const result = await useCase.execute(professionalId, '2099-06-20', '08:00', '12:00', CLINIC_ID)
 
     expect(result).toHaveLength(2)
     expect(result[0].patientName).toBe('Alice')

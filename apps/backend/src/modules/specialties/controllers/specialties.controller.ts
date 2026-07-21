@@ -32,13 +32,13 @@ export class SpecialtiesController {
   }
 
   @Get()
-  @Roles(UserRole.PLATFORM_ADMIN, UserRole.ADMIN, UserRole.DOCTOR, UserRole.USER)
+  @Roles(UserRole.PLATFORM_ADMIN, UserRole.ADMIN, UserRole.PROFESSIONAL, UserRole.USER)
   findAll(@Query() query: SpecialtyListQueryDto): Promise<PaginatedSpecialtiesResponseDto> {
     return this.findAllSpecialtiesUseCase.execute(query)
   }
 
   @Get(':id')
-  @Roles(UserRole.PLATFORM_ADMIN, UserRole.ADMIN, UserRole.DOCTOR, UserRole.USER)
+  @Roles(UserRole.PLATFORM_ADMIN, UserRole.ADMIN, UserRole.PROFESSIONAL, UserRole.USER)
   findById(@Param('id') id: string): Promise<SpecialtyResponseDto> {
     return this.findSpecialtyByIdUseCase.execute(id)
   }

@@ -64,17 +64,17 @@ describe('MedicalRecordsRepository', () => {
       expect(mockQueryBuilder.take).toHaveBeenCalledWith(20)
     })
 
-    it('adds doctorId filter when provided', async () => {
+    it('adds professionalId filter when provided', async () => {
       mockQueryBuilder.getManyAndCount.mockResolvedValue([[], 0])
       await repository.findByPatient('clinic-1', 'patient-1', 1, 20, 'doctor-1')
-      expect(mockQueryBuilder.andWhere).toHaveBeenCalledWith('mr.doctorId = :doctorId', { doctorId: 'doctor-1' })
+      expect(mockQueryBuilder.andWhere).toHaveBeenCalledWith('mr.professionalId = :professionalId', { professionalId: 'doctor-1' })
     })
 
-    it('skips doctorId filter when not provided', async () => {
+    it('skips professionalId filter when not provided', async () => {
       mockQueryBuilder.getManyAndCount.mockResolvedValue([[], 0])
       await repository.findByPatient('clinic-1', 'patient-1', 1, 20)
       const andWhereCalls = (mockQueryBuilder.andWhere as jest.Mock).mock.calls.map((c: unknown[]) => c[0])
-      expect(andWhereCalls).not.toContain('mr.doctorId = :doctorId')
+      expect(andWhereCalls).not.toContain('mr.professionalId = :professionalId')
     })
   })
 
@@ -83,7 +83,7 @@ describe('MedicalRecordsRepository', () => {
       clinicId: 'clinic-1',
       appointmentId: 'appt-1',
       patientId: 'patient-1',
-      doctorId: 'doctor-1',
+      professionalId: 'doctor-1',
       specialtyId: 'specialty-1',
       templateId: 'template-1',
       templateSchemaSnapshot: [],
@@ -93,7 +93,7 @@ describe('MedicalRecordsRepository', () => {
 
     it('saves record via own repository and reloads with joins', async () => {
       const saved = { id: 'new-id', clinicId: 'clinic-1' }
-      const full = { id: 'new-id', clinicId: 'clinic-1', patient: {}, doctor: {}, specialty: {} }
+      const full = { id: 'new-id', clinicId: 'clinic-1', patient: {}, professional: {}, specialty: {} }
       ;(mockRepository.create as jest.Mock).mockReturnValue(saved)
       ;(mockRepository.save as jest.Mock).mockResolvedValue(saved)
       mockQueryBuilder.getOne.mockResolvedValue(full)
@@ -105,7 +105,7 @@ describe('MedicalRecordsRepository', () => {
 
     it('uses queryRunner manager repository when provided', async () => {
       const saved = { id: 'new-id', clinicId: 'clinic-1' }
-      const full = { id: 'new-id', patient: {}, doctor: {}, specialty: {} }
+      const full = { id: 'new-id', patient: {}, professional: {}, specialty: {} }
       const qrRepo = { create: jest.fn().mockReturnValue(saved), save: jest.fn().mockResolvedValue(saved) }
       const qr = { manager: { getRepository: jest.fn().mockReturnValue(qrRepo) } } as unknown as QueryRunner
       mockQueryBuilder.getOne.mockResolvedValue(full)
@@ -120,7 +120,7 @@ describe('MedicalRecordsRepository', () => {
 
   describe('update', () => {
     it('patches data and notes and reloads', async () => {
-      const updated = { id: 'id-1', patient: {}, doctor: {}, specialty: {} }
+      const updated = { id: 'id-1', patient: {}, professional: {}, specialty: {} }
       ;(mockRepository.update as jest.Mock).mockResolvedValue(undefined)
       mockQueryBuilder.getOne.mockResolvedValue(updated)
 
@@ -130,7 +130,7 @@ describe('MedicalRecordsRepository', () => {
     })
 
     it('skips undefined fields in patch', async () => {
-      const updated = { id: 'id-1', patient: {}, doctor: {}, specialty: {} }
+      const updated = { id: 'id-1', patient: {}, professional: {}, specialty: {} }
       ;(mockRepository.update as jest.Mock).mockResolvedValue(undefined)
       mockQueryBuilder.getOne.mockResolvedValue(updated)
 
@@ -139,7 +139,7 @@ describe('MedicalRecordsRepository', () => {
     })
 
     it('uses queryRunner manager repository when provided', async () => {
-      const full = { id: 'id-1', patient: {}, doctor: {}, specialty: {} }
+      const full = { id: 'id-1', patient: {}, professional: {}, specialty: {} }
       const qrRepo = { update: jest.fn().mockResolvedValue(undefined) }
       const qr = { manager: { getRepository: jest.fn().mockReturnValue(qrRepo) } } as unknown as QueryRunner
       mockQueryBuilder.getOne.mockResolvedValue(full)

@@ -7,8 +7,8 @@ export function toPrescriptionModel(dto: PrescriptionResponseDto): IPrescription
     appointmentId: dto.appointmentId,
     patientId: dto.patientId,
     patientName: dto.patientName,
-    doctorId: dto.doctorId,
-    doctorName: dto.doctorName,
+    professionalId: dto.professionalId,
+    professionalName: dto.professionalName,
     issuedAt: new Date(dto.issuedAt as unknown as string),
     items: dto.items.map((item) => ({
       medicationId: item.medicationId,

@@ -9,7 +9,7 @@ const makeAppointment = (overrides = {}): Appointment =>
   ({
     id: faker.string.uuid(),
     clinicId: CLINIC_ID,
-    doctorId: faker.string.uuid(),
+    professionalId: faker.string.uuid(),
     patientId: faker.string.uuid(),
     scheduleId: faker.string.uuid(),
     date: '2099-06-20',
@@ -70,15 +70,15 @@ describe('AppointmentsRepository', () => {
       expect(result).toEqual([appointments, 1])
     })
 
-    it('applies doctorId filter when provided', async () => {
-      const doctorId = faker.string.uuid()
+    it('applies professionalId filter when provided', async () => {
+      const professionalId = faker.string.uuid()
       const qb = makeQueryBuilder()
       qb.getManyAndCount.mockResolvedValue([[], 0])
       mockRepository.createQueryBuilder.mockReturnValue(qb)
 
-      await repository.findAll({ page: 1, limit: 20, doctorId } as any, CLINIC_ID)
+      await repository.findAll({ page: 1, limit: 20, professionalId } as any, CLINIC_ID)
 
-      expect(qb.andWhere).toHaveBeenCalledWith('appointment.doctor_id = :doctorId', { doctorId })
+      expect(qb.andWhere).toHaveBeenCalledWith('appointment.professional_id = :professionalId', { professionalId })
     })
 
     it('applies patientId filter when provided', async () => {
@@ -156,16 +156,16 @@ describe('AppointmentsRepository', () => {
     })
   })
 
-  describe('findActiveByDoctorAndDate', () => {
+  describe('findActiveByProfessionalAndDate', () => {
     it('returns scheduled appointments by doctor and date', async () => {
-      const doctorId = faker.string.uuid()
-      const appointment = makeAppointment({ doctorId })
+      const professionalId = faker.string.uuid()
+      const appointment = makeAppointment({ professionalId })
       mockRepository.find.mockResolvedValue([appointment])
 
-      const result = await repository.findActiveByDoctorAndDate(doctorId, '2099-06-20', CLINIC_ID)
+      const result = await repository.findActiveByProfessionalAndDate(professionalId, '2099-06-20', CLINIC_ID)
 
       expect(mockRepository.find).toHaveBeenCalledWith({
-        where: { doctorId, date: '2099-06-20', clinicId: CLINIC_ID, status: AppointmentStatus.SCHEDULED },
+        where: { professionalId, date: '2099-06-20', clinicId: CLINIC_ID, status: AppointmentStatus.SCHEDULED },
       })
       expect(result).toEqual([appointment])
     })
@@ -173,25 +173,25 @@ describe('AppointmentsRepository', () => {
 
   describe('findActiveBySlot', () => {
     it('returns scheduled appointment by slot without queryRunner', async () => {
-      const doctorId = faker.string.uuid()
-      const appointment = makeAppointment({ doctorId })
+      const professionalId = faker.string.uuid()
+      const appointment = makeAppointment({ professionalId })
       mockRepository.findOne.mockResolvedValue(appointment)
 
-      const result = await repository.findActiveBySlot(doctorId, '2099-06-20', '08:00', CLINIC_ID)
+      const result = await repository.findActiveBySlot(professionalId, '2099-06-20', '08:00', CLINIC_ID)
 
       expect(mockRepository.findOne).toHaveBeenCalledWith({
-        where: { doctorId, date: '2099-06-20', startTime: '08:00', clinicId: CLINIC_ID, status: AppointmentStatus.SCHEDULED },
+        where: { professionalId, date: '2099-06-20', startTime: '08:00', clinicId: CLINIC_ID, status: AppointmentStatus.SCHEDULED },
       })
       expect(result).toBe(appointment)
     })
 
     it('uses queryRunner repo when provided', async () => {
-      const doctorId = faker.string.uuid()
-      const appointment = makeAppointment({ doctorId })
+      const professionalId = faker.string.uuid()
+      const appointment = makeAppointment({ professionalId })
       const qrRepo = { findOne: jest.fn().mockResolvedValue(appointment) }
       const queryRunner = { manager: { getRepository: jest.fn().mockReturnValue(qrRepo) } } as any
 
-      const result = await repository.findActiveBySlot(doctorId, '2099-06-20', '08:00', CLINIC_ID, queryRunner)
+      const result = await repository.findActiveBySlot(professionalId, '2099-06-20', '08:00', CLINIC_ID, queryRunner)
 
       expect(queryRunner.manager.getRepository).toHaveBeenCalledWith(Appointment)
       expect(qrRepo.findOne).toHaveBeenCalled()
@@ -243,7 +243,7 @@ describe('AppointmentsRepository', () => {
 
       const data = {
         clinicId: CLINIC_ID,
-        doctorId: faker.string.uuid(),
+        professionalId: faker.string.uuid(),
         patientId: faker.string.uuid(),
         specialtyId: null,
         scheduleId: faker.string.uuid(),
@@ -271,7 +271,7 @@ describe('AppointmentsRepository', () => {
 
       const data = {
         clinicId: CLINIC_ID,
-        doctorId: faker.string.uuid(),
+        professionalId: faker.string.uuid(),
         patientId: faker.string.uuid(),
         specialtyId: null,
         scheduleId: faker.string.uuid(),

@@ -31,7 +31,7 @@ export class SchedulesController {
   ) {}
 
   @Post()
-  @Roles(UserRole.ADMIN, UserRole.DOCTOR)
+  @Roles(UserRole.ADMIN, UserRole.PROFESSIONAL)
   @HttpCode(201)
   create(
     @Body() dto: CreateScheduleDto,
@@ -41,7 +41,7 @@ export class SchedulesController {
   }
 
   @Get()
-  @Roles(UserRole.ADMIN, UserRole.DOCTOR)
+  @Roles(UserRole.ADMIN, UserRole.PROFESSIONAL)
   findAll(
     @Query() query: ListSchedulesQueryDto,
     @CurrentUser() currentUser: ICurrentUser,
@@ -50,7 +50,7 @@ export class SchedulesController {
   }
 
   @Get(':id')
-  @Roles(UserRole.ADMIN, UserRole.DOCTOR)
+  @Roles(UserRole.ADMIN, UserRole.PROFESSIONAL)
   findById(
     @Param('id') id: string,
     @CurrentUser() currentUser: ICurrentUser,
@@ -59,7 +59,7 @@ export class SchedulesController {
   }
 
   @Patch(':id')
-  @Roles(UserRole.ADMIN, UserRole.DOCTOR)
+  @Roles(UserRole.ADMIN, UserRole.PROFESSIONAL)
   update(
     @Param('id') id: string,
     @Body() dto: UpdateScheduleDto,
@@ -69,7 +69,7 @@ export class SchedulesController {
   }
 
   @Delete(':id')
-  @Roles(UserRole.ADMIN, UserRole.DOCTOR)
+  @Roles(UserRole.ADMIN, UserRole.PROFESSIONAL)
   @HttpCode(204)
   delete(
     @Param('id') id: string,

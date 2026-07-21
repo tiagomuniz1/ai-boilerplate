@@ -1,7 +1,7 @@
 {
   "schedule": {
     "id": "schedule-uuid-1",
-    "doctorId": "doc-uuid-1",
+    "professionalId": "doc-uuid-1",
     "dayOfWeek": "MONDAY",
     "startTime": "08:00",
     "endTime": "12:00",
@@ -13,7 +13,7 @@
   },
   "scheduleWithValidity": {
     "id": "schedule-uuid-2",
-    "doctorId": "doc-uuid-1",
+    "professionalId": "doc-uuid-1",
     "dayOfWeek": "WEDNESDAY",
     "startTime": "14:00",
     "endTime": "18:00",

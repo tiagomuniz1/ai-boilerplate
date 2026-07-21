@@ -9,7 +9,7 @@ import {
   UpdateDateColumn,
   VersionColumn,
 } from 'typeorm'
-import { Doctor } from '../../doctors/entities/doctor.entity'
+import { Professional } from '../../professionals/entities/professional.entity'
 import { Patient } from '../../patients/entities/patient.entity'
 import { Specialty } from '../../specialties/entities/specialty.entity'
 import { MedicalRecordTemplateField } from '../../medical-record-templates/entities/medical-record-template.entity'
@@ -32,12 +32,12 @@ export class MedicalRecord {
   @Column({ name: 'patient_id', type: 'uuid' })
   patientId: string
 
-  @ManyToOne(() => Doctor, { eager: false })
-  @JoinColumn({ name: 'doctor_id' })
-  doctor: Doctor
+  @ManyToOne(() => Professional, { eager: false })
+  @JoinColumn({ name: 'professional_id' })
+  professional: Professional
 
-  @Column({ name: 'doctor_id', type: 'uuid' })
-  doctorId: string
+  @Column({ name: 'professional_id', type: 'uuid' })
+  professionalId: string
 
   @ManyToOne(() => Specialty, { eager: false })
   @JoinColumn({ name: 'specialty_id' })

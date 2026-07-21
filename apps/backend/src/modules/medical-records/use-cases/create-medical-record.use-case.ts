@@ -11,7 +11,7 @@ import { CreateMedicalRecordDto, MedicalRecordResponseDto, UserRole } from '@app
 import { BaseUseCase } from '../../../common/base.use-case'
 import { ICurrentUser } from '../../auth/types/current-user.type'
 import { IAppointmentsRepository } from '../../appointments/repositories/appointments.repository.interface'
-import { IDoctorsRepository } from '../../doctors/repositories/doctors.repository.interface'
+import { IProfessionalsRepository } from '../../professionals/repositories/professionals.repository.interface'
 import { FindTemplateByClinicAndSpecialtyUseCase } from '../../medical-record-templates/use-cases/find-template-by-clinic-and-specialty.use-case'
 import { IMedicalRecordsRepository } from '../repositories/medical-records.repository.interface'
 import { ValidateRecordDataService } from '../services/validate-record-data.service'
@@ -24,8 +24,8 @@ export function toMedicalRecordResponse(record: MedicalRecord): MedicalRecordRes
     appointmentId: record.appointmentId,
     patientId: record.patientId,
     patientName: record.patient.user.fullName,
-    doctorId: record.doctorId,
-    doctorName: record.doctor.user.fullName,
+    professionalId: record.professionalId,
+    professionalName: record.professional.user.fullName,
     specialtyId: record.specialtyId,
     specialtyName: record.specialty?.name ?? null,
     templateId: record.templateId,
@@ -45,7 +45,7 @@ export class CreateMedicalRecordUseCase extends BaseUseCase {
     dataSource: DataSource,
     private readonly medicalRecordsRepository: IMedicalRecordsRepository,
     private readonly appointmentsRepository: IAppointmentsRepository,
-    private readonly doctorsRepository: IDoctorsRepository,
+    private readonly professionalsRepository: IProfessionalsRepository,
     private readonly findTemplateByClinicAndSpecialtyUseCase: FindTemplateByClinicAndSpecialtyUseCase,
     private readonly validateRecordDataService: ValidateRecordDataService,
     private readonly cacheService: CacheService,
@@ -59,9 +59,9 @@ export class CreateMedicalRecordUseCase extends BaseUseCase {
     const appointment = await this.appointmentsRepository.findById(dto.appointmentId, clinicId)
     if (!appointment) throw new NotFoundException('Appointment not found')
 
-    if (currentUser.role === UserRole.DOCTOR) {
-      const doctor = await this.doctorsRepository.findByUserId(currentUser.id, clinicId)
-      if (!doctor || doctor.id !== appointment.doctorId) {
+    if (currentUser.role === UserRole.PROFESSIONAL) {
+      const professional = await this.professionalsRepository.findByUserId(currentUser.id, clinicId)
+      if (!professional || professional.id !== appointment.professionalId) {
         throw new ForbiddenException('Insufficient permissions')
       }
     }
@@ -92,7 +92,7 @@ export class CreateMedicalRecordUseCase extends BaseUseCase {
       clinicId,
       appointmentId: dto.appointmentId,
       patientId: appointment.patientId,
-      doctorId: appointment.doctorId,
+      professionalId: appointment.professionalId,
       specialtyId,
       templateId: template.id,
       templateSchemaSnapshot: template.fields,

@@ -8,7 +8,7 @@ import { DataSource, OptimisticLockVersionMismatchError } from 'typeorm'
 import { faker } from '@faker-js/faker'
 import { UserRole } from '@app/shared'
 import { CacheService } from '../../../cache/cache.service'
-import { IDoctorsRepository } from '../../doctors/repositories/doctors.repository.interface'
+import { IProfessionalsRepository } from '../../professionals/repositories/professionals.repository.interface'
 import { ICurrentUser } from '../../auth/types/current-user.type'
 import { IAppointmentsRepository } from '../repositories/appointments.repository.adapter'
 import { IScheduleExceptionsRepository } from '../repositories/schedule-exceptions.repository.interface'
@@ -17,17 +17,17 @@ import { UpdateScheduleExceptionUseCase } from '../use-cases/update-schedule-exc
 const mockScheduleExceptionsRepository: jest.Mocked<IScheduleExceptionsRepository> = {
   findAll: jest.fn(),
   findById: jest.fn(),
-  findActiveByDoctorAndDate: jest.fn(),
+  findActiveByProfessionalAndDate: jest.fn(),
   create: jest.fn(),
   update: jest.fn(),
   delete: jest.fn(),
 }
 
-const mockDoctorsRepository: jest.Mocked<IDoctorsRepository> = {
+const mockProfessionalsRepository: jest.Mocked<IProfessionalsRepository> = {
   findAll: jest.fn(),
   findById: jest.fn(),
   findByUserId: jest.fn(),
-  findByCrm: jest.fn(),
+  findByRegistration: jest.fn(),
   create: jest.fn(),
   update: jest.fn(),
   delete: jest.fn(),
@@ -55,7 +55,7 @@ const makeDoctor = (id = DOCTOR_ID) => ({ id } as any)
 const makeException = (overrides = {}) => ({
   id: EXCEPTION_ID,
   clinicId: CLINIC_ID,
-  doctorId: DOCTOR_ID,
+  professionalId: DOCTOR_ID,
   date: '2099-06-20',
   startTime: '14:00',
   endTime: '18:00',
@@ -67,7 +67,7 @@ const makeException = (overrides = {}) => ({
   ...overrides,
 })
 
-const doctorUser: ICurrentUser = { id: faker.string.uuid(), role: UserRole.DOCTOR, clinicId: CLINIC_ID }
+const doctorUser: ICurrentUser = { id: faker.string.uuid(), role: UserRole.PROFESSIONAL, clinicId: CLINIC_ID }
 const adminUser: ICurrentUser = { id: faker.string.uuid(), role: UserRole.ADMIN, clinicId: CLINIC_ID }
 
 describe('UpdateScheduleExceptionUseCase', () => {
@@ -78,7 +78,7 @@ describe('UpdateScheduleExceptionUseCase', () => {
     useCase = new UpdateScheduleExceptionUseCase(
       {} as DataSource,
       mockScheduleExceptionsRepository,
-      mockDoctorsRepository,
+      mockProfessionalsRepository,
       mockAppointmentsRepository,
       mockCacheService,
     )
@@ -93,8 +93,8 @@ describe('UpdateScheduleExceptionUseCase', () => {
   })
 
   it('throws ForbiddenException when DOCTOR tries to update exception of another doctor', async () => {
-    mockScheduleExceptionsRepository.findById.mockResolvedValue(makeException({ doctorId: 'other-doctor' }) as any)
-    mockDoctorsRepository.findByUserId.mockResolvedValue(makeDoctor())
+    mockScheduleExceptionsRepository.findById.mockResolvedValue(makeException({ professionalId: 'other-doctor' }) as any)
+    mockProfessionalsRepository.findByUserId.mockResolvedValue(makeDoctor())
     await expect(useCase.execute(EXCEPTION_ID, {}, doctorUser)).rejects.toThrow(ForbiddenException)
   })
 
@@ -102,7 +102,7 @@ describe('UpdateScheduleExceptionUseCase', () => {
     const exception = makeException()
     const updated = makeException({ reason: 'Updated reason' })
     mockScheduleExceptionsRepository.findById.mockResolvedValue(exception as any)
-    mockDoctorsRepository.findByUserId.mockResolvedValue(makeDoctor())
+    mockProfessionalsRepository.findByUserId.mockResolvedValue(makeDoctor())
     mockScheduleExceptionsRepository.update.mockResolvedValue(updated as any)
 
     const result = await useCase.execute(EXCEPTION_ID, { reason: 'Updated reason' }, doctorUser)
@@ -121,7 +121,7 @@ describe('UpdateScheduleExceptionUseCase', () => {
 
   it('throws UnprocessableEntityException when merged startTime >= endTime', async () => {
     mockScheduleExceptionsRepository.findById.mockResolvedValue(makeException() as any)
-    mockDoctorsRepository.findByUserId.mockResolvedValue(makeDoctor())
+    mockProfessionalsRepository.findByUserId.mockResolvedValue(makeDoctor())
     await expect(useCase.execute(EXCEPTION_ID, { startTime: '18:00', endTime: '14:00' }, doctorUser)).rejects.toThrow(
       UnprocessableEntityException,
     )
@@ -129,7 +129,7 @@ describe('UpdateScheduleExceptionUseCase', () => {
 
   it('throws ConflictException when appointment conflicts exist', async () => {
     mockScheduleExceptionsRepository.findById.mockResolvedValue(makeException() as any)
-    mockDoctorsRepository.findByUserId.mockResolvedValue(makeDoctor())
+    mockProfessionalsRepository.findByUserId.mockResolvedValue(makeDoctor())
     mockAppointmentsRepository.findScheduledAppointmentsInWindow.mockResolvedValue([
       { id: 'appt-1', startTime: '15:00', endTime: '15:30', patientName: 'Patient A' },
     ])
@@ -140,7 +140,7 @@ describe('UpdateScheduleExceptionUseCase', () => {
 
   it('throws ConflictException on optimistic lock mismatch', async () => {
     mockScheduleExceptionsRepository.findById.mockResolvedValue(makeException() as any)
-    mockDoctorsRepository.findByUserId.mockResolvedValue(makeDoctor())
+    mockProfessionalsRepository.findByUserId.mockResolvedValue(makeDoctor())
     mockScheduleExceptionsRepository.update.mockRejectedValue(new OptimisticLockVersionMismatchError('', 1, 2))
 
     await expect(useCase.execute(EXCEPTION_ID, { reason: 'x' }, doctorUser)).rejects.toThrow(ConflictException)
@@ -150,7 +150,7 @@ describe('UpdateScheduleExceptionUseCase', () => {
     const exception = makeException({ startTime: '09:00', endTime: '12:00' })
     const updated = makeException({ startTime: '09:00', endTime: '12:00' })
     mockScheduleExceptionsRepository.findById.mockResolvedValue(exception as any)
-    mockDoctorsRepository.findByUserId.mockResolvedValue(makeDoctor())
+    mockProfessionalsRepository.findByUserId.mockResolvedValue(makeDoctor())
     mockScheduleExceptionsRepository.update.mockResolvedValue(updated as any)
 
     await useCase.execute(EXCEPTION_ID, { reason: 'test' }, doctorUser)
@@ -165,7 +165,7 @@ describe('UpdateScheduleExceptionUseCase', () => {
     const exception = makeException({ reason: 'old reason' })
     const updated = makeException({ reason: null })
     mockScheduleExceptionsRepository.findById.mockResolvedValue(exception as any)
-    mockDoctorsRepository.findByUserId.mockResolvedValue(makeDoctor())
+    mockProfessionalsRepository.findByUserId.mockResolvedValue(makeDoctor())
     mockScheduleExceptionsRepository.update.mockResolvedValue(updated as any)
 
     const result = await useCase.execute(EXCEPTION_ID, { reason: null }, doctorUser)
@@ -176,7 +176,7 @@ describe('UpdateScheduleExceptionUseCase', () => {
     const exception = makeException({ date: '2099-06-20' })
     const updated = makeException({ date: '2099-06-21' })
     mockScheduleExceptionsRepository.findById.mockResolvedValue(exception as any)
-    mockDoctorsRepository.findByUserId.mockResolvedValue(makeDoctor())
+    mockProfessionalsRepository.findByUserId.mockResolvedValue(makeDoctor())
     mockScheduleExceptionsRepository.update.mockResolvedValue(updated as any)
 
     await useCase.execute(EXCEPTION_ID, { date: '2099-06-21' }, doctorUser)
@@ -189,7 +189,7 @@ describe('UpdateScheduleExceptionUseCase', () => {
     const exception = makeException()
     const updated = makeException()
     mockScheduleExceptionsRepository.findById.mockResolvedValue(exception as any)
-    mockDoctorsRepository.findByUserId.mockResolvedValue(makeDoctor())
+    mockProfessionalsRepository.findByUserId.mockResolvedValue(makeDoctor())
     mockScheduleExceptionsRepository.update.mockResolvedValue(updated as any)
     mockCacheService.delByPrefix.mockRejectedValue(new Error('Redis error'))
 
@@ -200,7 +200,7 @@ describe('UpdateScheduleExceptionUseCase', () => {
   it('throws ConflictException when OptimisticLockVersionMismatchError occurs during update', async () => {
     const exception = makeException()
     mockScheduleExceptionsRepository.findById.mockResolvedValue(exception as any)
-    mockDoctorsRepository.findByUserId.mockResolvedValue(makeDoctor())
+    mockProfessionalsRepository.findByUserId.mockResolvedValue(makeDoctor())
     mockAppointmentsRepository.findScheduledAppointmentsInWindow.mockResolvedValue([])
     mockScheduleExceptionsRepository.update.mockRejectedValue(
       new OptimisticLockVersionMismatchError('ScheduleException', 1, 2),
@@ -212,7 +212,7 @@ describe('UpdateScheduleExceptionUseCase', () => {
   it('rethrows non-optimistic-lock errors from update', async () => {
     const exception = makeException()
     mockScheduleExceptionsRepository.findById.mockResolvedValue(exception as any)
-    mockDoctorsRepository.findByUserId.mockResolvedValue(makeDoctor())
+    mockProfessionalsRepository.findByUserId.mockResolvedValue(makeDoctor())
     mockAppointmentsRepository.findScheduledAppointmentsInWindow.mockResolvedValue([])
     const dbError = new Error('DB connection lost')
     mockScheduleExceptionsRepository.update.mockRejectedValue(dbError)

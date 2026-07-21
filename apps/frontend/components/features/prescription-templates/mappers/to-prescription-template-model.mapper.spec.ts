@@ -2,8 +2,8 @@ import { toPrescriptionTemplateModel } from './to-prescription-template-model.ma
 
 const makeDto = () => ({
   id: 'tpl-uuid',
-  doctorId: 'doctor-uuid',
-  doctorName: 'Dr. João',
+  professionalId: 'doctor-uuid',
+  professionalName: 'Dr. João',
   name: 'Hipertensão leve',
   items: [
     { medicationId: 'med-uuid', name: 'Dipirona 500mg', activeIngredient: 'dipirona sódica', dosage: '500mg', quantity: '1 caixa', instructions: 'Tomar 1 cp 8/8h' },
@@ -18,8 +18,8 @@ describe('toPrescriptionTemplateModel', () => {
   it('maps all scalar fields correctly', () => {
     const model = toPrescriptionTemplateModel(makeDto() as any)
     expect(model.id).toBe('tpl-uuid')
-    expect(model.doctorId).toBe('doctor-uuid')
-    expect(model.doctorName).toBe('Dr. João')
+    expect(model.professionalId).toBe('doctor-uuid')
+    expect(model.professionalName).toBe('Dr. João')
     expect(model.name).toBe('Hipertensão leve')
     expect(model.notes).toBe('Retornar em 7 dias.')
     expect(model.isActive).toBe(true)

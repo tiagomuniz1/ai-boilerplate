@@ -1,3 +1,4 @@
+import { CouncilType } from '../enums/council-type.enum'
 import { MedicalCertificateType } from '../enums/medical-certificate-type.enum'
 
 export interface MedicalCertificateSnapshot {
@@ -16,7 +17,13 @@ export interface MedicalCertificateSnapshot {
     } | null
     logoUrl: string | null
   }
-  doctor: { name: string; crmNumber: string; rqe: string | null; specialtyName: string | null }
+  professional: {
+    name: string
+    councilType: CouncilType
+    registrationNumber: string
+    registryNumber: string | null
+    specialtyName: string | null
+  }
   patient: { name: string; documentNumber: string }
   daysOff: number | null
   startDate: string | null

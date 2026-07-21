@@ -22,8 +22,8 @@ export class ExamRequest {
   @Column({ name: 'patient_id', type: 'uuid' })
   patientId: string
 
-  @Column({ name: 'doctor_id', type: 'uuid' })
-  doctorId: string
+  @Column({ name: 'professional_id', type: 'uuid' })
+  professionalId: string
 
   @Column({ type: 'jsonb' })
   snapshot: ExamRequestSnapshot

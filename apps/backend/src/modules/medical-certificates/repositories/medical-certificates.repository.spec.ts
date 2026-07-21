@@ -1,5 +1,5 @@
 import { QueryRunner, Repository } from 'typeorm'
-import { MedicalCertificateType } from '@app/shared'
+import { CouncilType, MedicalCertificateType } from '@app/shared'
 import { MedicalCertificate } from '../entities/medical-certificate.entity'
 import { MedicalCertificatesRepository } from './medical-certificates.repository'
 import { CreateMedicalCertificateData } from './medical-certificates.repository.interface'
@@ -19,12 +19,12 @@ function makeCertificateData(): CreateMedicalCertificateData {
     clinicId: 'clinic-uuid',
     appointmentId: 'appt-uuid',
     patientId: 'patient-uuid',
-    doctorId: 'doctor-uuid',
+    professionalId: 'doctor-uuid',
     snapshot: {
       issuedAt: new Date().toISOString(),
       type: MedicalCertificateType.LEAVE,
       clinic: { name: 'Clinic', address: null, logoUrl: null },
-      doctor: { name: 'Doctor', crmNumber: '12345/SP', rqe: null, specialtyName: null },
+      professional: { name: 'Doctor', councilType: CouncilType.CRM, registrationNumber: '12345/SP', registryNumber: null, specialtyName: null },
       patient: { name: 'Patient', documentNumber: '12345678900' },
       daysOff: 3,
       startDate: '2026-01-05',

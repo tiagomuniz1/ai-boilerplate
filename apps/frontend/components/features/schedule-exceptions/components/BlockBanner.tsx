@@ -17,7 +17,7 @@ function formatWindow(exception: IScheduleExceptionModel): string {
 
 export function BlockBanner({ exception, role }: BlockBannerProps) {
   const { mutate: remove, isPending } = useDeleteScheduleException()
-  const canManage = role === UserRole.ADMIN || role === UserRole.DOCTOR
+  const canManage = role === UserRole.ADMIN || role === UserRole.PROFESSIONAL
 
   return (
     <div

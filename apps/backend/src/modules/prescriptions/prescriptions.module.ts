@@ -2,7 +2,7 @@ import { Module } from '@nestjs/common'
 import { TypeOrmModule } from '@nestjs/typeorm'
 import { CacheModule } from '../../cache/cache.module'
 import { AppointmentsModule } from '../appointments/appointments.module'
-import { DoctorsModule } from '../doctors/doctors.module'
+import { ProfessionalsModule } from '../professionals/professionals.module'
 import { PatientsModule } from '../patients/patients.module'
 import { ClinicsModule } from '../clinics/clinics.module'
 import { MedicationsModule } from '../medications/medications.module'
@@ -24,7 +24,7 @@ import { PrescriptionPdfBuilderService } from './services/prescription-pdf-build
     TypeOrmModule.forFeature([Prescription]),
     CacheModule,
     AppointmentsModule,
-    DoctorsModule,
+    ProfessionalsModule,
     PatientsModule,
     ClinicsModule,
     MedicationsModule,

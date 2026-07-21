@@ -3,23 +3,23 @@ import { DataSource } from 'typeorm'
 import { faker } from '@faker-js/faker'
 import { AppointmentStatus, PatientGender, UserRole } from '@app/shared'
 import { ICurrentUser } from '../../auth/types/current-user.type'
-import { IDoctorsRepository } from '../../doctors/repositories/doctors.repository.interface'
+import { IProfessionalsRepository } from '../../professionals/repositories/professionals.repository.interface'
 import { IAppointmentsRepository } from '../repositories/appointments.repository.interface'
 import { FindAppointmentByIdUseCase } from '../use-cases/find-appointment-by-id.use-case'
 
 const CLINIC_ID = 'clinic-uuid'
 const doctorUserId = faker.string.uuid()
-const doctorId = faker.string.uuid()
+const professionalId = faker.string.uuid()
 const otherDoctorId = faker.string.uuid()
 
-const doctorUser: ICurrentUser = { id: doctorUserId, role: UserRole.DOCTOR, clinicId: CLINIC_ID }
+const doctorUser: ICurrentUser = { id: doctorUserId, role: UserRole.PROFESSIONAL, clinicId: CLINIC_ID }
 const adminUser: ICurrentUser = { id: faker.string.uuid(), role: UserRole.ADMIN, clinicId: CLINIC_ID }
 const userUser: ICurrentUser = { id: faker.string.uuid(), role: UserRole.USER, clinicId: CLINIC_ID }
 
 const makeAppointment = (overrides = {}) => ({
   id: faker.string.uuid(),
   clinicId: CLINIC_ID,
-  doctorId,
+  professionalId,
   patientId: faker.string.uuid(),
   specialtyId: null,
   scheduleId: faker.string.uuid(),
@@ -49,18 +49,18 @@ const mockPatientRow = {
 const mockAppointmentsRepository: jest.Mocked<IAppointmentsRepository> = {
   findAll: jest.fn(),
   findById: jest.fn(),
-  findActiveByDoctorAndDate: jest.fn(),
+  findActiveByProfessionalAndDate: jest.fn(),
   findActiveBySlot: jest.fn(),
   hasFutureByScheduleId: jest.fn(),
   create: jest.fn(),
   update: jest.fn(),
 }
 
-const mockDoctorsRepository: jest.Mocked<IDoctorsRepository> = {
+const mockProfessionalsRepository: jest.Mocked<IProfessionalsRepository> = {
   findAll: jest.fn(),
   findById: jest.fn(),
   findByUserId: jest.fn(),
-  findByCrm: jest.fn(),
+  findByRegistration: jest.fn(),
   create: jest.fn(),
   update: jest.fn(),
   delete: jest.fn(),
@@ -87,9 +87,9 @@ describe('FindAppointmentByIdUseCase', () => {
     useCase = new FindAppointmentByIdUseCase(
       makeMockDataSource(),
       mockAppointmentsRepository,
-      mockDoctorsRepository,
+      mockProfessionalsRepository,
     )
-    mockDoctorsRepository.findByUserId.mockResolvedValue({ id: doctorId } as any)
+    mockProfessionalsRepository.findByUserId.mockResolvedValue({ id: professionalId } as any)
   })
 
   it('throws NotFoundException when appointment not found', async () => {
@@ -98,14 +98,14 @@ describe('FindAppointmentByIdUseCase', () => {
   })
 
   it('ADMIN can view any appointment', async () => {
-    const appointment = makeAppointment({ doctorId: otherDoctorId })
+    const appointment = makeAppointment({ professionalId: otherDoctorId })
     mockAppointmentsRepository.findById.mockResolvedValue(appointment as any)
     const result = await useCase.execute(appointment.id, adminUser)
     expect(result.id).toBe(appointment.id)
   })
 
   it('USER can view any appointment', async () => {
-    const appointment = makeAppointment({ doctorId: otherDoctorId })
+    const appointment = makeAppointment({ professionalId: otherDoctorId })
     mockAppointmentsRepository.findById.mockResolvedValue(appointment as any)
     const result = await useCase.execute(appointment.id, userUser)
     expect(result.id).toBe(appointment.id)
@@ -119,7 +119,7 @@ describe('FindAppointmentByIdUseCase', () => {
   })
 
   it('DOCTOR throws ForbiddenException when viewing another doctor appointment', async () => {
-    const appointment = makeAppointment({ doctorId: otherDoctorId })
+    const appointment = makeAppointment({ professionalId: otherDoctorId })
     mockAppointmentsRepository.findById.mockResolvedValue(appointment as any)
     await expect(useCase.execute(appointment.id, doctorUser)).rejects.toThrow(ForbiddenException)
   })
@@ -160,7 +160,7 @@ describe('FindAppointmentByIdUseCase', () => {
     const useCaseWithEmpty = new FindAppointmentByIdUseCase(
       makeMockDataSource([]),
       mockAppointmentsRepository,
-      mockDoctorsRepository,
+      mockProfessionalsRepository,
     )
 
     const result = await useCaseWithEmpty.execute(appointment.id, adminUser)
@@ -173,19 +173,19 @@ describe('FindAppointmentByIdUseCase', () => {
     expect(result.patientName).toBe('')
   })
 
-  it('returns empty string for doctorName and null specialtyName when no rows found in DB', async () => {
+  it('returns empty string for professionalName and null specialtyName when no rows found in DB', async () => {
     const appointment = makeAppointment({ specialtyId: 'spec-x' })
     mockAppointmentsRepository.findById.mockResolvedValue(appointment as any)
 
     const useCaseWithEmpty = new FindAppointmentByIdUseCase(
       makeMockDataSource([]),
       mockAppointmentsRepository,
-      mockDoctorsRepository,
+      mockProfessionalsRepository,
     )
 
     const result = await useCaseWithEmpty.execute(appointment.id, adminUser)
 
-    expect(result.doctorName).toBe('')
+    expect(result.professionalName).toBe('')
     expect(result.specialtyName).toBeNull()
   })
 
@@ -207,7 +207,7 @@ describe('FindAppointmentByIdUseCase', () => {
     const useCaseWithSpecialty = new FindAppointmentByIdUseCase(
       ds,
       mockAppointmentsRepository,
-      mockDoctorsRepository,
+      mockProfessionalsRepository,
     )
 
     const result = await useCaseWithSpecialty.execute(appointment.id, adminUser)

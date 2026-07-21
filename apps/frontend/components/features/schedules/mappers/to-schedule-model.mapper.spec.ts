@@ -3,8 +3,8 @@ import { toScheduleModel } from './to-schedule-model.mapper'
 
 const makeDto = (overrides = {}) => ({
   id: 'uuid-1',
-  doctorId: 'doc-uuid-1',
-  doctorName: 'Dr. João Silva',
+  professionalId: 'doc-uuid-1',
+  professionalName: 'Dr. João Silva',
   dayOfWeek: DayOfWeek.MONDAY,
   startTime: '08:00',
   endTime: '12:00',
@@ -22,8 +22,8 @@ describe('toScheduleModel', () => {
     const model = toScheduleModel(dto)
 
     expect(model.id).toBe('uuid-1')
-    expect(model.doctorId).toBe('doc-uuid-1')
-    expect(model.doctorName).toBe('Dr. João Silva')
+    expect(model.professionalId).toBe('doc-uuid-1')
+    expect(model.professionalName).toBe('Dr. João Silva')
     expect(model.dayOfWeek).toBe(DayOfWeek.MONDAY)
     expect(model.startTime).toBe('08:00')
     expect(model.endTime).toBe('12:00')

@@ -4,7 +4,7 @@ import { UserRole } from '@app/shared'
 import { BaseUseCase } from '../../../common/base.use-case'
 import { IStorageAdapter } from '../../../common/adapters/storage.adapter.interface'
 import { ICurrentUser } from '../../auth/types/current-user.type'
-import { IDoctorsRepository } from '../../doctors/repositories/doctors.repository.interface'
+import { IProfessionalsRepository } from '../../professionals/repositories/professionals.repository.interface'
 import { IExamRequestsRepository } from '../repositories/exam-requests.repository.interface'
 import { IExamResultsRepository } from '../repositories/exam-results.repository.interface'
 
@@ -20,7 +20,7 @@ export class DownloadExamResultFileUseCase extends BaseUseCase {
     dataSource: DataSource,
     private readonly examResultsRepository: IExamResultsRepository,
     private readonly examRequestsRepository: IExamRequestsRepository,
-    private readonly doctorsRepository: IDoctorsRepository,
+    private readonly professionalsRepository: IProfessionalsRepository,
     private readonly storageAdapter: IStorageAdapter,
   ) {
     super(dataSource)
@@ -35,9 +35,9 @@ export class DownloadExamResultFileUseCase extends BaseUseCase {
     const examRequest = await this.examRequestsRepository.findById(examResult.examRequestId, clinicId)
     if (!examRequest) throw new NotFoundException('Exam request not found')
 
-    if (currentUser.role === UserRole.DOCTOR) {
-      const doctor = await this.doctorsRepository.findByUserId(currentUser.id, clinicId)
-      if (!doctor || doctor.id !== examRequest.doctorId) {
+    if (currentUser.role === UserRole.PROFESSIONAL) {
+      const professional = await this.professionalsRepository.findByUserId(currentUser.id, clinicId)
+      if (!professional || professional.id !== examRequest.professionalId) {
         throw new ForbiddenException('Insufficient permissions')
       }
     }

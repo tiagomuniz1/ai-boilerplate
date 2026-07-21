@@ -25,8 +25,8 @@ function makeRecord(overrides: Partial<IMedicalRecordModel> = {}): IMedicalRecor
     appointmentId: 'appt-uuid',
     patientId: 'patient-uuid',
     patientName: 'Ana Lima',
-    doctorId: 'doctor-uuid',
-    doctorName: 'Dr. João',
+    professionalId: 'doctor-uuid',
+    professionalName: 'Dr. João',
     specialtyId: 'spec-uuid',
     specialtyName: 'Cardiologia',
     schema: [makeField()],
@@ -53,7 +53,7 @@ describe('MedicalRecordView', () => {
 
   it('renders doctor name', () => {
     render(<MedicalRecordView record={makeRecord()} />)
-    expect(screen.getByTestId('record-doctor-name')).toHaveTextContent('Dr. João')
+    expect(screen.getByTestId('record-professional-name')).toHaveTextContent('Dr. João')
   })
 
   it('renders specialty name', () => {

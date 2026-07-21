@@ -15,7 +15,7 @@ const adminUser: ICurrentUser = { id: 'admin-id', role: UserRole.ADMIN, clinicId
 const makeRecord = () => ({
   id: recordId,
   patientId,
-  doctor: { user: { fullName: 'Doctor Name' } },
+  professional: { user: { fullName: 'Doctor Name' } },
   patient: { user: { fullName: 'Patient Name' } },
   specialty: { name: 'Cardio' },
 })

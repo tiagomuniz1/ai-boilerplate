@@ -2,17 +2,17 @@ import { visitClinic, expectClinicPath, CLINIC_SLUG, CLINIC_ID } from '../../sup
 
 const SPEC_ID_1 = '00000000-0000-4000-a000-000000000001'
 
-const mockDoctorUser = {
-  id: 'doctor-user-uuid',
+const mockProfessionalUser = {
+  id: 'professional-user-uuid',
   fullName: 'Dr. João Silva',
   email: 'joao@test.com',
-  role: 'doctor',
+  role: 'professional',
 }
 
 const mockSchedule = {
   id: 'schedule-uuid-1',
-  doctorId: 'doc-uuid-1',
-  doctorName: 'Dr. Test',
+  professionalId: 'doc-uuid-1',
+  professionalName: 'Dr. Test',
   dayOfWeek: 'MONDAY',
   startTime: '08:00',
   endTime: '12:00',
@@ -26,12 +26,12 @@ const mockSchedule = {
 const populatedListResponse = { data: [mockSchedule], total: 1, page: 1, limit: 20 }
 const emptyListResponse = { data: [], total: 0, page: 1, limit: 20 }
 
-const mockDoctorsList = {
+const mockProfessionalsList = {
   data: [
     {
       id: 'doc-uuid-1',
       user: { id: 'user-uuid-1', fullName: 'Dr. João Silva', email: 'joao@test.com' },
-      crmNumber: '12345/SP',
+      registrations: [{ id: 'reg-1', councilType: 'crm', number: '12345/SP', state: 'SP', isPrimary: true }],
       specialties: [{ id: SPEC_ID_1, name: 'Cardiologia' }],
       bio: null,
       createdAt: '2025-01-01T10:00:00.000Z',
@@ -47,7 +47,7 @@ describe('Schedules Delete', () => {
   beforeEach(() => {
     cy.clearCookies()
     cy.clearLocalStorage()
-    cy.intercept('GET', `${Cypress.env('API_URL')}/doctors*`, { statusCode: 200, body: mockDoctorsList })
+    cy.intercept('GET', `${Cypress.env('API_URL')}/professionals*`, { statusCode: 200, body: mockProfessionalsList })
   })
 
   describe('from list page', () => {
@@ -56,7 +56,7 @@ describe('Schedules Delete', () => {
     })
 
     it('opens confirmation dialog when delete button is clicked', () => {
-      visitClinic('/schedules', mockDoctorUser)
+      visitClinic('/schedules', mockProfessionalUser)
       cy.wait('@getSchedules')
 
       cy.get(`[data-testid="schedule-delete-button-${mockSchedule.id}"]`).click()
@@ -65,7 +65,7 @@ describe('Schedules Delete', () => {
     })
 
     it('dialog displays schedule day and time', () => {
-      visitClinic('/schedules', mockDoctorUser)
+      visitClinic('/schedules', mockProfessionalUser)
       cy.wait('@getSchedules')
 
       cy.get(`[data-testid="schedule-delete-button-${mockSchedule.id}"]`).click()
@@ -75,7 +75,7 @@ describe('Schedules Delete', () => {
     })
 
     it('cancels deletion — dialog closes and row remains', () => {
-      visitClinic('/schedules', mockDoctorUser)
+      visitClinic('/schedules', mockProfessionalUser)
       cy.wait('@getSchedules')
 
       cy.get(`[data-testid="schedule-delete-button-${mockSchedule.id}"]`).click()
@@ -88,7 +88,7 @@ describe('Schedules Delete', () => {
     it('confirms deletion — calls DELETE and shows success message', () => {
       cy.intercept('DELETE', `${Cypress.env('API_URL')}/schedules/${mockSchedule.id}`, { statusCode: 204 }).as('deleteSchedule')
 
-      visitClinic('/schedules', mockDoctorUser)
+      visitClinic('/schedules', mockProfessionalUser)
       cy.wait('@getSchedules')
 
       cy.get(`[data-testid="schedule-delete-button-${mockSchedule.id}"]`).click()
@@ -105,7 +105,7 @@ describe('Schedules Delete', () => {
         req.reply({ delay: 2000, statusCode: 204 })
       }).as('deleteSchedule')
 
-      visitClinic('/schedules', mockDoctorUser)
+      visitClinic('/schedules', mockProfessionalUser)
       cy.wait('@getSchedules')
 
       cy.get(`[data-testid="schedule-delete-button-${mockSchedule.id}"]`).click()
@@ -122,7 +122,7 @@ describe('Schedules Delete', () => {
     })
 
     it('opens confirmation dialog when delete button is clicked', () => {
-      visitClinic(`/schedules/${mockSchedule.id}`, mockDoctorUser)
+      visitClinic(`/schedules/${mockSchedule.id}`, mockProfessionalUser)
       cy.wait('@getSchedule')
 
       cy.get('[data-testid="schedule-details-delete-button"]').click()
@@ -130,7 +130,7 @@ describe('Schedules Delete', () => {
     })
 
     it('cancels deletion — dialog closes and detail remains', () => {
-      visitClinic(`/schedules/${mockSchedule.id}`, mockDoctorUser)
+      visitClinic(`/schedules/${mockSchedule.id}`, mockProfessionalUser)
       cy.wait('@getSchedule')
 
       cy.get('[data-testid="schedule-details-delete-button"]').click()
@@ -143,7 +143,7 @@ describe('Schedules Delete', () => {
     it('confirms deletion and redirects to /schedules', () => {
       cy.intercept('DELETE', `${Cypress.env('API_URL')}/schedules/${mockSchedule.id}`, { statusCode: 204 }).as('deleteSchedule')
 
-      visitClinic(`/schedules/${mockSchedule.id}`, mockDoctorUser)
+      visitClinic(`/schedules/${mockSchedule.id}`, mockProfessionalUser)
       cy.wait('@getSchedule')
 
       cy.get('[data-testid="schedule-details-delete-button"]').click()

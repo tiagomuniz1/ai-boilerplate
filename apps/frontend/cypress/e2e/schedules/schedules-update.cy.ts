@@ -1,16 +1,16 @@
 import { visitClinic, expectClinicPath, CLINIC_SLUG, CLINIC_ID } from '../../support/clinic'
 
-const mockDoctorUser = {
-  id: 'doctor-user-uuid',
+const mockProfessionalUser = {
+  id: 'professional-user-uuid',
   fullName: 'Dr. João Silva',
   email: 'joao@test.com',
-  role: 'doctor',
+  role: 'professional',
 }
 
 const mockSchedule = {
   id: 'schedule-uuid-1',
-  doctorId: 'doc-uuid-1',
-  doctorName: 'Dr. Test',
+  professionalId: 'doc-uuid-1',
+  professionalName: 'Dr. Test',
   dayOfWeek: 'MONDAY',
   startTime: '08:00',
   endTime: '12:00',
@@ -35,7 +35,7 @@ describe('Schedules Update', () => {
       req.reply({ delay: 500, statusCode: 200, body: mockSchedule })
     }).as('getScheduleSlow')
 
-    visitClinic(`/schedules/${mockSchedule.id}/edit`, mockDoctorUser)
+    visitClinic(`/schedules/${mockSchedule.id}/edit`, mockProfessionalUser)
     cy.get('[data-testid="edit-schedule-skeleton"]').should('be.visible')
     cy.wait('@getScheduleSlow')
     cy.get('[data-testid="schedule-form"]').should('be.visible')
@@ -47,14 +47,14 @@ describe('Schedules Update', () => {
       body: { title: 'Internal Server Error' },
     }).as('getScheduleError')
 
-    visitClinic(`/schedules/${mockSchedule.id}/edit`, mockDoctorUser)
+    visitClinic(`/schedules/${mockSchedule.id}/edit`, mockProfessionalUser)
     cy.wait('@getScheduleError')
     cy.get('[data-testid="edit-schedule-error"]').should('be.visible')
     cy.get('[data-testid="schedule-form"]').should('not.exist')
   })
 
   it('loads schedule data into form fields', () => {
-    visitClinic(`/schedules/${mockSchedule.id}/edit`, mockDoctorUser)
+    visitClinic(`/schedules/${mockSchedule.id}/edit`, mockProfessionalUser)
     cy.wait('@getSchedule')
 
     cy.get('[data-testid="schedule-form-day"]').should('have.value', 'MONDAY')
@@ -66,7 +66,7 @@ describe('Schedules Update', () => {
   it('updates schedule and redirects to detail page', () => {
     cy.intercept('PATCH', `${Cypress.env('API_URL')}/schedules/${mockSchedule.id}`, { statusCode: 200, body: updatedSchedule }).as('updateSchedule')
 
-    visitClinic(`/schedules/${mockSchedule.id}/edit`, mockDoctorUser)
+    visitClinic(`/schedules/${mockSchedule.id}/edit`, mockProfessionalUser)
     cy.wait('@getSchedule')
 
     cy.get('[data-testid="schedule-form-start-time"]').clear().type('09:00')
@@ -80,7 +80,7 @@ describe('Schedules Update', () => {
   it('sends correct fields in PATCH request', () => {
     cy.intercept('PATCH', `${Cypress.env('API_URL')}/schedules/${mockSchedule.id}`, { statusCode: 200, body: updatedSchedule }).as('updateSchedule')
 
-    visitClinic(`/schedules/${mockSchedule.id}/edit`, mockDoctorUser)
+    visitClinic(`/schedules/${mockSchedule.id}/edit`, mockProfessionalUser)
     cy.wait('@getSchedule')
 
     cy.get('[data-testid="schedule-form-day"]').select('WEDNESDAY')
@@ -94,7 +94,7 @@ describe('Schedules Update', () => {
   })
 
   it('shows validation error when endTime is before startTime', () => {
-    visitClinic(`/schedules/${mockSchedule.id}/edit`, mockDoctorUser)
+    visitClinic(`/schedules/${mockSchedule.id}/edit`, mockProfessionalUser)
     cy.wait('@getSchedule')
 
     cy.get('[data-testid="schedule-form-start-time"]').clear().type('14:00')
@@ -110,7 +110,7 @@ describe('Schedules Update', () => {
       body: { status: 409, title: 'Conflict', detail: 'Schedule overlaps' },
     }).as('updateSchedule')
 
-    visitClinic(`/schedules/${mockSchedule.id}/edit`, mockDoctorUser)
+    visitClinic(`/schedules/${mockSchedule.id}/edit`, mockProfessionalUser)
     cy.wait('@getSchedule')
 
     cy.get('[data-testid="schedule-form-start-time"]').clear().type('09:00')
@@ -126,7 +126,7 @@ describe('Schedules Update', () => {
       req.reply({ delay: 2000, statusCode: 200, body: updatedSchedule })
     }).as('updateSchedule')
 
-    visitClinic(`/schedules/${mockSchedule.id}/edit`, mockDoctorUser)
+    visitClinic(`/schedules/${mockSchedule.id}/edit`, mockProfessionalUser)
     cy.wait('@getSchedule')
 
     cy.get('[data-testid="schedule-form-start-time"]').clear().type('09:00')
@@ -137,7 +137,7 @@ describe('Schedules Update', () => {
   })
 
   it('back button returns to schedule detail page', () => {
-    visitClinic(`/schedules/${mockSchedule.id}/edit`, mockDoctorUser)
+    visitClinic(`/schedules/${mockSchedule.id}/edit`, mockProfessionalUser)
     cy.wait('@getSchedule')
 
     cy.get('[data-testid="edit-schedule-back-button"]').click()

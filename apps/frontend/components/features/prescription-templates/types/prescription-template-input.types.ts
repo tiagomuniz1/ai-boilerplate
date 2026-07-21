@@ -10,7 +10,7 @@ export interface ICreatePrescriptionTemplateInput {
   name: string
   items: ICreatePrescriptionTemplateItemInput[]
   notes?: string
-  doctorId?: string
+  professionalId?: string
 }
 
 export interface IUpdatePrescriptionTemplateInput {
@@ -18,5 +18,5 @@ export interface IUpdatePrescriptionTemplateInput {
   items?: ICreatePrescriptionTemplateItemInput[]
   notes?: string
   isActive?: boolean
-  doctorId?: string
+  professionalId?: string
 }

@@ -6,11 +6,11 @@ import * as bcrypt from 'bcrypt'
 import * as cookieParser from 'cookie-parser'
 import * as request from 'supertest'
 import { Repository } from 'typeorm'
-import { AppointmentStatus, DayOfWeek, PatientGender, UserRole } from '@app/shared'
+import { AppointmentStatus, CouncilType, DayOfWeek, PatientGender, UserRole } from '@app/shared'
 import { AppModule } from '../../../app.module'
 import { Clinic } from '../../clinics/entities/clinic.entity'
 import { User } from '../../users/entities/user.entity'
-import { Doctor } from '../../doctors/entities/doctor.entity'
+import { Professional } from '../../professionals/entities/professional.entity'
 import { Patient } from '../../patients/entities/patient.entity'
 import { Specialty } from '../../specialties/entities/specialty.entity'
 import { Schedule } from '../../schedules/entities/schedule.entity'
@@ -39,7 +39,7 @@ describe('ExamRequestsController (integration)', () => {
   let app: INestApplication
   let userRepository: Repository<User>
   let clinicRepository: Repository<Clinic>
-  let doctorRepository: Repository<Doctor>
+  let doctorRepository: Repository<Professional>
   let patientRepository: Repository<Patient>
   let specialtyRepository: Repository<Specialty>
   let scheduleRepository: Repository<Schedule>
@@ -51,7 +51,7 @@ describe('ExamRequestsController (integration)', () => {
   let doctorToken: string
   let otherDoctorToken: string
   let userToken: string
-  let doctorId: string
+  let professionalId: string
   let patientId: string
   let appointmentId: string
   let cancelledAppointmentId: string
@@ -72,7 +72,7 @@ describe('ExamRequestsController (integration)', () => {
 
     userRepository = module.get(getRepositoryToken(User))
     clinicRepository = module.get(getRepositoryToken(Clinic))
-    doctorRepository = module.get(getRepositoryToken(Doctor))
+    doctorRepository = module.get(getRepositoryToken(Professional))
     patientRepository = module.get(getRepositoryToken(Patient))
     specialtyRepository = module.get(getRepositoryToken(Specialty))
     scheduleRepository = module.get(getRepositoryToken(Schedule))
@@ -88,8 +88,8 @@ describe('ExamRequestsController (integration)', () => {
     await scheduleRepository.query('DELETE FROM test.schedule_exceptions')
     await scheduleRepository.query('DELETE FROM test.schedules')
     await patientRepository.query('DELETE FROM test.patients')
-    await doctorRepository.query('DELETE FROM test.doctor_specialties')
-    await doctorRepository.query('DELETE FROM test.doctors')
+    await doctorRepository.query('DELETE FROM test.professional_specialties')
+    await doctorRepository.query('DELETE FROM test.professionals')
     await specialtyRepository.query('DELETE FROM test.specialties')
     await userRepository.query('DELETE FROM test.refresh_tokens')
     await userRepository.query('DELETE FROM test.users')
@@ -121,7 +121,7 @@ describe('ExamRequestsController (integration)', () => {
         fullName: 'Doctor Smith',
         email: 'doctor@exams.test',
         password: hashed,
-        role: UserRole.DOCTOR,
+        role: UserRole.PROFESSIONAL,
         clinicId: SEED_CLINIC_ID,
       }),
     )
@@ -131,7 +131,7 @@ describe('ExamRequestsController (integration)', () => {
         fullName: 'Other Doctor',
         email: 'other@exams.test',
         password: hashed,
-        role: UserRole.DOCTOR,
+        role: UserRole.PROFESSIONAL,
         clinicId: SEED_CLINIC_ID,
       }),
     )
@@ -154,17 +154,17 @@ describe('ExamRequestsController (integration)', () => {
       userId: doctorUser.id,
       clinicId: SEED_CLINIC_ID,
     })
-    doctorEntity.crms = [{ clinicId: SEED_CLINIC_ID, number: '11111', state: 'SP', isPrimary: true }] as any
-    doctorEntity.doctorSpecialties = ([specialty]).map((s: any) => ({ specialtyId: s.id, rqe: null })) as any
+    doctorEntity.registrations = [{ clinicId: SEED_CLINIC_ID, councilType: CouncilType.CRM, number: '11111', state: 'SP', isPrimary: true }] as any
+    doctorEntity.professionalSpecialties = ([specialty]).map((s: any) => ({ specialtyId: s.id, registryNumber: null })) as any
     const doctorProfile = await doctorRepository.save(doctorEntity)
-    doctorId = doctorProfile.id
+    professionalId = doctorProfile.id
 
     const otherDoctorEntity = doctorRepository.create({
       userId: otherDoctorUser.id,
       clinicId: SEED_CLINIC_ID,
     })
-    otherDoctorEntity.crms = [{ clinicId: SEED_CLINIC_ID, number: '22222', state: 'SP', isPrimary: true }] as any
-    otherDoctorEntity.doctorSpecialties = ([specialty]).map((s: any) => ({ specialtyId: s.id, rqe: null })) as any
+    otherDoctorEntity.registrations = [{ clinicId: SEED_CLINIC_ID, councilType: CouncilType.CRM, number: '22222', state: 'SP', isPrimary: true }] as any
+    otherDoctorEntity.professionalSpecialties = ([specialty]).map((s: any) => ({ specialtyId: s.id, registryNumber: null })) as any
     await doctorRepository.save(otherDoctorEntity)
 
     const patientUser = await userRepository.save(
@@ -190,7 +190,7 @@ describe('ExamRequestsController (integration)', () => {
 
     const schedule = await scheduleRepository.save(
       scheduleRepository.create({
-        doctorId,
+        professionalId,
         clinicId: SEED_CLINIC_ID,
         dayOfWeek: DayOfWeek.MONDAY,
         startTime: '08:00',
@@ -204,7 +204,7 @@ describe('ExamRequestsController (integration)', () => {
     const appointment = await appointmentRepository.save(
       appointmentRepository.create({
         clinicId: SEED_CLINIC_ID,
-        doctorId,
+        professionalId,
         patientId,
         specialtyId: specialty.id,
         scheduleId: schedule.id,
@@ -221,7 +221,7 @@ describe('ExamRequestsController (integration)', () => {
     const cancelledAppt = await appointmentRepository.save(
       appointmentRepository.create({
         clinicId: SEED_CLINIC_ID,
-        doctorId,
+        professionalId,
         patientId,
         specialtyId: specialty.id,
         scheduleId: schedule.id,
@@ -259,8 +259,8 @@ describe('ExamRequestsController (integration)', () => {
     await scheduleRepository.query('DELETE FROM test.schedule_exceptions')
     await scheduleRepository.query('DELETE FROM test.schedules')
     await patientRepository.query('DELETE FROM test.patients')
-    await doctorRepository.query('DELETE FROM test.doctor_specialties')
-    await doctorRepository.query('DELETE FROM test.doctors')
+    await doctorRepository.query('DELETE FROM test.professional_specialties')
+    await doctorRepository.query('DELETE FROM test.professionals')
     await specialtyRepository.query('DELETE FROM test.specialties')
     await userRepository.query('DELETE FROM test.refresh_tokens')
     await userRepository.query('DELETE FROM test.users')
@@ -285,9 +285,9 @@ describe('ExamRequestsController (integration)', () => {
       expect(body.id).toBeDefined()
       expect(body.appointmentId).toBe(appointmentId)
       expect(body.patientId).toBe(patientId)
-      expect(body.doctorId).toBe(doctorId)
+      expect(body.professionalId).toBe(professionalId)
       expect(body.patientName).toBe('Patient Jones')
-      expect(body.doctorName).toBe('Doctor Smith')
+      expect(body.professionalName).toBe('Doctor Smith')
       expect(body.items).toHaveLength(1)
       expect(body.items[0].name).toBe('Hemograma completo')
       expect(body.items[0].observations).toBe('Jejum de 8 horas')

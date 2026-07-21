@@ -37,12 +37,12 @@ export class FindUserByIdUseCase extends BaseUseCase {
     const user = await this.usersRepository.findById(id, clinicId)
     if (!user) throw new NotFoundException('User not found')
 
-    const [isDoctor, isPatient] = await Promise.all([
-      this.hasProfile('doctors', user.id),
+    const [isProfessional, isPatient] = await Promise.all([
+      this.hasProfile('professionals', user.id),
       this.hasProfile('patients', user.id),
     ])
 
-    const response = this.toResponse(user, isDoctor, isPatient)
+    const response = this.toResponse(user, isProfessional, isPatient)
 
     try {
       await this.cacheService.set(cacheKey, response, 300)
@@ -53,7 +53,7 @@ export class FindUserByIdUseCase extends BaseUseCase {
     return response
   }
 
-  private async hasProfile(table: 'doctors' | 'patients', userId: string): Promise<boolean> {
+  private async hasProfile(table: 'professionals' | 'patients', userId: string): Promise<boolean> {
     const rows: unknown[] = await this.dataSource
       .createQueryBuilder()
       .select('1')
@@ -65,14 +65,14 @@ export class FindUserByIdUseCase extends BaseUseCase {
     return rows.length > 0
   }
 
-  private toResponse(user: User, isDoctor: boolean, isPatient: boolean): UserResponseDto {
+  private toResponse(user: User, isProfessional: boolean, isPatient: boolean): UserResponseDto {
     return {
       id: user.id,
       fullName: user.fullName,
       email: user.email,
       role: user.role,
       isActive: user.isActive,
-      isDoctor,
+      isProfessional,
       isPatient,
       createdAt: user.createdAt,
       updatedAt: user.updatedAt,

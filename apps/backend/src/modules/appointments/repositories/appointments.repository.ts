@@ -18,7 +18,7 @@ export class AppointmentsRepository implements IAppointmentsRepository {
   ) {}
 
   async findAll(filters: ListAppointmentsQueryDto, clinicId: string): Promise<[Appointment[], number]> {
-    const { doctorId, patientId, status, from, to, page = 1, limit = 20 } = filters
+    const { professionalId, patientId, status, from, to, page = 1, limit = 20 } = filters
 
     const qb = this.repository
       .createQueryBuilder('appointment')
@@ -29,7 +29,7 @@ export class AppointmentsRepository implements IAppointmentsRepository {
       .skip((page - 1) * limit)
       .take(limit)
 
-    if (doctorId) qb.andWhere('appointment.doctor_id = :doctorId', { doctorId })
+    if (professionalId) qb.andWhere('appointment.professional_id = :professionalId', { professionalId })
     if (patientId) qb.andWhere('appointment.patient_id = :patientId', { patientId })
     if (status) qb.andWhere('appointment.status = :status', { status })
     if (from) qb.andWhere('appointment.date >= :from', { from })
@@ -44,14 +44,14 @@ export class AppointmentsRepository implements IAppointmentsRepository {
     })
   }
 
-  async findActiveByDoctorAndDate(doctorId: string, date: string, clinicId: string): Promise<Appointment[]> {
+  async findActiveByProfessionalAndDate(professionalId: string, date: string, clinicId: string): Promise<Appointment[]> {
     return this.repository.find({
-      where: { doctorId, date, clinicId, status: AppointmentStatus.SCHEDULED },
+      where: { professionalId, date, clinicId, status: AppointmentStatus.SCHEDULED },
     })
   }
 
   async findActiveBySlot(
-    doctorId: string,
+    professionalId: string,
     date: string,
     startTime: string,
     clinicId: string,
@@ -59,7 +59,7 @@ export class AppointmentsRepository implements IAppointmentsRepository {
   ): Promise<Appointment | null> {
     const repo = queryRunner ? queryRunner.manager.getRepository(Appointment) : this.repository
     return repo.findOne({
-      where: { doctorId, date, startTime, clinicId, status: AppointmentStatus.SCHEDULED },
+      where: { professionalId, date, startTime, clinicId, status: AppointmentStatus.SCHEDULED },
     })
   }
 
@@ -87,7 +87,7 @@ export class AppointmentsRepository implements IAppointmentsRepository {
     return repo.save(
       repo.create({
         clinicId: data.clinicId,
-        doctorId: data.doctorId,
+        professionalId: data.professionalId,
         patientId: data.patientId,
         specialtyId: data.specialtyId,
         scheduleId: data.scheduleId,

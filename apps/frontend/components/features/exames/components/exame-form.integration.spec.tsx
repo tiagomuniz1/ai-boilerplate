@@ -1,16 +1,16 @@
-jest.mock('@/components/features/doctors/hooks/use-doctor.hook')
+jest.mock('@/components/features/professionals/hooks/use-professional.hook')
 
 import { screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { useDoctor } from '@/components/features/doctors/hooks/use-doctor.hook'
+import { useProfessional } from '@/components/features/professionals/hooks/use-professional.hook'
 import { renderWithProviders } from '@/tests/utils/render-with-providers'
 import { ExameForm } from './exame-form'
 
-const mockUseDoctor = useDoctor as jest.Mock
+const mockUseProfessional = useProfessional as jest.Mock
 
 const defaultProps = {
   appointmentId: 'appt-uuid',
-  doctorId: 'doctor-uuid',
+  professionalId: 'doctor-uuid',
   isPending: false,
   globalError: null,
   onSubmit: jest.fn(),
@@ -19,7 +19,7 @@ const defaultProps = {
 describe('ExameForm (integration)', () => {
   beforeEach(() => {
     jest.clearAllMocks()
-    mockUseDoctor.mockReturnValue({ data: undefined })
+    mockUseProfessional.mockReturnValue({ data: undefined })
   })
 
   it('renders one item by default and the submit button', () => {
@@ -77,17 +77,17 @@ describe('ExameForm (integration)', () => {
   })
 
   it('includes the chosen CRM and specialty in the payload when the doctor has options', async () => {
-    mockUseDoctor.mockReturnValue({
+    mockUseProfessional.mockReturnValue({
       data: {
         id: 'doctor-uuid',
         user: { id: 'user-uuid', fullName: 'Dr. Test', email: 'dr@example.com', isActive: true },
-        crms: [
-          { id: 'crm-1', number: '12345', state: 'SP', isPrimary: true },
-          { id: 'crm-2', number: '67890', state: 'RJ', isPrimary: false },
+        registrations: [
+          { id: 'crm-1', councilType: 'crm', number: '12345', state: 'SP', isPrimary: true },
+          { id: 'crm-2', councilType: 'crm', number: '67890', state: 'RJ', isPrimary: false },
         ],
         specialties: [
-          { id: 'spec-1', name: 'Cardiologia', rqe: '111' },
-          { id: 'spec-2', name: 'Mastologia', rqe: '222' },
+          { id: 'spec-1', name: 'Cardiologia', registryNumber: '111' },
+          { id: 'spec-2', name: 'Mastologia', registryNumber: '222' },
         ],
         bio: null,
         createdAt: new Date(),
@@ -98,8 +98,8 @@ describe('ExameForm (integration)', () => {
     renderWithProviders(<ExameForm {...defaultProps} onSubmit={onSubmit} />)
 
     await userEvent.type(screen.getByTestId('exame-form-item-name-0'), 'Hemograma completo')
-    await userEvent.selectOptions(screen.getByTestId('doctor-signature-crm'), 'crm-2')
-    await userEvent.selectOptions(screen.getByTestId('doctor-signature-specialty'), 'spec-2')
+    await userEvent.selectOptions(screen.getByTestId('professional-signature-crm'), 'crm-2')
+    await userEvent.selectOptions(screen.getByTestId('professional-signature-specialty'), 'spec-2')
     await userEvent.click(screen.getByTestId('exame-form-submit'))
 
     await waitFor(() => expect(onSubmit).toHaveBeenCalled())

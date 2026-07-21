@@ -15,16 +15,16 @@ describe('appointmentsService', () => {
     expect(mockApiClient.get).toHaveBeenCalledWith('/appointments')
   })
 
-  it('getAll appends doctorId to query string', () => {
+  it('getAll appends professionalId to query string', () => {
     mockApiClient.get.mockResolvedValue({} as any)
-    appointmentsService.getAll({ doctorId: 'doc-uuid' })
-    expect(mockApiClient.get).toHaveBeenCalledWith('/appointments?doctorId=doc-uuid')
+    appointmentsService.getAll({ professionalId: 'doc-uuid' })
+    expect(mockApiClient.get).toHaveBeenCalledWith('/appointments?professionalId=doc-uuid')
   })
 
   it('getAll appends all filters to query string', () => {
     mockApiClient.get.mockResolvedValue({} as any)
     appointmentsService.getAll({
-      doctorId: 'doc-uuid',
+      professionalId: 'doc-uuid',
       patientId: 'pat-uuid',
       status: AppointmentStatus.SCHEDULED,
       from: '2025-06-01',
@@ -33,7 +33,7 @@ describe('appointmentsService', () => {
       limit: 10,
     })
     const call = (mockApiClient.get as jest.Mock).mock.calls[0][0] as string
-    expect(call).toContain('doctorId=doc-uuid')
+    expect(call).toContain('professionalId=doc-uuid')
     expect(call).toContain('patientId=pat-uuid')
     expect(call).toContain('status=scheduled')
     expect(call).toContain('from=2025-06-01')
@@ -54,11 +54,11 @@ describe('appointmentsService', () => {
     expect(mockApiClient.get).toHaveBeenCalledWith('/appointments/availability?date=2025-06-20')
   })
 
-  it('getAvailability includes doctorId when provided', () => {
+  it('getAvailability includes professionalId when provided', () => {
     mockApiClient.get.mockResolvedValue({} as any)
-    appointmentsService.getAvailability({ doctorId: 'doc-uuid', date: '2025-06-20' })
+    appointmentsService.getAvailability({ professionalId: 'doc-uuid', date: '2025-06-20' })
     const call = (mockApiClient.get as jest.Mock).mock.calls[0][0] as string
-    expect(call).toContain('doctorId=doc-uuid')
+    expect(call).toContain('professionalId=doc-uuid')
     expect(call).toContain('date=2025-06-20')
   })
 

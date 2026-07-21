@@ -1,6 +1,6 @@
 jest.mock('../services/appointments.service')
 jest.mock('@/components/features/patients/services/patients.service')
-jest.mock('@/components/features/doctors/services/doctors.service')
+jest.mock('@/components/features/professionals/services/professionals.service')
 jest.mock('next/navigation', () => ({ useRouter: jest.fn(() => ({ push: jest.fn() })) }))
 
 import { screen, waitFor } from '@testing-library/react'
@@ -8,13 +8,13 @@ import userEvent from '@testing-library/user-event'
 import { AppointmentStatus } from '@app/shared'
 import { appointmentsService } from '../services/appointments.service'
 import { patientsService } from '@/components/features/patients/services/patients.service'
-import { doctorsService } from '@/components/features/doctors/services/doctors.service'
+import { professionalsService } from '@/components/features/professionals/services/professionals.service'
 import { renderWithProviders } from '@/tests/utils/render-with-providers'
 import { BookAppointmentDialog } from './book-appointment-dialog'
 
 const mockAppointmentsService = appointmentsService as jest.Mocked<typeof appointmentsService>
 const mockPatientsService = patientsService as jest.Mocked<typeof patientsService>
-const mockDoctorsService = doctorsService as jest.Mocked<typeof doctorsService>
+const mockDoctorsService = professionalsService as jest.Mocked<typeof professionalsService>
 
 const PATIENT_UUID = '00000000-0000-4000-e000-000000000001'
 const SPEC_UUID_1 = '00000000-0000-4000-f000-000000000001'
@@ -40,7 +40,7 @@ const makePatientsResponse = (patients: { id: string; fullName: string }[] = [])
 const makeDoctorResponse = (specialties: { id: string; name: string }[]) => ({
   id: 'doctor-uuid',
   user: { id: 'user-uuid', fullName: 'Dr. Test', email: 'doc@test.com', isActive: true },
-  crms: [{ id: 'crm-1', number: '12345', state: 'SP', isPrimary: true }],
+  registrations: [{ id: 'crm-1', councilType: 'crm', number: '12345', state: 'SP', isPrimary: true }],
   specialties: specialties.map((s) => ({ ...s, rqe: null })),
   bio: null,
   createdAt: new Date().toISOString(),
@@ -49,8 +49,8 @@ const makeDoctorResponse = (specialties: { id: string; name: string }[]) => ({
 
 const makeAppointmentResponse = () => ({
   id: 'appt-new-uuid',
-  doctorId: 'doctor-uuid',
-  doctorName: 'Dr. Test',
+  professionalId: 'doctor-uuid',
+  professionalName: 'Dr. Test',
   patientId: 'patient-uuid',
   patientName: 'Patient One',
   specialtyId: null,
@@ -72,7 +72,7 @@ const defaultProps = {
   date: '2025-07-04',
   startTime: '09:00',
   endTime: '09:30',
-  doctorId: 'doctor-uuid',
+  professionalId: 'doctor-uuid',
 }
 
 describe('BookAppointmentDialog (integration)', () => {
@@ -111,7 +111,7 @@ describe('BookAppointmentDialog (integration)', () => {
     mockAppointmentsService.book.mockResolvedValue(makeAppointmentResponse())
     mockAppointmentsService.getAll.mockResolvedValue({ data: [], total: 0, page: 1, limit: 100 })
     mockAppointmentsService.getAvailability.mockResolvedValue({
-      doctorId: 'doctor-uuid',
+      professionalId: 'doctor-uuid',
       date: '2025-07-04',
       slots: [],
     })
@@ -224,7 +224,7 @@ describe('BookAppointmentDialog (integration)', () => {
       mockAppointmentsService.book.mockResolvedValue(makeAppointmentResponse())
       mockAppointmentsService.getAll.mockResolvedValue({ data: [], total: 0, page: 1, limit: 100 })
       mockAppointmentsService.getAvailability.mockResolvedValue({
-        doctorId: 'doctor-uuid',
+        professionalId: 'doctor-uuid',
         date: '2025-07-04',
         slots: [],
       })
@@ -300,7 +300,7 @@ describe('BookAppointmentDialog (integration)', () => {
       mockAppointmentsService.book.mockResolvedValue(makeAppointmentResponse())
       mockAppointmentsService.getAll.mockResolvedValue({ data: [], total: 0, page: 1, limit: 100 })
       mockAppointmentsService.getAvailability.mockResolvedValue({
-        doctorId: 'doctor-uuid',
+        professionalId: 'doctor-uuid',
         date: '2025-07-04',
         slots: [],
       })
@@ -333,7 +333,7 @@ describe('BookAppointmentDialog (integration)', () => {
       })
 
       expect(screen.getByTestId('book-dialog-no-specialty')).toHaveTextContent(
-        'a consulta será registrada como clínica geral',
+        'o atendimento será registrado como atendimento geral',
       )
       expect(screen.getByTestId('book-dialog-submit')).not.toBeDisabled()
     })
@@ -361,7 +361,7 @@ describe('BookAppointmentDialog (integration)', () => {
       mockAppointmentsService.book.mockRejectedValue({
         status: 422,
         title: 'Unprocessable',
-        detail: 'Especialidade não pertence ao médico',
+        detail: 'Especialidade não pertence ao profissional',
       })
 
       renderWithProviders(<BookAppointmentDialog {...defaultProps} />)
@@ -378,7 +378,7 @@ describe('BookAppointmentDialog (integration)', () => {
       })
 
       expect(screen.getByTestId('book-dialog-error')).toHaveTextContent(
-        'Especialidade inválida ou não pertence ao médico',
+        'Especialidade inválida ou não pertence ao profissional',
       )
     })
   })

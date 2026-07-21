@@ -7,7 +7,7 @@ export abstract class ISchedulesRepository {
   abstract findAll(filters: ListSchedulesQueryDto, clinicId: string): Promise<[Schedule[], number]>
   abstract findById(id: string, clinicId: string): Promise<Schedule | null>
   abstract findOverlapping(
-    doctorId: string,
+    professionalId: string,
     dayOfWeek: DayOfWeek,
     startTime: string,
     endTime: string,
@@ -16,9 +16,9 @@ export abstract class ISchedulesRepository {
     clinicId: string,
     excludeId?: string,
   ): Promise<Schedule | null>
-  abstract create(data: CreateScheduleDto & { doctorId: string }, queryRunner?: QueryRunner): Promise<Schedule>
+  abstract create(data: CreateScheduleDto & { professionalId: string }, queryRunner?: QueryRunner): Promise<Schedule>
   abstract update(id: string, data: UpdateScheduleDto, queryRunner?: QueryRunner): Promise<Schedule>
   abstract delete(id: string, queryRunner?: QueryRunner): Promise<void>
-  abstract deleteAllByDoctorId(doctorId: string, clinicId: string, queryRunner?: QueryRunner): Promise<void>
-  abstract findActiveByDoctorAndDate(doctorId: string, dayOfWeek: DayOfWeek, date: string, clinicId: string): Promise<Schedule[]>
+  abstract deleteAllByDoctorId(professionalId: string, clinicId: string, queryRunner?: QueryRunner): Promise<void>
+  abstract findActiveByProfessionalAndDate(professionalId: string, dayOfWeek: DayOfWeek, date: string, clinicId: string): Promise<Schedule[]>
 }

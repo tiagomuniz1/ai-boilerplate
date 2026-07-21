@@ -61,7 +61,7 @@ function refineSchedule(
 const createSchemaDoctor = z.object(baseFields).superRefine(refineSchedule)
 
 const createSchemaAdmin = z
-  .object({ ...baseFields, doctorId: z.string().uuid('Selecione um médico') })
+  .object({ ...baseFields, professionalId: z.string().uuid('Selecione um profissional') })
   .superRefine(refineSchedule)
 
 type CreateFormDoctorValues = z.infer<typeof createSchemaDoctor>
@@ -116,7 +116,7 @@ function ScheduleFormCreate({ role, doctors, isPending, globalError, onSubmit }:
 
   function handleFormSubmit(data: CreateFormAdminValues) {
     const input: ICreateScheduleInput = {
-      ...(isAdmin ? { doctorId: data.doctorId } : {}),
+      ...(isAdmin ? { professionalId: data.professionalId } : {}),
       dayOfWeek: data.dayOfWeek,
       startTime: data.startTime,
       endTime: data.endTime,
@@ -138,11 +138,11 @@ function ScheduleFormCreate({ role, doctors, isPending, globalError, onSubmit }:
 
         {isAdmin && (
           <SelectField
-            id="doctorId"
-            label="Médico"
-            testId="schedule-form-doctor"
-            error={(errors as Record<string, { message?: string }>).doctorId?.message}
-            registerProps={register('doctorId')}
+            id="professionalId"
+            label="Profissional"
+            testId="schedule-form-professional"
+            error={(errors as Record<string, { message?: string }>).professionalId?.message}
+            registerProps={register('professionalId')}
           >
             <option value="">— Selecione —</option>
             {/* c8 ignore next */}

@@ -1,6 +1,6 @@
 jest.mock('../services/appointments.service')
 jest.mock('@/components/features/patients/services/patients.service')
-jest.mock('@/components/features/doctors/services/doctors.service')
+jest.mock('@/components/features/professionals/services/professionals.service')
 jest.mock('@/components/features/schedule-exceptions/services/schedule-exceptions.service')
 jest.mock('@/stores/auth.store')
 jest.mock('next/navigation', () => ({
@@ -14,7 +14,7 @@ import { UserRole } from '@app/shared'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { appointmentsService } from '../services/appointments.service'
 import { patientsService } from '@/components/features/patients/services/patients.service'
-import { doctorsService } from '@/components/features/doctors/services/doctors.service'
+import { professionalsService } from '@/components/features/professionals/services/professionals.service'
 import { scheduleExceptionsService } from '@/components/features/schedule-exceptions/services/schedule-exceptions.service'
 import { useAuthStore } from '@/stores/auth.store'
 import { renderWithProviders } from '@/tests/utils/render-with-providers'
@@ -22,7 +22,7 @@ import { AppointmentAgenda } from './appointment-agenda'
 
 const mockAppointmentsService = appointmentsService as jest.Mocked<typeof appointmentsService>
 const mockPatientsService = patientsService as jest.Mocked<typeof patientsService>
-const mockDoctorsService = doctorsService as jest.Mocked<typeof doctorsService>
+const mockDoctorsService = professionalsService as jest.Mocked<typeof professionalsService>
 const mockScheduleExceptionsService = scheduleExceptionsService as jest.Mocked<typeof scheduleExceptionsService>
 const mockUseAuthStore = useAuthStore as unknown as jest.Mock
 const mockUseSearchParams = useSearchParams as jest.Mock
@@ -49,7 +49,7 @@ const makeDoctorsResponse = (doctors: { id: string; fullName: string }[] = []) =
   limit: 200,
 })
 
-const emptyAvailability = { doctorId: 'doctor-uuid', date: '2025-07-01', slots: [] }
+const emptyAvailability = { professionalId: 'doctor-uuid', date: '2025-07-01', slots: [] }
 const emptyAppointments = { data: [], total: 0, page: 1, limit: 100 }
 
 describe('AppointmentAgenda (integration)', () => {
@@ -72,34 +72,34 @@ describe('AppointmentAgenda (integration)', () => {
     mockAuth(UserRole.ADMIN)
     mockDoctorsService.getAll.mockResolvedValue(makeDoctorsResponse([{ id: 'd1', fullName: 'Dr. A' }]))
     renderWithProviders(<AppointmentAgenda />)
-    expect(screen.getByTestId('toolbar-doctor-selector')).toBeInTheDocument()
+    expect(screen.getByTestId('toolbar-professional-selector')).toBeInTheDocument()
   })
 
   it('USER sees doctor selector in toolbar', () => {
     mockAuth(UserRole.USER)
     mockDoctorsService.getAll.mockResolvedValue(makeDoctorsResponse([{ id: 'd1', fullName: 'Dr. A' }]))
     renderWithProviders(<AppointmentAgenda />)
-    expect(screen.getByTestId('toolbar-doctor-selector')).toBeInTheDocument()
+    expect(screen.getByTestId('toolbar-professional-selector')).toBeInTheDocument()
   })
 
   it('DOCTOR does not see doctor selector in toolbar', () => {
-    mockAuth(UserRole.DOCTOR)
+    mockAuth(UserRole.PROFESSIONAL)
     mockDoctorsService.getAll.mockResolvedValue(
       makeDoctorsResponse([{ id: 'my-doctor', fullName: 'Dr. Me' }]),
     )
     renderWithProviders(<AppointmentAgenda />)
-    expect(screen.queryByTestId('toolbar-doctor-selector')).not.toBeInTheDocument()
+    expect(screen.queryByTestId('toolbar-professional-selector')).not.toBeInTheDocument()
   })
 
   it('ADMIN sees empty state until doctor is selected', () => {
     mockAuth(UserRole.ADMIN)
     mockDoctorsService.getAll.mockResolvedValue(makeDoctorsResponse([{ id: 'd1', fullName: 'Dr. A' }]))
     renderWithProviders(<AppointmentAgenda />)
-    expect(screen.getByTestId('agenda-empty-doctor')).toBeInTheDocument()
+    expect(screen.getByTestId('agenda-empty-professional')).toBeInTheDocument()
   })
 
   it('defaults to week view on load', () => {
-    mockAuth(UserRole.DOCTOR)
+    mockAuth(UserRole.PROFESSIONAL)
     mockDoctorsService.getAll.mockResolvedValue(
       makeDoctorsResponse([{ id: 'my-doctor', fullName: 'Dr. Me' }]),
     )
@@ -110,7 +110,7 @@ describe('AppointmentAgenda (integration)', () => {
   })
 
   it('switches to day view when clicking day button', async () => {
-    mockAuth(UserRole.DOCTOR)
+    mockAuth(UserRole.PROFESSIONAL)
     mockDoctorsService.getAll.mockResolvedValue(
       makeDoctorsResponse([{ id: 'my-doctor', fullName: 'Dr. Me' }]),
     )
@@ -125,7 +125,7 @@ describe('AppointmentAgenda (integration)', () => {
   })
 
   it('navigates forward when clicking next', async () => {
-    mockAuth(UserRole.DOCTOR)
+    mockAuth(UserRole.PROFESSIONAL)
     mockDoctorsService.getAll.mockResolvedValue(
       makeDoctorsResponse([{ id: 'my-doctor', fullName: 'Dr. Me' }]),
     )
@@ -141,7 +141,7 @@ describe('AppointmentAgenda (integration)', () => {
   })
 
   it('DOCTOR sees "Bloquear horário" button', () => {
-    mockAuth(UserRole.DOCTOR)
+    mockAuth(UserRole.PROFESSIONAL)
     mockDoctorsService.getAll.mockResolvedValue(
       makeDoctorsResponse([{ id: 'my-doctor', fullName: 'Dr. Me' }]),
     )
@@ -171,7 +171,7 @@ describe('AppointmentAgenda (integration)', () => {
   })
 
   it('DOCTOR "Bloquear horário" button opens BlockTimeDialog', async () => {
-    mockAuth(UserRole.DOCTOR)
+    mockAuth(UserRole.PROFESSIONAL)
     mockDoctorsService.getAll.mockResolvedValue(
       makeDoctorsResponse([{ id: 'my-doctor', fullName: 'Dr. Me' }]),
     )
@@ -183,7 +183,7 @@ describe('AppointmentAgenda (integration)', () => {
   })
 
   it('DOCTOR "Bloquear horário" closes BlockTimeDialog on close', async () => {
-    mockAuth(UserRole.DOCTOR)
+    mockAuth(UserRole.PROFESSIONAL)
     mockDoctorsService.getAll.mockResolvedValue(
       makeDoctorsResponse([{ id: 'my-doctor', fullName: 'Dr. Me' }]),
     )
@@ -207,7 +207,7 @@ describe('AppointmentAgenda (integration)', () => {
     mockDoctorsService.getAll.mockResolvedValue(makeDoctorsResponse([]))
     renderWithProviders(<AppointmentAgenda />)
     // USER role: doctor selector shown, no block time button
-    expect(screen.getByTestId('toolbar-doctor-selector')).toBeInTheDocument()
+    expect(screen.getByTestId('toolbar-professional-selector')).toBeInTheDocument()
     expect(screen.queryByTestId('toolbar-block-time')).not.toBeInTheDocument()
   })
 
@@ -216,11 +216,11 @@ describe('AppointmentAgenda (integration)', () => {
     mockUseSearchParams.mockReturnValue(new URLSearchParams('doctor=doc-from-url&date=2025-06-20&view=week'))
     mockDoctorsService.getAll.mockResolvedValue(makeDoctorsResponse([{ id: 'doc-from-url', fullName: 'Dr. URL' }]))
     renderWithProviders(<AppointmentAgenda />)
-    expect(screen.queryByTestId('agenda-empty-doctor')).not.toBeInTheDocument()
+    expect(screen.queryByTestId('agenda-empty-professional')).not.toBeInTheDocument()
   })
 
   it('restores day view from URL search param', () => {
-    mockAuth(UserRole.DOCTOR)
+    mockAuth(UserRole.PROFESSIONAL)
     mockUseSearchParams.mockReturnValue(new URLSearchParams('view=day'))
     mockDoctorsService.getAll.mockResolvedValue(
       makeDoctorsResponse([{ id: 'my-doctor', fullName: 'Dr. Me' }]),
@@ -230,7 +230,7 @@ describe('AppointmentAgenda (integration)', () => {
   })
 
   it('falls back to today when the date URL param is invalid', () => {
-    mockAuth(UserRole.DOCTOR)
+    mockAuth(UserRole.PROFESSIONAL)
     mockUseSearchParams.mockReturnValue(new URLSearchParams('date=not-a-date'))
     mockDoctorsService.getAll.mockResolvedValue(
       makeDoctorsResponse([{ id: 'my-doctor', fullName: 'Dr. Me' }]),
@@ -247,7 +247,7 @@ describe('AppointmentAgenda (integration)', () => {
     mockDoctorsService.getAll.mockResolvedValue(makeDoctorsResponse([{ id: 'd1', fullName: 'Dr. A' }]))
     renderWithProviders(<AppointmentAgenda />)
 
-    await userEvent.selectOptions(screen.getByTestId('toolbar-doctor-select'), '')
+    await userEvent.selectOptions(screen.getByTestId('toolbar-professional-select'), '')
 
     expect(replaceMock).toHaveBeenCalled()
     const [url] = replaceMock.mock.calls[replaceMock.mock.calls.length - 1]
@@ -255,7 +255,7 @@ describe('AppointmentAgenda (integration)', () => {
   })
 
   it('syncs view to URL when view changes', async () => {
-    mockAuth(UserRole.DOCTOR)
+    mockAuth(UserRole.PROFESSIONAL)
     const replaceMock = jest.fn()
     mockUseRouter.mockReturnValue({ push: jest.fn(), replace: replaceMock })
     mockDoctorsService.getAll.mockResolvedValue(

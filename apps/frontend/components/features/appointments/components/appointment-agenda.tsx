@@ -5,7 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import { UserRole } from '@app/shared'
 import { useAuthStore } from '@/stores/auth.store'
 import { useIsMobile } from '@/hooks/use-is-mobile.hook'
-import { useDoctors } from '@/components/features/doctors/hooks/use-doctors.hook'
+import { useProfessionals } from '@/components/features/professionals/hooks/use-professionals.hook'
 import { BlockTimeDialog } from '@/components/features/schedule-exceptions/components/BlockTimeDialog'
 import { AgendaToolbar } from './agenda-toolbar'
 import { AgendaDayGrid } from './agenda-day-grid'
@@ -52,16 +52,16 @@ export function AppointmentAgenda() {
   const isMobile = useIsMobile()
   const effectiveView: AgendaView = isMobile ? 'day' : view
 
-  const isDoctor = role === UserRole.DOCTOR
+  const isProfessional = role === UserRole.PROFESSIONAL
   const showDoctorSelector = role === UserRole.ADMIN || role === UserRole.USER
 
-  const { data: doctors } = useDoctors({ limit: 100 })
+  const { data: doctors } = useProfessionals({ limit: 100 })
 
-  const currentDoctorId = isDoctor ? doctors?.[0]?.id : undefined
+  const currentDoctorId = isProfessional ? doctors?.[0]?.id : undefined
 
-  const doctorIdForGrid: string | null = isDoctor ? 'self' : selectedDoctorId
+  const professionalIdForGrid: string | null = isProfessional ? 'self' : selectedDoctorId
 
-  const effectiveDoctorId: string | undefined = isDoctor
+  const effectiveDoctorId: string | undefined = isProfessional
     ? undefined
     : selectedDoctorId ?? undefined
 
@@ -69,11 +69,11 @@ export function AppointmentAgenda() {
   const weekStart = toDateString(getWeekStart(currentDate))
 
   const syncUrl = useCallback(
-    (date: Date, v: AgendaView, doctorId: string | null) => {
+    (date: Date, v: AgendaView, professionalId: string | null) => {
       const params = new URLSearchParams()
       params.set('date', toDateString(date))
       params.set('view', v)
-      if (doctorId) params.set('doctor', doctorId)
+      if (professionalId) params.set('doctor', professionalId)
       router.replace(`?${params.toString()}`, { scroll: false })
     },
     [router],
@@ -89,9 +89,9 @@ export function AppointmentAgenda() {
     syncUrl(currentDate, v, selectedDoctorId)
   }
 
-  function handleDoctorChange(doctorId: string | null) {
-    setSelectedDoctorId(doctorId)
-    syncUrl(currentDate, view, doctorId)
+  function handleDoctorChange(professionalId: string | null) {
+    setSelectedDoctorId(professionalId)
+    syncUrl(currentDate, view, professionalId)
   }
 
   return (
@@ -110,7 +110,7 @@ export function AppointmentAgenda() {
 
       {effectiveView === 'day' ? (
         <AgendaDayGrid
-          doctorId={doctorIdForGrid}
+          professionalId={professionalIdForGrid}
           date={dateString}
           role={role}
           currentDoctorId={currentDoctorId}
@@ -118,7 +118,7 @@ export function AppointmentAgenda() {
         />
       ) : (
         <AgendaWeekGrid
-          doctorId={doctorIdForGrid}
+          professionalId={professionalIdForGrid}
           startDate={weekStart}
           role={role}
           currentDoctorId={currentDoctorId}
@@ -131,7 +131,7 @@ export function AppointmentAgenda() {
         onClose={() => setIsBlockDialogOpen(false)}
         date={dateString}
         role={role}
-        doctorId={effectiveDoctorId}
+        professionalId={effectiveDoctorId}
       />
     </div>
   )

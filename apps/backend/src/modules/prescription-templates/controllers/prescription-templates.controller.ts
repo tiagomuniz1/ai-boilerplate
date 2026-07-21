@@ -25,7 +25,7 @@ export class PrescriptionTemplatesController {
   ) {}
 
   @Post()
-  @Roles(UserRole.ADMIN, UserRole.DOCTOR)
+  @Roles(UserRole.ADMIN, UserRole.PROFESSIONAL)
   create(
     @Body() dto: CreatePrescriptionTemplateDto,
     @CurrentUser() currentUser: ICurrentUser,
@@ -34,16 +34,16 @@ export class PrescriptionTemplatesController {
   }
 
   @Get()
-  @Roles(UserRole.ADMIN, UserRole.DOCTOR)
+  @Roles(UserRole.ADMIN, UserRole.PROFESSIONAL)
   findAll(
     @CurrentUser() currentUser: ICurrentUser,
-    @Query('doctorId') doctorId?: string,
+    @Query('professionalId') professionalId?: string,
   ): Promise<PrescriptionTemplateResponseDto[]> {
-    return this.findAllPrescriptionTemplatesUseCase.execute(currentUser, doctorId)
+    return this.findAllPrescriptionTemplatesUseCase.execute(currentUser, professionalId)
   }
 
   @Get(':id')
-  @Roles(UserRole.ADMIN, UserRole.DOCTOR)
+  @Roles(UserRole.ADMIN, UserRole.PROFESSIONAL)
   findById(
     @Param('id') id: string,
     @CurrentUser() currentUser: ICurrentUser,
@@ -52,7 +52,7 @@ export class PrescriptionTemplatesController {
   }
 
   @Patch(':id')
-  @Roles(UserRole.ADMIN, UserRole.DOCTOR)
+  @Roles(UserRole.ADMIN, UserRole.PROFESSIONAL)
   update(
     @Param('id') id: string,
     @Body() dto: UpdatePrescriptionTemplateDto,
@@ -63,7 +63,7 @@ export class PrescriptionTemplatesController {
 
   @Delete(':id')
   @HttpCode(204)
-  @Roles(UserRole.ADMIN, UserRole.DOCTOR)
+  @Roles(UserRole.ADMIN, UserRole.PROFESSIONAL)
   delete(
     @Param('id') id: string,
     @CurrentUser() currentUser: ICurrentUser,

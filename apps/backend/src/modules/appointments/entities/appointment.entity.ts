@@ -11,7 +11,7 @@ import {
 } from 'typeorm'
 import { AppointmentInsuranceType, AppointmentStatus } from '@app/shared'
 import { Clinic } from '../../clinics/entities/clinic.entity'
-import { Doctor } from '../../doctors/entities/doctor.entity'
+import { Professional } from '../../professionals/entities/professional.entity'
 import { Patient } from '../../patients/entities/patient.entity'
 import { Schedule } from '../../schedules/entities/schedule.entity'
 import { Specialty } from '../../specialties/entities/specialty.entity'
@@ -28,12 +28,12 @@ export class Appointment {
   @Column({ name: 'clinic_id' })
   clinicId: string
 
-  @ManyToOne(() => Doctor, { eager: false })
-  @JoinColumn({ name: 'doctor_id' })
-  doctor: Doctor
+  @ManyToOne(() => Professional, { eager: false })
+  @JoinColumn({ name: 'professional_id' })
+  professional: Professional
 
-  @Column({ name: 'doctor_id' })
-  doctorId: string
+  @Column({ name: 'professional_id' })
+  professionalId: string
 
   @ManyToOne(() => Patient, { eager: false })
   @JoinColumn({ name: 'patient_id' })

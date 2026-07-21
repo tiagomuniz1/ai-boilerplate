@@ -35,13 +35,13 @@ export class FindAllUsersUseCase extends BaseUseCase {
     const [users, total] = await this.usersRepository.findAll(page, limit, clinicId, search)
 
     const userIds = users.map((u) => u.id)
-    const [doctorUserIds, patientUserIds] = await Promise.all([
+    const [professionalUserIds, patientUserIds] = await Promise.all([
       this.getDoctorUserIds(userIds),
       this.getPatientUserIds(userIds),
     ])
 
     const result: PaginatedUsersResponseDto = {
-      data: users.map((u) => this.toResponse(u, doctorUserIds, patientUserIds)),
+      data: users.map((u) => this.toResponse(u, professionalUserIds, patientUserIds)),
       total,
       page,
       limit,
@@ -61,7 +61,7 @@ export class FindAllUsersUseCase extends BaseUseCase {
     const rows: Array<{ user_id: string }> = await this.dataSource
       .createQueryBuilder()
       .select('d.user_id', 'user_id')
-      .from('doctors', 'd')
+      .from('professionals', 'd')
       .where('d.user_id IN (:...userIds)', { userIds })
       .andWhere('d.deleted_at IS NULL')
       .getRawMany()
@@ -80,14 +80,14 @@ export class FindAllUsersUseCase extends BaseUseCase {
     return new Set(rows.map((r) => r.user_id))
   }
 
-  private toResponse(user: User, doctorUserIds: Set<string>, patientUserIds: Set<string>): UserResponseDto {
+  private toResponse(user: User, professionalUserIds: Set<string>, patientUserIds: Set<string>): UserResponseDto {
     return {
       id: user.id,
       fullName: user.fullName,
       email: user.email,
       role: user.role,
       isActive: user.isActive,
-      isDoctor: doctorUserIds.has(user.id),
+      isProfessional: professionalUserIds.has(user.id),
       isPatient: patientUserIds.has(user.id),
       createdAt: user.createdAt,
       updatedAt: user.updatedAt,

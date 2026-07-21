@@ -11,7 +11,7 @@ export class DashboardController {
   constructor(private readonly getDashboardStatsUseCase: GetDashboardStatsUseCase) {}
 
   @Get()
-  @Roles(UserRole.ADMIN, UserRole.DOCTOR, UserRole.USER)
+  @Roles(UserRole.ADMIN, UserRole.PROFESSIONAL, UserRole.USER)
   getStats(
     @Query() query: DashboardQueryDto,
     @CurrentUser() currentUser: ICurrentUser,

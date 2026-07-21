@@ -55,7 +55,7 @@ export const NAVIGATION_ITEMS: INavigationItem[] = [
     id: 'dashboard',
     label: 'Dashboard',
     href: '/dashboard',
-    requiredRoles: [UserRole.ADMIN, UserRole.DOCTOR, UserRole.USER],
+    requiredRoles: [UserRole.ADMIN, UserRole.PROFESSIONAL, UserRole.USER],
     icon: (
       <svg
         xmlns="http://www.w3.org/2000/svg"
@@ -127,10 +127,10 @@ export const NAVIGATION_ITEMS: INavigationItem[] = [
     ),
   },
   {
-    id: 'doctors',
-    label: 'Médicos',
-    href: '/doctors',
-    requiredRoles: [UserRole.ADMIN, UserRole.DOCTOR, UserRole.USER],
+    id: 'professionals',
+    label: 'Profissionais',
+    href: '/professionals',
+    requiredRoles: [UserRole.ADMIN, UserRole.PROFESSIONAL, UserRole.USER],
     icon: (
       <svg
         xmlns="http://www.w3.org/2000/svg"
@@ -249,7 +249,7 @@ export const NAVIGATION_ITEMS: INavigationItem[] = [
     id: 'prescription-templates',
     label: 'Modelos de receita',
     href: '/prescription-templates',
-    requiredRoles: [UserRole.ADMIN, UserRole.DOCTOR],
+    requiredRoles: [UserRole.ADMIN, UserRole.PROFESSIONAL],
     icon: (
       <svg
         xmlns="http://www.w3.org/2000/svg"
@@ -273,7 +273,7 @@ export const NAVIGATION_ITEMS: INavigationItem[] = [
     id: 'appointments',
     label: 'Consultas',
     href: '/appointments',
-    requiredRoles: [UserRole.ADMIN, UserRole.DOCTOR, UserRole.USER],
+    requiredRoles: [UserRole.ADMIN, UserRole.PROFESSIONAL, UserRole.USER],
     icon: (
       <svg
         xmlns="http://www.w3.org/2000/svg"
@@ -300,7 +300,7 @@ export const NAVIGATION_ITEMS: INavigationItem[] = [
     id: 'schedules',
     label: 'Agendas',
     href: '/schedules',
-    requiredRoles: [UserRole.ADMIN, UserRole.DOCTOR],
+    requiredRoles: [UserRole.ADMIN, UserRole.PROFESSIONAL],
     icon: (
       <svg
         xmlns="http://www.w3.org/2000/svg"

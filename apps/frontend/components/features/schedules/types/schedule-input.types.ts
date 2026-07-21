@@ -1,7 +1,7 @@
 import type { DayOfWeek } from '@app/shared'
 
 export interface ICreateScheduleInput {
-  doctorId?: string
+  professionalId?: string
   dayOfWeek: DayOfWeek
   startTime: string
   endTime: string
@@ -20,7 +20,7 @@ export interface IUpdateScheduleInput {
 }
 
 export interface IScheduleListParams {
-  doctorId?: string
+  professionalId?: string
   dayOfWeek?: DayOfWeek
   activeOn?: string
   page?: number

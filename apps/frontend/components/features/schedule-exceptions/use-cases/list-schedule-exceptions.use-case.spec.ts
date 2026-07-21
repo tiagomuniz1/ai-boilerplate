@@ -7,7 +7,7 @@ const mockService = scheduleExceptionsService as jest.Mocked<typeof scheduleExce
 
 const makeDto = (id = 'exc-1') => ({
   id,
-  doctorId: 'doc-uuid',
+  professionalId: 'doc-uuid',
   date: '2099-06-20',
   startTime: '09:00',
   endTime: '12:00',
@@ -23,9 +23,9 @@ describe('listScheduleExceptionsUseCase', () => {
     const dto = makeDto()
     mockService.getAll.mockResolvedValue({ data: [dto], total: 1, page: 1, limit: 20 })
 
-    const result = await listScheduleExceptionsUseCase({ doctorId: 'doc-uuid', from: '2099-06-20', to: '2099-06-20' })
+    const result = await listScheduleExceptionsUseCase({ professionalId: 'doc-uuid', from: '2099-06-20', to: '2099-06-20' })
 
-    expect(mockService.getAll).toHaveBeenCalledWith({ doctorId: 'doc-uuid', from: '2099-06-20', to: '2099-06-20' })
+    expect(mockService.getAll).toHaveBeenCalledWith({ professionalId: 'doc-uuid', from: '2099-06-20', to: '2099-06-20' })
     expect(result).toHaveLength(1)
     expect(result[0].id).toBe('exc-1')
     expect(result[0].createdAt).toBeInstanceOf(Date)

@@ -6,7 +6,7 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { Button } from '@/components/ui/atoms/button/button'
 import { Alert } from '@/components/ui/molecules/alert/alert'
-import { DoctorSignatureSelect } from '@/components/features/doctors/components/doctor-signature-select'
+import { ProfessionalSignatureSelect } from '@/components/features/professionals/components/professional-signature-select'
 import type { ICreateExamRequestInput } from '../types/exam-request-input.types'
 
 const itemSchema = z.object({
@@ -23,13 +23,13 @@ type FormValues = z.infer<typeof schema>
 
 export interface ExameFormProps {
   appointmentId: string
-  doctorId: string
+  professionalId: string
   isPending: boolean
   globalError: string | null
   onSubmit: (input: ICreateExamRequestInput) => void
 }
 
-export function ExameForm({ appointmentId, doctorId, isPending, globalError, onSubmit }: ExameFormProps) {
+export function ExameForm({ appointmentId, professionalId, isPending, globalError, onSubmit }: ExameFormProps) {
   const [crmId, setCrmId] = useState('')
   const [specialtyId, setSpecialtyId] = useState('')
   const { control, register, handleSubmit, formState: { errors } } = useForm<FormValues>({
@@ -154,11 +154,11 @@ export function ExameForm({ appointmentId, doctorId, isPending, globalError, onS
         )}
       </div>
 
-      <DoctorSignatureSelect
-        doctorId={doctorId}
-        crmId={crmId}
+      <ProfessionalSignatureSelect
+        professionalId={professionalId}
+        registrationId={crmId}
         specialtyId={specialtyId}
-        onCrmIdChange={setCrmId}
+        onRegistrationIdChange={setCrmId}
         onSpecialtyIdChange={setSpecialtyId}
       />
 

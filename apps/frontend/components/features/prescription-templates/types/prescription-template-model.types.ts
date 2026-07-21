@@ -9,8 +9,8 @@ export interface IPrescriptionTemplateItemModel {
 
 export interface IPrescriptionTemplateModel {
   id: string
-  doctorId: string
-  doctorName: string
+  professionalId: string
+  professionalName: string
   name: string
   items: IPrescriptionTemplateItemModel[]
   notes: string | null

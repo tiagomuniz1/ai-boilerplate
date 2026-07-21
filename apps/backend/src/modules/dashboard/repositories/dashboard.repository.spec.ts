@@ -81,12 +81,12 @@ describe('DashboardRepository', () => {
       expect(result[AppointmentStatus.SCHEDULED]).toBe(3)
     })
 
-    it('applies doctorId filter when provided', async () => {
+    it('applies professionalId filter when provided', async () => {
       const qb = makeQb([])
       const repo = new DashboardRepository(makeRepo(qb), makeMedCertRepo())
       await repo.countByStatus(CLINIC_ID, FROM, TO, 'doctor-id')
 
-      expect(qb.andWhere).toHaveBeenCalledWith('a.doctor_id = :doctorId', { doctorId: 'doctor-id' })
+      expect(qb.andWhere).toHaveBeenCalledWith('a.professional_id = :professionalId', { professionalId: 'doctor-id' })
     })
   })
 
@@ -160,20 +160,20 @@ describe('DashboardRepository', () => {
       expect(qb.limit).toHaveBeenCalledWith(10)
     })
 
-    it('applies doctorId filter when provided', async () => {
+    it('applies professionalId filter when provided', async () => {
       const qb = makeQb([])
       const repo = new DashboardRepository(makeRepo(makeQb([])), makeMedCertRepo(qb))
       await repo.getCidRanking(CLINIC_ID, FROM, TO, 'doc-id')
 
-      expect(qb.andWhere).toHaveBeenCalledWith('mc.doctor_id = :doctorId', { doctorId: 'doc-id' })
+      expect(qb.andWhere).toHaveBeenCalledWith('mc.professional_id = :professionalId', { professionalId: 'doc-id' })
     })
 
-    it('does not apply doctorId filter when not provided', async () => {
+    it('does not apply professionalId filter when not provided', async () => {
       const qb = makeQb([])
       const repo = new DashboardRepository(makeRepo(makeQb([])), makeMedCertRepo(qb))
       await repo.getCidRanking(CLINIC_ID, FROM, TO)
 
-      expect(qb.andWhere).not.toHaveBeenCalledWith('mc.doctor_id = :doctorId', expect.anything())
+      expect(qb.andWhere).not.toHaveBeenCalledWith('mc.professional_id = :professionalId', expect.anything())
     })
   })
 
@@ -219,7 +219,7 @@ describe('DashboardRepository', () => {
       expect(result).toEqual([{ patientId, fullName: 'João Silva', age: 35 }])
     })
 
-    it('uses QueryRunner without doctorId (queries patients directly)', async () => {
+    it('uses QueryRunner without professionalId (queries patients directly)', async () => {
       const qb = makeQb([])
       const repo = makeRepo(qb, [])
       await new DashboardRepository(repo, makeMedCertRepo()).getTodayBirthdays(CLINIC_ID)
@@ -232,7 +232,7 @@ describe('DashboardRepository', () => {
       expect(params).toEqual([CLINIC_ID])
     })
 
-    it('adds EXISTS filter with doctorId when provided', async () => {
+    it('adds EXISTS filter with professionalId when provided', async () => {
       const qb = makeQb([])
       const repo = makeRepo(qb, [])
       await new DashboardRepository(repo, makeMedCertRepo()).getTodayBirthdays(CLINIC_ID, 'doc-id')
@@ -241,11 +241,11 @@ describe('DashboardRepository', () => {
       expect(dataCalls.length).toBe(1)
       const [sql, params] = dataCalls[0]
       expect(sql).toContain('EXISTS')
-      expect(sql).toContain('a.doctor_id = $2')
+      expect(sql).toContain('a.professional_id = $2')
       expect(params).toEqual([CLINIC_ID, 'doc-id'])
     })
 
-    it('maps rows correctly when doctorId is provided and rows are returned', async () => {
+    it('maps rows correctly when professionalId is provided and rows are returned', async () => {
       const patientId = faker.string.uuid()
       const qb = makeQb([])
       const repo = makeRepo(qb, [{ patientId, fullName: 'Maria Costa', age: '28' }])
@@ -257,42 +257,42 @@ describe('DashboardRepository', () => {
   })
 
   describe('getProceduresBySpecialty', () => {
-    it('applies doctorId filter when provided', async () => {
+    it('applies professionalId filter when provided', async () => {
       const qb = makeQb([])
       const repo = new DashboardRepository(makeRepo(qb), makeMedCertRepo())
       await repo.getProceduresBySpecialty(CLINIC_ID, FROM, TO, 'doc-id')
 
-      expect(qb.andWhere).toHaveBeenCalledWith('a.doctor_id = :doctorId', { doctorId: 'doc-id' })
+      expect(qb.andWhere).toHaveBeenCalledWith('a.professional_id = :professionalId', { professionalId: 'doc-id' })
     })
   })
 
   describe('getInsuranceStats', () => {
-    it('applies doctorId filter when provided', async () => {
+    it('applies professionalId filter when provided', async () => {
       const qb = makeQb([])
       const repo = new DashboardRepository(makeRepo(qb), makeMedCertRepo())
       await repo.getInsuranceStats(CLINIC_ID, FROM, TO, 'doc-id')
 
-      expect(qb.andWhere).toHaveBeenCalledWith('a.doctor_id = :doctorId', { doctorId: 'doc-id' })
+      expect(qb.andWhere).toHaveBeenCalledWith('a.professional_id = :professionalId', { professionalId: 'doc-id' })
     })
   })
 
   describe('getCompletedCountByDay', () => {
-    it('applies doctorId filter when provided', async () => {
+    it('applies professionalId filter when provided', async () => {
       const qb = makeQb([])
       const repo = new DashboardRepository(makeRepo(qb), makeMedCertRepo())
       await repo.getCompletedCountByDay(CLINIC_ID, FROM, TO, 'doc-id')
 
-      expect(qb.andWhere).toHaveBeenCalledWith('a.doctor_id = :doctorId', { doctorId: 'doc-id' })
+      expect(qb.andWhere).toHaveBeenCalledWith('a.professional_id = :professionalId', { professionalId: 'doc-id' })
     })
   })
 
   describe('getAgeDistribution', () => {
-    it('applies doctorId filter when provided', async () => {
+    it('applies professionalId filter when provided', async () => {
       const qb = makeQb([])
       const repo = new DashboardRepository(makeRepo(qb), makeMedCertRepo())
       await repo.getAgeDistribution(CLINIC_ID, FROM, TO, 'doc-id')
 
-      expect(qb.andWhere).toHaveBeenCalledWith('a.doctor_id = :doctorId', { doctorId: 'doc-id' })
+      expect(qb.andWhere).toHaveBeenCalledWith('a.professional_id = :professionalId', { professionalId: 'doc-id' })
     })
   })
 
@@ -318,25 +318,25 @@ describe('DashboardRepository', () => {
       expect(result.female).toBe(1)
     })
 
-    it('applies doctorId filter in SQL when provided', async () => {
+    it('applies professionalId filter in SQL when provided', async () => {
       const qb = makeQb([])
       const repo = makeRepo(qb, [])
       await new DashboardRepository(repo, makeMedCertRepo()).getPatientStats(CLINIC_ID, FROM, TO, 'doc-id')
       const qrQuery = (repo as any)._qrQuery as jest.Mock
       const dataCalls = qrQuery.mock.calls.filter(([sql]: [string]) => !sql.startsWith('SET search_path'))
       const [sql, params] = dataCalls[0]
-      expect(sql).toContain('a.doctor_id = $4')
+      expect(sql).toContain('a.professional_id = $4')
       expect(params).toContain('doc-id')
     })
 
-    it('does not include doctorId filter when not provided', async () => {
+    it('does not include professionalId filter when not provided', async () => {
       const qb = makeQb([])
       const repo = makeRepo(qb, [])
       await new DashboardRepository(repo, makeMedCertRepo()).getPatientStats(CLINIC_ID, FROM, TO)
       const qrQuery = (repo as any)._qrQuery as jest.Mock
       const dataCalls = qrQuery.mock.calls.filter(([sql]: [string]) => !sql.startsWith('SET search_path'))
       const [sql, params] = dataCalls[0]
-      expect(sql).not.toContain('doctor_id')
+      expect(sql).not.toContain('professional_id')
       expect(params).toHaveLength(3)
     })
 

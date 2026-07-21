@@ -3,7 +3,7 @@ import type { ScheduleExceptionResponseDto } from '@app/shared'
 
 const makeDto = (overrides: Partial<ScheduleExceptionResponseDto> = {}): ScheduleExceptionResponseDto => ({
   id: 'exc-uuid',
-  doctorId: 'doc-uuid',
+  professionalId: 'doc-uuid',
   date: '2099-06-20',
   startTime: '14:00',
   endTime: '18:00',
@@ -19,7 +19,7 @@ describe('toScheduleExceptionModel', () => {
     const model = toScheduleExceptionModel(dto)
 
     expect(model.id).toBe('exc-uuid')
-    expect(model.doctorId).toBe('doc-uuid')
+    expect(model.professionalId).toBe('doc-uuid')
     expect(model.date).toBe('2099-06-20')
     expect(model.startTime).toBe('14:00')
     expect(model.endTime).toBe('18:00')

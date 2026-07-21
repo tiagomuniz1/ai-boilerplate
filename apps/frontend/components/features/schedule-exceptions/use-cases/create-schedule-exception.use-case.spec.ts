@@ -7,7 +7,7 @@ const mockService = scheduleExceptionsService as jest.Mocked<typeof scheduleExce
 
 const makeDto = () => ({
   id: 'exc-uuid',
-  doctorId: 'doc-uuid',
+  professionalId: 'doc-uuid',
   date: '2099-06-20',
   startTime: '14:00',
   endTime: '18:00',
@@ -24,7 +24,7 @@ describe('createScheduleExceptionUseCase', () => {
     mockService.create.mockResolvedValue(dto)
 
     const result = await createScheduleExceptionUseCase({
-      doctorId: 'doc-uuid',
+      professionalId: 'doc-uuid',
       date: '2099-06-20',
       startTime: '14:00',
       endTime: '18:00',
@@ -32,7 +32,7 @@ describe('createScheduleExceptionUseCase', () => {
     })
 
     expect(mockService.create).toHaveBeenCalledWith({
-      doctorId: 'doc-uuid',
+      professionalId: 'doc-uuid',
       date: '2099-06-20',
       startTime: '14:00',
       endTime: '18:00',
@@ -64,12 +64,12 @@ describe('createScheduleExceptionUseCase', () => {
     )
   })
 
-  it('omits doctorId when not provided (DOCTOR role)', async () => {
+  it('omits professionalId when not provided (DOCTOR role)', async () => {
     mockService.create.mockResolvedValue(makeDto())
 
     await createScheduleExceptionUseCase({ date: '2099-06-20' })
 
     const callArg = mockService.create.mock.calls[0][0]
-    expect(callArg.doctorId).toBeUndefined()
+    expect(callArg.professionalId).toBeUndefined()
   })
 })

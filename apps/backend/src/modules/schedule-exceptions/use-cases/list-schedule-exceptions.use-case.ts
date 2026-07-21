@@ -4,7 +4,7 @@ import { PaginatedScheduleExceptionsResponseDto, ScheduleExceptionResponseDto, U
 import { BaseUseCase } from '../../../common/base.use-case'
 import { CacheService } from '../../../cache/cache.service'
 import { ICurrentUser } from '../../auth/types/current-user.type'
-import { IDoctorsRepository } from '../../doctors/repositories/doctors.repository.interface'
+import { IProfessionalsRepository } from '../../professionals/repositories/professionals.repository.interface'
 import { IScheduleExceptionsRepository } from '../repositories/schedule-exceptions.repository.interface'
 import { ListScheduleExceptionsQueryDto } from '../dto/list-schedule-exceptions-query.dto'
 import { ScheduleException } from '../entities/schedule-exception.entity'
@@ -16,7 +16,7 @@ export class ListScheduleExceptionsUseCase extends BaseUseCase {
   constructor(
     dataSource: DataSource,
     private readonly scheduleExceptionsRepository: IScheduleExceptionsRepository,
-    private readonly doctorsRepository: IDoctorsRepository,
+    private readonly professionalsRepository: IProfessionalsRepository,
     private readonly cacheService: CacheService,
   ) {
     super(dataSource)
@@ -29,15 +29,15 @@ export class ListScheduleExceptionsUseCase extends BaseUseCase {
     const clinicId = currentUser.clinicId!
     const effectiveQuery = { ...query }
 
-    if (currentUser.role === UserRole.DOCTOR) {
-      const doctor = await this.doctorsRepository.findByUserId(currentUser.id, clinicId)
-      if (!doctor) throw new NotFoundException('Doctor not found')
-      effectiveQuery.doctorId = doctor.id
+    if (currentUser.role === UserRole.PROFESSIONAL) {
+      const professional = await this.professionalsRepository.findByUserId(currentUser.id, clinicId)
+      if (!professional) throw new NotFoundException('Professional not found')
+      effectiveQuery.professionalId = professional.id
     }
 
-    const { doctorId, from, to, page = 1, limit = 20 } = effectiveQuery
+    const { professionalId, from, to, page = 1, limit = 20 } = effectiveQuery
 
-    const cacheKey = `schedule-exceptions:list:${clinicId}:${doctorId ?? 'all'}:${from ?? 'all'}:${to ?? 'all'}:${page}:${limit}`
+    const cacheKey = `schedule-exceptions:list:${clinicId}:${professionalId ?? 'all'}:${from ?? 'all'}:${to ?? 'all'}:${page}:${limit}`
 
     try {
       const cached = await this.cacheService.get<PaginatedScheduleExceptionsResponseDto>(cacheKey)
@@ -67,7 +67,7 @@ export class ListScheduleExceptionsUseCase extends BaseUseCase {
   private toResponse(exception: ScheduleException): ScheduleExceptionResponseDto {
     return {
       id: exception.id,
-      doctorId: exception.doctorId,
+      professionalId: exception.professionalId,
       date: exception.date,
       startTime: exception.startTime,
       endTime: exception.endTime,

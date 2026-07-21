@@ -3,7 +3,7 @@ import { DataSource } from 'typeorm'
 import { UserRole } from '@app/shared'
 import { BaseUseCase } from '../../../common/base.use-case'
 import { ICurrentUser } from '../../auth/types/current-user.type'
-import { IDoctorsRepository } from '../../doctors/repositories/doctors.repository.interface'
+import { IProfessionalsRepository } from '../../professionals/repositories/professionals.repository.interface'
 import { IPrescriptionTemplatesRepository } from '../repositories/prescription-templates.repository.interface'
 
 @Injectable()
@@ -11,7 +11,7 @@ export class DeletePrescriptionTemplateUseCase extends BaseUseCase {
   constructor(
     dataSource: DataSource,
     private readonly prescriptionTemplatesRepository: IPrescriptionTemplatesRepository,
-    private readonly doctorsRepository: IDoctorsRepository,
+    private readonly professionalsRepository: IProfessionalsRepository,
   ) {
     super(dataSource)
   }
@@ -22,9 +22,9 @@ export class DeletePrescriptionTemplateUseCase extends BaseUseCase {
     const template = await this.prescriptionTemplatesRepository.findById(id, clinicId)
     if (!template) throw new NotFoundException('Prescription template not found')
 
-    if (currentUser.role === UserRole.DOCTOR) {
-      const doctor = await this.doctorsRepository.findByUserId(currentUser.id, clinicId)
-      if (!doctor || doctor.id !== template.doctorId) throw new ForbiddenException('Insufficient permissions')
+    if (currentUser.role === UserRole.PROFESSIONAL) {
+      const professional = await this.professionalsRepository.findByUserId(currentUser.id, clinicId)
+      if (!professional || professional.id !== template.professionalId) throw new ForbiddenException('Insufficient permissions')
     }
 
     await this.prescriptionTemplatesRepository.delete(id)

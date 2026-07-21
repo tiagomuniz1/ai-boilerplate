@@ -1,6 +1,6 @@
 import { ForbiddenException, NotFoundException } from '@nestjs/common'
 import { DataSource } from 'typeorm'
-import { UserRole } from '@app/shared'
+import { CouncilType, UserRole } from '@app/shared'
 import { ICurrentUser } from '../../auth/types/current-user.type'
 import { IExamRequestsRepository } from '../repositories/exam-requests.repository.interface'
 import { FindExamRequestByIdUseCase } from '../use-cases/find-exam-request-by-id.use-case'
@@ -12,12 +12,12 @@ const clinicId = 'clinic-uuid'
 const examRequestId = 'exam-uuid'
 
 const adminUser: ICurrentUser = { id: 'admin-id', role: UserRole.ADMIN, clinicId }
-const doctorUser: ICurrentUser = { id: 'doctor-user-id', role: UserRole.DOCTOR, clinicId }
+const doctorUser: ICurrentUser = { id: 'doctor-user-id', role: UserRole.PROFESSIONAL, clinicId }
 
 const makeSnapshot = () => ({
   issuedAt: '2026-01-05T10:00:00.000Z',
   clinic: { name: 'Clínica', address: null, logoUrl: null },
-  doctor: { name: 'Dr. Test', crmNumber: '12345/SP', rqe: null, specialtyName: null },
+  professional: { name: 'Dr. Test', councilType: CouncilType.CRM, registrationNumber: '12345/SP', registryNumber: null, specialtyName: null },
   patient: { name: 'Patient', documentNumber: '12345678901' },
   items: [{ name: 'Hemograma completo', observations: null }],
   notes: null,
@@ -28,7 +28,7 @@ const makeExamRequest = () => ({
   clinicId,
   appointmentId: 'appt-uuid',
   patientId: 'patient-uuid',
-  doctorId: 'doctor-uuid',
+  professionalId: 'doctor-uuid',
   issuedAt: new Date(),
   snapshot: makeSnapshot(),
   createdAt: new Date(),

@@ -1,21 +1,21 @@
 import { visitClinic } from '../../support/clinic'
 
-const DOCTOR_UUID = '00000000-0000-4000-b000-000000000001'
+const PROFESSIONAL_UUID = '00000000-0000-4000-b000-000000000001'
 const APPT_UUID = '00000000-0000-4000-c000-000000000001'
 const SPEC_UUID = '00000000-0000-4000-d000-000000000001'
 
-const mockDoctorUser = {
-  id: 'doctor-user-uuid',
+const mockProfessionalUser = {
+  id: 'professional-user-uuid',
   fullName: 'Dr. João',
-  email: 'doctor@pulso.center',
-  role: 'doctor',
+  email: 'professional@pulso.center',
+  role: 'professional',
   clinicId: '10000000-0000-4000-8000-000000000000',
 }
 
 const mockAppointment = {
   id: APPT_UUID,
-  doctorId: DOCTOR_UUID,
-  doctorName: 'Maria Aurea de Andrade Borba',
+  professionalId: PROFESSIONAL_UUID,
+  professionalName: 'Maria Aurea de Andrade Borba',
   patientId: 'patient-uuid',
   patientName: 'Neuma Maria de Souza Santos',
   specialtyId: SPEC_UUID,
@@ -45,8 +45,8 @@ const mockPrescriptions = [
     appointmentId: APPT_UUID,
     patientId: 'patient-uuid',
     patientName: mockAppointment.patientName,
-    doctorId: DOCTOR_UUID,
-    doctorName: mockAppointment.doctorName,
+    professionalId: PROFESSIONAL_UUID,
+    professionalName: mockAppointment.professionalName,
     issuedAt: '2026-07-01T22:27:00.000Z',
     items: [{ medicationId: 'med-1', name: 'Dipirona', activeIngredient: null, dosage: '500mg', quantity: 1, instructions: 'Tomar 1 cp' }],
     notes: null,
@@ -57,8 +57,8 @@ const mockPrescriptions = [
     appointmentId: APPT_UUID,
     patientId: 'patient-uuid',
     patientName: mockAppointment.patientName,
-    doctorId: DOCTOR_UUID,
-    doctorName: mockAppointment.doctorName,
+    professionalId: PROFESSIONAL_UUID,
+    professionalName: mockAppointment.professionalName,
     issuedAt: '2026-07-01T22:25:00.000Z',
     items: [
       { medicationId: 'med-2', name: 'Paracetamol', activeIngredient: null, dosage: '750mg', quantity: 1, instructions: 'Tomar 1 cp' },
@@ -76,8 +76,8 @@ const mockAtestados = [
     appointmentId: APPT_UUID,
     patientId: 'patient-uuid',
     patientName: mockAppointment.patientName,
-    doctorId: DOCTOR_UUID,
-    doctorName: mockAppointment.doctorName,
+    professionalId: PROFESSIONAL_UUID,
+    professionalName: mockAppointment.professionalName,
     type: 'leave',
     daysOff: 2,
     startDate: '2026-07-01T00:00:00.000Z',
@@ -97,8 +97,8 @@ const mockExamRequests = [
     appointmentId: APPT_UUID,
     patientId: 'patient-uuid',
     patientName: mockAppointment.patientName,
-    doctorId: DOCTOR_UUID,
-    doctorName: mockAppointment.doctorName,
+    professionalId: PROFESSIONAL_UUID,
+    professionalName: mockAppointment.professionalName,
     items: [{ name: 'Hemograma completo', observations: 'Jejum de 8 horas' }],
     notes: null,
     status: 'requested',
@@ -111,8 +111,8 @@ const mockExamRequests = [
     appointmentId: APPT_UUID,
     patientId: 'patient-uuid',
     patientName: mockAppointment.patientName,
-    doctorId: DOCTOR_UUID,
-    doctorName: mockAppointment.doctorName,
+    professionalId: PROFESSIONAL_UUID,
+    professionalName: mockAppointment.professionalName,
     items: [
       { name: 'Raio-X de tórax', observations: null },
       { name: 'Ultrassom abdominal', observations: null },
@@ -160,14 +160,14 @@ describe('Mobile (375px) — sem scroll horizontal', () => {
     cy.clearCookies()
     cy.clearLocalStorage()
 
-    cy.intercept('GET', `${Cypress.env('API_URL')}/doctors*`, {
+    cy.intercept('GET', `${Cypress.env('API_URL')}/professionals*`, {
       statusCode: 200,
       body: {
         data: [
           {
-            id: DOCTOR_UUID,
-            user: { id: 'doctor-user-uuid', fullName: mockAppointment.doctorName, email: 'doctor@pulso.center', isActive: true },
-            crmNumber: '12345/SP',
+            id: PROFESSIONAL_UUID,
+            user: { id: 'professional-user-uuid', fullName: mockAppointment.professionalName, email: 'professional@pulso.center', isActive: true },
+            registrations: [{ id: 'reg-1', councilType: 'crm', number: '12345/SP', state: 'SP', isPrimary: true }],
             specialties: [{ id: SPEC_UUID, name: 'Mastologia' }],
             bio: null,
             createdAt: new Date().toISOString(),
@@ -202,7 +202,7 @@ describe('Mobile (375px) — sem scroll horizontal', () => {
   })
 
   it('nenhuma aba da tela de consulta gera scroll horizontal da página', () => {
-    visitClinic(`/appointments/${APPT_UUID}`, mockDoctorUser)
+    visitClinic(`/appointments/${APPT_UUID}`, mockProfessionalUser)
     cy.wait('@getAppointment')
     assertNoHorizontalScroll('resumo')
     // A barra de abas nunca deve rolar horizontalmente — deve quebrar linha
@@ -230,7 +230,7 @@ describe('Mobile (375px) — sem scroll horizontal', () => {
   })
 
   it('abrir o menu mobile do sidebar não gera scroll horizontal', () => {
-    visitClinic(`/appointments/${APPT_UUID}`, mockDoctorUser)
+    visitClinic(`/appointments/${APPT_UUID}`, mockProfessionalUser)
     cy.wait('@getAppointment')
 
     cy.get('[data-testid="header-mobile-menu"]').click()

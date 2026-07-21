@@ -1,20 +1,20 @@
 import { ForbiddenException, NotFoundException } from '@nestjs/common'
 import { DataSource } from 'typeorm'
-import { ExamRequestStatus, UserRole } from '@app/shared'
+import { CouncilType, ExamRequestStatus, UserRole } from '@app/shared'
 import { ICurrentUser } from '../../auth/types/current-user.type'
 import { IStorageAdapter } from '../../../common/adapters/storage.adapter.interface'
-import { IDoctorsRepository } from '../../doctors/repositories/doctors.repository.interface'
+import { IProfessionalsRepository } from '../../professionals/repositories/professionals.repository.interface'
 import { IExamRequestsRepository } from '../repositories/exam-requests.repository.interface'
 import { IExamResultsRepository } from '../repositories/exam-results.repository.interface'
 import { DownloadExamResultFileUseCase } from '../use-cases/download-exam-result-file.use-case'
 
 const clinicId = 'clinic-uuid'
-const doctorId = 'doctor-uuid'
+const professionalId = 'doctor-uuid'
 const examRequestId = 'exam-uuid'
 const resultId = 'result-uuid'
 
 const adminUser: ICurrentUser = { id: 'admin-id', role: UserRole.ADMIN, clinicId }
-const doctorUser: ICurrentUser = { id: 'doctor-user-id', role: UserRole.DOCTOR, clinicId }
+const doctorUser: ICurrentUser = { id: 'doctor-user-id', role: UserRole.PROFESSIONAL, clinicId }
 
 const makeExamResult = (overrides = {}) => ({
   id: resultId,
@@ -36,13 +36,13 @@ const makeExamRequest = (overrides = {}) => ({
   clinicId,
   appointmentId: 'appt-uuid',
   patientId: 'patient-uuid',
-  doctorId,
+  professionalId,
   issuedAt: new Date(),
   status: ExamRequestStatus.COMPLETED,
   snapshot: {
     issuedAt: new Date().toISOString(),
     clinic: { name: 'Clinic', address: null, logoUrl: null },
-    doctor: { name: 'Doctor', crmNumber: '12345/SP', rqe: null, specialtyName: null },
+    professional: { name: 'Doctor', councilType: CouncilType.CRM, registrationNumber: '12345/SP', registryNumber: null, specialtyName: null },
     patient: { name: 'Patient', documentNumber: '12345678900' },
     items: [],
     notes: null,
@@ -70,11 +70,11 @@ const mockExamRequestsRepository: jest.Mocked<IExamRequestsRepository> = {
   delete: jest.fn(),
 }
 
-const mockDoctorsRepository: jest.Mocked<IDoctorsRepository> = {
+const mockProfessionalsRepository: jest.Mocked<IProfessionalsRepository> = {
   findAll: jest.fn(),
   findById: jest.fn(),
   findByUserId: jest.fn(),
-  findByCrm: jest.fn(),
+  findByRegistration: jest.fn(),
   create: jest.fn(),
   update: jest.fn(),
   delete: jest.fn(),
@@ -94,12 +94,12 @@ describe('DownloadExamResultFileUseCase', () => {
       {} as DataSource,
       mockExamResultsRepository,
       mockExamRequestsRepository,
-      mockDoctorsRepository,
+      mockProfessionalsRepository,
       mockStorageAdapter,
     )
     mockExamResultsRepository.findById.mockResolvedValue(makeExamResult() as any)
     mockExamRequestsRepository.findById.mockResolvedValue(makeExamRequest() as any)
-    mockDoctorsRepository.findByUserId.mockResolvedValue({ id: doctorId } as any)
+    mockProfessionalsRepository.findByUserId.mockResolvedValue({ id: professionalId } as any)
     mockStorageAdapter.download.mockResolvedValue(Buffer.from('file-bytes'))
   })
 
@@ -109,14 +109,14 @@ describe('DownloadExamResultFileUseCase', () => {
     expect(result.buffer.toString()).toBe('file-bytes')
     expect(result.fileName).toBe('hemograma.pdf')
     expect(result.mimeType).toBe('application/pdf')
-    expect(mockDoctorsRepository.findByUserId).not.toHaveBeenCalled()
+    expect(mockProfessionalsRepository.findByUserId).not.toHaveBeenCalled()
   })
 
   it('returns the file for DOCTOR who owns the exam request', async () => {
     const result = await useCase.execute(resultId, doctorUser)
 
     expect(result.buffer.toString()).toBe('file-bytes')
-    expect(mockDoctorsRepository.findByUserId).toHaveBeenCalledWith(doctorUser.id, clinicId)
+    expect(mockProfessionalsRepository.findByUserId).toHaveBeenCalledWith(doctorUser.id, clinicId)
   })
 
   it('downloads using the stored filePath, scoped to the storage adapter (never a public URL)', async () => {
@@ -140,14 +140,14 @@ describe('DownloadExamResultFileUseCase', () => {
   })
 
   it('throws ForbiddenException when DOCTOR is not the owner of the exam request', async () => {
-    mockDoctorsRepository.findByUserId.mockResolvedValue({ id: 'other-doctor' } as any)
+    mockProfessionalsRepository.findByUserId.mockResolvedValue({ id: 'other-doctor' } as any)
 
     await expect(useCase.execute(resultId, doctorUser)).rejects.toThrow(ForbiddenException)
     expect(mockStorageAdapter.download).not.toHaveBeenCalled()
   })
 
   it('throws ForbiddenException when DOCTOR has no doctor profile', async () => {
-    mockDoctorsRepository.findByUserId.mockResolvedValue(null)
+    mockProfessionalsRepository.findByUserId.mockResolvedValue(null)
 
     await expect(useCase.execute(resultId, doctorUser)).rejects.toThrow(ForbiddenException)
     expect(mockStorageAdapter.download).not.toHaveBeenCalled()

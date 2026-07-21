@@ -4,22 +4,22 @@ import { faker } from '@faker-js/faker'
 import { AppointmentStatus, UserRole } from '@app/shared'
 import { CacheService } from '../../../cache/cache.service'
 import { ICurrentUser } from '../../auth/types/current-user.type'
-import { IDoctorsRepository } from '../../doctors/repositories/doctors.repository.interface'
+import { IProfessionalsRepository } from '../../professionals/repositories/professionals.repository.interface'
 import { IAppointmentsRepository } from '../repositories/appointments.repository.interface'
 import { ListAppointmentsUseCase } from '../use-cases/list-appointments.use-case'
 
 const CLINIC_ID = 'clinic-uuid'
 const doctorUserId = faker.string.uuid()
-const doctorId = faker.string.uuid()
+const professionalId = faker.string.uuid()
 
-const doctorUser: ICurrentUser = { id: doctorUserId, role: UserRole.DOCTOR, clinicId: CLINIC_ID }
+const doctorUser: ICurrentUser = { id: doctorUserId, role: UserRole.PROFESSIONAL, clinicId: CLINIC_ID }
 const adminUser: ICurrentUser = { id: faker.string.uuid(), role: UserRole.ADMIN, clinicId: CLINIC_ID }
 const userUser: ICurrentUser = { id: faker.string.uuid(), role: UserRole.USER, clinicId: CLINIC_ID }
 
 const makeAppointment = (overrides = {}) => ({
   id: faker.string.uuid(),
   clinicId: CLINIC_ID,
-  doctorId,
+  professionalId,
   patientId: faker.string.uuid(),
   specialtyId: null,
   scheduleId: faker.string.uuid(),
@@ -39,18 +39,18 @@ const makeAppointment = (overrides = {}) => ({
 const mockAppointmentsRepository: jest.Mocked<IAppointmentsRepository> = {
   findAll: jest.fn(),
   findById: jest.fn(),
-  findActiveByDoctorAndDate: jest.fn(),
+  findActiveByProfessionalAndDate: jest.fn(),
   findActiveBySlot: jest.fn(),
   hasFutureByScheduleId: jest.fn(),
   create: jest.fn(),
   update: jest.fn(),
 }
 
-const mockDoctorsRepository: jest.Mocked<IDoctorsRepository> = {
+const mockProfessionalsRepository: jest.Mocked<IProfessionalsRepository> = {
   findAll: jest.fn(),
   findById: jest.fn(),
   findByUserId: jest.fn(),
-  findByCrm: jest.fn(),
+  findByRegistration: jest.fn(),
   create: jest.fn(),
   update: jest.fn(),
   delete: jest.fn(),
@@ -70,7 +70,7 @@ function makeMockDataSource(): DataSource {
     innerJoin: jest.fn().mockReturnThis(),
     where: jest.fn().mockReturnThis(),
     andWhere: jest.fn().mockReturnThis(),
-    getRawMany: jest.fn().mockResolvedValue([{ doctorId, fullName: 'Dr. Test' }]),
+    getRawMany: jest.fn().mockResolvedValue([{ professionalId, fullName: 'Dr. Test' }]),
   }
   return { createQueryBuilder: jest.fn().mockReturnValue(builder) } as unknown as DataSource
 }
@@ -83,40 +83,40 @@ describe('ListAppointmentsUseCase', () => {
     useCase = new ListAppointmentsUseCase(
       makeMockDataSource(),
       mockAppointmentsRepository,
-      mockDoctorsRepository,
+      mockProfessionalsRepository,
       mockCacheService,
     )
     mockCacheService.get.mockResolvedValue(null)
     mockCacheService.set.mockResolvedValue(undefined)
-    mockDoctorsRepository.findByUserId.mockResolvedValue({ id: doctorId } as any)
+    mockProfessionalsRepository.findByUserId.mockResolvedValue({ id: professionalId } as any)
     mockAppointmentsRepository.findAll.mockResolvedValue([[], 0])
   })
 
-  it('DOCTOR: forces doctorId to own profile and ignores query doctorId', async () => {
-    await useCase.execute({ doctorId: faker.string.uuid(), page: 1, limit: 20 }, doctorUser)
+  it('DOCTOR: forces professionalId to own profile and ignores query professionalId', async () => {
+    await useCase.execute({ professionalId: faker.string.uuid(), page: 1, limit: 20 }, doctorUser)
 
     const callArgs = mockAppointmentsRepository.findAll.mock.calls[0]
-    expect(callArgs[0].doctorId).toBe(doctorId)
+    expect(callArgs[0].professionalId).toBe(professionalId)
   })
 
   it('DOCTOR: throws NotFoundException when no doctor profile', async () => {
-    mockDoctorsRepository.findByUserId.mockResolvedValue(null)
+    mockProfessionalsRepository.findByUserId.mockResolvedValue(null)
     await expect(useCase.execute({ page: 1, limit: 20 }, doctorUser)).rejects.toThrow(NotFoundException)
   })
 
-  it('ADMIN: uses provided doctorId filter', async () => {
+  it('ADMIN: uses provided professionalId filter', async () => {
     const filterId = faker.string.uuid()
-    await useCase.execute({ doctorId: filterId, page: 1, limit: 20 }, adminUser)
+    await useCase.execute({ professionalId: filterId, page: 1, limit: 20 }, adminUser)
 
     const callArgs = mockAppointmentsRepository.findAll.mock.calls[0]
-    expect(callArgs[0].doctorId).toBe(filterId)
+    expect(callArgs[0].professionalId).toBe(filterId)
   })
 
-  it('ADMIN: returns all appointments when no doctorId provided', async () => {
+  it('ADMIN: returns all appointments when no professionalId provided', async () => {
     await useCase.execute({ page: 1, limit: 20 }, adminUser)
 
     const callArgs = mockAppointmentsRepository.findAll.mock.calls[0]
-    expect(callArgs[0].doctorId).toBeUndefined()
+    expect(callArgs[0].professionalId).toBeUndefined()
   })
 
   it('USER: can list appointments (read-only)', async () => {
@@ -155,7 +155,7 @@ describe('ListAppointmentsUseCase', () => {
     const useCaseWithSpecialty = new ListAppointmentsUseCase(
       ds,
       mockAppointmentsRepository,
-      mockDoctorsRepository,
+      mockProfessionalsRepository,
       mockCacheService,
     )
 
@@ -191,13 +191,13 @@ describe('ListAppointmentsUseCase', () => {
     expect(result.limit).toBe(20)
   })
 
-  it('returns empty string for doctorName when doctor is not in name map', async () => {
+  it('returns empty string for professionalName when doctor is not in name map', async () => {
     const unknownDoctorId = faker.string.uuid()
-    const appointment = makeAppointment({ doctorId: unknownDoctorId })
+    const appointment = makeAppointment({ professionalId: unknownDoctorId })
     mockAppointmentsRepository.findAll.mockResolvedValue([[appointment as any], 1])
 
     const result = await useCase.execute({ page: 1, limit: 20 }, adminUser)
 
-    expect(result.data[0].doctorName).toBe('')
+    expect(result.data[0].professionalName).toBe('')
   })
 })

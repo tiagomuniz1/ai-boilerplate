@@ -3,7 +3,7 @@ import { DataSource } from 'typeorm'
 import { MedicalCertificateResponseDto, UserRole } from '@app/shared'
 import { BaseUseCase } from '../../../common/base.use-case'
 import { ICurrentUser } from '../../auth/types/current-user.type'
-import { IDoctorsRepository } from '../../doctors/repositories/doctors.repository.interface'
+import { IProfessionalsRepository } from '../../professionals/repositories/professionals.repository.interface'
 import { IMedicalCertificatesRepository } from '../repositories/medical-certificates.repository.interface'
 import { toMedicalCertificateResponse } from './create-medical-certificate.use-case'
 
@@ -12,7 +12,7 @@ export class FindMedicalCertificateByIdUseCase extends BaseUseCase {
   constructor(
     dataSource: DataSource,
     private readonly medicalCertificatesRepository: IMedicalCertificatesRepository,
-    private readonly doctorsRepository: IDoctorsRepository,
+    private readonly professionalsRepository: IProfessionalsRepository,
   ) {
     super(dataSource)
   }
@@ -23,9 +23,9 @@ export class FindMedicalCertificateByIdUseCase extends BaseUseCase {
     const certificate = await this.medicalCertificatesRepository.findById(id, clinicId)
     if (!certificate) throw new NotFoundException('Medical certificate not found')
 
-    if (currentUser.role === UserRole.DOCTOR) {
-      const doctor = await this.doctorsRepository.findByUserId(currentUser.id, clinicId)
-      if (!doctor || doctor.id !== certificate.doctorId) {
+    if (currentUser.role === UserRole.PROFESSIONAL) {
+      const professional = await this.professionalsRepository.findByUserId(currentUser.id, clinicId)
+      if (!professional || professional.id !== certificate.professionalId) {
         throw new ForbiddenException('Insufficient permissions')
       }
     }

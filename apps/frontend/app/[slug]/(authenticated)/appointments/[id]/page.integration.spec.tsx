@@ -1,5 +1,5 @@
 jest.mock('@/components/features/appointments/services/appointments.service')
-jest.mock('@/components/features/doctors/services/doctors.service')
+jest.mock('@/components/features/professionals/services/professionals.service')
 jest.mock('@/components/features/medical-records/services/medical-records.service')
 jest.mock('@/components/features/medical-record-templates/services/medical-record-templates.service')
 jest.mock('@/components/features/prescriptions/services/prescriptions.service')
@@ -17,7 +17,7 @@ import userEvent from '@testing-library/user-event'
 import { AppointmentStatus, PatientGender, UserRole } from '@app/shared'
 import { useRouter } from 'next/navigation'
 import { appointmentsService } from '@/components/features/appointments/services/appointments.service'
-import { doctorsService } from '@/components/features/doctors/services/doctors.service'
+import { professionalsService } from '@/components/features/professionals/services/professionals.service'
 import { medicalRecordsService } from '@/components/features/medical-records/services/medical-records.service'
 import { medicalRecordTemplatesService } from '@/components/features/medical-record-templates/services/medical-record-templates.service'
 import { prescriptionsService } from '@/components/features/prescriptions/services/prescriptions.service'
@@ -29,7 +29,7 @@ import AppointmentDetailPage from './page'
 
 const mockUseRouter = useRouter as jest.Mock
 const mockAppointmentsService = appointmentsService as jest.Mocked<typeof appointmentsService>
-const mockDoctorsService = doctorsService as jest.Mocked<typeof doctorsService>
+const mockDoctorsService = professionalsService as jest.Mocked<typeof professionalsService>
 const mockMedicalRecordsService = medicalRecordsService as jest.Mocked<typeof medicalRecordsService>
 const mockTemplatesService = medicalRecordTemplatesService as jest.Mocked<typeof medicalRecordTemplatesService>
 const mockPrescriptionsService = prescriptionsService as jest.Mocked<typeof prescriptionsService>
@@ -53,7 +53,7 @@ const makeDoctorsResponse = (id = DOCTOR_ID) => ({
     {
       id,
       user: { id: DOCTOR_USER_ID, fullName: 'Dr. Test', email: 'doctor@test.com', isActive: true },
-      crms: [{ id: 'crm-1', number: '12345', state: 'SP', isPrimary: true }],
+      registrations: [{ id: 'crm-1', councilType: 'crm', number: '12345', state: 'SP', isPrimary: true }],
       specialties: [],
       bio: null,
       createdAt: new Date().toISOString(),
@@ -67,8 +67,8 @@ const makeDoctorsResponse = (id = DOCTOR_ID) => ({
 
 const makeAppointmentDto = (overrides: object = {}) => ({
   id: 'appt-uuid',
-  doctorId: DOCTOR_ID,
-  doctorName: 'Dr. Test',
+  professionalId: DOCTOR_ID,
+  professionalName: 'Dr. Test',
   patientId: 'patient-uuid',
   patientName: 'Patient One',
   specialtyId: 'spec-uuid',
@@ -124,9 +124,9 @@ describe('AppointmentDetailPage (integration)', () => {
     mockAppointmentsService.getById.mockResolvedValue(makeAppointmentDto())
     renderWithProviders(<AppointmentDetailPage />)
     await waitFor(() => {
-      expect(screen.getByTestId('appointment-detail-doctor')).toBeInTheDocument()
+      expect(screen.getByTestId('appointment-detail-professional')).toBeInTheDocument()
     })
-    expect(screen.getByTestId('appointment-detail-doctor')).toHaveTextContent('Dr. Test')
+    expect(screen.getByTestId('appointment-detail-professional')).toHaveTextContent('Dr. Test')
     expect(screen.getByTestId('appointment-detail-date')).toHaveTextContent('10/06/2025')
     expect(screen.getByTestId('appointment-detail-time')).toHaveTextContent('09:00')
     expect(screen.getByTestId('appointment-detail-status')).toHaveTextContent('Agendada')
@@ -182,9 +182,9 @@ describe('AppointmentDetailPage (integration)', () => {
   })
 
   it('DOCTOR sees actions for own appointment', async () => {
-    mockAuth(UserRole.DOCTOR, DOCTOR_USER_ID)
+    mockAuth(UserRole.PROFESSIONAL, DOCTOR_USER_ID)
     mockDoctorsService.getAll.mockResolvedValue(makeDoctorsResponse(DOCTOR_ID))
-    mockAppointmentsService.getById.mockResolvedValue(makeAppointmentDto({ doctorId: DOCTOR_ID }))
+    mockAppointmentsService.getById.mockResolvedValue(makeAppointmentDto({ professionalId: DOCTOR_ID }))
     renderWithProviders(<AppointmentDetailPage />)
     await waitFor(() => {
       expect(screen.getByTestId('appointment-detail-cancel-button')).toBeInTheDocument()
@@ -192,10 +192,10 @@ describe('AppointmentDetailPage (integration)', () => {
   })
 
   it('DOCTOR does not see actions for another doctor appointment', async () => {
-    mockAuth(UserRole.DOCTOR, DOCTOR_USER_ID)
+    mockAuth(UserRole.PROFESSIONAL, DOCTOR_USER_ID)
     mockDoctorsService.getAll.mockResolvedValue(makeDoctorsResponse(DOCTOR_ID))
     mockAppointmentsService.getById.mockResolvedValue(
-      makeAppointmentDto({ doctorId: 'other-doctor-id' }),
+      makeAppointmentDto({ professionalId: 'other-doctor-id' }),
     )
     renderWithProviders(<AppointmentDetailPage />)
     await waitFor(() => {
@@ -281,7 +281,7 @@ describe('AppointmentDetailPage (integration)', () => {
   it('clicking complete button opens the complete confirmation dialog', async () => {
     mockAppointmentsService.getById.mockResolvedValue(makeAppointmentDto())
     mockAppointmentsService.getAll.mockResolvedValue({ data: [], total: 0, page: 1, limit: 100 })
-    mockAppointmentsService.getAvailability.mockResolvedValue({ doctorId: DOCTOR_ID, date: '2025-06-10', slots: [] })
+    mockAppointmentsService.getAvailability.mockResolvedValue({ professionalId: DOCTOR_ID, date: '2025-06-10', slots: [] })
     renderWithProviders(<AppointmentDetailPage />)
     await waitFor(() => expect(screen.getByTestId('appointment-detail-complete-button')).toBeInTheDocument())
     await userEvent.click(screen.getByTestId('appointment-detail-complete-button'))
@@ -296,7 +296,7 @@ describe('AppointmentDetailPage (integration)', () => {
       makeAppointmentDto({ status: AppointmentStatus.COMPLETED }),
     )
     mockAppointmentsService.getAll.mockResolvedValue({ data: [], total: 0, page: 1, limit: 100 })
-    mockAppointmentsService.getAvailability.mockResolvedValue({ doctorId: DOCTOR_ID, date: '2025-06-10', slots: [] })
+    mockAppointmentsService.getAvailability.mockResolvedValue({ professionalId: DOCTOR_ID, date: '2025-06-10', slots: [] })
     renderWithProviders(<AppointmentDetailPage />)
     await waitFor(() => expect(screen.getByTestId('appointment-detail-complete-button')).toBeInTheDocument())
     await userEvent.click(screen.getByTestId('appointment-detail-complete-button'))
@@ -309,7 +309,7 @@ describe('AppointmentDetailPage (integration)', () => {
   it('closing the complete dialog does not call service', async () => {
     mockAppointmentsService.getById.mockResolvedValue(makeAppointmentDto())
     mockAppointmentsService.getAll.mockResolvedValue({ data: [], total: 0, page: 1, limit: 100 })
-    mockAppointmentsService.getAvailability.mockResolvedValue({ doctorId: DOCTOR_ID, date: '2025-06-10', slots: [] })
+    mockAppointmentsService.getAvailability.mockResolvedValue({ professionalId: DOCTOR_ID, date: '2025-06-10', slots: [] })
     renderWithProviders(<AppointmentDetailPage />)
     await waitFor(() => expect(screen.getByTestId('appointment-detail-complete-button')).toBeInTheDocument())
     await userEvent.click(screen.getByTestId('appointment-detail-complete-button'))
@@ -325,7 +325,7 @@ describe('AppointmentDetailPage (integration)', () => {
     mockAppointmentsService.getById.mockResolvedValue(makeAppointmentDto())
     mockAppointmentsService.complete.mockRejectedValue({ status: 422 })
     mockAppointmentsService.getAll.mockResolvedValue({ data: [], total: 0, page: 1, limit: 100 })
-    mockAppointmentsService.getAvailability.mockResolvedValue({ doctorId: DOCTOR_ID, date: '2025-06-10', slots: [] })
+    mockAppointmentsService.getAvailability.mockResolvedValue({ professionalId: DOCTOR_ID, date: '2025-06-10', slots: [] })
     renderWithProviders(<AppointmentDetailPage />)
     await waitFor(() => expect(screen.getByTestId('appointment-detail-complete-button')).toBeInTheDocument())
     await userEvent.click(screen.getByTestId('appointment-detail-complete-button'))
@@ -351,7 +351,7 @@ describe('AppointmentDetailPage (integration)', () => {
       makeAppointmentDto({ status: AppointmentStatus.CANCELLED }),
     )
     mockAppointmentsService.getAll.mockResolvedValue({ data: [], total: 0, page: 1, limit: 100 })
-    mockAppointmentsService.getAvailability.mockResolvedValue({ doctorId: DOCTOR_ID, date: '2025-06-10', slots: [] })
+    mockAppointmentsService.getAvailability.mockResolvedValue({ professionalId: DOCTOR_ID, date: '2025-06-10', slots: [] })
     renderWithProviders(<AppointmentDetailPage />)
     await waitFor(() => expect(screen.getByTestId('appointment-detail-cancel-button')).toBeInTheDocument())
     await userEvent.click(screen.getByTestId('appointment-detail-cancel-button'))

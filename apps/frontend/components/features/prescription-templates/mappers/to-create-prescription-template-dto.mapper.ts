@@ -12,6 +12,6 @@ export function toCreatePrescriptionTemplateDto(input: ICreatePrescriptionTempla
       instructions: item.instructions,
     })),
     ...(input.notes ? { notes: input.notes } : {}),
-    ...(input.doctorId ? { doctorId: input.doctorId } : {}),
+    ...(input.professionalId ? { professionalId: input.professionalId } : {}),
   } as CreatePrescriptionTemplateDto
 }

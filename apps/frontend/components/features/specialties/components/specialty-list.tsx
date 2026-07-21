@@ -60,7 +60,7 @@ export function SpecialtyList() {
       onError: (error: IApiError) => {
         setSpecialtyToDelete(null)
         if (error.status === 409) {
-          setDeleteError(`Não é possível excluir "${specialtyToDelete.name}" pois ela está vinculada a médicos ativos.`)
+          setDeleteError(`Não é possível excluir "${specialtyToDelete.name}" pois ela está vinculada a profissionais ativos.`)
         } else {
           setDeleteError('Não foi possível excluir a especialidade. Tente novamente.')
         }

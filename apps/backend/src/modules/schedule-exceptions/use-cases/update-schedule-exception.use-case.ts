@@ -11,7 +11,7 @@ import { UpdateScheduleExceptionDto, UserRole } from '@app/shared'
 import { BaseUseCase } from '../../../common/base.use-case'
 import { CacheService } from '../../../cache/cache.service'
 import { ICurrentUser } from '../../auth/types/current-user.type'
-import { IDoctorsRepository } from '../../doctors/repositories/doctors.repository.interface'
+import { IProfessionalsRepository } from '../../professionals/repositories/professionals.repository.interface'
 import { IAppointmentsRepository } from '../repositories/appointments.repository.adapter'
 import { IScheduleExceptionsRepository } from '../repositories/schedule-exceptions.repository.interface'
 import { ScheduleException } from '../entities/schedule-exception.entity'
@@ -28,7 +28,7 @@ export class UpdateScheduleExceptionUseCase extends BaseUseCase {
   constructor(
     dataSource: DataSource,
     private readonly scheduleExceptionsRepository: IScheduleExceptionsRepository,
-    private readonly doctorsRepository: IDoctorsRepository,
+    private readonly professionalsRepository: IProfessionalsRepository,
     private readonly appointmentsRepository: IAppointmentsRepository,
     private readonly cacheService: CacheService,
   ) {
@@ -41,9 +41,9 @@ export class UpdateScheduleExceptionUseCase extends BaseUseCase {
     const exception = await this.scheduleExceptionsRepository.findById(id, clinicId)
     if (!exception) throw new NotFoundException('Schedule exception not found')
 
-    if (currentUser.role === UserRole.DOCTOR) {
-      const doctor = await this.doctorsRepository.findByUserId(currentUser.id, clinicId)
-      if (!doctor || exception.doctorId !== doctor.id) {
+    if (currentUser.role === UserRole.PROFESSIONAL) {
+      const professional = await this.professionalsRepository.findByUserId(currentUser.id, clinicId)
+      if (!professional || exception.professionalId !== professional.id) {
         throw new ForbiddenException('You are not allowed to manage this schedule exception')
       }
     }
@@ -62,7 +62,7 @@ export class UpdateScheduleExceptionUseCase extends BaseUseCase {
     }
 
     const conflicts = await this.appointmentsRepository.findScheduledAppointmentsInWindow(
-      exception.doctorId,
+      exception.professionalId,
       merged.date,
       merged.startTime,
       merged.endTime,
@@ -87,11 +87,11 @@ export class UpdateScheduleExceptionUseCase extends BaseUseCase {
     }
 
     try {
-      await this.cacheService.delByPrefix(`schedule-exceptions:list:${clinicId}:${exception.doctorId}:`)
+      await this.cacheService.delByPrefix(`schedule-exceptions:list:${clinicId}:${exception.professionalId}:`)
       await this.cacheService.delByPrefix(`schedule-exceptions:list:${clinicId}:all:`)
-      await this.cacheService.del(`appointments:availability:${clinicId}:${exception.doctorId}:${exception.date}`)
+      await this.cacheService.del(`appointments:availability:${clinicId}:${exception.professionalId}:${exception.date}`)
       if (merged.date !== exception.date) {
-        await this.cacheService.del(`appointments:availability:${clinicId}:${exception.doctorId}:${merged.date}`)
+        await this.cacheService.del(`appointments:availability:${clinicId}:${exception.professionalId}:${merged.date}`)
       }
     } catch {
       this.logger.warn('Cache invalidation failed', { context: UpdateScheduleExceptionUseCase.name })

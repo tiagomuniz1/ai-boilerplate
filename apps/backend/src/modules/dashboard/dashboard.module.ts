@@ -1,7 +1,7 @@
 import { Module } from '@nestjs/common'
 import { TypeOrmModule } from '@nestjs/typeorm'
 import { CacheModule } from '../../cache/cache.module'
-import { DoctorsModule } from '../doctors/doctors.module'
+import { ProfessionalsModule } from '../professionals/professionals.module'
 import { Appointment } from '../appointments/entities/appointment.entity'
 import { MedicalCertificate } from '../medical-certificates/entities/medical-certificate.entity'
 import { DashboardController } from './controllers/dashboard.controller'
@@ -10,7 +10,7 @@ import { IDashboardRepository } from './repositories/dashboard.repository.interf
 import { DashboardRepository } from './repositories/dashboard.repository'
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Appointment, MedicalCertificate]), CacheModule, DoctorsModule],
+  imports: [TypeOrmModule.forFeature([Appointment, MedicalCertificate]), CacheModule, ProfessionalsModule],
   controllers: [DashboardController],
   providers: [
     GetDashboardStatsUseCase,

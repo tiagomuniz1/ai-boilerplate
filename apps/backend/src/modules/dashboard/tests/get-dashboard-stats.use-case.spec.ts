@@ -4,7 +4,7 @@ import { faker } from '@faker-js/faker'
 import { AppointmentStatus, UserRole } from '@app/shared'
 import { CacheService } from '../../../cache/cache.service'
 import { ICurrentUser } from '../../auth/types/current-user.type'
-import { IDoctorsRepository } from '../../doctors/repositories/doctors.repository.interface'
+import { IProfessionalsRepository } from '../../professionals/repositories/professionals.repository.interface'
 import { IDashboardRepository } from '../repositories/dashboard.repository.interface'
 import { GetDashboardStatsUseCase } from '../use-cases/get-dashboard-stats.use-case'
 
@@ -14,7 +14,7 @@ const DOCTOR_USER_ID = faker.string.uuid()
 
 const adminUser: ICurrentUser = { id: faker.string.uuid(), role: UserRole.ADMIN, clinicId: CLINIC_ID }
 const userUser: ICurrentUser = { id: faker.string.uuid(), role: UserRole.USER, clinicId: CLINIC_ID }
-const doctorUser: ICurrentUser = { id: DOCTOR_USER_ID, role: UserRole.DOCTOR, clinicId: CLINIC_ID }
+const doctorUser: ICurrentUser = { id: DOCTOR_USER_ID, role: UserRole.PROFESSIONAL, clinicId: CLINIC_ID }
 
 const emptyStatusCounts = () => ({
   [AppointmentStatus.SCHEDULED]: 0,
@@ -37,11 +37,11 @@ const mockDashboardRepository: jest.Mocked<IDashboardRepository> = {
   getTodayBirthdays: jest.fn(),
 }
 
-const mockDoctorsRepository: jest.Mocked<IDoctorsRepository> = {
+const mockProfessionalsRepository: jest.Mocked<IProfessionalsRepository> = {
   findAll: jest.fn(),
   findById: jest.fn(),
   findByUserId: jest.fn(),
-  findByCrm: jest.fn(),
+  findByRegistration: jest.fn(),
   create: jest.fn(),
   update: jest.fn(),
   delete: jest.fn(),
@@ -56,7 +56,7 @@ function makeUseCase() {
   return new GetDashboardStatsUseCase(
     {} as DataSource,
     mockDashboardRepository,
-    mockDoctorsRepository,
+    mockProfessionalsRepository,
     mockCacheService,
   )
 }
@@ -80,7 +80,7 @@ describe('GetDashboardStatsUseCase', () => {
     useCase = makeUseCase()
     mockCacheService.get.mockResolvedValue(null)
     mockCacheService.set.mockResolvedValue(undefined)
-    mockDoctorsRepository.findByUserId.mockResolvedValue({ id: DOCTOR_ID } as any)
+    mockProfessionalsRepository.findByUserId.mockResolvedValue({ id: DOCTOR_ID } as any)
     setupEmptyRepos()
   })
 
@@ -114,9 +114,9 @@ describe('GetDashboardStatsUseCase', () => {
   })
 
   describe('doctor resolution', () => {
-    it('DOCTOR uses own doctorId and ignores query.doctorId', async () => {
+    it('DOCTOR uses own professionalId and ignores query.professionalId', async () => {
       const someOtherId = faker.string.uuid()
-      await useCase.execute({ doctorId: someOtherId }, doctorUser)
+      await useCase.execute({ professionalId: someOtherId }, doctorUser)
 
       const call = mockDashboardRepository.countByStatus.mock.calls[0]
       expect(call[3]).toBe(DOCTOR_ID)
@@ -124,28 +124,28 @@ describe('GetDashboardStatsUseCase', () => {
     })
 
     it('throws ForbiddenException when DOCTOR has no doctor profile', async () => {
-      mockDoctorsRepository.findByUserId.mockResolvedValue(null)
+      mockProfessionalsRepository.findByUserId.mockResolvedValue(null)
       await expect(useCase.execute({}, doctorUser)).rejects.toThrow(ForbiddenException)
     })
 
-    it('ADMIN uses query.doctorId when provided', async () => {
+    it('ADMIN uses query.professionalId when provided', async () => {
       const filterId = faker.string.uuid()
-      await useCase.execute({ doctorId: filterId }, adminUser)
+      await useCase.execute({ professionalId: filterId }, adminUser)
 
       const call = mockDashboardRepository.countByStatus.mock.calls[0]
       expect(call[3]).toBe(filterId)
     })
 
-    it('ADMIN passes undefined doctorId when not provided', async () => {
+    it('ADMIN passes undefined professionalId when not provided', async () => {
       await useCase.execute({}, adminUser)
 
       const call = mockDashboardRepository.countByStatus.mock.calls[0]
       expect(call[3]).toBeUndefined()
     })
 
-    it('USER uses query.doctorId when provided', async () => {
+    it('USER uses query.professionalId when provided', async () => {
       const filterId = faker.string.uuid()
-      await useCase.execute({ doctorId: filterId }, userUser)
+      await useCase.execute({ professionalId: filterId }, userUser)
 
       const call = mockDashboardRepository.countByStatus.mock.calls[0]
       expect(call[3]).toBe(filterId)

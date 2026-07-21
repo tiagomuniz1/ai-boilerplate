@@ -3,7 +3,7 @@ import type { IBookAppointmentInput } from '../types/appointment-input.types'
 
 export function toBookAppointmentDto(input: IBookAppointmentInput): CreateAppointmentDto {
   return {
-    doctorId: input.doctorId,
+    professionalId: input.professionalId,
     patientId: input.patientId,
     date: input.date,
     startTime: input.startTime,

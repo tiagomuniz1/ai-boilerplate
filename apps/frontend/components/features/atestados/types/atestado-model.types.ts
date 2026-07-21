@@ -5,8 +5,8 @@ export interface IAtestadoModel {
   appointmentId: string
   patientId: string
   patientName: string
-  doctorId: string
-  doctorName: string
+  professionalId: string
+  professionalName: string
   type: MedicalCertificateType
   daysOff: number | null
   startDate: Date | null

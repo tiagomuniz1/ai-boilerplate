@@ -3,8 +3,8 @@ import { toAppointmentModel } from './to-appointment-model.mapper'
 
 const makeDto = (overrides = {}) => ({
   id: 'uuid-1',
-  doctorId: 'doc-uuid',
-  doctorName: 'Dr. João Silva',
+  professionalId: 'doc-uuid',
+  professionalName: 'Dr. João Silva',
   patientId: 'pat-uuid',
   patientName: 'Maria Souza',
   specialtyId: 'spec-uuid',
@@ -27,8 +27,8 @@ describe('toAppointmentModel', () => {
     const model = toAppointmentModel(dto)
 
     expect(model.id).toBe('uuid-1')
-    expect(model.doctorId).toBe('doc-uuid')
-    expect(model.doctorName).toBe('Dr. João Silva')
+    expect(model.professionalId).toBe('doc-uuid')
+    expect(model.professionalName).toBe('Dr. João Silva')
     expect(model.patientId).toBe('pat-uuid')
     expect(model.patientName).toBe('Maria Souza')
     expect(model.specialtyId).toBe('spec-uuid')

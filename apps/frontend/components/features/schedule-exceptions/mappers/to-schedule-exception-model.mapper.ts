@@ -4,7 +4,7 @@ import type { IScheduleExceptionModel } from '../types/schedule-exception-model.
 export function toScheduleExceptionModel(dto: ScheduleExceptionResponseDto): IScheduleExceptionModel {
   return {
     id: dto.id,
-    doctorId: dto.doctorId,
+    professionalId: dto.professionalId,
     date: dto.date,
     startTime: dto.startTime,
     endTime: dto.endTime,

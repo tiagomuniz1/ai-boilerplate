@@ -6,12 +6,12 @@ import * as bcrypt from 'bcrypt'
 import * as cookieParser from 'cookie-parser'
 import * as request from 'supertest'
 import { Repository } from 'typeorm'
-import { AppointmentInsuranceType, AppointmentStatus, DayOfWeek, PatientGender, UserRole } from '@app/shared'
+import { AppointmentInsuranceType, AppointmentStatus, CouncilType, DayOfWeek, PatientGender, UserRole } from '@app/shared'
 import { AppModule } from '../../../app.module'
 import { CacheService } from '../../../cache/cache.service'
 import { Clinic } from '../../clinics/entities/clinic.entity'
 import { User } from '../../users/entities/user.entity'
-import { Doctor } from '../../doctors/entities/doctor.entity'
+import { Professional } from '../../professionals/entities/professional.entity'
 import { Patient } from '../../patients/entities/patient.entity'
 import { Specialty } from '../../specialties/entities/specialty.entity'
 import { Schedule } from '../../schedules/entities/schedule.entity'
@@ -39,7 +39,7 @@ describe('DashboardController (integration)', () => {
   let cacheService: CacheService
   let userRepository: Repository<User>
   let clinicRepository: Repository<Clinic>
-  let doctorRepository: Repository<Doctor>
+  let doctorRepository: Repository<Professional>
   let patientRepository: Repository<Patient>
   let specialtyRepository: Repository<Specialty>
   let scheduleRepository: Repository<Schedule>
@@ -49,7 +49,7 @@ describe('DashboardController (integration)', () => {
   let doctorToken: string
   let otherDoctorToken: string
   let userToken: string
-  let doctorId: string
+  let professionalId: string
   let otherDoctorId: string
   let patientId: string
   let scheduleId: string
@@ -100,7 +100,7 @@ describe('DashboardController (integration)', () => {
     cacheService = module.get(CacheService)
     userRepository = module.get(getRepositoryToken(User))
     clinicRepository = module.get(getRepositoryToken(Clinic))
-    doctorRepository = module.get(getRepositoryToken(Doctor))
+    doctorRepository = module.get(getRepositoryToken(Professional))
     patientRepository = module.get(getRepositoryToken(Patient))
     specialtyRepository = module.get(getRepositoryToken(Specialty))
     scheduleRepository = module.get(getRepositoryToken(Schedule))
@@ -118,8 +118,8 @@ describe('DashboardController (integration)', () => {
     await scheduleRepository.query('DELETE FROM test.schedule_exceptions')
     await scheduleRepository.query('DELETE FROM test.schedules')
     await patientRepository.query('DELETE FROM test.patients')
-    await doctorRepository.query('DELETE FROM test.doctor_specialties')
-    await doctorRepository.query('DELETE FROM test.doctors')
+    await doctorRepository.query('DELETE FROM test.professional_specialties')
+    await doctorRepository.query('DELETE FROM test.professionals')
     await specialtyRepository.query('DELETE FROM test.specialties')
     await userRepository.query('DELETE FROM test.refresh_tokens')
     await userRepository.query('DELETE FROM test.users')
@@ -152,7 +152,7 @@ describe('DashboardController (integration)', () => {
         fullName: 'Doctor One',
         email: 'doctor@dashboard.test',
         password: hashed,
-        role: UserRole.DOCTOR,
+        role: UserRole.PROFESSIONAL,
         clinicId: SEED_CLINIC_ID,
       }),
     )
@@ -162,7 +162,7 @@ describe('DashboardController (integration)', () => {
         fullName: 'Doctor Two',
         email: 'other-doctor@dashboard.test',
         password: hashed,
-        role: UserRole.DOCTOR,
+        role: UserRole.PROFESSIONAL,
         clinicId: SEED_CLINIC_ID,
       }),
     )
@@ -184,17 +184,17 @@ describe('DashboardController (integration)', () => {
       userId: doctorUser.id,
       clinicId: SEED_CLINIC_ID,
     })
-    doctorEntity.crms = [{ clinicId: SEED_CLINIC_ID, number: '10001', state: 'SP', isPrimary: true }] as any
-    doctorEntity.doctorSpecialties = ([specialty]).map((s: any) => ({ specialtyId: s.id, rqe: null })) as any
+    doctorEntity.registrations = [{ clinicId: SEED_CLINIC_ID, councilType: CouncilType.CRM, number: '10001', state: 'SP', isPrimary: true }] as any
+    doctorEntity.professionalSpecialties = ([specialty]).map((s: any) => ({ specialtyId: s.id, registryNumber: null })) as any
     const doctorProfile = await doctorRepository.save(doctorEntity)
-    doctorId = doctorProfile.id
+    professionalId = doctorProfile.id
 
     const otherDoctorEntity = doctorRepository.create({
       userId: otherDoctorUser.id,
       clinicId: SEED_CLINIC_ID,
     })
-    otherDoctorEntity.crms = [{ clinicId: SEED_CLINIC_ID, number: '10002', state: 'SP', isPrimary: true }] as any
-    otherDoctorEntity.doctorSpecialties = ([]).map((s: any) => ({ specialtyId: s.id, rqe: null })) as any
+    otherDoctorEntity.registrations = [{ clinicId: SEED_CLINIC_ID, councilType: CouncilType.CRM, number: '10002', state: 'SP', isPrimary: true }] as any
+    otherDoctorEntity.professionalSpecialties = ([]).map((s: any) => ({ specialtyId: s.id, registryNumber: null })) as any
     const otherDoctorProfile = await doctorRepository.save(otherDoctorEntity)
     otherDoctorId = otherDoctorProfile.id
 
@@ -246,7 +246,7 @@ describe('DashboardController (integration)', () => {
     const pastDate = daysAgo(5)
     const scheduleRecord = await scheduleRepository.save(
       scheduleRepository.create({
-        doctorId,
+        professionalId,
         clinicId: SEED_CLINIC_ID,
         dayOfWeek: dayOfWeekFor(pastDate),
         startTime: '08:00',
@@ -260,7 +260,7 @@ describe('DashboardController (integration)', () => {
 
     const otherScheduleRecord = await scheduleRepository.save(
       scheduleRepository.create({
-        doctorId: otherDoctorId,
+        professionalId: otherDoctorId,
         clinicId: SEED_CLINIC_ID,
         dayOfWeek: dayOfWeekFor(daysAgo(3)),
         startTime: '08:00',
@@ -294,8 +294,8 @@ describe('DashboardController (integration)', () => {
     await scheduleRepository.query('DELETE FROM test.schedule_exceptions')
     await scheduleRepository.query('DELETE FROM test.schedules')
     await patientRepository.query('DELETE FROM test.patients')
-    await doctorRepository.query('DELETE FROM test.doctor_specialties')
-    await doctorRepository.query('DELETE FROM test.doctors')
+    await doctorRepository.query('DELETE FROM test.professional_specialties')
+    await doctorRepository.query('DELETE FROM test.professionals')
     await specialtyRepository.query('DELETE FROM test.specialties')
     await userRepository.query('DELETE FROM test.refresh_tokens')
     await userRepository.query('DELETE FROM test.users')
@@ -304,7 +304,7 @@ describe('DashboardController (integration)', () => {
   })
 
   async function seedAppointment(overrides: Partial<{
-    doctorId: string
+    professionalId: string
     patientId: string
     scheduleId: string
     date: string
@@ -318,7 +318,7 @@ describe('DashboardController (integration)', () => {
     return appointmentRepository.save(
       appointmentRepository.create({
         clinicId: SEED_CLINIC_ID,
-        doctorId,
+        professionalId,
         patientId,
         scheduleId,
         date: daysAgo(5),
@@ -469,7 +469,7 @@ describe('DashboardController (integration)', () => {
     // Doctor 1: 3 completed
     for (let i = 0; i < 3; i++) {
       await seedAppointment({
-        doctorId,
+        professionalId,
         scheduleId,
         status: AppointmentStatus.COMPLETED,
         date: pastDate,
@@ -482,7 +482,7 @@ describe('DashboardController (integration)', () => {
     await appointmentRepository.save(
       appointmentRepository.create({
         clinicId: SEED_CLINIC_ID,
-        doctorId: otherDoctorId,
+        professionalId: otherDoctorId,
         patientId,
         scheduleId: otherScheduleId,
         date: daysAgo(3),
@@ -512,14 +512,14 @@ describe('DashboardController (integration)', () => {
     expect(adminBody.kpi.completed).toBe(4)
   })
 
-  it('ADMIN with doctorId filter only returns that doctor data', async () => {
+  it('ADMIN with professionalId filter only returns that doctor data', async () => {
     const pastDate = daysAgo(5)
 
-    await seedAppointment({ doctorId, scheduleId, status: AppointmentStatus.COMPLETED, date: pastDate })
+    await seedAppointment({ professionalId, scheduleId, status: AppointmentStatus.COMPLETED, date: pastDate })
     await appointmentRepository.save(
       appointmentRepository.create({
         clinicId: SEED_CLINIC_ID,
-        doctorId: otherDoctorId,
+        professionalId: otherDoctorId,
         patientId,
         scheduleId: otherScheduleId,
         date: daysAgo(3),
@@ -536,7 +536,7 @@ describe('DashboardController (integration)', () => {
     const { body } = await request(app.getHttpServer())
       .get('/dashboard')
       .set('Cookie', `access_token=${adminToken}`)
-      .query({ from: daysAgo(10), to: today, doctorId })
+      .query({ from: daysAgo(10), to: today, professionalId })
       .expect(200)
 
     expect(body.kpi.completed).toBe(1)
@@ -546,7 +546,7 @@ describe('DashboardController (integration)', () => {
     // Insert appointment for another clinic directly
     const otherSchedule = await scheduleRepository.save(
       scheduleRepository.create({
-        doctorId,
+        professionalId,
         clinicId: OTHER_CLINIC_ID,
         dayOfWeek: dayOfWeekFor(daysAgo(5)),
         startTime: '08:00',
@@ -560,7 +560,7 @@ describe('DashboardController (integration)', () => {
     await appointmentRepository.save(
       appointmentRepository.create({
         clinicId: OTHER_CLINIC_ID,
-        doctorId,
+        professionalId,
         patientId,
         scheduleId: otherSchedule.id,
         date: daysAgo(5),

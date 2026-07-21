@@ -26,8 +26,8 @@ describe('NAVIGATION_ITEMS', () => {
     expect(NAVIGATION_ITEMS.find((i) => i.id === 'users')).toBeDefined()
   })
 
-  it('contains a doctors item', () => {
-    expect(NAVIGATION_ITEMS.find((i) => i.id === 'doctors')).toBeDefined()
+  it('contains a professionals item', () => {
+    expect(NAVIGATION_ITEMS.find((i) => i.id === 'professionals')).toBeDefined()
   })
 
   it('all hrefs start with a slash', () => {

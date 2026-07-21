@@ -1,6 +1,7 @@
 import * as bcrypt from 'bcrypt'
 import { DataSource } from 'typeorm'
 import {
+  CouncilType,
   DayOfWeek,
   MedicalRecordFieldType,
   UserRole,
@@ -9,9 +10,9 @@ import { Clinic } from '../../../modules/clinics/entities/clinic.entity'
 import { User } from '../../../modules/users/entities/user.entity'
 import { Specialty } from '../../../modules/specialties/entities/specialty.entity'
 import { ClinicSpecialty } from '../../../modules/clinic-specialties/entities/clinic-specialty.entity'
-import { Doctor } from '../../../modules/doctors/entities/doctor.entity'
-import { DoctorCrm } from '../../../modules/doctors/entities/doctor-crm.entity'
-import { DoctorSpecialty } from '../../../modules/doctors/entities/doctor-specialty.entity'
+import { Professional } from '../../../modules/professionals/entities/professional.entity'
+import { ProfessionalRegistration } from '../../../modules/professionals/entities/professional-registration.entity'
+import { ProfessionalSpecialty } from '../../../modules/professionals/entities/professional-specialty.entity'
 import { Schedule } from '../../../modules/schedules/entities/schedule.entity'
 import {
   MedicalRecordTemplate,
@@ -23,18 +24,58 @@ import { generateFieldKey } from '../../../modules/medical-record-templates/util
 
 export const CARGA_CLINIC_ID = '20000000-0000-4000-8000-000000000000'
 const CARGA_CLINIC_SLUG = 'pulso-carga'
-const TOTAL_DOCTORS = 200
+const TOTAL_PROFESSIONALS = 200
 const TOTAL_PATIENTS = 2_000_000
 const TOTAL_APPOINTMENTS = 4_000_000
-const TEMPLATES_PER_DOCTOR = 15
+const TEMPLATES_PER_PROFESSIONAL = 15
 
 const SPECIALTIES = [
-  { name: 'Cardiologia', key: 'cardiologia' },
-  { name: 'Ortopedia', key: 'ortopedia' },
-  { name: 'Neurologia', key: 'neurologia' },
-  { name: 'Pediatria', key: 'pediatria' },
-  { name: 'Dermatologia', key: 'dermatologia' },
+  { name: 'Cardiologia', key: 'cardiologia', titleName: null as string | null },
+  { name: 'Ortopedia', key: 'ortopedia', titleName: null as string | null },
+  { name: 'Neurologia', key: 'neurologia', titleName: null as string | null },
+  { name: 'Pediatria', key: 'pediatria', titleName: null as string | null },
+  { name: 'Dermatologia', key: 'dermatologia', titleName: null as string | null },
+  { name: 'Nutrição Clínica', key: 'nutricao-clinica', titleName: 'nutricionista' },
+  { name: 'Fisioterapia Ortopédica', key: 'fisioterapia-ortopedica', titleName: 'fisioterapeuta' },
 ]
+
+// ~70% CRM, ~30% distributed across CRN/CREFITO/CRP — cycled by professional index.
+const COUNCIL_TYPE_MIX: CouncilType[] = [
+  CouncilType.CRM,
+  CouncilType.CRM,
+  CouncilType.CRM,
+  CouncilType.CRM,
+  CouncilType.CRM,
+  CouncilType.CRM,
+  CouncilType.CRM,
+  CouncilType.CRN,
+  CouncilType.CREFITO,
+  CouncilType.CRP,
+]
+
+const PROFESSIONAL_NAME_PREFIXES: Partial<Record<CouncilType, string>> = {
+  [CouncilType.CRM]: 'Dr(a). Médico(a)',
+  [CouncilType.CRN]: 'Nutricionista',
+  [CouncilType.CREFITO]: 'Fisioterapeuta',
+  [CouncilType.CRP]: 'Psicólogo(a)',
+}
+
+function pickCouncilType(idx: number): CouncilType {
+  return COUNCIL_TYPE_MIX[(idx - 1) % COUNCIL_TYPE_MIX.length]
+}
+
+function buildRegistrationNumber(councilType: CouncilType, idx: number): string {
+  switch (councilType) {
+    case CouncilType.CRN:
+      return `${9000000 + idx}`
+    case CouncilType.CREFITO:
+      return `${100000 + idx}-F`
+    case CouncilType.CRP:
+      return `06/${10000 + idx}`
+    default:
+      return `${100000 + idx}`
+  }
+}
 
 // Template definitions per specialty with sections and standalone fields
 const TEMPLATE_DEFINITIONS: Record<string, {
@@ -144,6 +185,34 @@ const TEMPLATE_DEFINITIONS: Record<string, {
       { label: 'Observações', type: MedicalRecordFieldType.TEXTAREA, required: false, sectionKey: null },
     ],
   },
+  'nutricao-clinica': {
+    sections: [
+      { key: 'avaliacao_nutricional', title: 'Avaliação Nutricional', order: 1 },
+    ],
+    fields: [
+      // Secção: Avaliação Nutricional
+      { label: 'IMC', type: MedicalRecordFieldType.NUMBER, required: false, sectionKey: 'avaliacao_nutricional', canonicalKey: 'bmi', placeholder: 'kg/m²' },
+      { label: 'Circunferência Abdominal', type: MedicalRecordFieldType.NUMBER, required: false, sectionKey: 'avaliacao_nutricional', canonicalKey: 'waist_circumference', placeholder: 'cm' },
+      { label: 'Alergias Alimentares', type: MedicalRecordFieldType.TEXTAREA, required: false, sectionKey: 'avaliacao_nutricional', canonicalKey: 'allergies' },
+      // Standalone
+      { label: 'Peso', type: MedicalRecordFieldType.NUMBER, required: false, sectionKey: null, canonicalKey: 'weight', placeholder: 'kg' },
+      { label: 'Altura', type: MedicalRecordFieldType.NUMBER, required: false, sectionKey: null, canonicalKey: 'height', placeholder: 'cm' },
+      { label: 'Observações', type: MedicalRecordFieldType.TEXTAREA, required: false, sectionKey: null },
+    ],
+  },
+  'fisioterapia-ortopedica': {
+    sections: [
+      { key: 'avaliacao_funcional', title: 'Avaliação Funcional', order: 1 },
+    ],
+    fields: [
+      // Secção: Avaliação Funcional
+      { label: 'Amplitude de Movimento', type: MedicalRecordFieldType.TEXT, required: false, sectionKey: 'avaliacao_funcional', canonicalKey: 'range_of_motion', placeholder: 'Ex: 0-120°' },
+      { label: 'Intensidade da Dor (0-10)', type: MedicalRecordFieldType.NUMBER, required: false, sectionKey: 'avaliacao_funcional' },
+      { label: 'Objetivo do Tratamento', type: MedicalRecordFieldType.TEXTAREA, required: false, sectionKey: 'avaliacao_funcional' },
+      // Standalone
+      { label: 'Observações', type: MedicalRecordFieldType.TEXTAREA, required: false, sectionKey: null },
+    ],
+  },
 }
 
 function log(msg: string) {
@@ -159,8 +228,8 @@ export async function cargaSeed(dataSource: DataSource): Promise<void> {
   const adminUser = await seedAdminUser(dataSource)
   await seedCanonicalFields(dataSource)
   await seedTemplates(dataSource, specialtyEntities)
-  const doctorPassword = await bcrypt.hash('carga123', 10)
-  await seedDoctors(dataSource, specialtyEntities, doctorPassword)
+  const professionalPassword = await bcrypt.hash('carga123', 10)
+  await seedProfessionals(dataSource, specialtyEntities, professionalPassword)
   await seedPrescriptionTemplatesBulk(dataSource)
   const patientHash = await bcrypt.hash('carga123', 10)
   await seedPatientsBulk(dataSource, patientHash)
@@ -176,7 +245,7 @@ async function seedSpecialties(dataSource: DataSource): Promise<Specialty[]> {
   for (const spec of SPECIALTIES) {
     let entity = await repository.findOneBy({ name: spec.name })
     if (!entity) {
-      entity = await repository.save(repository.create({ name: spec.name, description: null }))
+      entity = await repository.save(repository.create({ name: spec.name, description: null, titleName: spec.titleName }))
       log(`Specialty "${spec.name}" created.`)
     } else {
       log(`Specialty "${spec.name}" already exists.`)
@@ -324,23 +393,23 @@ const SCHEDULE_CONFIGS = [
   { startTime: '14:00', endTime: '18:00', slot: 30 },
 ]
 
-async function seedDoctors(dataSource: DataSource, specialties: Specialty[], passwordHash: string): Promise<void> {
+async function seedProfessionals(dataSource: DataSource, specialties: Specialty[], passwordHash: string): Promise<void> {
   const userRepo = dataSource.getRepository(User)
-  const doctorRepo = dataSource.getRepository(Doctor)
+  const professionalRepo = dataSource.getRepository(Professional)
   const scheduleRepo = dataSource.getRepository(Schedule)
 
-  const existing = await doctorRepo.count({ where: { clinicId: CARGA_CLINIC_ID } })
-  if (existing >= TOTAL_DOCTORS) {
-    log(`${existing} doctors already exist, skipping.`)
+  const existing = await professionalRepo.count({ where: { clinicId: CARGA_CLINIC_ID } })
+  if (existing >= TOTAL_PROFESSIONALS) {
+    log(`${existing} professionals already exist, skipping.`)
     return
   }
 
-  const toCreate = TOTAL_DOCTORS - existing
-  log(`Creating ${toCreate} doctors...`)
+  const toCreate = TOTAL_PROFESSIONALS - existing
+  log(`Creating ${toCreate} professionals...`)
 
   const BATCH = 20
-  for (let i = existing; i < TOTAL_DOCTORS; i += BATCH) {
-    const batch = Math.min(BATCH, TOTAL_DOCTORS - i)
+  for (let i = existing; i < TOTAL_PROFESSIONALS; i += BATCH) {
+    const batch = Math.min(BATCH, TOTAL_PROFESSIONALS - i)
     await Promise.all(
       Array.from({ length: batch }, async (_, j) => {
         const idx = i + j + 1
@@ -348,33 +417,45 @@ async function seedDoctors(dataSource: DataSource, specialties: Specialty[], pas
         const specialty = specialties[specialtyIndex]
         const schedCfg = SCHEDULE_CONFIGS[(idx - 1) % SCHEDULE_CONFIGS.length]
         const dow = DAY_OF_WEEKS[(idx - 1) % DAY_OF_WEEKS.length]
+        const councilType = pickCouncilType(idx)
+        const namePrefix = PROFESSIONAL_NAME_PREFIXES[councilType] ?? 'Profissional'
 
-        const email = `medico${idx}@pulso-carga.center`
+        const email = `profissional${idx}@pulso-carga.center`
         let user = await userRepo.findOneBy({ email })
         if (!user) {
           user = await userRepo.save(userRepo.create({
-            fullName: `Dr. Médico Carga ${idx}`,
+            fullName: `${namePrefix} Carga ${idx}`,
             email,
             password: passwordHash,
-            role: UserRole.DOCTOR,
+            role: UserRole.PROFESSIONAL,
             clinicId: CARGA_CLINIC_ID,
           }))
         }
 
-        let doctor = await doctorRepo.findOneBy({ userId: user.id })
-        if (!doctor) {
-          const d = doctorRepo.create({ userId: user.id, clinicId: CARGA_CLINIC_ID })
-          d.crms = [
-            dataSource.getRepository(DoctorCrm).create({ clinicId: CARGA_CLINIC_ID, number: `${100000 + idx}`, state: 'SP', isPrimary: true }),
+        let professional = await professionalRepo.findOneBy({ userId: user.id })
+        if (!professional) {
+          const p = professionalRepo.create({ userId: user.id, clinicId: CARGA_CLINIC_ID })
+          p.registrations = [
+            dataSource
+              .getRepository(ProfessionalRegistration)
+              .create({
+                clinicId: CARGA_CLINIC_ID,
+                councilType,
+                number: buildRegistrationNumber(councilType, idx),
+                state: 'SP',
+                isPrimary: true,
+              }),
           ]
-          d.doctorSpecialties = [dataSource.getRepository(DoctorSpecialty).create({ specialtyId: specialty.id, rqe: null })]
-          doctor = await doctorRepo.save(d)
+          p.professionalSpecialties = [
+            dataSource.getRepository(ProfessionalSpecialty).create({ specialtyId: specialty.id, registryNumber: null }),
+          ]
+          professional = await professionalRepo.save(p)
         }
 
-        const schedExists = await scheduleRepo.findOneBy({ doctorId: doctor.id })
+        const schedExists = await scheduleRepo.findOneBy({ professionalId: professional.id })
         if (!schedExists) {
           await scheduleRepo.save(scheduleRepo.create({
-            doctorId: doctor.id,
+            professionalId: professional.id,
             clinicId: CARGA_CLINIC_ID,
             dayOfWeek: dow,
             startTime: schedCfg.startTime,
@@ -386,11 +467,11 @@ async function seedDoctors(dataSource: DataSource, specialties: Specialty[], pas
         }
       }),
     )
-    if ((i + BATCH) % 100 === 0 || i + BATCH >= TOTAL_DOCTORS) {
-      log(`  doctors progress: ${Math.min(i + BATCH, TOTAL_DOCTORS)}/${TOTAL_DOCTORS}`)
+    if ((i + BATCH) % 100 === 0 || i + BATCH >= TOTAL_PROFESSIONALS) {
+      log(`  professionals progress: ${Math.min(i + BATCH, TOTAL_PROFESSIONALS)}/${TOTAL_PROFESSIONALS}`)
     }
   }
-  log('Doctors seeded.')
+  log('Professionals seeded.')
 }
 
 const TEMPLATE_NAME_SAMPLES = [
@@ -439,16 +520,16 @@ async function seedPrescriptionTemplatesBulk(dataSource: DataSource): Promise<vo
     const schema = (dataSource.options as any).schema ?? 'dev'
     await qr.query(`SET search_path TO "${schema}", public`)
 
-    const doctorCount = parseInt(
-      (await qr.query(`SELECT COUNT(*) as cnt FROM doctors WHERE clinic_id = $1`, [CARGA_CLINIC_ID]))[0].cnt,
+    const professionalCount = parseInt(
+      (await qr.query(`SELECT COUNT(*) as cnt FROM professionals WHERE clinic_id = $1`, [CARGA_CLINIC_ID]))[0].cnt,
       10,
     )
-    if (doctorCount === 0) {
-      log('No doctors found, skipping prescription templates seed.')
+    if (professionalCount === 0) {
+      log('No professionals found, skipping prescription templates seed.')
       return
     }
 
-    const targetCount = doctorCount * TEMPLATES_PER_DOCTOR
+    const targetCount = professionalCount * TEMPLATES_PER_PROFESSIONAL
     const existing = parseInt(
       (await qr.query(`SELECT COUNT(*) as cnt FROM prescription_templates WHERE clinic_id = $1`, [CARGA_CLINIC_ID]))[0]
         .cnt,
@@ -459,20 +540,20 @@ async function seedPrescriptionTemplatesBulk(dataSource: DataSource): Promise<vo
       return
     }
 
-    log(`Inserting prescription templates (${TEMPLATES_PER_DOCTOR} per doctor, ${doctorCount} doctors)...`)
+    log(`Inserting prescription templates (${TEMPLATES_PER_PROFESSIONAL} per professional, ${professionalCount} professionals)...`)
     const t0 = Date.now()
 
     await qr.query(
       `
       INSERT INTO prescription_templates
-        (id, clinic_id, doctor_id, doctor_name, name, items, notes, is_active, created_at, updated_at)
+        (id, clinic_id, professional_id, professional_name, name, items, notes, is_active, created_at, updated_at)
       SELECT
         gen_random_uuid(),
         $1,
-        doc.doctor_id,
-        doc.doctor_name,
+        doc.professional_id,
+        doc.professional_name,
         (ARRAY[${TEMPLATE_NAME_SAMPLES.map((s) => `'${s}'`).join(',')}])[((gs.idx - 1) % ${TEMPLATE_NAME_SAMPLES.length}) + 1]
-          || ' - ' || doc.doctor_name,
+          || ' - ' || doc.professional_name,
         jsonb_build_array(
           jsonb_build_object(
             'medicationId', NULL,
@@ -497,16 +578,16 @@ async function seedPrescriptionTemplatesBulk(dataSource: DataSource): Promise<vo
         NOW() - ((gs.idx % 365) * INTERVAL '1 day')
       FROM (
         SELECT
-          d.id AS doctor_id,
-          u.full_name AS doctor_name,
+          d.id AS professional_id,
+          u.full_name AS professional_name,
           (ROW_NUMBER() OVER (ORDER BY d.created_at, d.id))::int AS rn
-        FROM doctors d
+        FROM professionals d
         JOIN users u ON u.id = d.user_id
         WHERE d.clinic_id = $1
       ) doc
       CROSS JOIN generate_series(1, $2) AS gs(idx)
       `,
-      [CARGA_CLINIC_ID, TEMPLATES_PER_DOCTOR],
+      [CARGA_CLINIC_ID, TEMPLATES_PER_PROFESSIONAL],
     )
 
     log(`Prescription templates inserted in ${((Date.now() - t0) / 1000).toFixed(1)}s`)
@@ -618,26 +699,26 @@ async function seedAppointmentsBulk(dataSource: DataSource): Promise<void> {
     log(`Preparing appointment bulk insert (${TOTAL_APPOINTMENTS.toLocaleString()} rows)...`)
     const t0 = Date.now()
 
-    // Temp table: doctors in indexed order
+    // Temp table: professionals in indexed order
     await qr.query(`
-      CREATE TEMP TABLE IF NOT EXISTS _carga_doctors_idx AS
+      CREATE TEMP TABLE IF NOT EXISTS _carga_professionals_idx AS
       SELECT
-        d.id                                                         AS doctor_id,
+        d.id                                                         AS professional_id,
         s.id                                                         AS schedule_id,
         (SELECT ds.specialty_id
-         FROM doctor_specialties ds
-         WHERE ds.doctor_id = d.id
+         FROM professional_specialties ds
+         WHERE ds.professional_id = d.id
          LIMIT 1)                                                    AS specialty_id,
         (ROW_NUMBER() OVER (ORDER BY d.created_at, d.id))::int - 1  AS rn
-      FROM doctors d
-      JOIN schedules s ON s.doctor_id = d.id AND s.clinic_id = d.clinic_id
+      FROM professionals d
+      JOIN schedules s ON s.professional_id = d.id AND s.clinic_id = d.clinic_id
       WHERE d.clinic_id = $1
       LIMIT $2
-    `, [CARGA_CLINIC_ID, TOTAL_DOCTORS])
+    `, [CARGA_CLINIC_ID, TOTAL_PROFESSIONALS])
 
-    await qr.query(`CREATE INDEX IF NOT EXISTS _carga_doctors_idx_rn ON _carga_doctors_idx (rn)`)
-    const doctorCount = parseInt((await qr.query(`SELECT COUNT(*) as cnt FROM _carga_doctors_idx`))[0].cnt, 10)
-    log(`  doctor temp table ready: ${doctorCount} rows`)
+    await qr.query(`CREATE INDEX IF NOT EXISTS _carga_professionals_idx_rn ON _carga_professionals_idx (rn)`)
+    const professionalCount = parseInt((await qr.query(`SELECT COUNT(*) as cnt FROM _carga_professionals_idx`))[0].cnt, 10)
+    log(`  professional temp table ready: ${professionalCount} rows`)
 
     // Temp table: patients in indexed order (use document_number for stable ordering)
     log(`  building patient temp table (${TOTAL_PATIENTS.toLocaleString()} rows — may take a minute)...`)
@@ -659,23 +740,23 @@ async function seedAppointmentsBulk(dataSource: DataSource): Promise<void> {
     const t2 = Date.now()
 
     // Slots per day and days range to guarantee uniqueness across 4M rows.
-    // Using hierarchical integer division: slot → day → doctor, so that
-    // every (doctor_rn, day_offset, slot_idx) triple is unique within [1, 4M].
-    // Max unique slots = 200 doctors × 16 slots × 1460 days = 4,672,000 > 4,000,000.
+    // Using hierarchical integer division: slot → day → professional, so that
+    // every (professional_rn, day_offset, slot_idx) triple is unique within [1, 4M].
+    // Max unique slots = 200 professionals × 16 slots × 1460 days = 4,672,000 > 4,000,000.
     // day_offset is centered on CURRENT_DATE (± DAYS_RANGE/2) so roughly half the
     // appointments land in the future and half in the past.
     const SLOTS_PER_DAY = 16
     const DAYS_RANGE = 1460 // 4 years
-    const SLOTS_PER_DOCTOR = SLOTS_PER_DAY * DAYS_RANGE // 23,360
+    const SLOTS_PER_PROFESSIONAL = SLOTS_PER_DAY * DAYS_RANGE // 23,360
 
     await qr.query(`
       INSERT INTO appointments
-        (id, clinic_id, doctor_id, patient_id, specialty_id, schedule_id,
+        (id, clinic_id, professional_id, patient_id, specialty_id, schedule_id,
          date, start_time, end_time, status, insurance_type, reason, version, created_at, updated_at)
       SELECT
         gen_random_uuid(),
         $1,
-        dr.doctor_id,
+        dr.professional_id,
         pt.patient_id,
         dr.specialty_id,
         dr.schedule_id,
@@ -703,23 +784,23 @@ async function seedAppointmentsBulk(dataSource: DataSource): Promise<void> {
           ((((s - 1) / $6) % $7) - ($7 / 2))::int AS day_offset
         FROM generate_series($2::bigint, $3::bigint) s
       ) gs
-      JOIN _carga_doctors_idx dr ON dr.rn = (((gs.s - 1) / $8) % $4)::int
+      JOIN _carga_professionals_idx dr ON dr.rn = (((gs.s - 1) / $8) % $4)::int
       JOIN _carga_patients_idx pt ON pt.rn = ((gs.s - 1) % $5)
     `, [
       CARGA_CLINIC_ID,
       already + 1,
       TOTAL_APPOINTMENTS,
-      doctorCount,
+      professionalCount,
       TOTAL_PATIENTS,
       SLOTS_PER_DAY,
       DAYS_RANGE,
-      SLOTS_PER_DOCTOR,
+      SLOTS_PER_PROFESSIONAL,
     ])
 
     log(`  appointments inserted in ${((Date.now() - t2) / 1000).toFixed(1)}s`)
 
     // Cleanup
-    await qr.query(`DROP TABLE IF EXISTS _carga_doctors_idx`)
+    await qr.query(`DROP TABLE IF EXISTS _carga_professionals_idx`)
     await qr.query(`DROP TABLE IF EXISTS _carga_patients_idx`)
 
     log(`Total appointment bulk insert: ${((Date.now() - t0) / 1000).toFixed(1)}s`)

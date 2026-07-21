@@ -10,11 +10,11 @@ const mockAdmin = {
   clinicId: CLINIC_ID,
 }
 
-const mockDoctor = {
-  id: 'mock-doctor-id',
-  fullName: 'Doctor User',
-  email: 'doctor@clinic.com',
-  role: 'doctor',
+const mockProfessional = {
+  id: 'mock-professional-id',
+  fullName: 'Professional User',
+  email: 'professional@clinic.com',
+  role: 'professional',
   clinicId: CLINIC_ID,
 }
 
@@ -99,13 +99,13 @@ describe('Medical Record Templates Details', () => {
     cy.get('[data-testid="template-details-delete-button"]').should('be.visible')
   })
 
-  it('does NOT show edit/delete for DOCTOR', () => {
+  it('does NOT show edit/delete for PROFESSIONAL', () => {
     cy.intercept('GET', `${Cypress.env('API_URL')}/medical-record-templates/${MOCK_TEMPLATE_ID}`, {
       statusCode: 200,
       body: mockTemplate,
     }).as('getTemplate')
 
-    visitClinic(`/medical-record-templates/${MOCK_TEMPLATE_ID}`, mockDoctor)
+    visitClinic(`/medical-record-templates/${MOCK_TEMPLATE_ID}`, mockProfessional)
     cy.wait('@getTemplate')
 
     cy.get('[data-testid="template-details-edit-button"]').should('not.exist')

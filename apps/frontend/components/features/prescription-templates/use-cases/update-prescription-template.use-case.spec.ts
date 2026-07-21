@@ -51,13 +51,13 @@ describe('updatePrescriptionTemplateUseCase', () => {
     expect(call).toMatchObject({ isActive: false })
   })
 
-  it('includes doctorId when provided', async () => {
+  it('includes professionalId when provided', async () => {
     mockService.update.mockResolvedValue({} as any)
 
-    await updatePrescriptionTemplateUseCase('tpl-uuid', { doctorId: 'doctor-uuid' })
+    await updatePrescriptionTemplateUseCase('tpl-uuid', { professionalId: 'doctor-uuid' })
 
     const call = mockService.update.mock.calls[0][1]
-    expect(call).toMatchObject({ doctorId: 'doctor-uuid' })
+    expect(call).toMatchObject({ professionalId: 'doctor-uuid' })
   })
 
   it('maps items when provided, resolving medicationId', async () => {

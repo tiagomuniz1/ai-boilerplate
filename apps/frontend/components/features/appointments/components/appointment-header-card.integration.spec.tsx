@@ -8,8 +8,8 @@ import type { IAppointmentDetailModel } from '../types/appointment-model.types'
 function makeAppointment(overrides: Partial<IAppointmentDetailModel> = {}): IAppointmentDetailModel {
   return {
     id: 'appt-uuid',
-    doctorId: 'doc-uuid',
-    doctorName: 'Dr. João Silva',
+    professionalId: 'doc-uuid',
+    professionalName: 'Dr. João Silva',
     patientId: 'patient-uuid',
     patientName: 'Maria Santos',
     specialtyId: 'spec-uuid',
@@ -53,7 +53,7 @@ describe('AppointmentHeaderCard', () => {
 
   it('renders appointment info fields', () => {
     renderWithProviders(<AppointmentHeaderCard {...defaultProps} />)
-    expect(screen.getByTestId('appointment-detail-doctor')).toHaveTextContent('Dr. João Silva')
+    expect(screen.getByTestId('appointment-detail-professional')).toHaveTextContent('Dr. João Silva')
     expect(screen.getByTestId('appointment-detail-date')).toHaveTextContent('10/06/2026')
     expect(screen.getByTestId('appointment-detail-time')).toHaveTextContent('09:00 – 09:30')
     expect(screen.getByTestId('appointment-detail-specialty')).toHaveTextContent('Cardiologia')

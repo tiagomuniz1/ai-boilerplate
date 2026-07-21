@@ -6,7 +6,7 @@ export interface CreatePrescriptionData {
   clinicId: string
   appointmentId: string
   patientId: string
-  doctorId: string
+  professionalId: string
   snapshot: PrescriptionSnapshot
   verificationToken: string
   issuedAt: Date

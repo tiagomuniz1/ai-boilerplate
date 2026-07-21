@@ -30,10 +30,10 @@ describe('usePrescriptionTemplates', () => {
   it('forwards params to the use-case', async () => {
     ;(listPrescriptionTemplatesUseCase as jest.Mock).mockResolvedValue([])
 
-    const { result } = renderHook(() => usePrescriptionTemplates({ doctorId: 'doctor-uuid' }), { wrapper })
+    const { result } = renderHook(() => usePrescriptionTemplates({ professionalId: 'doctor-uuid' }), { wrapper })
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true))
-    expect(listPrescriptionTemplatesUseCase).toHaveBeenCalledWith({ doctorId: 'doctor-uuid' })
+    expect(listPrescriptionTemplatesUseCase).toHaveBeenCalledWith({ professionalId: 'doctor-uuid' })
   })
 
   it('exposes error state when use-case throws', async () => {

@@ -6,8 +6,8 @@ import type {
 } from '@app/shared'
 
 export const prescriptionTemplatesService = {
-  getAll: (params?: { doctorId?: string }) => {
-    const query = params?.doctorId ? `?doctorId=${params.doctorId}` : ''
+  getAll: (params?: { professionalId?: string }) => {
+    const query = params?.professionalId ? `?professionalId=${params.professionalId}` : ''
     return apiClient.get<PrescriptionTemplateResponseDto[]>(`/prescription-templates${query}`)
   },
 

@@ -1,32 +1,32 @@
 import { ForbiddenException, NotFoundException } from '@nestjs/common'
 import { DataSource } from 'typeorm'
-import { MedicalCertificateType, UserRole } from '@app/shared'
+import { CouncilType, MedicalCertificateType, UserRole } from '@app/shared'
 import { ICurrentUser } from '../../auth/types/current-user.type'
-import { IDoctorsRepository } from '../../doctors/repositories/doctors.repository.interface'
+import { IProfessionalsRepository } from '../../professionals/repositories/professionals.repository.interface'
 import { IMedicalCertificatesRepository } from '../repositories/medical-certificates.repository.interface'
 import { DeleteMedicalCertificateUseCase } from '../use-cases/delete-medical-certificate.use-case'
 import { CacheService } from '../../../cache/cache.service'
 
 const clinicId = 'clinic-uuid'
-const doctorId = 'doctor-uuid'
+const professionalId = 'doctor-uuid'
 const certificateId = 'cert-uuid'
 const appointmentId = 'appt-uuid'
 
 const adminUser: ICurrentUser = { id: 'admin-id', role: UserRole.ADMIN, clinicId }
-const doctorUser: ICurrentUser = { id: 'doctor-user-id', role: UserRole.DOCTOR, clinicId }
+const doctorUser: ICurrentUser = { id: 'doctor-user-id', role: UserRole.PROFESSIONAL, clinicId }
 
 const makeCertificate = (overrides = {}) => ({
   id: certificateId,
   clinicId,
   appointmentId,
   patientId: 'patient-uuid',
-  doctorId,
+  professionalId,
   issuedAt: new Date(),
   snapshot: {
     issuedAt: new Date().toISOString(),
     type: MedicalCertificateType.LEAVE,
     clinic: { name: 'Clinic', address: null, logoUrl: null },
-    doctor: { name: 'Doctor', crmNumber: '12345/SP', rqe: null, specialtyName: null },
+    professional: { name: 'Doctor', councilType: CouncilType.CRM, registrationNumber: '12345/SP', registryNumber: null, specialtyName: null },
     patient: { name: 'Patient', documentNumber: '12345678900' },
     daysOff: 3,
     startDate: '2026-01-05',
@@ -49,11 +49,11 @@ const mockMedicalCertificatesRepository: jest.Mocked<IMedicalCertificatesReposit
   delete: jest.fn(),
 }
 
-const mockDoctorsRepository: jest.Mocked<IDoctorsRepository> = {
+const mockProfessionalsRepository: jest.Mocked<IProfessionalsRepository> = {
   findAll: jest.fn(),
   findById: jest.fn(),
   findByUserId: jest.fn(),
-  findByCrm: jest.fn(),
+  findByRegistration: jest.fn(),
   create: jest.fn(),
   update: jest.fn(),
   delete: jest.fn(),
@@ -75,11 +75,11 @@ describe('DeleteMedicalCertificateUseCase', () => {
     useCase = new DeleteMedicalCertificateUseCase(
       {} as DataSource,
       mockMedicalCertificatesRepository,
-      mockDoctorsRepository,
+      mockProfessionalsRepository,
       mockCacheService,
     )
     mockMedicalCertificatesRepository.findById.mockResolvedValue(makeCertificate() as any)
-    mockDoctorsRepository.findByUserId.mockResolvedValue({ id: doctorId } as any)
+    mockProfessionalsRepository.findByUserId.mockResolvedValue({ id: professionalId } as any)
     mockMedicalCertificatesRepository.delete.mockResolvedValue(undefined)
     mockCacheService.del.mockResolvedValue(undefined)
   })
@@ -88,14 +88,14 @@ describe('DeleteMedicalCertificateUseCase', () => {
     await useCase.execute(certificateId, adminUser)
 
     expect(mockMedicalCertificatesRepository.delete).toHaveBeenCalledWith(certificateId)
-    expect(mockDoctorsRepository.findByUserId).not.toHaveBeenCalled()
+    expect(mockProfessionalsRepository.findByUserId).not.toHaveBeenCalled()
   })
 
   it('deletes certificate for DOCTOR on own certificate', async () => {
     await useCase.execute(certificateId, doctorUser)
 
     expect(mockMedicalCertificatesRepository.delete).toHaveBeenCalledWith(certificateId)
-    expect(mockDoctorsRepository.findByUserId).toHaveBeenCalledWith(doctorUser.id, clinicId)
+    expect(mockProfessionalsRepository.findByUserId).toHaveBeenCalledWith(doctorUser.id, clinicId)
   })
 
   it('invalidates appointment cache after delete', async () => {
@@ -117,19 +117,19 @@ describe('DeleteMedicalCertificateUseCase', () => {
   })
 
   it('throws ForbiddenException when DOCTOR deletes another doctor certificate', async () => {
-    mockDoctorsRepository.findByUserId.mockResolvedValue({ id: 'other-doctor' } as any)
+    mockProfessionalsRepository.findByUserId.mockResolvedValue({ id: 'other-doctor' } as any)
 
     await expect(useCase.execute(certificateId, doctorUser)).rejects.toThrow(ForbiddenException)
   })
 
   it('throws ForbiddenException when DOCTOR has no doctor profile', async () => {
-    mockDoctorsRepository.findByUserId.mockResolvedValue(null)
+    mockProfessionalsRepository.findByUserId.mockResolvedValue(null)
 
     await expect(useCase.execute(certificateId, doctorUser)).rejects.toThrow(ForbiddenException)
   })
 
   it('does not delete when RBAC fails', async () => {
-    mockDoctorsRepository.findByUserId.mockResolvedValue({ id: 'other-doctor' } as any)
+    mockProfessionalsRepository.findByUserId.mockResolvedValue({ id: 'other-doctor' } as any)
 
     await expect(useCase.execute(certificateId, doctorUser)).rejects.toThrow(ForbiddenException)
     expect(mockMedicalCertificatesRepository.delete).not.toHaveBeenCalled()

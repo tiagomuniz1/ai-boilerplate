@@ -14,12 +14,12 @@ const mockDelete = { execute: jest.fn() } as unknown as jest.Mocked<DeleteSchedu
 const mockFindById = { execute: jest.fn() } as unknown as jest.Mocked<FindScheduleByIdUseCase>
 const mockList = { execute: jest.fn() } as unknown as jest.Mocked<ListSchedulesUseCase>
 
-const currentUser = { id: faker.string.uuid(), role: UserRole.DOCTOR }
+const currentUser = { id: faker.string.uuid(), role: UserRole.PROFESSIONAL }
 
 const makeScheduleResponse = (overrides = {}) => ({
   id: faker.string.uuid(),
-  doctorId: faker.string.uuid(),
-  doctorName: 'Dr. Test Doctor',
+  professionalId: faker.string.uuid(),
+  professionalName: 'Dr. Test Doctor',
   dayOfWeek: DayOfWeek.MONDAY,
   startTime: '08:00',
   endTime: '12:00',

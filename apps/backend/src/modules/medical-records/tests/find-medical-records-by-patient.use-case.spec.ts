@@ -1,7 +1,7 @@
 import { DataSource } from 'typeorm'
 import { UserRole } from '@app/shared'
 import { ICurrentUser } from '../../auth/types/current-user.type'
-import { IDoctorsRepository } from '../../doctors/repositories/doctors.repository.interface'
+import { IProfessionalsRepository } from '../../professionals/repositories/professionals.repository.interface'
 import { IMedicalRecordsRepository } from '../repositories/medical-records.repository.interface'
 import { MedicalRecordListQueryDto } from '../dto/medical-record-list-query.dto'
 import { FindMedicalRecordsByPatientUseCase } from '../use-cases/find-medical-records-by-patient.use-case'
@@ -9,10 +9,10 @@ import { CacheService } from '../../../cache/cache.service'
 
 const clinicId = 'clinic-uuid'
 const patientId = 'patient-uuid'
-const doctorId = 'doctor-uuid'
+const professionalId = 'doctor-uuid'
 
 const adminUser: ICurrentUser = { id: 'admin-id', role: UserRole.ADMIN, clinicId }
-const doctorUser: ICurrentUser = { id: 'doctor-user-id', role: UserRole.DOCTOR, clinicId }
+const doctorUser: ICurrentUser = { id: 'doctor-user-id', role: UserRole.PROFESSIONAL, clinicId }
 
 const makeQuery = (overrides = {}): MedicalRecordListQueryDto => ({
   page: 1,
@@ -25,14 +25,14 @@ const makeRecord = (id: string) => ({
   id,
   appointmentId: 'appt-uuid',
   patientId,
-  doctorId,
+  professionalId,
   specialtyId: 'specialty-uuid',
   templateId: 'template-uuid',
   templateSchemaSnapshot: [],
   data: {},
   notes: null,
   patient: { user: { fullName: 'Patient Name' } },
-  doctor: { user: { fullName: 'Doctor Name' } },
+  professional: { user: { fullName: 'Doctor Name' } },
   specialty: { name: 'Cardiologia' },
   createdAt: new Date(),
   updatedAt: new Date(),
@@ -47,11 +47,11 @@ const mockMedicalRecordsRepository: jest.Mocked<IMedicalRecordsRepository> = {
   delete: jest.fn(),
 }
 
-const mockDoctorsRepository: jest.Mocked<IDoctorsRepository> = {
+const mockProfessionalsRepository: jest.Mocked<IProfessionalsRepository> = {
   findAll: jest.fn(),
   findById: jest.fn(),
   findByUserId: jest.fn(),
-  findByCrm: jest.fn(),
+  findByRegistration: jest.fn(),
   create: jest.fn(),
   update: jest.fn(),
   delete: jest.fn(),
@@ -73,7 +73,7 @@ describe('FindMedicalRecordsByPatientUseCase', () => {
     useCase = new FindMedicalRecordsByPatientUseCase(
       {} as DataSource,
       mockMedicalRecordsRepository,
-      mockDoctorsRepository,
+      mockProfessionalsRepository,
       mockCache,
     )
     mockCache.get.mockResolvedValue(null)
@@ -89,20 +89,20 @@ describe('FindMedicalRecordsByPatientUseCase', () => {
     expect(result.limit).toBe(20)
   })
 
-  it('filters by own doctorId for DOCTOR', async () => {
-    mockDoctorsRepository.findByUserId.mockResolvedValue({ id: doctorId } as any)
+  it('filters by own professionalId for DOCTOR', async () => {
+    mockProfessionalsRepository.findByUserId.mockResolvedValue({ id: professionalId } as any)
     await useCase.execute(patientId, makeQuery(), doctorUser)
     expect(mockMedicalRecordsRepository.findByPatient).toHaveBeenCalledWith(
       clinicId,
       patientId,
       1,
       20,
-      doctorId,
+      professionalId,
     )
   })
 
-  it('uses doctorId filter from query for ADMIN', async () => {
-    await useCase.execute(patientId, makeQuery({ doctorId: 'some-doctor' }), adminUser)
+  it('uses professionalId filter from query for ADMIN', async () => {
+    await useCase.execute(patientId, makeQuery({ professionalId: 'some-doctor' }), adminUser)
     expect(mockMedicalRecordsRepository.findByPatient).toHaveBeenCalledWith(
       clinicId,
       patientId,

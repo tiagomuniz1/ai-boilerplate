@@ -3,7 +3,7 @@ import { DataSource } from 'typeorm'
 import { UserRole } from '@app/shared'
 import { BaseUseCase } from '../../../common/base.use-case'
 import { ICurrentUser } from '../../auth/types/current-user.type'
-import { IDoctorsRepository } from '../../doctors/repositories/doctors.repository.interface'
+import { IProfessionalsRepository } from '../../professionals/repositories/professionals.repository.interface'
 import { IScheduleExceptionsRepository } from '../repositories/schedule-exceptions.repository.interface'
 import { ScheduleException } from '../entities/schedule-exception.entity'
 
@@ -12,7 +12,7 @@ export class FindScheduleExceptionByIdUseCase extends BaseUseCase {
   constructor(
     dataSource: DataSource,
     private readonly scheduleExceptionsRepository: IScheduleExceptionsRepository,
-    private readonly doctorsRepository: IDoctorsRepository,
+    private readonly professionalsRepository: IProfessionalsRepository,
   ) {
     super(dataSource)
   }
@@ -23,9 +23,9 @@ export class FindScheduleExceptionByIdUseCase extends BaseUseCase {
     const exception = await this.scheduleExceptionsRepository.findById(id, clinicId)
     if (!exception) throw new NotFoundException('Schedule exception not found')
 
-    if (currentUser.role === UserRole.DOCTOR) {
-      const doctor = await this.doctorsRepository.findByUserId(currentUser.id, clinicId)
-      if (!doctor || exception.doctorId !== doctor.id) {
+    if (currentUser.role === UserRole.PROFESSIONAL) {
+      const professional = await this.professionalsRepository.findByUserId(currentUser.id, clinicId)
+      if (!professional || exception.professionalId !== professional.id) {
         throw new ForbiddenException('You are not allowed to view this schedule exception')
       }
     }

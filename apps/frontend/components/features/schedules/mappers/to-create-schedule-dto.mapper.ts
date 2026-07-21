@@ -3,7 +3,7 @@ import type { ICreateScheduleInput } from '../types/schedule-input.types'
 
 export function toCreateScheduleDto(input: ICreateScheduleInput): CreateScheduleDto {
   return {
-    doctorId: input.doctorId,
+    professionalId: input.professionalId,
     dayOfWeek: input.dayOfWeek,
     startTime: input.startTime,
     endTime: input.endTime,

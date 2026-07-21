@@ -1,31 +1,31 @@
 import { ForbiddenException, NotFoundException } from '@nestjs/common'
 import { DataSource } from 'typeorm'
-import { UserRole } from '@app/shared'
+import { CouncilType, UserRole } from '@app/shared'
 import { ICurrentUser } from '../../auth/types/current-user.type'
-import { IDoctorsRepository } from '../../doctors/repositories/doctors.repository.interface'
+import { IProfessionalsRepository } from '../../professionals/repositories/professionals.repository.interface'
 import { IPrescriptionsRepository } from '../repositories/prescriptions.repository.interface'
 import { DeletePrescriptionUseCase } from '../use-cases/delete-prescription.use-case'
 import { CacheService } from '../../../cache/cache.service'
 
 const clinicId = 'clinic-uuid'
-const doctorId = 'doctor-uuid'
+const professionalId = 'doctor-uuid'
 const prescriptionId = 'rx-uuid'
 const appointmentId = 'appt-uuid'
 
 const adminUser: ICurrentUser = { id: 'admin-id', role: UserRole.ADMIN, clinicId }
-const doctorUser: ICurrentUser = { id: 'doctor-user-id', role: UserRole.DOCTOR, clinicId }
+const doctorUser: ICurrentUser = { id: 'doctor-user-id', role: UserRole.PROFESSIONAL, clinicId }
 
 const makePrescription = (overrides = {}) => ({
   id: prescriptionId,
   clinicId,
   appointmentId,
   patientId: 'patient-uuid',
-  doctorId,
+  professionalId,
   issuedAt: new Date(),
   snapshot: {
     issuedAt: new Date().toISOString(),
     clinic: { name: 'Clinic', address: null, logoUrl: null },
-    doctor: { name: 'Doctor', crmNumber: '12345/SP', rqe: null, specialtyName: null },
+    professional: { name: 'Doctor', councilType: CouncilType.CRM, registrationNumber: '12345/SP', registryNumber: null, specialtyName: null },
     patient: { name: 'Patient', documentNumber: '12345678900' },
     items: [],
     notes: null,
@@ -44,11 +44,11 @@ const mockPrescriptionsRepository: jest.Mocked<IPrescriptionsRepository> = {
   delete: jest.fn(),
 }
 
-const mockDoctorsRepository: jest.Mocked<IDoctorsRepository> = {
+const mockProfessionalsRepository: jest.Mocked<IProfessionalsRepository> = {
   findAll: jest.fn(),
   findById: jest.fn(),
   findByUserId: jest.fn(),
-  findByCrm: jest.fn(),
+  findByRegistration: jest.fn(),
   create: jest.fn(),
   update: jest.fn(),
   delete: jest.fn(),
@@ -70,11 +70,11 @@ describe('DeletePrescriptionUseCase', () => {
     useCase = new DeletePrescriptionUseCase(
       {} as DataSource,
       mockPrescriptionsRepository,
-      mockDoctorsRepository,
+      mockProfessionalsRepository,
       mockCacheService,
     )
     mockPrescriptionsRepository.findById.mockResolvedValue(makePrescription() as any)
-    mockDoctorsRepository.findByUserId.mockResolvedValue({ id: doctorId } as any)
+    mockProfessionalsRepository.findByUserId.mockResolvedValue({ id: professionalId } as any)
     mockPrescriptionsRepository.delete.mockResolvedValue(undefined)
     mockCacheService.del.mockResolvedValue(undefined)
   })
@@ -83,14 +83,14 @@ describe('DeletePrescriptionUseCase', () => {
     await useCase.execute(prescriptionId, adminUser)
 
     expect(mockPrescriptionsRepository.delete).toHaveBeenCalledWith(prescriptionId)
-    expect(mockDoctorsRepository.findByUserId).not.toHaveBeenCalled()
+    expect(mockProfessionalsRepository.findByUserId).not.toHaveBeenCalled()
   })
 
   it('deletes prescription for DOCTOR on own prescription', async () => {
     await useCase.execute(prescriptionId, doctorUser)
 
     expect(mockPrescriptionsRepository.delete).toHaveBeenCalledWith(prescriptionId)
-    expect(mockDoctorsRepository.findByUserId).toHaveBeenCalledWith(doctorUser.id, clinicId)
+    expect(mockProfessionalsRepository.findByUserId).toHaveBeenCalledWith(doctorUser.id, clinicId)
   })
 
   it('invalidates appointment cache after delete', async () => {
@@ -112,19 +112,19 @@ describe('DeletePrescriptionUseCase', () => {
   })
 
   it('throws ForbiddenException when DOCTOR deletes another doctor prescription', async () => {
-    mockDoctorsRepository.findByUserId.mockResolvedValue({ id: 'other-doctor' } as any)
+    mockProfessionalsRepository.findByUserId.mockResolvedValue({ id: 'other-doctor' } as any)
 
     await expect(useCase.execute(prescriptionId, doctorUser)).rejects.toThrow(ForbiddenException)
   })
 
   it('throws ForbiddenException when DOCTOR has no doctor profile', async () => {
-    mockDoctorsRepository.findByUserId.mockResolvedValue(null)
+    mockProfessionalsRepository.findByUserId.mockResolvedValue(null)
 
     await expect(useCase.execute(prescriptionId, doctorUser)).rejects.toThrow(ForbiddenException)
   })
 
   it('does not delete when RBAC fails', async () => {
-    mockDoctorsRepository.findByUserId.mockResolvedValue({ id: 'other-doctor' } as any)
+    mockProfessionalsRepository.findByUserId.mockResolvedValue({ id: 'other-doctor' } as any)
 
     await expect(useCase.execute(prescriptionId, doctorUser)).rejects.toThrow(ForbiddenException)
     expect(mockPrescriptionsRepository.delete).not.toHaveBeenCalled()

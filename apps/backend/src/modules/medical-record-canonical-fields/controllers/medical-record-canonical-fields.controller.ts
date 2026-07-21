@@ -22,7 +22,7 @@ export class MedicalRecordCanonicalFieldsController {
   ) {}
 
   @Get()
-  @Roles(UserRole.PLATFORM_ADMIN, UserRole.ADMIN, UserRole.DOCTOR)
+  @Roles(UserRole.PLATFORM_ADMIN, UserRole.ADMIN, UserRole.PROFESSIONAL)
   findAll(
     @Query() query: CanonicalFieldListQueryDto,
     @CurrentUser() currentUser: ICurrentUser,

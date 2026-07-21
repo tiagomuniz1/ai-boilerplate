@@ -23,8 +23,8 @@ const makeUser = (role: UserRole) => ({
 
 const makeTemplateDto = (overrides: object = {}) => ({
   id: 'tpl-uuid',
-  doctorId: 'doctor-uuid',
-  doctorName: 'Dr. House',
+  professionalId: 'doctor-uuid',
+  professionalName: 'Dr. House',
   name: 'Modelo A',
   items: [
     { medicationId: 'med-uuid', name: 'Dipirona 500mg', activeIngredient: 'dipirona sódica', dosage: null, quantity: null, instructions: 'Tomar 1 cp' },
@@ -40,7 +40,7 @@ const makeMedPage = (meds: object[] = []) => ({ data: meds, total: meds.length, 
 describe('PrescriptionTemplateList (integration)', () => {
   beforeEach(() => {
     jest.clearAllMocks()
-    useAuthStore.setState({ user: makeUser(UserRole.DOCTOR) })
+    useAuthStore.setState({ user: makeUser(UserRole.PROFESSIONAL) })
     mockMedicationsService.getAll.mockResolvedValue(makeMedPage() as any)
   })
 
@@ -115,7 +115,7 @@ describe('PrescriptionTemplateList (integration)', () => {
     mockService.getAll.mockResolvedValue([makeTemplateDto()] as any)
     renderWithProviders(<PrescriptionTemplateList />)
     await waitFor(() => {
-      expect(screen.getByTestId('prescription-template-doctor-tpl-uuid')).toHaveTextContent('Dr. House')
+      expect(screen.getByTestId('prescription-template-professional-tpl-uuid')).toHaveTextContent('Dr. House')
     })
   })
 
@@ -125,7 +125,7 @@ describe('PrescriptionTemplateList (integration)', () => {
     await waitFor(() => {
       expect(screen.getByTestId('prescription-template-list-table')).toBeInTheDocument()
     })
-    expect(screen.queryByTestId('prescription-template-doctor-tpl-uuid')).not.toBeInTheDocument()
+    expect(screen.queryByTestId('prescription-template-professional-tpl-uuid')).not.toBeInTheDocument()
   })
 
   it('shows "Novo modelo" button for DOCTOR', async () => {
@@ -387,7 +387,7 @@ describe('PrescriptionTemplateList (integration)', () => {
     expect(screen.getByTestId('prescription-template-card-edit-tpl-uuid')).toBeInTheDocument()
   })
 
-  it('mobile card shows Médico row for ADMIN and hides the edit action (read-only)', async () => {
+  it('mobile card shows Profissional row for ADMIN and hides the edit action (read-only)', async () => {
     useAuthStore.setState({ user: makeUser(UserRole.ADMIN) })
     mockService.getAll.mockResolvedValue([makeTemplateDto()] as any)
 

@@ -29,9 +29,9 @@ describe('listPrescriptionTemplatesUseCase', () => {
   it('forwards params to service.getAll', async () => {
     mockService.getAll.mockResolvedValue([])
 
-    await listPrescriptionTemplatesUseCase({ doctorId: 'doctor-uuid' })
+    await listPrescriptionTemplatesUseCase({ professionalId: 'doctor-uuid' })
 
-    expect(mockService.getAll).toHaveBeenCalledWith({ doctorId: 'doctor-uuid' })
+    expect(mockService.getAll).toHaveBeenCalledWith({ professionalId: 'doctor-uuid' })
   })
 
   it('returns empty array when no templates', async () => {

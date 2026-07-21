@@ -116,7 +116,7 @@ describe('FindAllUsersUseCase', () => {
     expect(result.data[0]).not.toHaveProperty('version')
   })
 
-  it('response includes isDoctor false and isPatient false when user has no profiles', async () => {
+  it('response includes isProfessional false and isPatient false when user has no profiles', async () => {
     const user = makeUser()
     mockCacheService.get.mockResolvedValue(null)
     mockUsersRepository.findAll.mockResolvedValue([[user], 1])
@@ -124,11 +124,11 @@ describe('FindAllUsersUseCase', () => {
 
     const result = await useCase.execute(pagination, adminCurrentUser)
 
-    expect(result.data[0].isDoctor).toBe(false)
+    expect(result.data[0].isProfessional).toBe(false)
     expect(result.data[0].isPatient).toBe(false)
   })
 
-  it('response includes isDoctor true when user has a linked doctor profile', async () => {
+  it('response includes isProfessional true when user has a linked doctor profile', async () => {
     const user = makeUser()
     useCase = new FindAllUsersUseCase(
       makeMockDataSource([{ user_id: user.id }], []),
@@ -141,7 +141,7 @@ describe('FindAllUsersUseCase', () => {
 
     const result = await useCase.execute(pagination, adminCurrentUser)
 
-    expect(result.data[0].isDoctor).toBe(true)
+    expect(result.data[0].isProfessional).toBe(true)
     expect(result.data[0].isPatient).toBe(false)
   })
 
@@ -158,11 +158,11 @@ describe('FindAllUsersUseCase', () => {
 
     const result = await useCase.execute(pagination, adminCurrentUser)
 
-    expect(result.data[0].isDoctor).toBe(false)
+    expect(result.data[0].isProfessional).toBe(false)
     expect(result.data[0].isPatient).toBe(true)
   })
 
-  it('response includes both isDoctor and isPatient true when user has both profiles', async () => {
+  it('response includes both isProfessional and isPatient true when user has both profiles', async () => {
     const user = makeUser()
     useCase = new FindAllUsersUseCase(
       makeMockDataSource([{ user_id: user.id }], [{ user_id: user.id }]),
@@ -175,7 +175,7 @@ describe('FindAllUsersUseCase', () => {
 
     const result = await useCase.execute(pagination, adminCurrentUser)
 
-    expect(result.data[0].isDoctor).toBe(true)
+    expect(result.data[0].isProfessional).toBe(true)
     expect(result.data[0].isPatient).toBe(true)
   })
 

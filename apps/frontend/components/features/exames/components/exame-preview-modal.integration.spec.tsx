@@ -11,8 +11,8 @@ function makeExamRequest(overrides: Partial<IExamRequestModel> = {}): IExamReque
     appointmentId: 'appt-uuid',
     patientId: 'patient-uuid',
     patientName: 'Maria Santos',
-    doctorId: 'doctor-uuid',
-    doctorName: 'Dr. João',
+    professionalId: 'doctor-uuid',
+    professionalName: 'Dr. João',
     items: [
       { name: 'Hemograma completo', observations: 'Jejum de 8 horas' },
       { name: 'Raio-X de tórax', observations: null },
@@ -50,7 +50,7 @@ describe('ExamePreviewModal (integration)', () => {
 
   it('renders doctor, date, patient and status', () => {
     renderWithProviders(<ExamePreviewModal {...defaultProps} />)
-    expect(screen.getByTestId('exame-preview-doctor')).toHaveTextContent('Dr. João')
+    expect(screen.getByTestId('exame-preview-professional')).toHaveTextContent('Dr. João')
     expect(screen.getByTestId('exame-preview-patient')).toHaveTextContent('Maria Santos')
     expect(screen.getByTestId('exame-preview-status')).toHaveTextContent('Solicitado')
     expect(screen.getByTestId('exame-preview-date')).toBeInTheDocument()

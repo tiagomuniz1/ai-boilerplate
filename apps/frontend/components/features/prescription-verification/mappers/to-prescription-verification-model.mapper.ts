@@ -6,8 +6,9 @@ export function toPrescriptionVerificationModel(
 ): IPrescriptionVerificationModel {
   return {
     clinicName: dto.clinicName,
-    doctorName: dto.doctorName,
-    doctorCrmNumber: dto.doctorCrmNumber,
+    professionalName: dto.professionalName,
+    professionalCouncilType: dto.professionalCouncilType,
+    professionalRegistrationNumber: dto.professionalRegistrationNumber,
     specialtyName: dto.specialtyName,
     patientNameMasked: dto.patientNameMasked,
     patientDocumentMasked: dto.patientDocumentMasked,

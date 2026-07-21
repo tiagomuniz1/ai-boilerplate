@@ -3,7 +3,7 @@ import { DataSource } from 'typeorm'
 import { MedicalRecordResponseDto, PaginatedMedicalRecordsResponseDto, UserRole } from '@app/shared'
 import { BaseUseCase } from '../../../common/base.use-case'
 import { ICurrentUser } from '../../auth/types/current-user.type'
-import { IDoctorsRepository } from '../../doctors/repositories/doctors.repository.interface'
+import { IProfessionalsRepository } from '../../professionals/repositories/professionals.repository.interface'
 import { IMedicalRecordsRepository } from '../repositories/medical-records.repository.interface'
 import { MedicalRecordListQueryDto } from '../dto/medical-record-list-query.dto'
 import { toMedicalRecordResponse } from './create-medical-record.use-case'
@@ -16,7 +16,7 @@ export class FindMedicalRecordsByPatientUseCase extends BaseUseCase {
   constructor(
     dataSource: DataSource,
     private readonly medicalRecordsRepository: IMedicalRecordsRepository,
-    private readonly doctorsRepository: IDoctorsRepository,
+    private readonly professionalsRepository: IProfessionalsRepository,
     private readonly cacheService: CacheService,
   ) {
     super(dataSource)
@@ -30,14 +30,14 @@ export class FindMedicalRecordsByPatientUseCase extends BaseUseCase {
     const clinicId = currentUser.clinicId!
     const { page, limit } = query
 
-    let doctorIdFilter: string | undefined = query.doctorId
+    let professionalIdFilter: string | undefined = query.professionalId
 
-    if (currentUser.role === UserRole.DOCTOR) {
-      const doctor = await this.doctorsRepository.findByUserId(currentUser.id, clinicId)
-      doctorIdFilter = doctor?.id
+    if (currentUser.role === UserRole.PROFESSIONAL) {
+      const professional = await this.professionalsRepository.findByUserId(currentUser.id, clinicId)
+      professionalIdFilter = professional?.id
     }
 
-    const cacheKey = `medical_records:patient:${patientId}:${page}:${limit}:${doctorIdFilter ?? 'all'}`
+    const cacheKey = `medical_records:patient:${patientId}:${page}:${limit}:${professionalIdFilter ?? 'all'}`
     try {
       const cached = await this.cacheService.get<PaginatedMedicalRecordsResponseDto>(cacheKey)
       if (cached) return cached
@@ -50,7 +50,7 @@ export class FindMedicalRecordsByPatientUseCase extends BaseUseCase {
       patientId,
       page,
       limit,
-      doctorIdFilter,
+      professionalIdFilter,
     )
 
     const data: MedicalRecordResponseDto[] = records.map(toMedicalRecordResponse)

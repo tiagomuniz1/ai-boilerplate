@@ -14,7 +14,7 @@ const makeUser = (overrides: Partial<IUserModel> = {}): IUserModel => ({
   email: 'alice@example.com',
   role: UserRole.USER,
   isActive: true,
-  isDoctor: false,
+  isProfessional: false,
   isPatient: false,
   createdAt: new Date('2024-01-15'),
   updatedAt: new Date('2024-01-16'),
@@ -88,16 +88,16 @@ describe('UserTableRow', () => {
     expect(screen.getByTestId('user-role-uuid-1')).toHaveTextContent('Platform Admin')
   })
 
-  it('shows Médico profile badge when isDoctor is true', () => {
+  it('shows Profissional profile badge when isProfessional is true', () => {
     render(
       <table>
         <tbody>
-          <UserTableRow user={makeUser({ isDoctor: true })} isCurrentUser={false} onDeleteClick={jest.fn()} />
+          <UserTableRow user={makeUser({ isProfessional: true })} isCurrentUser={false} onDeleteClick={jest.fn()} />
         </tbody>
       </table>,
     )
 
-    expect(screen.getByTestId('user-profile-doctor-uuid-1')).toHaveTextContent('Médico')
+    expect(screen.getByTestId('user-profile-professional-uuid-1')).toHaveTextContent('Profissional')
   })
 
   it('shows Paciente profile badge when isPatient is true', () => {

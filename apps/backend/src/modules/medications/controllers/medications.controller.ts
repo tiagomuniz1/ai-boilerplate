@@ -37,7 +37,7 @@ export class MedicationsController {
   ) {}
 
   @Get()
-  @Roles(UserRole.PLATFORM_ADMIN, UserRole.ADMIN, UserRole.DOCTOR)
+  @Roles(UserRole.PLATFORM_ADMIN, UserRole.ADMIN, UserRole.PROFESSIONAL)
   findAll(
     @Query() query: MedicationListQueryDto,
     @CurrentUser() currentUser: ICurrentUser,
@@ -46,7 +46,7 @@ export class MedicationsController {
   }
 
   @Get(':id')
-  @Roles(UserRole.PLATFORM_ADMIN, UserRole.ADMIN, UserRole.DOCTOR)
+  @Roles(UserRole.PLATFORM_ADMIN, UserRole.ADMIN, UserRole.PROFESSIONAL)
   findOne(@Param('id') id: string): Promise<MedicationResponseDto> {
     return this.getMedicationUseCase.execute(id)
   }

@@ -13,12 +13,12 @@ const mockFindById = { execute: jest.fn() } as unknown as jest.Mocked<FindPrescr
 const mockUpdate = { execute: jest.fn() } as unknown as jest.Mocked<UpdatePrescriptionTemplateUseCase>
 const mockDelete = { execute: jest.fn() } as unknown as jest.Mocked<DeletePrescriptionTemplateUseCase>
 
-const currentUser: ICurrentUser = { id: 'doctor-uuid', role: UserRole.DOCTOR, clinicId: 'clinic-uuid' }
+const currentUser: ICurrentUser = { id: 'doctor-uuid', role: UserRole.PROFESSIONAL, clinicId: 'clinic-uuid' }
 
 const makeTemplateResponse = () => ({
   id: 'tpl-uuid',
-  doctorId: 'doctor-uuid',
-  doctorName: 'Dr. House',
+  professionalId: 'doctor-uuid',
+  professionalName: 'Dr. House',
   name: 'Modelo A',
   items: [],
   notes: null,
@@ -52,7 +52,7 @@ describe('PrescriptionTemplatesController', () => {
     expect(result).toBe(response)
   })
 
-  it('findAll delegates to FindAllPrescriptionTemplatesUseCase with doctorId filter', async () => {
+  it('findAll delegates to FindAllPrescriptionTemplatesUseCase with professionalId filter', async () => {
     const response = [makeTemplateResponse()]
     mockFindAll.execute.mockResolvedValue(response)
 
@@ -62,7 +62,7 @@ describe('PrescriptionTemplatesController', () => {
     expect(result).toBe(response)
   })
 
-  it('findAll delegates without doctorId when not provided', async () => {
+  it('findAll delegates without professionalId when not provided', async () => {
     const response = [makeTemplateResponse()]
     mockFindAll.execute.mockResolvedValue(response)
 

@@ -23,7 +23,7 @@ const mockDoctors = [
 
 const mockDefaultValues: IScheduleModel = {
   id: 'uuid-1',
-  doctorId: 'doc-uuid-1',
+  professionalId: 'doc-uuid-1',
   dayOfWeek: DayOfWeek.MONDAY,
   startTime: '08:00',
   endTime: '12:00',
@@ -47,7 +47,7 @@ describe('ScheduleForm — create mode', () => {
       />,
     )
 
-    expect(screen.getByTestId('schedule-form-doctor')).toBeInTheDocument()
+    expect(screen.getByTestId('schedule-form-professional')).toBeInTheDocument()
   })
 
   it('does not render doctor select for DOCTOR', () => {
@@ -55,13 +55,13 @@ describe('ScheduleForm — create mode', () => {
     renderWithProviders(
       <ScheduleForm
         mode="create"
-        role={UserRole.DOCTOR}
+        role={UserRole.PROFESSIONAL}
         isPending={false}
         onSubmit={onSubmit}
       />,
     )
 
-    expect(screen.queryByTestId('schedule-form-doctor')).not.toBeInTheDocument()
+    expect(screen.queryByTestId('schedule-form-professional')).not.toBeInTheDocument()
   })
 
   it('renders all required fields', () => {
@@ -69,7 +69,7 @@ describe('ScheduleForm — create mode', () => {
     renderWithProviders(
       <ScheduleForm
         mode="create"
-        role={UserRole.DOCTOR}
+        role={UserRole.PROFESSIONAL}
         isPending={false}
         onSubmit={onSubmit}
       />,
@@ -86,7 +86,7 @@ describe('ScheduleForm — create mode', () => {
     renderWithProviders(
       <ScheduleForm
         mode="create"
-        role={UserRole.DOCTOR}
+        role={UserRole.PROFESSIONAL}
         isPending={false}
         globalError="Esta agenda conflita com outra já existente"
         onSubmit={onSubmit}
@@ -103,7 +103,7 @@ describe('ScheduleForm — create mode', () => {
     renderWithProviders(
       <ScheduleForm
         mode="create"
-        role={UserRole.DOCTOR}
+        role={UserRole.PROFESSIONAL}
         isPending={false}
         onSubmit={onSubmit}
       />,
@@ -126,7 +126,7 @@ describe('ScheduleForm — create mode', () => {
 
   it('shows validation errors for empty required fields in DOCTOR mode', async () => {
     renderWithProviders(
-      <ScheduleForm mode="create" role={UserRole.DOCTOR} isPending={false} onSubmit={jest.fn()} />,
+      <ScheduleForm mode="create" role={UserRole.PROFESSIONAL} isPending={false} onSubmit={jest.fn()} />,
     )
 
     await userEvent.click(screen.getByTestId('schedule-form-submit'))
@@ -153,14 +153,14 @@ describe('ScheduleForm — create mode', () => {
     await userEvent.click(screen.getByTestId('schedule-form-submit'))
 
     await waitFor(() => {
-      expect(screen.getByText('Selecione um médico')).toBeInTheDocument()
+      expect(screen.getByText('Selecione um profissional')).toBeInTheDocument()
     })
   })
 
-  it('calls onSubmit for DOCTOR without doctorId on valid submit', async () => {
+  it('calls onSubmit for DOCTOR without professionalId on valid submit', async () => {
     const onSubmit = jest.fn()
     renderWithProviders(
-      <ScheduleForm mode="create" role={UserRole.DOCTOR} isPending={false} onSubmit={onSubmit} />,
+      <ScheduleForm mode="create" role={UserRole.PROFESSIONAL} isPending={false} onSubmit={onSubmit} />,
     )
 
     await userEvent.selectOptions(screen.getByTestId('schedule-form-day'), 'MONDAY')
@@ -183,12 +183,12 @@ describe('ScheduleForm — create mode', () => {
       )
     })
 
-    expect(onSubmit.mock.calls[0][0]).not.toHaveProperty('doctorId')
+    expect(onSubmit.mock.calls[0][0]).not.toHaveProperty('professionalId')
   })
 
   it('shows error when slot duration does not evenly divide the time interval', async () => {
     renderWithProviders(
-      <ScheduleForm mode="create" role={UserRole.DOCTOR} isPending={false} onSubmit={jest.fn()} />,
+      <ScheduleForm mode="create" role={UserRole.PROFESSIONAL} isPending={false} onSubmit={jest.fn()} />,
     )
 
     await userEvent.selectOptions(screen.getByTestId('schedule-form-day'), 'MONDAY')
@@ -209,7 +209,7 @@ describe('ScheduleForm — create mode', () => {
     })
   })
 
-  it('calls onSubmit for ADMIN with doctorId on valid submit', async () => {
+  it('calls onSubmit for ADMIN with professionalId on valid submit', async () => {
     const onSubmit = jest.fn()
     renderWithProviders(
       <ScheduleForm
@@ -221,7 +221,7 @@ describe('ScheduleForm — create mode', () => {
       />,
     )
 
-    await userEvent.selectOptions(screen.getByTestId('schedule-form-doctor'), DOC_UUID_1)
+    await userEvent.selectOptions(screen.getByTestId('schedule-form-professional'), DOC_UUID_1)
     await userEvent.selectOptions(screen.getByTestId('schedule-form-day'), 'MONDAY')
     await userEvent.clear(screen.getByTestId('schedule-form-start-time'))
     await userEvent.type(screen.getByTestId('schedule-form-start-time'), '08:00')
@@ -235,7 +235,7 @@ describe('ScheduleForm — create mode', () => {
     await waitFor(() => {
       expect(onSubmit).toHaveBeenCalledWith(
         expect.objectContaining({
-          doctorId: DOC_UUID_1,
+          professionalId: DOC_UUID_1,
           dayOfWeek: 'MONDAY',
           startTime: '08:00',
           endTime: '12:00',
@@ -249,7 +249,7 @@ describe('ScheduleForm — create mode', () => {
   it('includes validFrom and validUntil in submit payload when set', async () => {
     const onSubmit = jest.fn()
     renderWithProviders(
-      <ScheduleForm mode="create" role={UserRole.DOCTOR} isPending={false} onSubmit={onSubmit} />,
+      <ScheduleForm mode="create" role={UserRole.PROFESSIONAL} isPending={false} onSubmit={onSubmit} />,
     )
 
     await userEvent.selectOptions(screen.getByTestId('schedule-form-day'), 'TUESDAY')
@@ -272,7 +272,7 @@ describe('ScheduleForm — create mode', () => {
 
   it('shows error when validUntil is before validFrom', async () => {
     renderWithProviders(
-      <ScheduleForm mode="create" role={UserRole.DOCTOR} isPending={false} onSubmit={jest.fn()} />,
+      <ScheduleForm mode="create" role={UserRole.PROFESSIONAL} isPending={false} onSubmit={jest.fn()} />,
     )
 
     await userEvent.selectOptions(screen.getByTestId('schedule-form-day'), 'MONDAY')
@@ -297,7 +297,7 @@ describe('ScheduleForm — create mode', () => {
     renderWithProviders(
       <ScheduleForm
         mode="create"
-        role={UserRole.DOCTOR}
+        role={UserRole.PROFESSIONAL}
         isPending={true}
         onSubmit={onSubmit}
       />,

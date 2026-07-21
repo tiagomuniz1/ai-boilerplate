@@ -19,7 +19,7 @@ describe('AppointmentsRepositoryAdapter (schedule-exceptions)', () => {
   })
 
   it('delegates findScheduledAppointmentsInWindow to FindScheduledAppointmentsInWindowUseCase', async () => {
-    const doctorId = faker.string.uuid()
+    const professionalId = faker.string.uuid()
     const clinicId = faker.string.uuid()
     const conflicts = [
       { id: faker.string.uuid(), startTime: '08:00', endTime: '08:30', patientName: 'Patient A' },
@@ -27,7 +27,7 @@ describe('AppointmentsRepositoryAdapter (schedule-exceptions)', () => {
     mockFindInWindowUseCase.execute.mockResolvedValue(conflicts)
 
     const result = await adapter.findScheduledAppointmentsInWindow(
-      doctorId,
+      professionalId,
       '2099-06-20',
       '08:00',
       '12:00',
@@ -35,7 +35,7 @@ describe('AppointmentsRepositoryAdapter (schedule-exceptions)', () => {
     )
 
     expect(mockFindInWindowUseCase.execute).toHaveBeenCalledWith(
-      doctorId,
+      professionalId,
       '2099-06-20',
       '08:00',
       '12:00',
@@ -45,19 +45,19 @@ describe('AppointmentsRepositoryAdapter (schedule-exceptions)', () => {
   })
 
   it('passes null startTime and endTime (full-day block)', async () => {
-    const doctorId = faker.string.uuid()
+    const professionalId = faker.string.uuid()
     const clinicId = faker.string.uuid()
     mockFindInWindowUseCase.execute.mockResolvedValue([])
 
     const result = await adapter.findScheduledAppointmentsInWindow(
-      doctorId,
+      professionalId,
       '2099-06-20',
       null,
       null,
       clinicId,
     )
 
-    expect(mockFindInWindowUseCase.execute).toHaveBeenCalledWith(doctorId, '2099-06-20', null, null, clinicId)
+    expect(mockFindInWindowUseCase.execute).toHaveBeenCalledWith(professionalId, '2099-06-20', null, null, clinicId)
     expect(result).toEqual([])
   })
 })

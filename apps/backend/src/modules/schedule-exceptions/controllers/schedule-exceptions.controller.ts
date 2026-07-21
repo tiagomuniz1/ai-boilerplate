@@ -30,7 +30,7 @@ import { ScheduleException } from '../entities/schedule-exception.entity'
 function toResponse(exception: ScheduleException): ScheduleExceptionResponseDto {
   return {
     id: exception.id,
-    doctorId: exception.doctorId,
+    professionalId: exception.professionalId,
     date: exception.date,
     startTime: exception.startTime,
     endTime: exception.endTime,
@@ -51,7 +51,7 @@ export class ScheduleExceptionsController {
   ) {}
 
   @Post()
-  @Roles(UserRole.ADMIN, UserRole.DOCTOR)
+  @Roles(UserRole.ADMIN, UserRole.PROFESSIONAL)
   @HttpCode(201)
   async create(
     @Body() dto: CreateScheduleExceptionDto,
@@ -62,7 +62,7 @@ export class ScheduleExceptionsController {
   }
 
   @Get()
-  @Roles(UserRole.ADMIN, UserRole.DOCTOR)
+  @Roles(UserRole.ADMIN, UserRole.PROFESSIONAL)
   findAll(
     @Query() query: ListScheduleExceptionsQueryDto,
     @CurrentUser() currentUser: ICurrentUser,
@@ -71,7 +71,7 @@ export class ScheduleExceptionsController {
   }
 
   @Get(':id')
-  @Roles(UserRole.ADMIN, UserRole.DOCTOR)
+  @Roles(UserRole.ADMIN, UserRole.PROFESSIONAL)
   async findById(
     @Param('id') id: string,
     @CurrentUser() currentUser: ICurrentUser,
@@ -81,7 +81,7 @@ export class ScheduleExceptionsController {
   }
 
   @Patch(':id')
-  @Roles(UserRole.ADMIN, UserRole.DOCTOR)
+  @Roles(UserRole.ADMIN, UserRole.PROFESSIONAL)
   async update(
     @Param('id') id: string,
     @Body() dto: UpdateScheduleExceptionDto,
@@ -92,7 +92,7 @@ export class ScheduleExceptionsController {
   }
 
   @Delete(':id')
-  @Roles(UserRole.ADMIN, UserRole.DOCTOR)
+  @Roles(UserRole.ADMIN, UserRole.PROFESSIONAL)
   @HttpCode(204)
   delete(
     @Param('id') id: string,

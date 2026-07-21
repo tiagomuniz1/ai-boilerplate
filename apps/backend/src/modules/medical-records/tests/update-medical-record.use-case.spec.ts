@@ -8,14 +8,14 @@ import { DataSource, OptimisticLockVersionMismatchError } from 'typeorm'
 import { AppointmentStatus, MedicalRecordFieldType, UserRole } from '@app/shared'
 import { ICurrentUser } from '../../auth/types/current-user.type'
 import { IAppointmentsRepository } from '../../appointments/repositories/appointments.repository.interface'
-import { IDoctorsRepository } from '../../doctors/repositories/doctors.repository.interface'
+import { IProfessionalsRepository } from '../../professionals/repositories/professionals.repository.interface'
 import { IMedicalRecordsRepository } from '../repositories/medical-records.repository.interface'
 import { ValidateRecordDataService } from '../services/validate-record-data.service'
 import { UpdateMedicalRecordUseCase } from '../use-cases/update-medical-record.use-case'
 import { CacheService } from '../../../cache/cache.service'
 
 const clinicId = 'clinic-uuid'
-const doctorId = 'doctor-uuid'
+const professionalId = 'doctor-uuid'
 const patientId = 'patient-uuid'
 const recordId = 'record-uuid'
 const appointmentId = 'appt-uuid'
@@ -23,7 +23,7 @@ const specialtyId = 'specialty-uuid'
 const templateId = 'template-uuid'
 
 const adminUser: ICurrentUser = { id: 'admin-id', role: UserRole.ADMIN, clinicId }
-const doctorUser: ICurrentUser = { id: 'doctor-user-id', role: UserRole.DOCTOR, clinicId }
+const doctorUser: ICurrentUser = { id: 'doctor-user-id', role: UserRole.PROFESSIONAL, clinicId }
 
 const makeSnapshot = () => [
   {
@@ -44,14 +44,14 @@ const makeRecord = (overrides = {}) => ({
   id: recordId,
   appointmentId,
   patientId,
-  doctorId,
+  professionalId,
   specialtyId,
   templateId,
   templateSchemaSnapshot: makeSnapshot(),
   data: {},
   notes: null,
   patient: { user: { fullName: 'Patient Name' } },
-  doctor: { user: { fullName: 'Doctor Name' } },
+  professional: { user: { fullName: 'Doctor Name' } },
   specialty: { name: 'Cardiologia' },
   createdAt: new Date(),
   updatedAt: new Date(),
@@ -70,18 +70,18 @@ const mockMedicalRecordsRepository: jest.Mocked<IMedicalRecordsRepository> = {
 const mockAppointmentsRepository: jest.Mocked<IAppointmentsRepository> = {
   findAll: jest.fn(),
   findById: jest.fn(),
-  findActiveByDoctorAndDate: jest.fn(),
+  findActiveByProfessionalAndDate: jest.fn(),
   findActiveBySlot: jest.fn(),
   hasFutureByScheduleId: jest.fn(),
   create: jest.fn(),
   update: jest.fn(),
 }
 
-const mockDoctorsRepository: jest.Mocked<IDoctorsRepository> = {
+const mockProfessionalsRepository: jest.Mocked<IProfessionalsRepository> = {
   findAll: jest.fn(),
   findById: jest.fn(),
   findByUserId: jest.fn(),
-  findByCrm: jest.fn(),
+  findByRegistration: jest.fn(),
   create: jest.fn(),
   update: jest.fn(),
   delete: jest.fn(),
@@ -106,7 +106,7 @@ describe('UpdateMedicalRecordUseCase', () => {
       {} as DataSource,
       mockMedicalRecordsRepository,
       mockAppointmentsRepository,
-      mockDoctorsRepository,
+      mockProfessionalsRepository,
       mockValidate,
       mockCache,
     )
@@ -124,14 +124,14 @@ describe('UpdateMedicalRecordUseCase', () => {
   })
 
   it('updates the record for DOCTOR (own record)', async () => {
-    mockDoctorsRepository.findByUserId.mockResolvedValue({ id: doctorId } as any)
+    mockProfessionalsRepository.findByUserId.mockResolvedValue({ id: professionalId } as any)
     const dto = { notes: 'Doctor notes' }
     await useCase.execute(recordId, dto, doctorUser)
     expect(mockMedicalRecordsRepository.update).toHaveBeenCalled()
   })
 
   it('throws ForbiddenException when DOCTOR updates another doctor record', async () => {
-    mockDoctorsRepository.findByUserId.mockResolvedValue({ id: 'other-doctor' } as any)
+    mockProfessionalsRepository.findByUserId.mockResolvedValue({ id: 'other-doctor' } as any)
     await expect(useCase.execute(recordId, {}, doctorUser)).rejects.toThrow(ForbiddenException)
   })
 

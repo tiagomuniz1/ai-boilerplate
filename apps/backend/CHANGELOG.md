@@ -2,6 +2,19 @@
 
 ## [Unreleased]
 
+### Changed
+
+#### BREAKING: generalização do modelo de profissional além de médico (CRM)
+- `UserRole.DOCTOR` renomeado para `UserRole.PROFESSIONAL` — role único e genérico para qualquer profissional de saúde, não mais exclusivo de médicos
+- Módulo `doctors` renomeado para `professionals`; rota `/doctors` deixa de existir, substituída por `/professionals` (sem redirect — clientes devem migrar)
+- Entidades `Doctor`/`DoctorCrm`/`DoctorSpecialty` renomeadas para `Professional`/`ProfessionalRegistration`/`ProfessionalSpecialty`; tabelas e colunas renomeadas via migrations reversíveis (`doctor_id` → `professional_id` em `appointments`, `schedules`, `schedule_exceptions`, `exam_requests`, `medical_certificates`, `medical_records`, `prescription_templates`, `prescriptions`)
+- Novo enum `CouncilType` (`CRM`, `CRN`, `CREFITO`, `CRP`, `CRO`, `COREN`, `CREF`, `CRFA`) substitui o campo fixo de CRM — cada registro de profissional (`ProfessionalRegistration`) tem seu próprio `councilType` + `number`, com validação de formato por conselho (`COUNCIL_REGISTRATION_FORMATS`) e rótulo de exibição (`COUNCIL_TYPE_LABELS`) no `@app/shared`
+- Assinatura de documentos generalizada: `resolveDoctorSigningIdentity` renomeado para `resolveProfessionalSigningIdentity`; snapshots de receita/atestado/pedido de exame trocam a chave `doctor` por `professional` e `crmNumber`/`rqe` por `registrationNumber`/`registryNumber` + `councilType`; PDFs renderizam o rótulo de conselho dinamicamente (`CRM 12345`, `CRN 9876543` etc.) em vez do texto fixo `"CRM"`
+- Título do atestado generalizado de `"Atestado Médico"` para `"Atestado"`
+- Verificação pública de receita (`GET /prescriptions/verify/:token`) expõe `professionalCouncilType`/`professionalRegistrationNumber` no lugar de `doctorCrmNumber`
+- Seeds de `dev`/`carga` passam a semear profissionais com `councilType` variado (não só CRM) — seed de carga com mix ~70% CRM / ~30% CRN·CREFITO·CRP; seed de dev com um profissional CRN (nutricionista) fixo
+- `ai/context/permissions.md` reescrito para refletir o role `PROFESSIONAL` genérico
+
 ### Added
 
 #### Preparação para deploy em produção (AWS EC2 + RDS + CloudFront)

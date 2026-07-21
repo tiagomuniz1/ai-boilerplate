@@ -12,8 +12,8 @@ export class PrescriptionResponseDto {
   appointmentId!: string
   patientId!: string
   patientName!: string
-  doctorId!: string
-  doctorName!: string
+  professionalId!: string
+  professionalName!: string
   issuedAt!: Date
   items!: PrescriptionItemResponseDto[]
   notes!: string | null

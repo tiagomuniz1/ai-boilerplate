@@ -3,7 +3,7 @@ import { DataSource } from 'typeorm'
 import { faker } from '@faker-js/faker'
 import { UserRole } from '@app/shared'
 import { CacheService } from '../../../cache/cache.service'
-import { IDoctorsRepository } from '../../doctors/repositories/doctors.repository.interface'
+import { IProfessionalsRepository } from '../../professionals/repositories/professionals.repository.interface'
 import { ICurrentUser } from '../../auth/types/current-user.type'
 import { IScheduleExceptionsRepository } from '../repositories/schedule-exceptions.repository.interface'
 import { DeleteScheduleExceptionUseCase } from '../use-cases/delete-schedule-exception.use-case'
@@ -11,17 +11,17 @@ import { DeleteScheduleExceptionUseCase } from '../use-cases/delete-schedule-exc
 const mockScheduleExceptionsRepository: jest.Mocked<IScheduleExceptionsRepository> = {
   findAll: jest.fn(),
   findById: jest.fn(),
-  findActiveByDoctorAndDate: jest.fn(),
+  findActiveByProfessionalAndDate: jest.fn(),
   create: jest.fn(),
   update: jest.fn(),
   delete: jest.fn(),
 }
 
-const mockDoctorsRepository: jest.Mocked<IDoctorsRepository> = {
+const mockProfessionalsRepository: jest.Mocked<IProfessionalsRepository> = {
   findAll: jest.fn(),
   findById: jest.fn(),
   findByUserId: jest.fn(),
-  findByCrm: jest.fn(),
+  findByRegistration: jest.fn(),
   create: jest.fn(),
   update: jest.fn(),
   delete: jest.fn(),
@@ -45,7 +45,7 @@ const makeDoctor = (id = DOCTOR_ID) => ({ id } as any)
 const makeException = (overrides = {}) => ({
   id: EXCEPTION_ID,
   clinicId: CLINIC_ID,
-  doctorId: DOCTOR_ID,
+  professionalId: DOCTOR_ID,
   date: '2099-06-20',
   startTime: null,
   endTime: null,
@@ -57,7 +57,7 @@ const makeException = (overrides = {}) => ({
   ...overrides,
 })
 
-const doctorUser: ICurrentUser = { id: faker.string.uuid(), role: UserRole.DOCTOR, clinicId: CLINIC_ID }
+const doctorUser: ICurrentUser = { id: faker.string.uuid(), role: UserRole.PROFESSIONAL, clinicId: CLINIC_ID }
 const adminUser: ICurrentUser = { id: faker.string.uuid(), role: UserRole.ADMIN, clinicId: CLINIC_ID }
 
 describe('DeleteScheduleExceptionUseCase', () => {
@@ -68,7 +68,7 @@ describe('DeleteScheduleExceptionUseCase', () => {
     useCase = new DeleteScheduleExceptionUseCase(
       {} as DataSource,
       mockScheduleExceptionsRepository,
-      mockDoctorsRepository,
+      mockProfessionalsRepository,
       mockCacheService,
     )
     mockCacheService.delByPrefix.mockResolvedValue(undefined)
@@ -82,14 +82,14 @@ describe('DeleteScheduleExceptionUseCase', () => {
   })
 
   it('throws ForbiddenException when DOCTOR tries to delete exception of another doctor', async () => {
-    mockScheduleExceptionsRepository.findById.mockResolvedValue(makeException({ doctorId: 'other-doctor' }) as any)
-    mockDoctorsRepository.findByUserId.mockResolvedValue(makeDoctor())
+    mockScheduleExceptionsRepository.findById.mockResolvedValue(makeException({ professionalId: 'other-doctor' }) as any)
+    mockProfessionalsRepository.findByUserId.mockResolvedValue(makeDoctor())
     await expect(useCase.execute(EXCEPTION_ID, doctorUser)).rejects.toThrow(ForbiddenException)
   })
 
   it('allows DOCTOR to delete own exception', async () => {
     mockScheduleExceptionsRepository.findById.mockResolvedValue(makeException() as any)
-    mockDoctorsRepository.findByUserId.mockResolvedValue(makeDoctor())
+    mockProfessionalsRepository.findByUserId.mockResolvedValue(makeDoctor())
 
     await useCase.execute(EXCEPTION_ID, doctorUser)
 

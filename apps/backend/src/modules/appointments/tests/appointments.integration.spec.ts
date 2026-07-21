@@ -6,11 +6,11 @@ import * as bcrypt from 'bcrypt'
 import * as cookieParser from 'cookie-parser'
 import * as request from 'supertest'
 import { Repository } from 'typeorm'
-import { AppointmentStatus, DayOfWeek, PatientGender, UserRole } from '@app/shared'
+import { AppointmentStatus, CouncilType, DayOfWeek, PatientGender, UserRole } from '@app/shared'
 import { AppModule } from '../../../app.module'
 import { Clinic } from '../../clinics/entities/clinic.entity'
 import { User } from '../../users/entities/user.entity'
-import { Doctor } from '../../doctors/entities/doctor.entity'
+import { Professional } from '../../professionals/entities/professional.entity'
 import { Patient } from '../../patients/entities/patient.entity'
 import { Specialty } from '../../specialties/entities/specialty.entity'
 import { Schedule } from '../../schedules/entities/schedule.entity'
@@ -36,7 +36,7 @@ describe('AppointmentsController (integration)', () => {
   let app: INestApplication
   let userRepository: Repository<User>
   let clinicRepository: Repository<Clinic>
-  let doctorRepository: Repository<Doctor>
+  let doctorRepository: Repository<Professional>
   let patientRepository: Repository<Patient>
   let specialtyRepository: Repository<Specialty>
   let scheduleRepository: Repository<Schedule>
@@ -46,7 +46,7 @@ describe('AppointmentsController (integration)', () => {
   let doctorToken: string
   let otherDoctorToken: string
   let userToken: string
-  let doctorId: string
+  let professionalId: string
   let otherDoctorId: string
   let patientId: string
   let scheduleId: string
@@ -74,7 +74,7 @@ describe('AppointmentsController (integration)', () => {
 
     userRepository = module.get(getRepositoryToken(User))
     clinicRepository = module.get(getRepositoryToken(Clinic))
-    doctorRepository = module.get(getRepositoryToken(Doctor))
+    doctorRepository = module.get(getRepositoryToken(Professional))
     patientRepository = module.get(getRepositoryToken(Patient))
     specialtyRepository = module.get(getRepositoryToken(Specialty))
     scheduleRepository = module.get(getRepositoryToken(Schedule))
@@ -86,8 +86,8 @@ describe('AppointmentsController (integration)', () => {
     await scheduleRepository.query('DELETE FROM test.schedule_exceptions')
     await scheduleRepository.query('DELETE FROM test.schedules')
     await patientRepository.query('DELETE FROM test.patients')
-    await doctorRepository.query('DELETE FROM test.doctor_specialties')
-    await doctorRepository.query('DELETE FROM test.doctors')
+    await doctorRepository.query('DELETE FROM test.professional_specialties')
+    await doctorRepository.query('DELETE FROM test.professionals')
     await specialtyRepository.query('DELETE FROM test.specialties')
     await userRepository.query('DELETE FROM test.refresh_tokens')
     await userRepository.query('DELETE FROM test.users')
@@ -120,7 +120,7 @@ describe('AppointmentsController (integration)', () => {
         fullName: 'Doctor User',
         email: 'doctor@appointments.test',
         password: hashed,
-        role: UserRole.DOCTOR,
+        role: UserRole.PROFESSIONAL,
         clinicId: SEED_CLINIC_ID,
       }),
     )
@@ -130,7 +130,7 @@ describe('AppointmentsController (integration)', () => {
         fullName: 'Other Doctor',
         email: 'other@appointments.test',
         password: hashed,
-        role: UserRole.DOCTOR,
+        role: UserRole.PROFESSIONAL,
         clinicId: SEED_CLINIC_ID,
       }),
     )
@@ -156,17 +156,17 @@ describe('AppointmentsController (integration)', () => {
       userId: doctorUser.id,
       clinicId: SEED_CLINIC_ID,
     })
-    doctorEntity.crms = [{ clinicId: SEED_CLINIC_ID, number: '12345', state: 'SP', isPrimary: true }] as any
-    doctorEntity.doctorSpecialties = [{ specialtyId: specialty.id, rqe: null }] as any
+    doctorEntity.registrations = [{ clinicId: SEED_CLINIC_ID, councilType: CouncilType.CRM, number: '12345', state: 'SP', isPrimary: true }] as any
+    doctorEntity.professionalSpecialties = [{ specialtyId: specialty.id, registryNumber: null }] as any
     const doctorProfile = await doctorRepository.save(doctorEntity)
-    doctorId = doctorProfile.id
+    professionalId = doctorProfile.id
 
     const otherDoctorEntity = doctorRepository.create({
       userId: otherDoctorUser.id,
       clinicId: SEED_CLINIC_ID,
     })
-    otherDoctorEntity.crms = [{ clinicId: SEED_CLINIC_ID, number: '99999', state: 'SP', isPrimary: true }] as any
-    otherDoctorEntity.doctorSpecialties = [{ specialtyId: specialty.id, rqe: null }] as any
+    otherDoctorEntity.registrations = [{ clinicId: SEED_CLINIC_ID, councilType: CouncilType.CRM, number: '99999', state: 'SP', isPrimary: true }] as any
+    otherDoctorEntity.professionalSpecialties = [{ specialtyId: specialty.id, registryNumber: null }] as any
     const otherDoctorProfile = await doctorRepository.save(otherDoctorEntity)
     otherDoctorId = otherDoctorProfile.id
 
@@ -193,7 +193,7 @@ describe('AppointmentsController (integration)', () => {
 
     const scheduleRecord = await scheduleRepository.save(
       scheduleRepository.create({
-        doctorId,
+        professionalId,
         clinicId: SEED_CLINIC_ID,
         dayOfWeek: DayOfWeek.FRIDAY,
         startTime: '08:00',
@@ -227,8 +227,8 @@ describe('AppointmentsController (integration)', () => {
     await scheduleRepository.query('DELETE FROM test.schedule_exceptions')
     await scheduleRepository.query('DELETE FROM test.schedules')
     await patientRepository.query('DELETE FROM test.patients')
-    await doctorRepository.query('DELETE FROM test.doctor_specialties')
-    await doctorRepository.query('DELETE FROM test.doctors')
+    await doctorRepository.query('DELETE FROM test.professional_specialties')
+    await doctorRepository.query('DELETE FROM test.professionals')
     await specialtyRepository.query('DELETE FROM test.specialties')
     await userRepository.query('DELETE FROM test.refresh_tokens')
     await userRepository.query('DELETE FROM test.users')
@@ -241,10 +241,10 @@ describe('AppointmentsController (integration)', () => {
       const { body } = await request(app.getHttpServer())
         .get('/appointments/availability')
         .set('Cookie', `access_token=${adminToken}`)
-        .query({ doctorId, date: futureDate })
+        .query({ professionalId, date: futureDate })
         .expect(200)
 
-      expect(body.doctorId).toBe(doctorId)
+      expect(body.professionalId).toBe(professionalId)
       expect(body.date).toBe(futureDate)
       expect(Array.isArray(body.slots)).toBe(true)
       expect(body.slots.length).toBeGreaterThan(0)
@@ -260,10 +260,10 @@ describe('AppointmentsController (integration)', () => {
         .query({ date: futureDate })
         .expect(200)
 
-      expect(body.doctorId).toBe(doctorId)
+      expect(body.professionalId).toBe(professionalId)
     })
 
-    it('returns 422 when ADMIN omits doctorId', async () => {
+    it('returns 422 when ADMIN omits professionalId', async () => {
       await request(app.getHttpServer())
         .get('/appointments/availability')
         .set('Cookie', `access_token=${adminToken}`)
@@ -274,7 +274,7 @@ describe('AppointmentsController (integration)', () => {
     it('returns 401 for unauthenticated requests', async () => {
       await request(app.getHttpServer())
         .get('/appointments/availability')
-        .query({ doctorId, date: futureDate })
+        .query({ professionalId, date: futureDate })
         .expect(401)
     })
   })
@@ -288,7 +288,7 @@ describe('AppointmentsController (integration)', () => {
         .expect(201)
 
       expect(body.id).toBeDefined()
-      expect(body.doctorId).toBe(doctorId)
+      expect(body.professionalId).toBe(professionalId)
       expect(body.patientId).toBe(patientId)
       expect(body.date).toBe(futureDate)
       expect(body.startTime).toBe('08:00')
@@ -303,7 +303,7 @@ describe('AppointmentsController (integration)', () => {
       const { body } = await request(app.getHttpServer())
         .post('/appointments')
         .set('Cookie', `access_token=${adminToken}`)
-        .send({ doctorId, patientId, date: futureDate, startTime: '08:00' })
+        .send({ professionalId, patientId, date: futureDate, startTime: '08:00' })
         .expect(201)
 
       expect(body.specialtyId).toBe(specialtyId)
@@ -311,8 +311,8 @@ describe('AppointmentsController (integration)', () => {
     })
 
     it('books a generalist appointment (null specialty) when the doctor has no specialty', async () => {
-      await doctorRepository.query('DELETE FROM test.doctor_specialties WHERE doctor_id = $1', [
-        doctorId,
+      await doctorRepository.query('DELETE FROM test.professional_specialties WHERE professional_id = $1', [
+        professionalId,
       ])
 
       const { body } = await request(app.getHttpServer())
@@ -329,7 +329,7 @@ describe('AppointmentsController (integration)', () => {
       const { body } = await request(app.getHttpServer())
         .post('/appointments')
         .set('Cookie', `access_token=${adminToken}`)
-        .send({ doctorId, patientId, specialtyId, date: futureDate, startTime: '08:00' })
+        .send({ professionalId, patientId, specialtyId, date: futureDate, startTime: '08:00' })
         .expect(201)
 
       expect(body.specialtyId).toBe(specialtyId)
@@ -339,7 +339,7 @@ describe('AppointmentsController (integration)', () => {
       await request(app.getHttpServer())
         .post('/appointments')
         .set('Cookie', `access_token=${adminToken}`)
-        .send({ doctorId, patientId, specialtyId: otherSpecialtyId, date: futureDate, startTime: '08:00' })
+        .send({ professionalId, patientId, specialtyId: otherSpecialtyId, date: futureDate, startTime: '08:00' })
         .expect(422)
     })
 
@@ -348,27 +348,27 @@ describe('AppointmentsController (integration)', () => {
         specialtyRepository.create({ name: 'Cardiologia' }),
       )
       const doctor = await doctorRepository.findOne({
-        where: { id: doctorId },
-        relations: ['doctorSpecialties'],
+        where: { id: professionalId },
+        relations: ['professionalSpecialties'],
       })
-      doctor!.doctorSpecialties = [...doctor!.doctorSpecialties, { specialtyId: extra.id, rqe: null } as any]
+      doctor!.professionalSpecialties = [...doctor!.professionalSpecialties, { specialtyId: extra.id, registryNumber: null } as any]
       await doctorRepository.save(doctor!)
 
       await request(app.getHttpServer())
         .post('/appointments')
         .set('Cookie', `access_token=${adminToken}`)
-        .send({ doctorId, patientId, date: futureDate, startTime: '08:00' })
+        .send({ professionalId, patientId, date: futureDate, startTime: '08:00' })
         .expect(422)
     })
 
-    it('returns 201 when ADMIN creates appointment with doctorId', async () => {
+    it('returns 201 when ADMIN creates appointment with professionalId', async () => {
       const { body } = await request(app.getHttpServer())
         .post('/appointments')
         .set('Cookie', `access_token=${adminToken}`)
-        .send({ doctorId, patientId, date: futureDate, startTime: '08:00' })
+        .send({ professionalId, patientId, date: futureDate, startTime: '08:00' })
         .expect(201)
 
-      expect(body.doctorId).toBe(doctorId)
+      expect(body.professionalId).toBe(professionalId)
     })
 
     it('returns 409 when same slot is booked twice', async () => {
@@ -385,7 +385,7 @@ describe('AppointmentsController (integration)', () => {
         .expect(409)
     })
 
-    it('returns 422 when ADMIN omits doctorId', async () => {
+    it('returns 422 when ADMIN omits professionalId', async () => {
       await request(app.getHttpServer())
         .post('/appointments')
         .set('Cookie', `access_token=${adminToken}`)
@@ -435,7 +435,7 @@ describe('AppointmentsController (integration)', () => {
         .expect(201)
 
       // Remove the doctor links so the appointment is the only blocker.
-      await doctorRepository.query('DELETE FROM test.doctor_specialties WHERE specialty_id = $1', [
+      await doctorRepository.query('DELETE FROM test.professional_specialties WHERE specialty_id = $1', [
         specialtyId,
       ])
 
@@ -491,7 +491,7 @@ describe('AppointmentsController (integration)', () => {
         .set('Cookie', `access_token=${doctorToken}`)
         .expect(200)
 
-      expect(body.data.every((a: any) => a.doctorId === doctorId)).toBe(true)
+      expect(body.data.every((a: any) => a.professionalId === professionalId)).toBe(true)
     })
 
     it('returns 200 for USER role (read-only)', async () => {
@@ -715,7 +715,7 @@ describe('AppointmentsController (integration)', () => {
 
       const pastSchedule = await scheduleRepository.save(
         scheduleRepository.create({
-          doctorId,
+          professionalId,
           clinicId: SEED_CLINIC_ID,
           dayOfWeek: [DayOfWeek.SUNDAY, DayOfWeek.MONDAY, DayOfWeek.TUESDAY, DayOfWeek.WEDNESDAY, DayOfWeek.THURSDAY, DayOfWeek.FRIDAY, DayOfWeek.SATURDAY][yesterday.getUTCDay()],
           startTime: '08:00',
@@ -729,7 +729,7 @@ describe('AppointmentsController (integration)', () => {
       const appointment = await appointmentRepository.save(
         appointmentRepository.create({
           clinicId: SEED_CLINIC_ID,
-          doctorId,
+          professionalId,
           patientId,
           scheduleId: pastSchedule.id,
           date: pastDate,
@@ -769,7 +769,7 @@ describe('AppointmentsController (integration)', () => {
 
       const pastSchedule = await scheduleRepository.save(
         scheduleRepository.create({
-          doctorId,
+          professionalId,
           clinicId: SEED_CLINIC_ID,
           dayOfWeek: [DayOfWeek.SUNDAY, DayOfWeek.MONDAY, DayOfWeek.TUESDAY, DayOfWeek.WEDNESDAY, DayOfWeek.THURSDAY, DayOfWeek.FRIDAY, DayOfWeek.SATURDAY][yesterday.getUTCDay()],
           startTime: '08:00',
@@ -783,7 +783,7 @@ describe('AppointmentsController (integration)', () => {
       const appointment = await appointmentRepository.save(
         appointmentRepository.create({
           clinicId: SEED_CLINIC_ID,
-          doctorId,
+          professionalId,
           patientId,
           scheduleId: pastSchedule.id,
           date: pastDate,
@@ -889,7 +889,7 @@ describe('AppointmentsController (integration)', () => {
 
       const pastSchedule = await scheduleRepository.save(
         scheduleRepository.create({
-          doctorId,
+          professionalId,
           clinicId: SEED_CLINIC_ID,
           dayOfWeek: [DayOfWeek.SUNDAY, DayOfWeek.MONDAY, DayOfWeek.TUESDAY, DayOfWeek.WEDNESDAY, DayOfWeek.THURSDAY, DayOfWeek.FRIDAY, DayOfWeek.SATURDAY][yesterday.getUTCDay()],
           startTime: '08:00',
@@ -903,7 +903,7 @@ describe('AppointmentsController (integration)', () => {
       const appointment = await appointmentRepository.save(
         appointmentRepository.create({
           clinicId: SEED_CLINIC_ID,
-          doctorId,
+          professionalId,
           patientId,
           scheduleId: pastSchedule.id,
           date: pastDate,
@@ -930,7 +930,7 @@ describe('AppointmentsController (integration)', () => {
 
       const pastSchedule = await scheduleRepository.save(
         scheduleRepository.create({
-          doctorId,
+          professionalId,
           clinicId: SEED_CLINIC_ID,
           dayOfWeek: [DayOfWeek.SUNDAY, DayOfWeek.MONDAY, DayOfWeek.TUESDAY, DayOfWeek.WEDNESDAY, DayOfWeek.THURSDAY, DayOfWeek.FRIDAY, DayOfWeek.SATURDAY][yesterday.getUTCDay()],
           startTime: '08:00',
@@ -944,7 +944,7 @@ describe('AppointmentsController (integration)', () => {
       const appointment = await appointmentRepository.save(
         appointmentRepository.create({
           clinicId: SEED_CLINIC_ID,
-          doctorId,
+          professionalId,
           patientId,
           scheduleId: pastSchedule.id,
           date: pastDate,

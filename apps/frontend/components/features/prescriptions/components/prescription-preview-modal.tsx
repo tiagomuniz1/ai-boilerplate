@@ -27,10 +27,10 @@ export function PrescriptionPreviewModal({ prescription, onClose }: Prescription
           <div className="flex items-start justify-between gap-4">
             <div>
               <p className="text-xs font-medium uppercase tracking-wider text-text-mute mb-0.5">
-                Médico
+                Profissional
               </p>
-              <p className="font-semibold text-text" data-testid="prescription-preview-doctor">
-                {prescription.doctorName}
+              <p className="font-semibold text-text" data-testid="prescription-preview-professional">
+                {prescription.professionalName}
               </p>
             </div>
             <div className="text-right shrink-0">

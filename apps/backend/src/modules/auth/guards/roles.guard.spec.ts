@@ -33,7 +33,7 @@ describe('RolesGuard', () => {
   it('allows when user role is in the required roles list', () => {
     const { guard, context } = makeContext(
       { role: UserRole.ADMIN },
-      { [ROLES_KEY]: [UserRole.ADMIN, UserRole.DOCTOR] },
+      { [ROLES_KEY]: [UserRole.ADMIN, UserRole.PROFESSIONAL] },
     )
     expect(guard.canActivate(context)).toBe(true)
   })
@@ -41,7 +41,7 @@ describe('RolesGuard', () => {
   it('throws ForbiddenException when user role is not in required roles', () => {
     const { guard, context } = makeContext(
       { role: UserRole.USER },
-      { [ROLES_KEY]: [UserRole.ADMIN, UserRole.DOCTOR] },
+      { [ROLES_KEY]: [UserRole.ADMIN, UserRole.PROFESSIONAL] },
     )
     expect(() => guard.canActivate(context)).toThrow(ForbiddenException)
   })
@@ -54,7 +54,7 @@ describe('RolesGuard', () => {
   it('throws ForbiddenException for PATIENT on any restricted route', () => {
     const { guard, context } = makeContext(
       { role: UserRole.PATIENT },
-      { [ROLES_KEY]: [UserRole.ADMIN, UserRole.DOCTOR, UserRole.USER] },
+      { [ROLES_KEY]: [UserRole.ADMIN, UserRole.PROFESSIONAL, UserRole.USER] },
     )
     expect(() => guard.canActivate(context)).toThrow(ForbiddenException)
   })

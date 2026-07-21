@@ -23,7 +23,7 @@ export class MedicalCertificatesController {
   ) {}
 
   @Post()
-  @Roles(UserRole.DOCTOR)
+  @Roles(UserRole.PROFESSIONAL)
   @Throttle({ default: { limit: 30, ttl: 60000 } })
   create(
     @Body() dto: CreateMedicalCertificateDto,
@@ -33,7 +33,7 @@ export class MedicalCertificatesController {
   }
 
   @Get()
-  @Roles(UserRole.ADMIN, UserRole.DOCTOR)
+  @Roles(UserRole.ADMIN, UserRole.PROFESSIONAL)
   findByAppointment(
     @Query() query: ListMedicalCertificatesQueryDto,
     @CurrentUser() currentUser: ICurrentUser,
@@ -42,7 +42,7 @@ export class MedicalCertificatesController {
   }
 
   @Get(':id')
-  @Roles(UserRole.ADMIN, UserRole.DOCTOR)
+  @Roles(UserRole.ADMIN, UserRole.PROFESSIONAL)
   findById(
     @Param('id') id: string,
     @CurrentUser() currentUser: ICurrentUser,
@@ -52,7 +52,7 @@ export class MedicalCertificatesController {
 
   @Delete(':id')
   @HttpCode(204)
-  @Roles(UserRole.ADMIN, UserRole.DOCTOR)
+  @Roles(UserRole.ADMIN, UserRole.PROFESSIONAL)
   delete(
     @Param('id') id: string,
     @CurrentUser() currentUser: ICurrentUser,
@@ -61,7 +61,7 @@ export class MedicalCertificatesController {
   }
 
   @Get(':id/pdf')
-  @Roles(UserRole.ADMIN, UserRole.DOCTOR)
+  @Roles(UserRole.ADMIN, UserRole.PROFESSIONAL)
   async downloadPdf(
     @Param('id') id: string,
     @CurrentUser() currentUser: ICurrentUser,

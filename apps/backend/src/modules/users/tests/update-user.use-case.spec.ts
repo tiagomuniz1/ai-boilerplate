@@ -38,12 +38,12 @@ function makeQueryBuilder(rawResult: unknown[] = []) {
 }
 
 function makeMockDataSource(
-  isDoctorResult: unknown[] = [],
+  isProfessionalResult: unknown[] = [],
   isPatientResult: unknown[] = [],
 ): DataSource {
   return {
     createQueryBuilder: jest.fn()
-      .mockReturnValueOnce(makeQueryBuilder(isDoctorResult))
+      .mockReturnValueOnce(makeQueryBuilder(isProfessionalResult))
       .mockReturnValueOnce(makeQueryBuilder(isPatientResult)),
     createQueryRunner: jest.fn(),
   } as unknown as DataSource
@@ -94,14 +94,14 @@ describe('UpdateUserUseCase', () => {
     expect(result).not.toHaveProperty('version')
   })
 
-  it('response includes isDoctor and isPatient flags', async () => {
+  it('response includes isProfessional and isPatient flags', async () => {
     const user = makeUser()
     mockUsersRepository.findById.mockResolvedValue(user)
     mockUsersRepository.update.mockResolvedValue(user)
 
     const result = await useCase.execute(user.id, { fullName: 'X' }, adminUser)
 
-    expect(result.isDoctor).toBe(false)
+    expect(result.isProfessional).toBe(false)
     expect(result.isPatient).toBe(false)
   })
 
@@ -182,7 +182,7 @@ describe('UpdateUserUseCase', () => {
 
   it('allows DOCTOR to update their own profile', async () => {
     const user = makeUser()
-    const doctorUser: ICurrentUser = { id: user.id, role: UserRole.DOCTOR, clinicId: CLINIC_ID }
+    const doctorUser: ICurrentUser = { id: user.id, role: UserRole.PROFESSIONAL, clinicId: CLINIC_ID }
     const updated = { ...user, fullName: 'Updated Name' }
     mockUsersRepository.findById.mockResolvedValue(user)
     mockUsersRepository.update.mockResolvedValue(updated)
@@ -193,7 +193,7 @@ describe('UpdateUserUseCase', () => {
   })
 
   it('throws ForbiddenException when DOCTOR tries to update another user profile', async () => {
-    const doctorUser: ICurrentUser = { id: faker.string.uuid(), role: UserRole.DOCTOR, clinicId: CLINIC_ID }
+    const doctorUser: ICurrentUser = { id: faker.string.uuid(), role: UserRole.PROFESSIONAL, clinicId: CLINIC_ID }
     const otherId = faker.string.uuid()
 
     await expect(useCase.execute(otherId, { fullName: 'X' }, doctorUser)).rejects.toThrow(ForbiddenException)

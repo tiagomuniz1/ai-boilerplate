@@ -7,7 +7,7 @@ export async function createScheduleExceptionUseCase(
   input: ICreateScheduleExceptionInput,
 ): Promise<IScheduleExceptionModel> {
   const dto = await scheduleExceptionsService.create({
-    doctorId: input.doctorId,
+    professionalId: input.professionalId,
     date: input.date,
     startTime: input.startTime ?? null,
     endTime: input.endTime ?? null,

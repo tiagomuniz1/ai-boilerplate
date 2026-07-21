@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/atoms/button/button'
 import { Alert } from '@/components/ui/molecules/alert/alert'
 import { Modal } from '@/components/ui/organisms/modal/modal'
 import { useMedications } from '@/components/features/medications/hooks/use-medications.hook'
-import { DoctorSignatureSelect } from '@/components/features/doctors/components/doctor-signature-select'
+import { ProfessionalSignatureSelect } from '@/components/features/professionals/components/professional-signature-select'
 import { usePrescriptionTemplates } from '@/components/features/prescription-templates/hooks/use-prescription-templates.hook'
 import { useCreatePrescriptionTemplate } from '@/components/features/prescription-templates/hooks/use-create-prescription-template.hook'
 import type { IPrescriptionTemplateItemModel } from '@/components/features/prescription-templates/types/prescription-template-model.types'
@@ -34,7 +34,7 @@ type FormValues = z.infer<typeof schema>
 
 export interface PrescriptionFormProps {
   appointmentId: string
-  doctorId: string
+  professionalId: string
   isPending: boolean
   globalError: string | null
   onSubmit: (input: ICreatePrescriptionInput) => void
@@ -52,7 +52,7 @@ function toFormItem(templateItem: IPrescriptionTemplateItemModel) {
   }
 }
 
-export function PrescriptionForm({ appointmentId, doctorId, isPending, globalError, onSubmit }: PrescriptionFormProps) {
+export function PrescriptionForm({ appointmentId, professionalId, isPending, globalError, onSubmit }: PrescriptionFormProps) {
   const [search, setSearch] = useState('')
   const [crmId, setCrmId] = useState('')
   const [specialtyId, setSpecialtyId] = useState('')
@@ -396,11 +396,11 @@ export function PrescriptionForm({ appointmentId, doctorId, isPending, globalErr
         )}
       </div>
 
-      <DoctorSignatureSelect
-        doctorId={doctorId}
-        crmId={crmId}
+      <ProfessionalSignatureSelect
+        professionalId={professionalId}
+        registrationId={crmId}
         specialtyId={specialtyId}
-        onCrmIdChange={setCrmId}
+        onRegistrationIdChange={setCrmId}
         onSpecialtyIdChange={setSpecialtyId}
       />
 

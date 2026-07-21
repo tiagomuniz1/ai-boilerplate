@@ -81,14 +81,14 @@ describe('PatientsController (integration)', () => {
     )
 
     accessToken = await loginAs(UserRole.ADMIN)
-    doctorToken = await loginAs(UserRole.DOCTOR)
+    doctorToken = await loginAs(UserRole.PROFESSIONAL)
     userToken = await loginAs(UserRole.USER)
   })
 
   afterEach(async () => {
     await patientRepository.query('DELETE FROM test.schedules')
-    await patientRepository.query('DELETE FROM test.doctor_specialties')
-    await patientRepository.query('DELETE FROM test.doctors')
+    await patientRepository.query('DELETE FROM test.professional_specialties')
+    await patientRepository.query('DELETE FROM test.professionals')
     await patientRepository.query('DELETE FROM test.patients')
     await patientRepository.query('DELETE FROM test.specialties')
     await patientRepository.query('DELETE FROM test.refresh_tokens')

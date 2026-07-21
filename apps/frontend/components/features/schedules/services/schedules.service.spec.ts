@@ -15,10 +15,10 @@ describe('schedulesService', () => {
     expect(mockApiClient.get).toHaveBeenCalledWith('/schedules')
   })
 
-  it('getAll appends doctorId to query string', () => {
+  it('getAll appends professionalId to query string', () => {
     mockApiClient.get.mockResolvedValue({} as any)
-    schedulesService.getAll({ doctorId: 'doc-uuid' })
-    expect(mockApiClient.get).toHaveBeenCalledWith('/schedules?doctorId=doc-uuid')
+    schedulesService.getAll({ professionalId: 'doc-uuid' })
+    expect(mockApiClient.get).toHaveBeenCalledWith('/schedules?professionalId=doc-uuid')
   })
 
   it('getAll appends dayOfWeek and activeOn to query string', () => {

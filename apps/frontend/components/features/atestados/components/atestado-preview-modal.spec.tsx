@@ -8,8 +8,8 @@ const makeLeaveAtestado = (overrides: Partial<IAtestadoModel> = {}): IAtestadoMo
   appointmentId: 'appt-uuid',
   patientId: 'patient-uuid',
   patientName: 'Maria Santos',
-  doctorId: 'doctor-uuid',
-  doctorName: 'Dr. João',
+  professionalId: 'doctor-uuid',
+  professionalName: 'Dr. João',
   type: MedicalCertificateType.LEAVE,
   daysOff: 3,
   startDate: new Date('2026-01-05'),
@@ -73,7 +73,7 @@ describe('AtestadoPreviewModal', () => {
 
   it('renders doctor name and patient name', () => {
     render(<AtestadoPreviewModal atestado={makeLeaveAtestado()} onClose={jest.fn()} />)
-    expect(screen.getByTestId('atestado-preview-doctor')).toHaveTextContent('Dr. João')
+    expect(screen.getByTestId('atestado-preview-professional')).toHaveTextContent('Dr. João')
     expect(screen.getByTestId('atestado-preview-patient')).toHaveTextContent('Maria Santos')
   })
 })

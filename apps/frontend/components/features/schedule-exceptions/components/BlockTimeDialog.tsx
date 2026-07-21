@@ -44,10 +44,10 @@ interface BlockTimeDialogProps {
   onClose: () => void
   date: string
   role: UserRole
-  doctorId?: string
+  professionalId?: string
 }
 
-export function BlockTimeDialog({ isOpen, onClose, date, role, doctorId }: BlockTimeDialogProps) {
+export function BlockTimeDialog({ isOpen, onClose, date, role, professionalId }: BlockTimeDialogProps) {
   const { mutate, isPending, isError, error, reset: resetMutation } = useCreateScheduleException()
 
   const {
@@ -74,7 +74,7 @@ export function BlockTimeDialog({ isOpen, onClose, date, role, doctorId }: Block
 
   function onSubmit(values: BlockFormValues) {
     const input = {
-      doctorId: role === UserRole.ADMIN ? doctorId : undefined,
+      professionalId: role === UserRole.ADMIN ? professionalId : undefined,
       date: values.date,
       /* c8 ignore next 2 */
       startTime: values.allDay ? null : values.startTime || null,
@@ -197,7 +197,7 @@ export function BlockTimeDialog({ isOpen, onClose, date, role, doctorId }: Block
             {...register('reason')}
             rows={3}
             maxLength={500}
-            placeholder="Ex: Congresso médico, consulta particular..."
+            placeholder="Ex: Congresso, compromisso particular..."
             className="w-full rounded-md border border-line bg-surface-2 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent"
           />
         </div>

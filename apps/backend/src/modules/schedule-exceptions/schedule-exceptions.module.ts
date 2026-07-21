@@ -1,7 +1,7 @@
 import { forwardRef, Module } from '@nestjs/common'
 import { TypeOrmModule } from '@nestjs/typeorm'
 import { CacheModule } from '../../cache/cache.module'
-import { DoctorsModule } from '../doctors/doctors.module'
+import { ProfessionalsModule } from '../professionals/professionals.module'
 import { AppointmentsModule } from '../appointments/appointments.module'
 import { ScheduleException } from './entities/schedule-exception.entity'
 import { ScheduleExceptionsController } from './controllers/schedule-exceptions.controller'
@@ -10,7 +10,7 @@ import { UpdateScheduleExceptionUseCase } from './use-cases/update-schedule-exce
 import { DeleteScheduleExceptionUseCase } from './use-cases/delete-schedule-exception.use-case'
 import { FindScheduleExceptionByIdUseCase } from './use-cases/find-schedule-exception-by-id.use-case'
 import { ListScheduleExceptionsUseCase } from './use-cases/list-schedule-exceptions.use-case'
-import { GetActiveExceptionsForDoctorUseCase } from './use-cases/get-active-exceptions-for-doctor.use-case'
+import { GetActiveExceptionsForProfessionalUseCase } from './use-cases/get-active-exceptions-for-professional.use-case'
 import { IScheduleExceptionsRepository } from './repositories/schedule-exceptions.repository.interface'
 import { ScheduleExceptionsRepository } from './repositories/schedule-exceptions.repository'
 import {
@@ -22,7 +22,7 @@ import {
   imports: [
     TypeOrmModule.forFeature([ScheduleException]),
     CacheModule,
-    forwardRef(() => DoctorsModule),
+    forwardRef(() => ProfessionalsModule),
     forwardRef(() => AppointmentsModule),
   ],
   controllers: [ScheduleExceptionsController],
@@ -32,10 +32,10 @@ import {
     DeleteScheduleExceptionUseCase,
     FindScheduleExceptionByIdUseCase,
     ListScheduleExceptionsUseCase,
-    GetActiveExceptionsForDoctorUseCase,
+    GetActiveExceptionsForProfessionalUseCase,
     { provide: IScheduleExceptionsRepository, useClass: ScheduleExceptionsRepository },
     { provide: IAppointmentsRepository, useClass: AppointmentsRepositoryAdapter },
   ],
-  exports: [GetActiveExceptionsForDoctorUseCase],
+  exports: [GetActiveExceptionsForProfessionalUseCase],
 })
 export class ScheduleExceptionsModule {}

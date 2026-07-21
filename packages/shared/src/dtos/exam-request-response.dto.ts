@@ -11,8 +11,8 @@ export class ExamRequestResponseDto {
   appointmentId!: string
   patientId!: string
   patientName!: string
-  doctorId!: string
-  doctorName!: string
+  professionalId!: string
+  professionalName!: string
   items!: ExamRequestItemResponseDto[]
   notes!: string | null
   status!: ExamRequestStatus

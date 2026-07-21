@@ -5,7 +5,7 @@ import { faker } from '@faker-js/faker'
 import * as bcrypt from 'bcrypt'
 import * as request from 'supertest'
 import { Repository } from 'typeorm'
-import { UserRole } from '@app/shared'
+import { CouncilType, UserRole } from '@app/shared'
 import { AppModule } from '../../../app.module'
 import { Clinic } from '../../clinics/entities/clinic.entity'
 import { User } from '../../users/entities/user.entity'
@@ -106,14 +106,14 @@ describe('SpecialtiesController (integration)', () => {
 
     platformAdminToken = await loginAsPlatformAdmin()
     adminToken = await loginAs(UserRole.ADMIN)
-    doctorToken = await loginAs(UserRole.DOCTOR)
+    doctorToken = await loginAs(UserRole.PROFESSIONAL)
     userToken = await loginAs(UserRole.USER)
   })
 
   afterEach(async () => {
     await specialtyRepository.query('DELETE FROM test.schedules')
-    await specialtyRepository.query('DELETE FROM test.doctor_specialties')
-    await specialtyRepository.query('DELETE FROM test.doctors')
+    await specialtyRepository.query('DELETE FROM test.professional_specialties')
+    await specialtyRepository.query('DELETE FROM test.professionals')
     await specialtyRepository.query('DELETE FROM test.patients')
     await specialtyRepository.query('DELETE FROM test.clinic_specialties')
     await specialtyRepository.query('DELETE FROM test.specialties')
@@ -576,16 +576,16 @@ describe('SpecialtiesController (integration)', () => {
           fullName: 'Dr. Ortopedista',
           email: `ortopedista.${faker.string.alphanumeric(6)}@test.com`,
           password: hashedPassword,
-          role: UserRole.DOCTOR,
+          role: UserRole.PROFESSIONAL,
           isActive: true,
           clinicId: SEED_CLINIC_ID,
         }),
       )
 
       await request(app.getHttpServer())
-        .post('/doctors')
+        .post('/professionals')
         .set('Authorization', `Bearer ${adminToken}`)
-        .send({ userId: doctorUser.id, crms: [{ number: '77777', state: 'SP', isPrimary: true }], specialties: [{ specialtyId: specialty.id }] })
+        .send({ userId: doctorUser.id, registrations: [{ councilType: CouncilType.CRM, number: '77777', state: 'SP', isPrimary: true }], specialties: [{ specialtyId: specialty.id }] })
         .expect(201)
 
       const { body } = await request(app.getHttpServer())
@@ -621,16 +621,16 @@ describe('SpecialtiesController (integration)', () => {
           fullName: 'Dr. Reumatologista',
           email: `reumatologista.${faker.string.alphanumeric(6)}@test.com`,
           password: hashedPassword,
-          role: UserRole.DOCTOR,
+          role: UserRole.PROFESSIONAL,
           isActive: true,
           clinicId: SEED_CLINIC_ID,
         }),
       )
 
       const { body: doctor } = await request(app.getHttpServer())
-        .post('/doctors')
+        .post('/professionals')
         .set('Authorization', `Bearer ${adminToken}`)
-        .send({ userId: doctorUser.id, crms: [{ number: '88888', state: 'SP', isPrimary: true }], specialties: [{ specialtyId: specialty.id }] })
+        .send({ userId: doctorUser.id, registrations: [{ councilType: CouncilType.CRM, number: '88888', state: 'SP', isPrimary: true }], specialties: [{ specialtyId: specialty.id }] })
         .expect(201)
 
       await request(app.getHttpServer())
@@ -639,7 +639,7 @@ describe('SpecialtiesController (integration)', () => {
         .expect(409)
 
       await request(app.getHttpServer())
-        .delete(`/doctors/${doctor.id}`)
+        .delete(`/professionals/${doctor.id}`)
         .set('Authorization', `Bearer ${adminToken}`)
         .expect(204)
 

@@ -11,7 +11,7 @@ import { CreateScheduleDto, ScheduleResponseDto, UserRole } from '@app/shared'
 import { BaseUseCase } from '../../../common/base.use-case'
 import { CacheService } from '../../../cache/cache.service'
 import { ICurrentUser } from '../../auth/types/current-user.type'
-import { IDoctorsRepository } from '../../doctors/repositories/doctors.repository.interface'
+import { IProfessionalsRepository } from '../../professionals/repositories/professionals.repository.interface'
 import { ISchedulesRepository } from '../repositories/schedules.repository.interface'
 import { Schedule } from '../entities/schedule.entity'
 
@@ -27,31 +27,31 @@ export class CreateScheduleUseCase extends BaseUseCase {
   constructor(
     dataSource: DataSource,
     private readonly schedulesRepository: ISchedulesRepository,
-    private readonly doctorsRepository: IDoctorsRepository,
+    private readonly professionalsRepository: IProfessionalsRepository,
     private readonly cacheService: CacheService,
   ) {
     super(dataSource)
   }
 
   async execute(dto: CreateScheduleDto, currentUser: ICurrentUser): Promise<ScheduleResponseDto> {
-    if (currentUser.role !== UserRole.DOCTOR && currentUser.role !== UserRole.ADMIN) {
+    if (currentUser.role !== UserRole.PROFESSIONAL && currentUser.role !== UserRole.ADMIN) {
       throw new ForbiddenException('Only doctors and admins can create schedules')
     }
 
     const clinicId = currentUser.clinicId!
 
-    let doctor
-    if (currentUser.role === UserRole.DOCTOR) {
-      doctor = await this.doctorsRepository.findByUserId(currentUser.id, clinicId)
+    let professional
+    if (currentUser.role === UserRole.PROFESSIONAL) {
+      professional = await this.professionalsRepository.findByUserId(currentUser.id, clinicId)
     } else {
-      if (!dto.doctorId) {
-        throw new UnprocessableEntityException('doctorId is required for admin')
+      if (!dto.professionalId) {
+        throw new UnprocessableEntityException('professionalId is required for admin')
       }
-      doctor = await this.doctorsRepository.findById(dto.doctorId, clinicId)
+      professional = await this.professionalsRepository.findById(dto.professionalId, clinicId)
     }
-    if (!doctor) throw new NotFoundException('Doctor not found')
+    if (!professional) throw new NotFoundException('Professional not found')
 
-    const doctorId = doctor.id
+    const professionalId = professional.id
 
     const { startTime, endTime, slotDurationInMinutes, validFrom, validUntil } = dto
 
@@ -69,7 +69,7 @@ export class CreateScheduleUseCase extends BaseUseCase {
     }
 
     const overlapping = await this.schedulesRepository.findOverlapping(
-      doctorId,
+      professionalId,
       dto.dayOfWeek,
       startTime,
       endTime,
@@ -79,9 +79,9 @@ export class CreateScheduleUseCase extends BaseUseCase {
     )
     if (overlapping) throw new ConflictException('Schedule overlaps with an existing one')
 
-    const schedule = await this.schedulesRepository.create({ ...dto, doctorId })
+    const schedule = await this.schedulesRepository.create({ ...dto, professionalId })
 
-    const doctorName = await this.fetchDoctorName(doctorId)
+    const professionalName = await this.fetchProfessionalName(professionalId)
 
     try {
       await this.cacheService.delByPrefix(`schedules:list:${clinicId}:`)
@@ -89,26 +89,26 @@ export class CreateScheduleUseCase extends BaseUseCase {
       this.logger.warn('Cache invalidation failed', { context: CreateScheduleUseCase.name })
     }
 
-    return this.toResponse(schedule, doctorName)
+    return this.toResponse(schedule, professionalName)
   }
 
-  private async fetchDoctorName(doctorId: string): Promise<string> {
+  private async fetchProfessionalName(professionalId: string): Promise<string> {
     const rows: Array<{ fullName: string }> = await this.dataSource
       .createQueryBuilder()
       .select('u.full_name', 'fullName')
-      .from('doctors', 'd')
+      .from('professionals', 'd')
       .innerJoin('users', 'u', 'u.id = d.user_id AND u.deleted_at IS NULL')
-      .where('d.id = :doctorId', { doctorId })
+      .where('d.id = :professionalId', { professionalId })
       .andWhere('d.deleted_at IS NULL')
       .getRawMany()
     return rows[0]?.fullName ?? ''
   }
 
-  private toResponse(schedule: Schedule, doctorName: string): ScheduleResponseDto {
+  private toResponse(schedule: Schedule, professionalName: string): ScheduleResponseDto {
     return {
       id: schedule.id,
-      doctorId: schedule.doctorId,
-      doctorName,
+      professionalId: schedule.professionalId,
+      professionalName,
       dayOfWeek: schedule.dayOfWeek,
       startTime: schedule.startTime,
       endTime: schedule.endTime,

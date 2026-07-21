@@ -3,7 +3,7 @@ import { IsDateString, IsOptional, IsString, IsUUID, Matches, MaxLength } from '
 export class CreateScheduleExceptionDto {
   @IsOptional()
   @IsUUID()
-  doctorId?: string
+  professionalId?: string
 
   @IsDateString()
   date: string

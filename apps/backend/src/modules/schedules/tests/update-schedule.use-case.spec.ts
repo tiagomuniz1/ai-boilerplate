@@ -4,7 +4,7 @@ import { faker } from '@faker-js/faker'
 import { DayOfWeek, UserRole } from '@app/shared'
 import { CacheService } from '../../../cache/cache.service'
 import { ICurrentUser } from '../../auth/types/current-user.type'
-import { IDoctorsRepository } from '../../doctors/repositories/doctors.repository.interface'
+import { IProfessionalsRepository } from '../../professionals/repositories/professionals.repository.interface'
 import { IAppointmentsRepository } from '../repositories/appointments.repository.adapter'
 import { ISchedulesRepository } from '../repositories/schedules.repository.interface'
 import { UpdateScheduleUseCase } from '../use-cases/update-schedule.use-case'
@@ -17,14 +17,14 @@ const mockSchedulesRepository: jest.Mocked<ISchedulesRepository> = {
   update: jest.fn(),
   delete: jest.fn(),
   deleteAllByDoctorId: jest.fn(),
-  findActiveByDoctorAndDate: jest.fn(),
+  findActiveByProfessionalAndDate: jest.fn(),
 }
 
-const mockDoctorsRepository: jest.Mocked<IDoctorsRepository> = {
+const mockProfessionalsRepository: jest.Mocked<IProfessionalsRepository> = {
   findAll: jest.fn(),
   findById: jest.fn(),
   findByUserId: jest.fn(),
-  findByCrm: jest.fn(),
+  findByRegistration: jest.fn(),
   create: jest.fn(),
   update: jest.fn(),
   delete: jest.fn(),
@@ -48,13 +48,13 @@ const ownerId = faker.string.uuid()
 const otherDoctorId = faker.string.uuid()
 const adminId = faker.string.uuid()
 
-const ownerUser: ICurrentUser = { id: ownerId, role: UserRole.DOCTOR, clinicId: CLINIC_ID }
-const otherDoctorUser: ICurrentUser = { id: otherDoctorId, role: UserRole.DOCTOR, clinicId: CLINIC_ID }
+const ownerUser: ICurrentUser = { id: ownerId, role: UserRole.PROFESSIONAL, clinicId: CLINIC_ID }
+const otherDoctorUser: ICurrentUser = { id: otherDoctorId, role: UserRole.PROFESSIONAL, clinicId: CLINIC_ID }
 const adminUser: ICurrentUser = { id: adminId, role: UserRole.ADMIN, clinicId: CLINIC_ID }
 
 const makeSchedule = (overrides = {}) => ({
   id: faker.string.uuid(),
-  doctorId: ownerId,
+  professionalId: ownerId,
   dayOfWeek: DayOfWeek.MONDAY,
   startTime: '08:00',
   endTime: '12:00',
@@ -88,13 +88,13 @@ describe('UpdateScheduleUseCase', () => {
     useCase = new UpdateScheduleUseCase(
       makeMockDataSource(),
       mockSchedulesRepository,
-      mockDoctorsRepository,
+      mockProfessionalsRepository,
       mockAppointmentsRepository,
       mockCacheService,
     )
     mockAppointmentsRepository.hasFutureAppointmentsByScheduleId.mockResolvedValue(false)
     mockCacheService.delByPrefix.mockResolvedValue(undefined)
-    mockDoctorsRepository.findByUserId.mockImplementation((userId: string) =>
+    mockProfessionalsRepository.findByUserId.mockImplementation((userId: string) =>
       Promise.resolve({ id: userId } as any),
     )
   })
@@ -120,7 +120,7 @@ describe('UpdateScheduleUseCase', () => {
 
   it('throws NotFoundException when DOCTOR has no profile', async () => {
     mockSchedulesRepository.findById.mockResolvedValue(makeSchedule() as any)
-    mockDoctorsRepository.findByUserId.mockResolvedValue(null)
+    mockProfessionalsRepository.findByUserId.mockResolvedValue(null)
     await expect(useCase.execute(faker.string.uuid(), {}, ownerUser)).rejects.toThrow(NotFoundException)
     expect(mockSchedulesRepository.update).not.toHaveBeenCalled()
   })
@@ -196,7 +196,7 @@ describe('UpdateScheduleUseCase', () => {
     await useCase.execute(schedule.id, { startTime: '09:00' }, ownerUser)
 
     expect(mockSchedulesRepository.findOverlapping).toHaveBeenCalledWith(
-      schedule.doctorId,
+      schedule.professionalId,
       schedule.dayOfWeek,
       '09:00',
       schedule.endTime,
@@ -266,7 +266,7 @@ describe('UpdateScheduleUseCase', () => {
     ).resolves.toBeDefined()
 
     expect(mockSchedulesRepository.findOverlapping).toHaveBeenCalledWith(
-      schedule.doctorId,
+      schedule.professionalId,
       DayOfWeek.TUESDAY,
       schedule.startTime,
       schedule.endTime,
@@ -289,7 +289,7 @@ describe('UpdateScheduleUseCase', () => {
     ).resolves.toBeDefined()
 
     expect(mockSchedulesRepository.findOverlapping).toHaveBeenCalledWith(
-      schedule.doctorId,
+      schedule.professionalId,
       schedule.dayOfWeek,
       schedule.startTime,
       '13:00',
@@ -310,7 +310,7 @@ describe('UpdateScheduleUseCase', () => {
     ).rejects.toThrow('Database connection lost')
   })
 
-  it('returns empty doctorName when name query returns no rows', async () => {
+  it('returns empty professionalName when name query returns no rows', async () => {
     const builder = {
       select: jest.fn().mockReturnThis(),
       from: jest.fn().mockReturnThis(),
@@ -323,7 +323,7 @@ describe('UpdateScheduleUseCase', () => {
     const useCaseWithEmptyNames = new UpdateScheduleUseCase(
       emptyDataSource,
       mockSchedulesRepository,
-      mockDoctorsRepository,
+      mockProfessionalsRepository,
       mockAppointmentsRepository,
       mockCacheService,
     )
@@ -337,10 +337,10 @@ describe('UpdateScheduleUseCase', () => {
       ownerUser,
     )
 
-    expect(result.doctorName).toBe('')
+    expect(result.professionalName).toBe('')
   })
 
-  it('invalidates cache after update using schedule.doctorId', async () => {
+  it('invalidates cache after update using schedule.professionalId', async () => {
     const schedule = makeSchedule()
     mockSchedulesRepository.findById.mockResolvedValue(schedule as any)
     mockSchedulesRepository.update.mockResolvedValue(schedule as any)

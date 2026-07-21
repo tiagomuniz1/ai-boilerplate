@@ -9,8 +9,8 @@ import type { IAppointmentModel } from '../types/appointment-model.types'
 
 const makeDto = (id = 'uuid-1') => ({
   id,
-  doctorId: 'doc-uuid',
-  doctorName: 'Dr. Test',
+  professionalId: 'doc-uuid',
+  professionalName: 'Dr. Test',
   patientId: 'pat-uuid',
   patientName: 'Patient',
   scheduleId: 'sched-uuid',
@@ -40,7 +40,7 @@ describe('listAppointmentsUseCase', () => {
   })
 
   it('passes params to appointmentsService.getAll', async () => {
-    const params = { doctorId: 'doc-uuid', status: AppointmentStatus.SCHEDULED }
+    const params = { professionalId: 'doc-uuid', status: AppointmentStatus.SCHEDULED }
     ;(appointmentsService.getAll as jest.Mock).mockResolvedValue({ data: [], total: 0, page: 1, limit: 20 })
     await listAppointmentsUseCase(params)
     expect(appointmentsService.getAll).toHaveBeenCalledWith(params)

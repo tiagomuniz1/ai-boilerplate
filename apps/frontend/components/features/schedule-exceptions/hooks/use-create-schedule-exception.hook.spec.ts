@@ -16,7 +16,7 @@ const makeInput = () => ({ date: '2099-06-20', startTime: '08:00', endTime: '12:
 
 const makeModel = (): IScheduleExceptionModel => ({
   id: 'exc-uuid',
-  doctorId: 'doc-uuid',
+  professionalId: 'doc-uuid',
   date: '2099-06-20',
   startTime: '08:00',
   endTime: '12:00',
