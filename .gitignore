@@ -24,6 +24,11 @@ cypress.env.json
 coverage/
 coverage-integration/
 
+# Cypress artifacts
+cypress/screenshots/
+cypress/videos/
+cypress/downloads/
+
 # IDE
 .idea/
 .vscode/
