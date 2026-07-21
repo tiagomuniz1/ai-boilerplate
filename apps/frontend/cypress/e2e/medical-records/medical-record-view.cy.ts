@@ -126,6 +126,10 @@ describe('Medical Record View', () => {
       statusCode: 200,
       body: [],
     })
+    cy.intercept('GET', `${Cypress.env('API_URL')}/exam-requests*`, {
+      statusCode: 200,
+      body: [],
+    })
 
     visitClinic(`/appointments/${APPT_UUID}`, mockProfessionalUser)
   })

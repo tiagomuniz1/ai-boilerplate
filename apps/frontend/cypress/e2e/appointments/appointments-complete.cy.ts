@@ -85,6 +85,10 @@ describe('Appointments — complete', () => {
       statusCode: 200,
       body: [],
     })
+    cy.intercept('GET', `${Cypress.env('API_URL')}/exam-requests*`, {
+      statusCode: 200,
+      body: [],
+    })
   })
 
   it('ADMIN sees complete button on appointment detail page', () => {
@@ -102,6 +106,8 @@ describe('Appointments — complete', () => {
     visitClinic(`/appointments/${APPT_UUID}`, mockAdminUser)
 
     cy.get('[data-testid="appointment-detail-complete-button"]').click()
+    cy.get('[data-testid="complete-appointment-dialog"]').should('be.visible')
+    cy.get('[data-testid="complete-dialog-confirm"]').click()
 
     cy.wait('@completeAppointment').its('response.statusCode').should('eq', 200)
   })
@@ -115,6 +121,8 @@ describe('Appointments — complete', () => {
     visitClinic(`/appointments/${APPT_UUID}`, mockAdminUser)
 
     cy.get('[data-testid="appointment-detail-complete-button"]').click()
+    cy.get('[data-testid="complete-appointment-dialog"]').should('be.visible')
+    cy.get('[data-testid="complete-dialog-confirm"]').click()
 
     cy.wait('@completeFail')
     cy.get('[data-testid="appointment-detail-complete-error"]').should('contain.text', 'futura')

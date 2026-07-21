@@ -163,7 +163,7 @@ describe('Schedules Create', () => {
     cy.get('[data-testid="schedule-form-submit"]').click()
 
     cy.wait('@createSchedule')
-    cy.get('[data-testid="schedule-form-error"]').should('be.visible').and('contain', 'Médico não encontrado')
+    cy.get('[data-testid="schedule-form-error"]').should('be.visible').and('contain', 'Profissional não encontrado')
   })
 
   it('disables submit button while request is in flight', () => {

@@ -69,6 +69,10 @@ describe('Exames — Delete', () => {
       statusCode: 200,
       body: null,
     })
+    cy.intercept('GET', `${Cypress.env('API_URL')}/medical-record-templates*`, {
+      statusCode: 200,
+      body: { data: [], total: 0, page: 1, limit: 1 },
+    })
     cy.intercept('GET', `${Cypress.env('API_URL')}/prescriptions*`, {
       statusCode: 200,
       body: [],

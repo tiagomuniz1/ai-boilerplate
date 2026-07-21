@@ -13,6 +13,16 @@ const mockProfessionalUser = {
   clinicId: '10000000-0000-4000-8000-000000000000',
 }
 
+const mockProfessional = {
+  id: PROFESSIONAL_UUID,
+  user: { id: 'professional-user-uuid', fullName: 'Dr. João', email: 'professional@pulso.center', isActive: true },
+  registrations: [{ id: 'reg-1', councilType: 'crm', number: '12345/SP', state: 'SP', isPrimary: true }],
+  specialties: [{ id: SPEC_UUID, name: 'Cardiologia' }],
+  bio: null,
+  createdAt: new Date().toISOString(),
+  updatedAt: new Date().toISOString(),
+}
+
 const mockAppointment = {
   id: APPT_UUID,
   professionalId: PROFESSIONAL_UUID,
@@ -46,20 +56,14 @@ describe('Exames — Create', () => {
     cy.clearLocalStorage()
     cy.intercept('GET', `${Cypress.env('API_URL')}/professionals*`, {
       statusCode: 200,
-      body: {
-        data: [{
-          id: PROFESSIONAL_UUID,
-          user: { id: 'professional-user-uuid', fullName: 'Dr. João', email: 'professional@pulso.center', isActive: true },
-          registrations: [{ id: 'reg-1', councilType: 'crm', number: '12345/SP', state: 'SP', isPrimary: true }],
-          specialties: [{ id: SPEC_UUID, name: 'Cardiologia' }],
-          bio: null,
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-        }],
-        total: 1,
-        page: 1,
-        limit: 200,
-      },
+      body: { data: [mockProfessional], total: 1, page: 1, limit: 200 },
+    })
+    // ProfessionalSignatureSelect (rendered inside ExameForm) fetches the single
+    // professional by id — a distinct route from the list above (`/professionals*`
+    // does not match `/professionals/:id`, since `*` does not cross `/`).
+    cy.intercept('GET', `${Cypress.env('API_URL')}/professionals/${PROFESSIONAL_UUID}`, {
+      statusCode: 200,
+      body: mockProfessional,
     })
     cy.intercept('GET', `${Cypress.env('API_URL')}/appointments/${APPT_UUID}`, {
       statusCode: 200,
@@ -68,6 +72,10 @@ describe('Exames — Create', () => {
     cy.intercept('GET', `${Cypress.env('API_URL')}/medical-records/by-appointment/${APPT_UUID}`, {
       statusCode: 200,
       body: null,
+    })
+    cy.intercept('GET', `${Cypress.env('API_URL')}/medical-record-templates*`, {
+      statusCode: 200,
+      body: { data: [], total: 0, page: 1, limit: 1 },
     })
     cy.intercept('GET', `${Cypress.env('API_URL')}/prescriptions*`, {
       statusCode: 200,

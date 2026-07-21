@@ -106,6 +106,13 @@ function stubAtestados() {
   }).as('getAtestados')
 }
 
+function stubExamRequests() {
+  cy.intercept('GET', `${Cypress.env('API_URL')}/exam-requests*`, {
+    statusCode: 200,
+    body: [],
+  }).as('getExamRequests')
+}
+
 describe('Appointment Detail Page', () => {
   describe('ADMIN', () => {
     beforeEach(() => {
@@ -114,6 +121,7 @@ describe('Appointment Detail Page', () => {
       stubTemplates()
       stubPrescriptions()
       stubAtestados()
+      stubExamRequests()
     })
 
     it('renders appointment summary with patient info', () => {
@@ -122,7 +130,7 @@ describe('Appointment Detail Page', () => {
 
       cy.get('[data-testid="appointment-detail-page"]').should('exist')
       cy.get('[data-testid="appointment-detail-professional"]').should('contain', 'Dr. Owner')
-      cy.get('[data-testid="appointment-detail-date"]').should('contain', '2025-06-10')
+      cy.get('[data-testid="appointment-detail-date"]').should('contain', '10/06/2025')
       cy.get('[data-testid="appointment-detail-status"]').should('contain', 'Agendada')
     })
 
@@ -186,6 +194,7 @@ describe('Appointment Detail Page', () => {
       stubTemplates()
       stubPrescriptions()
       stubAtestados()
+      stubExamRequests()
       stubAppointmentDetail({ professionalId: PROFESSIONAL_ID })
       visitClinic(`/appointments/${APPT_ID}`, mockProfessionalUser)
 
@@ -202,6 +211,7 @@ describe('Appointment Detail Page', () => {
       stubTemplates()
       stubPrescriptions()
       stubAtestados()
+      stubExamRequests()
       stubAppointmentDetail()
 
       const mockUserRole = { ...mockAdminUser, role: 'user' }

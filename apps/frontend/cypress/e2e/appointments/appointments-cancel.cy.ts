@@ -86,6 +86,10 @@ describe('Appointments — cancel', () => {
       statusCode: 200,
       body: [],
     })
+    cy.intercept('GET', `${Cypress.env('API_URL')}/exam-requests*`, {
+      statusCode: 200,
+      body: [],
+    })
   })
 
   it('PROFESSIONAL sees cancel button on appointment detail page', () => {

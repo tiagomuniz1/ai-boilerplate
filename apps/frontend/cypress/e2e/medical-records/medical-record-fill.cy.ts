@@ -134,6 +134,10 @@ describe('Medical Record Fill', () => {
       statusCode: 200,
       body: [],
     })
+    cy.intercept('GET', `${Cypress.env('API_URL')}/exam-requests*`, {
+      statusCode: 200,
+      body: [],
+    })
   })
 
   it('PROFESSIONAL sees fill-medical-record button for own scheduled appointment without record', () => {

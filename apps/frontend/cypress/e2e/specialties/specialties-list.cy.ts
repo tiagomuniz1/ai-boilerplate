@@ -74,6 +74,7 @@ describe('Specialties List', () => {
   })
 
   it('shows specialty rows with name, description and createdAt', () => {
+    cy.viewport(1280, 800)
     cy.intercept('GET', `${Cypress.env('API_URL')}/specialties*`, {
       statusCode: 200,
       body: populatedListResponse,
