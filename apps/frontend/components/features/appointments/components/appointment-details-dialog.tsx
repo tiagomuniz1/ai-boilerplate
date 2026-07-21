@@ -76,7 +76,7 @@ export function AppointmentDetailsDialog({
             <dd data-testid="details-patient">{appointment.patientName}</dd>
 
             <dt className="text-text/50">Profissional</dt>
-            <dd data-testid="details-doctor">{appointment.professionalName}</dd>
+            <dd data-testid="details-professional">{appointment.professionalName}</dd>
 
             <dt className="text-text/50">Data</dt>
             <dd data-testid="details-date">{formatDateToBR(appointment.date)}</dd>

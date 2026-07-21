@@ -78,7 +78,7 @@ describe('PatientMedicalHistory', () => {
     })
     renderWithProviders(<PatientMedicalHistory patientId="patient-uuid" />)
     expect(screen.getByTestId('history-card-specialty')).toHaveTextContent('Cardiologia')
-    expect(screen.getByTestId('history-card-doctor')).toHaveTextContent('Dr. João')
+    expect(screen.getByTestId('history-card-professional')).toHaveTextContent('Dr. João')
   })
 
   it('labels a generalist record (null specialty) as "Clínica geral"', () => {

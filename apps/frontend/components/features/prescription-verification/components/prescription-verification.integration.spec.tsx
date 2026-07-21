@@ -47,7 +47,7 @@ describe('PrescriptionVerification', () => {
     })
 
     expect(screen.getByTestId('verification-clinic')).toHaveTextContent('Clínica Saúde')
-    expect(screen.getByTestId('verification-doctor')).toHaveTextContent('Dr. João Silva')
+    expect(screen.getByTestId('verification-professional')).toHaveTextContent('Dr. João Silva')
     expect(screen.getByText('CRM 12345/SP')).toBeInTheDocument()
     expect(screen.getByText('Cardiologia')).toBeInTheDocument()
   })

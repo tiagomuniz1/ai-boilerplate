@@ -55,7 +55,7 @@ export function ExamePreviewModal({
               <p className="text-xs font-medium uppercase tracking-wider text-text-mute mb-0.5">
                 Profissional
               </p>
-              <p className="font-semibold text-text" data-testid="exame-preview-doctor">
+              <p className="font-semibold text-text" data-testid="exame-preview-professional">
                 {examRequest.professionalName}
               </p>
             </div>

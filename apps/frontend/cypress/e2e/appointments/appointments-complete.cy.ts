@@ -11,12 +11,12 @@ const mockAdminUser = {
   clinicId: '10000000-0000-4000-8000-000000000000',
 }
 
-const mockDoctorsList = {
+const mockProfessionalsList = {
   data: [
     {
       id: DOC_UUID,
-      user: { id: 'doctor-user-uuid', fullName: 'Dr. Test', email: 'doctor@pulso.center', isActive: true },
-      crmNumber: '12345/SP',
+      user: { id: 'professional-user-uuid', fullName: 'Dr. Test', email: 'professional@pulso.center', isActive: true },
+      registrations: [{ id: 'reg-1', councilType: 'crm', number: '12345/SP', state: 'SP', isPrimary: true }],
       specialties: [],
       bio: null,
       createdAt: '2025-01-01T10:00:00.000Z',
@@ -30,8 +30,8 @@ const mockDoctorsList = {
 
 const mockPastScheduledAppointment = {
   id: APPT_UUID,
-  doctorId: DOC_UUID,
-  doctorName: 'Dr. Test',
+  professionalId: DOC_UUID,
+  professionalName: 'Dr. Test',
   patientId: 'patient-uuid',
   patientName: 'Patient One',
   scheduleId: 'sched-uuid',
@@ -64,7 +64,7 @@ describe('Appointments — complete', () => {
   beforeEach(() => {
     cy.clearCookies()
     cy.clearLocalStorage()
-    cy.intercept('GET', `${Cypress.env('API_URL')}/doctors*`, { statusCode: 200, body: mockDoctorsList })
+    cy.intercept('GET', `${Cypress.env('API_URL')}/professionals*`, { statusCode: 200, body: mockProfessionalsList })
     cy.intercept('GET', `${Cypress.env('API_URL')}/appointments/${APPT_UUID}`, {
       statusCode: 200,
       body: mockPastScheduledAppointment,

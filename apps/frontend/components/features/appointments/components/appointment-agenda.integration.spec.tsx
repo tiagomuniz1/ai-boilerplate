@@ -72,14 +72,14 @@ describe('AppointmentAgenda (integration)', () => {
     mockAuth(UserRole.ADMIN)
     mockDoctorsService.getAll.mockResolvedValue(makeDoctorsResponse([{ id: 'd1', fullName: 'Dr. A' }]))
     renderWithProviders(<AppointmentAgenda />)
-    expect(screen.getByTestId('toolbar-doctor-selector')).toBeInTheDocument()
+    expect(screen.getByTestId('toolbar-professional-selector')).toBeInTheDocument()
   })
 
   it('USER sees doctor selector in toolbar', () => {
     mockAuth(UserRole.USER)
     mockDoctorsService.getAll.mockResolvedValue(makeDoctorsResponse([{ id: 'd1', fullName: 'Dr. A' }]))
     renderWithProviders(<AppointmentAgenda />)
-    expect(screen.getByTestId('toolbar-doctor-selector')).toBeInTheDocument()
+    expect(screen.getByTestId('toolbar-professional-selector')).toBeInTheDocument()
   })
 
   it('DOCTOR does not see doctor selector in toolbar', () => {
@@ -88,14 +88,14 @@ describe('AppointmentAgenda (integration)', () => {
       makeDoctorsResponse([{ id: 'my-doctor', fullName: 'Dr. Me' }]),
     )
     renderWithProviders(<AppointmentAgenda />)
-    expect(screen.queryByTestId('toolbar-doctor-selector')).not.toBeInTheDocument()
+    expect(screen.queryByTestId('toolbar-professional-selector')).not.toBeInTheDocument()
   })
 
   it('ADMIN sees empty state until doctor is selected', () => {
     mockAuth(UserRole.ADMIN)
     mockDoctorsService.getAll.mockResolvedValue(makeDoctorsResponse([{ id: 'd1', fullName: 'Dr. A' }]))
     renderWithProviders(<AppointmentAgenda />)
-    expect(screen.getByTestId('agenda-empty-doctor')).toBeInTheDocument()
+    expect(screen.getByTestId('agenda-empty-professional')).toBeInTheDocument()
   })
 
   it('defaults to week view on load', () => {
@@ -207,7 +207,7 @@ describe('AppointmentAgenda (integration)', () => {
     mockDoctorsService.getAll.mockResolvedValue(makeDoctorsResponse([]))
     renderWithProviders(<AppointmentAgenda />)
     // USER role: doctor selector shown, no block time button
-    expect(screen.getByTestId('toolbar-doctor-selector')).toBeInTheDocument()
+    expect(screen.getByTestId('toolbar-professional-selector')).toBeInTheDocument()
     expect(screen.queryByTestId('toolbar-block-time')).not.toBeInTheDocument()
   })
 
@@ -216,7 +216,7 @@ describe('AppointmentAgenda (integration)', () => {
     mockUseSearchParams.mockReturnValue(new URLSearchParams('doctor=doc-from-url&date=2025-06-20&view=week'))
     mockDoctorsService.getAll.mockResolvedValue(makeDoctorsResponse([{ id: 'doc-from-url', fullName: 'Dr. URL' }]))
     renderWithProviders(<AppointmentAgenda />)
-    expect(screen.queryByTestId('agenda-empty-doctor')).not.toBeInTheDocument()
+    expect(screen.queryByTestId('agenda-empty-professional')).not.toBeInTheDocument()
   })
 
   it('restores day view from URL search param', () => {
@@ -247,7 +247,7 @@ describe('AppointmentAgenda (integration)', () => {
     mockDoctorsService.getAll.mockResolvedValue(makeDoctorsResponse([{ id: 'd1', fullName: 'Dr. A' }]))
     renderWithProviders(<AppointmentAgenda />)
 
-    await userEvent.selectOptions(screen.getByTestId('toolbar-doctor-select'), '')
+    await userEvent.selectOptions(screen.getByTestId('toolbar-professional-select'), '')
 
     expect(replaceMock).toHaveBeenCalled()
     const [url] = replaceMock.mock.calls[replaceMock.mock.calls.length - 1]

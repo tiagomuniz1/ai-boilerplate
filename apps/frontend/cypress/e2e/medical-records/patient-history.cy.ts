@@ -1,7 +1,7 @@
 import { visitClinic } from '../../support/clinic'
 
 const PATIENT_UUID = '00000000-0000-4000-e000-000000000001'
-const DOCTOR_UUID = '00000000-0000-4000-b000-000000000001'
+const PROFESSIONAL_UUID = '00000000-0000-4000-b000-000000000001'
 const SPEC_UUID = '00000000-0000-4000-d000-000000000001'
 
 const mockAdminUser = {
@@ -17,8 +17,8 @@ const makeRecord = (id: string, date: string) => ({
   appointmentId: `appt-${id}`,
   patientId: PATIENT_UUID,
   patientName: 'Ana Lima',
-  doctorId: DOCTOR_UUID,
-  doctorName: 'Dr. João',
+  professionalId: PROFESSIONAL_UUID,
+  professionalName: 'Dr. João',
   specialtyId: SPEC_UUID,
   specialtyName: 'Cardiologia',
   templateId: 'tpl-uuid',
@@ -88,12 +88,12 @@ describe('Patient Medical History', () => {
     cy.get('[data-testid="history-card"]').should('have.length', 2)
   })
 
-  it('shows specialty and doctor name on each history card', () => {
+  it('shows specialty and professional name on each history card', () => {
     cy.visit(`/pulso/patients/${PATIENT_UUID}`)
     cy.wait('@getPatient')
     cy.wait('@getHistory')
 
     cy.get('[data-testid="history-card-specialty"]').first().should('contain.text', 'Cardiologia')
-    cy.get('[data-testid="history-card-doctor"]').first().should('contain.text', 'Dr. João')
+    cy.get('[data-testid="history-card-professional"]').first().should('contain.text', 'Dr. João')
   })
 })

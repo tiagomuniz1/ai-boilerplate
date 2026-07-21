@@ -50,7 +50,7 @@ describe('ExamePreviewModal (integration)', () => {
 
   it('renders doctor, date, patient and status', () => {
     renderWithProviders(<ExamePreviewModal {...defaultProps} />)
-    expect(screen.getByTestId('exame-preview-doctor')).toHaveTextContent('Dr. João')
+    expect(screen.getByTestId('exame-preview-professional')).toHaveTextContent('Dr. João')
     expect(screen.getByTestId('exame-preview-patient')).toHaveTextContent('Maria Santos')
     expect(screen.getByTestId('exame-preview-status')).toHaveTextContent('Solicitado')
     expect(screen.getByTestId('exame-preview-date')).toBeInTheDocument()

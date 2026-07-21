@@ -96,8 +96,8 @@ describe('ScheduleList (integration)', () => {
 
       await waitFor(() => expect(screen.getByTestId('schedule-list-table')).toBeInTheDocument())
 
-      expect(screen.queryByTestId('schedule-filter-doctor')).not.toBeInTheDocument()
-      expect(screen.queryByTestId('schedule-doctor-uuid-1')).not.toBeInTheDocument()
+      expect(screen.queryByTestId('schedule-filter-professional')).not.toBeInTheDocument()
+      expect(screen.queryByTestId('schedule-professional-uuid-1')).not.toBeInTheDocument()
     })
 
     it('renders empty state when no schedules', async () => {
@@ -234,7 +234,7 @@ describe('ScheduleList (integration)', () => {
 
       renderWithProviders(<ScheduleList />)
 
-      expect(screen.getByTestId('schedule-filter-doctor')).toBeInTheDocument()
+      expect(screen.getByTestId('schedule-filter-professional')).toBeInTheDocument()
     })
 
     it('renders doctor column in table', async () => {
@@ -244,7 +244,7 @@ describe('ScheduleList (integration)', () => {
 
       await waitFor(() => expect(screen.getByTestId('schedule-list-table')).toBeInTheDocument())
 
-      expect(screen.getByTestId('schedule-doctor-uuid-1')).toBeInTheDocument()
+      expect(screen.getByTestId('schedule-professional-uuid-1')).toBeInTheDocument()
     })
 
     it('updates professionalId filter when doctor select is changed', async () => {
@@ -253,11 +253,11 @@ describe('ScheduleList (integration)', () => {
       renderWithProviders(<ScheduleList />)
 
       await waitFor(() => {
-        const select = screen.getByTestId('schedule-filter-doctor-select') as HTMLSelectElement
+        const select = screen.getByTestId('schedule-filter-professional-select') as HTMLSelectElement
         expect(select.options.length).toBeGreaterThan(1)
       })
 
-      const select = screen.getByTestId('schedule-filter-doctor-select') as HTMLSelectElement
+      const select = screen.getByTestId('schedule-filter-professional-select') as HTMLSelectElement
       fireEvent.change(select, { target: { value: 'doc-uuid-1' } })
 
       expect(select.value).toBe('doc-uuid-1')
@@ -292,9 +292,9 @@ describe('ScheduleList (integration)', () => {
 
       renderWithProviders(<ScheduleList />)
 
-      await waitFor(() => expect(screen.getByTestId('schedule-doctor-uuid-1')).toBeInTheDocument())
+      await waitFor(() => expect(screen.getByTestId('schedule-professional-uuid-1')).toBeInTheDocument())
 
-      expect(screen.getByTestId('schedule-doctor-uuid-1')).toHaveTextContent('Dr. Maria Santos')
+      expect(screen.getByTestId('schedule-professional-uuid-1')).toHaveTextContent('Dr. Maria Santos')
     })
 
     it('renders a mobile card per schedule with the doctor name as title', async () => {

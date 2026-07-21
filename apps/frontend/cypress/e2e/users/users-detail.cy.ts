@@ -15,7 +15,7 @@ const mockUser = {
   email: 'detalhe@test.com',
   role: 'user',
   isActive: true,
-  isDoctor: false,
+  isProfessional: false,
   isPatient: false,
   createdAt: '2024-01-15T10:00:00.000Z',
   updatedAt: '2024-01-15T10:00:00.000Z',

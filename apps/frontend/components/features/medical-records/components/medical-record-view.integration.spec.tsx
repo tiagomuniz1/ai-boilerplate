@@ -53,7 +53,7 @@ describe('MedicalRecordView', () => {
 
   it('renders doctor name', () => {
     render(<MedicalRecordView record={makeRecord()} />)
-    expect(screen.getByTestId('record-doctor-name')).toHaveTextContent('Dr. João')
+    expect(screen.getByTestId('record-professional-name')).toHaveTextContent('Dr. João')
   })
 
   it('renders specialty name', () => {

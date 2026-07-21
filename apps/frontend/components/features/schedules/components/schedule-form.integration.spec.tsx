@@ -47,7 +47,7 @@ describe('ScheduleForm — create mode', () => {
       />,
     )
 
-    expect(screen.getByTestId('schedule-form-doctor')).toBeInTheDocument()
+    expect(screen.getByTestId('schedule-form-professional')).toBeInTheDocument()
   })
 
   it('does not render doctor select for DOCTOR', () => {
@@ -61,7 +61,7 @@ describe('ScheduleForm — create mode', () => {
       />,
     )
 
-    expect(screen.queryByTestId('schedule-form-doctor')).not.toBeInTheDocument()
+    expect(screen.queryByTestId('schedule-form-professional')).not.toBeInTheDocument()
   })
 
   it('renders all required fields', () => {
@@ -221,7 +221,7 @@ describe('ScheduleForm — create mode', () => {
       />,
     )
 
-    await userEvent.selectOptions(screen.getByTestId('schedule-form-doctor'), DOC_UUID_1)
+    await userEvent.selectOptions(screen.getByTestId('schedule-form-professional'), DOC_UUID_1)
     await userEvent.selectOptions(screen.getByTestId('schedule-form-day'), 'MONDAY')
     await userEvent.clear(screen.getByTestId('schedule-form-start-time'))
     await userEvent.type(screen.getByTestId('schedule-form-start-time'), '08:00')

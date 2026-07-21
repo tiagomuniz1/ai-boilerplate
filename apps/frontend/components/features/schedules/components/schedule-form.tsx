@@ -140,7 +140,7 @@ function ScheduleFormCreate({ role, doctors, isPending, globalError, onSubmit }:
           <SelectField
             id="professionalId"
             label="Profissional"
-            testId="schedule-form-doctor"
+            testId="schedule-form-professional"
             error={(errors as Record<string, { message?: string }>).professionalId?.message}
             registerProps={register('professionalId')}
           >

@@ -73,7 +73,7 @@ describe('AtestadoPreviewModal', () => {
 
   it('renders doctor name and patient name', () => {
     render(<AtestadoPreviewModal atestado={makeLeaveAtestado()} onClose={jest.fn()} />)
-    expect(screen.getByTestId('atestado-preview-doctor')).toHaveTextContent('Dr. João')
+    expect(screen.getByTestId('atestado-preview-professional')).toHaveTextContent('Dr. João')
     expect(screen.getByTestId('atestado-preview-patient')).toHaveTextContent('Maria Santos')
   })
 })

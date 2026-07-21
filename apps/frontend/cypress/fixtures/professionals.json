@@ -1,0 +1,10 @@
+{
+  "newProfessional": {
+    "number": "12345",
+    "state": "SP"
+  },
+  "updatedProfessional": {
+    "number": "22222",
+    "state": "SP"
+  }
+}

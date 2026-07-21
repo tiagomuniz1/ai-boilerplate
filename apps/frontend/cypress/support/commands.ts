@@ -16,22 +16,22 @@ interface CreateSpecialtyInput {
   description?: string | null
 }
 
-interface CreateDoctorInput {
+interface CreateProfessionalInput {
   userId: string
-  crmNumber: string
-  specialtyIds: string[]
+  registrations: { councilType: string; number: string; state: string; isPrimary: boolean }[]
+  specialties: { specialtyId: string; registryNumber?: string }[]
   bio?: string
 }
 
-interface SeededDoctor {
-  doctorId: string
+interface SeededProfessional {
+  professionalId: string
   userId: string
   specialtyId: string
   specialtyName: string
   email: string
   password: string
   fullName: string
-  crmNumber: string
+  registrationNumber: string
   accessToken: string
 }
 
@@ -43,14 +43,14 @@ declare global {
       createUserViaApi(input: CreateUserInput, accessToken?: string): Chainable<{ id: string }>
       deleteUserViaApi(id: string, accessToken?: string): Chainable<void>
       seedUser(): Chainable<{ id: string; email: string; fullName: string }>
-      createDoctorViaApi(input: CreateDoctorInput, accessToken: string): Chainable<{ id: string }>
-      deleteDoctorViaApi(id: string, accessToken?: string): Chainable<void>
+      createProfessionalViaApi(input: CreateProfessionalInput, accessToken: string): Chainable<{ id: string }>
+      deleteProfessionalViaApi(id: string, accessToken?: string): Chainable<void>
       deleteSpecialtyViaApi(id: string, accessToken?: string): Chainable<void>
       createSpecialtyViaApi(input: CreateSpecialtyInput): Chainable<{ id: string; name: string }>
       seedSpecialty(): Chainable<{ id: string; name: string; description: string }>
       seedPatient(): Chainable<{ patientId: string; userId: string; fullName: string }>
       deletePatientViaApi(id: string): Chainable<void>
-      seedDoctor(): Chainable<SeededDoctor>
+      seedProfessional(): Chainable<SeededProfessional>
       createClinicViaApi(input: CreateClinicInput, accessToken: string): Chainable<{ id: string; name: string; slug: string }>
       deleteClinicViaApi(id: string, accessToken: string): Chainable<void>
       seedClinic(): Chainable<{ id: string; name: string; slug: string; platformAdminToken: string }>
@@ -160,19 +160,19 @@ Cypress.Commands.add('seedUser', () => {
   }))
 })
 
-Cypress.Commands.add('createDoctorViaApi', (input: CreateDoctorInput, accessToken: string) => {
+Cypress.Commands.add('createProfessionalViaApi', (input: CreateProfessionalInput, accessToken: string) => {
   cy.request({
     method: 'POST',
-    url: `${Cypress.env('API_URL')}/doctors`,
+    url: `${Cypress.env('API_URL')}/professionals`,
     body: input,
     headers: { Authorization: `Bearer ${accessToken}` },
   }).then((response) => ({ id: response.body.id as string }))
 })
 
-Cypress.Commands.add('deleteDoctorViaApi', (id: string, accessToken?: string) => {
+Cypress.Commands.add('deleteProfessionalViaApi', (id: string, accessToken?: string) => {
   cy.request({
     method: 'DELETE',
-    url: `${Cypress.env('API_URL')}/doctors/${id}`,
+    url: `${Cypress.env('API_URL')}/professionals/${id}`,
     failOnStatusCode: false,
     headers: accessToken ? { Authorization: `Bearer ${accessToken}` } : {},
   })
@@ -230,16 +230,16 @@ Cypress.Commands.add('deleteSpecialtyViaApi', (id: string, accessToken?: string)
   })
 })
 
-Cypress.Commands.add('seedDoctor', () => {
+Cypress.Commands.add('seedProfessional', () => {
   const ts = Date.now()
   const password = 'Password123!'
   const userInput: CreateUserInput = {
     fullName: `Dr. Test ${ts}`,
-    email: `doctor.${ts}@e2e.test`,
+    email: `professional.${ts}@e2e.test`,
     password,
-    role: 'doctor',
+    role: 'professional',
   }
-  const crmNumber = `${String(ts).slice(-5)}/SP`
+  const registrationNumber = `${String(ts).slice(-5)}/SP`
 
   return cy.fixture('users').then((fixture) => {
     return cy.request({
@@ -274,21 +274,25 @@ Cypress.Commands.add('seedDoctor', () => {
 
           return cy.request({
             method: 'POST',
-            url: `${Cypress.env('API_URL')}/doctors`,
-            body: { userId, crmNumber, specialtyIds: [specialtyId] },
+            url: `${Cypress.env('API_URL')}/professionals`,
+            body: {
+              userId,
+              registrations: [{ councilType: 'crm', number: registrationNumber, state: 'SP', isPrimary: true }],
+              specialties: [{ specialtyId }],
+            },
             headers: { Authorization: `Bearer ${adminToken}` },
-          }).then((doctorResponse) => {
-            const doctorId = doctorResponse.body.id as string
+          }).then((professionalResponse) => {
+            const professionalId = professionalResponse.body.id as string
 
             return ({
-              doctorId,
+              professionalId,
               userId,
               specialtyId,
               specialtyName,
               email: userInput.email,
               password,
               fullName: userInput.fullName,
-              crmNumber,
+              registrationNumber,
               accessToken: adminToken,
             })
           })

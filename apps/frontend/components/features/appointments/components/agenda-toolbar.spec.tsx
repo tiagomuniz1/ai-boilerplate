@@ -92,12 +92,12 @@ describe('AgendaToolbar', () => {
         ]}
       />,
     )
-    expect(screen.getByTestId('toolbar-doctor-selector')).toBeInTheDocument()
+    expect(screen.getByTestId('toolbar-professional-selector')).toBeInTheDocument()
   })
 
   it('does not show doctor selector for DOCTOR role (doctors prop undefined)', () => {
     render(<AgendaToolbar {...defaultProps} role={UserRole.PROFESSIONAL} doctors={undefined} />)
-    expect(screen.queryByTestId('toolbar-doctor-selector')).not.toBeInTheDocument()
+    expect(screen.queryByTestId('toolbar-professional-selector')).not.toBeInTheDocument()
   })
 
   it('shows block time button for DOCTOR', () => {
@@ -155,7 +155,7 @@ describe('AgendaToolbar', () => {
         ]}
       />,
     )
-    fireEvent.change(screen.getByTestId('toolbar-doctor-select'), { target: { value: 'd1' } })
+    fireEvent.change(screen.getByTestId('toolbar-professional-select'), { target: { value: 'd1' } })
     expect(defaultProps.onDoctorChange).toHaveBeenCalledWith('d1')
   })
 
@@ -170,7 +170,7 @@ describe('AgendaToolbar', () => {
         ]}
       />,
     )
-    fireEvent.change(screen.getByTestId('toolbar-doctor-select'), { target: { value: '' } })
+    fireEvent.change(screen.getByTestId('toolbar-professional-select'), { target: { value: '' } })
     expect(defaultProps.onDoctorChange).toHaveBeenCalledWith(null)
   })
 })

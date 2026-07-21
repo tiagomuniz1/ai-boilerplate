@@ -293,7 +293,7 @@ describe('ExameSection (integration)', () => {
     await waitFor(() => {
       expect(screen.getByTestId('exame-preview-modal')).toBeInTheDocument()
     })
-    expect(screen.getByTestId('exame-preview-doctor')).toHaveTextContent('Dr. João')
+    expect(screen.getByTestId('exame-preview-professional')).toHaveTextContent('Dr. João')
     expect(screen.getByTestId('exame-preview-item-0')).toHaveTextContent('Hemograma completo')
   })
 

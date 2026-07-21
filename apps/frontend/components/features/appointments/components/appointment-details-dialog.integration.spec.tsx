@@ -88,7 +88,7 @@ describe('AppointmentDetailsDialog (integration)', () => {
       expect(screen.getByTestId('details-patient')).toBeInTheDocument()
     })
     expect(screen.getByTestId('details-patient')).toHaveTextContent('Patient One')
-    expect(screen.getByTestId('details-doctor')).toHaveTextContent('Dr. Test')
+    expect(screen.getByTestId('details-professional')).toHaveTextContent('Dr. Test')
     expect(screen.getByTestId('details-date')).toHaveTextContent('10/06/2025')
     expect(screen.getByTestId('details-time')).toHaveTextContent('09:00')
     expect(screen.getByTestId('details-status-badge')).toHaveTextContent('Agendada')

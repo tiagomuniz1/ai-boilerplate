@@ -37,7 +37,7 @@ describe('AgendaWeekGrid (integration)', () => {
 
   it('renders empty state when professionalId is null', () => {
     renderWithProviders(<AgendaWeekGrid {...defaultProps} professionalId={null} />)
-    expect(screen.getByTestId('agenda-empty-doctor')).toBeInTheDocument()
+    expect(screen.getByTestId('agenda-empty-professional')).toBeInTheDocument()
   })
 
   it('renders week grid with 7 columns when professionalId is provided', async () => {

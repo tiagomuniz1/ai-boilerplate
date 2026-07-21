@@ -29,7 +29,7 @@ export function PrescriptionPreviewModal({ prescription, onClose }: Prescription
               <p className="text-xs font-medium uppercase tracking-wider text-text-mute mb-0.5">
                 Profissional
               </p>
-              <p className="font-semibold text-text" data-testid="prescription-preview-doctor">
+              <p className="font-semibold text-text" data-testid="prescription-preview-professional">
                 {prescription.professionalName}
               </p>
             </div>

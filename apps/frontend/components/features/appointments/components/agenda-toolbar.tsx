@@ -98,9 +98,9 @@ export function AgendaToolbar({
       </div>
 
       {showDoctorSelector && (
-        <div data-testid="toolbar-doctor-selector">
+        <div data-testid="toolbar-professional-selector">
           <select
-            data-testid="toolbar-doctor-select"
+            data-testid="toolbar-professional-select"
             value={selectedDoctorId ?? ''}
             onChange={(e) => onDoctorChange(e.target.value || null)}
             className="w-full rounded-md border border-line bg-surface-2 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-accent sm:w-auto"

@@ -73,7 +73,7 @@ function HistoryCard({ record, onClick }: HistoryCardProps) {
           {record.specialtyName ?? 'Clínica geral'}
         </span>
       </div>
-      <p className="mt-1 text-xs text-text/60" data-testid="history-card-doctor">
+      <p className="mt-1 text-xs text-text/60" data-testid="history-card-professional">
         {record.professionalName}
       </p>
     </button>

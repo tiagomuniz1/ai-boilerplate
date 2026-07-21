@@ -29,7 +29,7 @@ export function AtestadoPreviewModal({ atestado, onClose }: AtestadoPreviewModal
               <p className="text-xs font-medium uppercase tracking-wider text-text-mute mb-0.5">
                 Profissional
               </p>
-              <p className="font-semibold text-text" data-testid="atestado-preview-doctor">
+              <p className="font-semibold text-text" data-testid="atestado-preview-professional">
                 {atestado.professionalName}
               </p>
             </div>

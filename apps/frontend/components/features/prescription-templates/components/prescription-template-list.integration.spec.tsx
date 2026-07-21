@@ -115,7 +115,7 @@ describe('PrescriptionTemplateList (integration)', () => {
     mockService.getAll.mockResolvedValue([makeTemplateDto()] as any)
     renderWithProviders(<PrescriptionTemplateList />)
     await waitFor(() => {
-      expect(screen.getByTestId('prescription-template-doctor-tpl-uuid')).toHaveTextContent('Dr. House')
+      expect(screen.getByTestId('prescription-template-professional-tpl-uuid')).toHaveTextContent('Dr. House')
     })
   })
 
@@ -125,7 +125,7 @@ describe('PrescriptionTemplateList (integration)', () => {
     await waitFor(() => {
       expect(screen.getByTestId('prescription-template-list-table')).toBeInTheDocument()
     })
-    expect(screen.queryByTestId('prescription-template-doctor-tpl-uuid')).not.toBeInTheDocument()
+    expect(screen.queryByTestId('prescription-template-professional-tpl-uuid')).not.toBeInTheDocument()
   })
 
   it('shows "Novo modelo" button for DOCTOR', async () => {

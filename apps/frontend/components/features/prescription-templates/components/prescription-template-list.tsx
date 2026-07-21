@@ -153,7 +153,7 @@ export function PrescriptionTemplateList() {
                     {isAdmin && (
                       <td
                         className="px-6 py-4 text-sm text-text-dim"
-                        data-testid={`prescription-template-doctor-${template.id}`}
+                        data-testid={`prescription-template-professional-${template.id}`}
                       >
                         {template.professionalName}
                       </td>

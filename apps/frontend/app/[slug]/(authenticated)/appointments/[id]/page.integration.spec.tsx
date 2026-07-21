@@ -124,9 +124,9 @@ describe('AppointmentDetailPage (integration)', () => {
     mockAppointmentsService.getById.mockResolvedValue(makeAppointmentDto())
     renderWithProviders(<AppointmentDetailPage />)
     await waitFor(() => {
-      expect(screen.getByTestId('appointment-detail-doctor')).toBeInTheDocument()
+      expect(screen.getByTestId('appointment-detail-professional')).toBeInTheDocument()
     })
-    expect(screen.getByTestId('appointment-detail-doctor')).toHaveTextContent('Dr. Test')
+    expect(screen.getByTestId('appointment-detail-professional')).toHaveTextContent('Dr. Test')
     expect(screen.getByTestId('appointment-detail-date')).toHaveTextContent('10/06/2025')
     expect(screen.getByTestId('appointment-detail-time')).toHaveTextContent('09:00')
     expect(screen.getByTestId('appointment-detail-status')).toHaveTextContent('Agendada')

@@ -126,7 +126,7 @@ export function ScheduleList() {
 
       <div className="flex flex-wrap gap-4">
         {isAdmin && (
-          <div className="flex flex-col gap-1.5 min-w-[200px]" data-testid="schedule-filter-doctor">
+          <div className="flex flex-col gap-1.5 min-w-[200px]" data-testid="schedule-filter-professional">
             <label htmlFor="filter-doctor" className="text-sm font-medium text-text">
               Profissional
             </label>
@@ -139,7 +139,7 @@ export function ScheduleList() {
                 'bg-surface border border-line text-text',
                 'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent',
               )}
-              data-testid="schedule-filter-doctor-select"
+              data-testid="schedule-filter-professional-select"
             >
               <option value="">Todos os profissionais</option>
               {doctors.map((doctor) => (
@@ -256,7 +256,7 @@ export function ScheduleList() {
                       {isAdmin && (
                         <td
                           className="px-6 py-4 text-sm text-text whitespace-nowrap"
-                          data-testid={`schedule-doctor-${schedule.id}`}
+                          data-testid={`schedule-professional-${schedule.id}`}
                         >
                           {professionalName}
                         </td>

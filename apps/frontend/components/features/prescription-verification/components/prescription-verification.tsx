@@ -35,7 +35,7 @@ export function PrescriptionVerification({ token }: PrescriptionVerificationProp
 
             <section className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <Field label="Profissional">
-                <span data-testid="verification-doctor">{data.professionalName}</span>
+                <span data-testid="verification-professional">{data.professionalName}</span>
                 <span className="block text-sm text-text-dim">
                   {COUNCIL_TYPE_LABELS[data.professionalCouncilType]} {data.professionalRegistrationNumber}
                 </span>

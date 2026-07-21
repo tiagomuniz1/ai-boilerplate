@@ -112,7 +112,7 @@ export function MedicalRecordView({ record, sections = [] }: MedicalRecordViewPr
         </div>
         <div>
           <p className="text-xs font-medium uppercase tracking-wider text-text-mute">Profissional</p>
-          <p className="mt-0.5 text-sm font-medium text-text" data-testid="record-doctor-name">
+          <p className="mt-0.5 text-sm font-medium text-text" data-testid="record-professional-name">
             {record.professionalName}
           </p>
         </div>

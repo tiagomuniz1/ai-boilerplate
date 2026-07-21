@@ -43,7 +43,7 @@ export function AgendaDayGrid({
 
   if (professionalId === null) {
     return (
-      <div data-testid="agenda-empty-doctor" className="py-12 text-center text-sm text-text/50">
+      <div data-testid="agenda-empty-professional" className="py-12 text-center text-sm text-text/50">
         Selecione um profissional para visualizar a agenda.
       </div>
     )

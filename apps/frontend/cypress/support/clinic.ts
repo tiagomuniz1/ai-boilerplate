@@ -81,7 +81,7 @@ export function stubClinicLayout(authUser: MockAuthUser = {} as MockAuthUser) {
 }
 
 // Visita uma página dentro da clínica `pulso`. `path` é o caminho SEM o slug
-// (ex: '/doctors/123/edit'); o slug é prefixado internamente.
+// (ex: '/professionals/123/edit'); o slug é prefixado internamente.
 export function visitClinic(path: string, authUser: MockAuthUser) {
   const user: MockAuthUser = { clinicId: CLINIC_ID, ...authUser }
 

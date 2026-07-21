@@ -82,7 +82,7 @@ describe('AgendaDayGrid (integration)', () => {
 
   it('renders empty message when professionalId is null', () => {
     renderWithProviders(<AgendaDayGrid {...defaultProps} professionalId={null} />)
-    expect(screen.getByTestId('agenda-empty-doctor')).toBeInTheDocument()
+    expect(screen.getByTestId('agenda-empty-professional')).toBeInTheDocument()
   })
 
   it('renders skeleton while loading', () => {
