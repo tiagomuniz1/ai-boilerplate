@@ -187,6 +187,16 @@ function ProfessionalFormCreate({ isPending, globalError, onSubmit }: Profession
     name: s.name,
   }))
 
+  const isMedicalProfessional = showsRegistryNumber(registrationsFieldCtl.value as IProfessionalRegistrationInput[])
+
+  function handleRegistrationsChange(next: IProfessionalRegistrationInput[]) {
+    const wasCrm = showsRegistryNumber(registrationsFieldCtl.value as IProfessionalRegistrationInput[])
+    registrationsFieldCtl.onChange(next)
+    if (wasCrm && !showsRegistryNumber(next)) {
+      specialtyField.onChange([])
+    }
+  }
+
   function handleFormSubmit(data: CreateFormValues) {
     const input: ICreateProfessionalInput =
       data.userMode === 'existing'
@@ -282,18 +292,20 @@ function ProfessionalFormCreate({ isPending, globalError, onSubmit }: Profession
 
         <RegistrationListField
           value={registrationsFieldCtl.value as IProfessionalRegistrationInput[]}
-          onChange={registrationsFieldCtl.onChange}
+          onChange={handleRegistrationsChange}
           error={fieldArrayError(errors.registrations)}
         />
 
-        <SpecialtyCheckboxGroup
-          specialties={specialties}
-          value={specialtyField.value as SpecialtyValue[]}
-          isLoading={isLoadingSpecialties}
-          showRegistryNumber={showsRegistryNumber(registrationsFieldCtl.value as IProfessionalRegistrationInput[])}
-          onToggle={toggleSpecialty}
-          onRqeChange={changeRqe}
-        />
+        {isMedicalProfessional && (
+          <SpecialtyCheckboxGroup
+            specialties={specialties}
+            value={specialtyField.value as SpecialtyValue[]}
+            isLoading={isLoadingSpecialties}
+            showRegistryNumber
+            onToggle={toggleSpecialty}
+            onRqeChange={changeRqe}
+          />
+        )}
 
         <TextAreaField
           label="Bio"
@@ -356,6 +368,16 @@ function ProfessionalFormEdit({ defaultValues, isPending, globalError, onSubmit 
     id: s.specialtyId,
     name: s.name,
   }))
+
+  const isMedicalProfessional = showsRegistryNumber(registrationsFieldCtl.value as IProfessionalRegistrationInput[])
+
+  function handleRegistrationsChange(next: IProfessionalRegistrationInput[]) {
+    const wasCrm = showsRegistryNumber(registrationsFieldCtl.value as IProfessionalRegistrationInput[])
+    registrationsFieldCtl.onChange(next)
+    if (wasCrm && !showsRegistryNumber(next)) {
+      specialtyField.onChange([])
+    }
+  }
 
   useEffect(() => {
     reset({
@@ -421,18 +443,20 @@ function ProfessionalFormEdit({ defaultValues, isPending, globalError, onSubmit 
 
         <RegistrationListField
           value={registrationsFieldCtl.value as IProfessionalRegistrationInput[]}
-          onChange={registrationsFieldCtl.onChange}
+          onChange={handleRegistrationsChange}
           error={fieldArrayError(errors.registrations)}
         />
 
-        <SpecialtyCheckboxGroup
-          specialties={specialties}
-          value={specialtyField.value as SpecialtyValue[]}
-          isLoading={isLoadingSpecialties}
-          showRegistryNumber={showsRegistryNumber(registrationsFieldCtl.value as IProfessionalRegistrationInput[])}
-          onToggle={toggleSpecialty}
-          onRqeChange={changeRqe}
-        />
+        {isMedicalProfessional && (
+          <SpecialtyCheckboxGroup
+            specialties={specialties}
+            value={specialtyField.value as SpecialtyValue[]}
+            isLoading={isLoadingSpecialties}
+            showRegistryNumber
+            onToggle={toggleSpecialty}
+            onRqeChange={changeRqe}
+          />
+        )}
 
         <TextAreaField
           label="Bio"
@@ -516,7 +540,7 @@ function RegistrationListField({
           return (
             <div
               key={index}
-              className="flex items-center gap-2"
+              className="flex items-end gap-2"
               data-testid={`professional-form-registration-row-${index}`}
             >
               <select
