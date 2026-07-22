@@ -1,4 +1,4 @@
-import type { MedicalRecordFieldType } from '@app/shared'
+import type { CouncilType, MedicalRecordFieldType } from '@app/shared'
 
 export interface ITemplateSectionModel {
   key: string
@@ -24,6 +24,7 @@ export interface ITemplateModel {
   id: string
   specialtyId: string | null
   specialtyName: string | null
+  councilType: CouncilType | null
   name: string
   fields: ITemplateFieldModel[]
   sections: ITemplateSectionModel[]

@@ -154,10 +154,24 @@ describe('TemplateList (integration)', () => {
     })
   })
 
-  describe('as DOCTOR', () => {
+  describe('as PROFESSIONAL', () => {
     beforeEach(() => mockAuthStoreAs(UserRole.PROFESSIONAL))
 
-    it('does not show new template button', async () => {
+    it('shows the new template button (professionals can create their own template)', async () => {
+      ;(medicalRecordTemplatesService.getAll as jest.Mock).mockResolvedValue(makePaginated([]))
+
+      renderWithProviders(<TemplateList />)
+
+      await waitFor(() => expect(screen.getByTestId('template-list-empty')).toBeInTheDocument())
+
+      expect(screen.getByTestId('template-list-new-button')).toBeInTheDocument()
+    })
+  })
+
+  describe('as USER', () => {
+    beforeEach(() => mockAuthStoreAs(UserRole.USER))
+
+    it('does not show the new template button', async () => {
       ;(medicalRecordTemplatesService.getAll as jest.Mock).mockResolvedValue(makePaginated([]))
 
       renderWithProviders(<TemplateList />)
@@ -165,6 +179,22 @@ describe('TemplateList (integration)', () => {
       await waitFor(() => expect(screen.getByTestId('template-list-empty')).toBeInTheDocument())
 
       expect(screen.queryByTestId('template-list-new-button')).not.toBeInTheDocument()
+    })
+  })
+
+  describe('generalist template label', () => {
+    beforeEach(() => mockAuthStoreAs(UserRole.ADMIN))
+
+    it('shows the profession in parentheses for a generalist (non-specialty) template', async () => {
+      ;(medicalRecordTemplatesService.getAll as jest.Mock).mockResolvedValue(
+        makePaginated([makeDto({ specialtyId: null, specialtyName: null, councilType: 'crn' })]),
+      )
+
+      renderWithProviders(<TemplateList />)
+
+      await waitFor(() => {
+        expect(screen.getByTestId('template-specialty-uuid-1')).toHaveTextContent('Generalista (Nutrição)')
+      })
     })
   })
 })

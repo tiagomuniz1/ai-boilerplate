@@ -5,12 +5,13 @@ import { faker } from '@faker-js/faker'
 import * as bcrypt from 'bcrypt'
 import * as request from 'supertest'
 import { Repository } from 'typeorm'
-import { MedicalRecordFieldType, UserRole } from '@app/shared'
+import { CouncilType, MedicalRecordFieldType, UserRole } from '@app/shared'
 import { AppModule } from '../../../app.module'
 import { Clinic } from '../../clinics/entities/clinic.entity'
 import { ClinicSpecialty } from '../../clinic-specialties/entities/clinic-specialty.entity'
 import { Specialty } from '../../specialties/entities/specialty.entity'
 import { User } from '../../users/entities/user.entity'
+import { Professional } from '../../professionals/entities/professional.entity'
 import { MedicalRecordCanonicalField } from '../../medical-record-canonical-fields/entities/medical-record-canonical-field.entity'
 import { MedicalRecordTemplate } from '../entities/medical-record-template.entity'
 
@@ -39,14 +40,26 @@ describe('MedicalRecordTemplatesController (integration)', () => {
   let clinicSpecialtyRepository: Repository<ClinicSpecialty>
   let canonicalFieldRepository: Repository<MedicalRecordCanonicalField>
   let templateRepository: Repository<MedicalRecordTemplate>
+  let professionalRepository: Repository<Professional>
 
   let adminToken: string
   let doctorToken: string
   let userToken: string
   let adminBToken: string
+  // CRM professional registered in `specialtyId` — the happy path for "create through own specialty".
+  let crmWithSpecialtyToken: string
+  // CRM professional registered in a different specialty — used to assert ownership is enforced.
+  let crmOtherSpecialtyToken: string
+  // Non-CRM professional (no specialties at all) — the happy path for "create direct for profession".
+  let crnToken: string
   let specialtyId: string
+  let otherSpecialtyId: string
 
-  async function loginAs(role: UserRole, clinicId: string, slug: string): Promise<string> {
+  async function loginAs(
+    role: UserRole,
+    clinicId: string,
+    slug: string,
+  ): Promise<{ token: string; userId: string }> {
     const password = 'Password123!'
     const hashedPassword = await bcrypt.hash(password, 1)
     const user = await userRepository.save(
@@ -67,7 +80,21 @@ describe('MedicalRecordTemplatesController (integration)', () => {
     const cookies = Array.isArray(setCookieHeader) ? setCookieHeader : [setCookieHeader]
     const prefix = `access_token_${slug}=`
     const match = cookies.find((c: string) => c?.startsWith(prefix))
-    return match ? match.slice(prefix.length).split(';')[0] : ''
+    return { token: match ? match.slice(prefix.length).split(';')[0] : '', userId: user.id }
+  }
+
+  async function createProfessional(
+    userId: string,
+    clinicId: string,
+    councilType: CouncilType,
+    specialtyIds: string[],
+  ) {
+    const entity = professionalRepository.create({ userId, clinicId })
+    entity.registrations = [
+      { clinicId, councilType, number: faker.string.numeric(5), state: 'SP', isPrimary: true },
+    ] as any
+    entity.professionalSpecialties = specialtyIds.map((id) => ({ specialtyId: id, registryNumber: null })) as any
+    return professionalRepository.save(entity)
   }
 
   beforeAll(async () => {
@@ -85,6 +112,7 @@ describe('MedicalRecordTemplatesController (integration)', () => {
     clinicSpecialtyRepository = module.get(getRepositoryToken(ClinicSpecialty))
     canonicalFieldRepository = module.get(getRepositoryToken(MedicalRecordCanonicalField))
     templateRepository = module.get(getRepositoryToken(MedicalRecordTemplate))
+    professionalRepository = module.get(getRepositoryToken(Professional))
   })
 
   beforeEach(async () => {
@@ -95,19 +123,37 @@ describe('MedicalRecordTemplatesController (integration)', () => {
 
     const specialty = await specialtyRepository.save(specialtyRepository.create({ name: 'Cardiologia' }))
     specialtyId = specialty.id
-    await clinicSpecialtyRepository.save(
+    const otherSpecialty = await specialtyRepository.save(specialtyRepository.create({ name: 'Dermatologia' }))
+    otherSpecialtyId = otherSpecialty.id
+    await clinicSpecialtyRepository.save([
       clinicSpecialtyRepository.create({ clinicId: CLINIC_A_ID, specialtyId }),
-    )
+      clinicSpecialtyRepository.create({ clinicId: CLINIC_A_ID, specialtyId: otherSpecialtyId }),
+    ])
 
-    adminToken = await loginAs(UserRole.ADMIN, CLINIC_A_ID, 'clinic-a')
-    doctorToken = await loginAs(UserRole.PROFESSIONAL, CLINIC_A_ID, 'clinic-a')
-    userToken = await loginAs(UserRole.USER, CLINIC_A_ID, 'clinic-a')
-    adminBToken = await loginAs(UserRole.ADMIN, CLINIC_B_ID, 'clinic-b')
+    adminToken = (await loginAs(UserRole.ADMIN, CLINIC_A_ID, 'clinic-a')).token
+    ;({ token: doctorToken } = await loginAs(UserRole.PROFESSIONAL, CLINIC_A_ID, 'clinic-a'))
+    userToken = (await loginAs(UserRole.USER, CLINIC_A_ID, 'clinic-a')).token
+    adminBToken = (await loginAs(UserRole.ADMIN, CLINIC_B_ID, 'clinic-b')).token
+
+    const crmWithSpecialty = await loginAs(UserRole.PROFESSIONAL, CLINIC_A_ID, 'clinic-a')
+    crmWithSpecialtyToken = crmWithSpecialty.token
+    await createProfessional(crmWithSpecialty.userId, CLINIC_A_ID, CouncilType.CRM, [specialtyId])
+
+    const crmOtherSpecialty = await loginAs(UserRole.PROFESSIONAL, CLINIC_A_ID, 'clinic-a')
+    crmOtherSpecialtyToken = crmOtherSpecialty.token
+    await createProfessional(crmOtherSpecialty.userId, CLINIC_A_ID, CouncilType.CRM, [otherSpecialtyId])
+
+    const crn = await loginAs(UserRole.PROFESSIONAL, CLINIC_A_ID, 'clinic-a')
+    crnToken = crn.token
+    await createProfessional(crn.userId, CLINIC_A_ID, CouncilType.CRN, [])
   })
 
   afterEach(async () => {
     await templateRepository.query('DELETE FROM test.medical_record_templates')
     await canonicalFieldRepository.query('DELETE FROM test.medical_record_canonical_fields')
+    await professionalRepository.query('DELETE FROM test.professional_specialties')
+    await professionalRepository.query('DELETE FROM test.professional_registrations')
+    await professionalRepository.query('DELETE FROM test.professionals')
     await clinicSpecialtyRepository.query('DELETE FROM test.clinic_specialties')
     await specialtyRepository.query('DELETE FROM test.specialties')
     await specialtyRepository.query('DELETE FROM test.refresh_tokens')
@@ -238,8 +284,8 @@ describe('MedicalRecordTemplatesController (integration)', () => {
       }).expect(422)
     })
 
-    it('returns 403 when DOCTOR tries to create', async () => {
-      await createTemplate(doctorToken, freeFieldsPayload()).expect(403)
+    it('returns 404 when a PROFESSIONAL user has no professional profile', async () => {
+      await createTemplate(doctorToken, freeFieldsPayload()).expect(404)
     })
 
     it('returns 403 when USER tries to create', async () => {
@@ -251,6 +297,68 @@ describe('MedicalRecordTemplatesController (integration)', () => {
         .post('/medical-record-templates')
         .send(freeFieldsPayload())
         .expect(401)
+    })
+
+    it('CRM professional creates a template for their own specialty', async () => {
+      const { body } = await createTemplate(crmWithSpecialtyToken, freeFieldsPayload()).expect(201)
+
+      expect(body.specialtyId).toBe(specialtyId)
+      expect(body.specialtyName).toBe('Cardiologia')
+      expect(body.councilType).toBeNull()
+    })
+
+    it('returns 403 when a CRM professional creates a template for a specialty that is not their own', async () => {
+      await createTemplate(crmWithSpecialtyToken, { ...freeFieldsPayload(), specialtyId: otherSpecialtyId }).expect(
+        403,
+      )
+    })
+
+    it('CRM professional without a specialtyId targets the clinic CRM-generalist template', async () => {
+      const { specialtyId: _omit, ...generalistPayload } = freeFieldsPayload()
+
+      const { body } = await createTemplate(crmWithSpecialtyToken, {
+        ...generalistPayload,
+        name: 'Prontuário geral',
+      }).expect(201)
+
+      expect(body.specialtyId).toBeNull()
+      expect(body.councilType).toBe(CouncilType.CRM)
+    })
+
+    it('non-CRM professional creates a template scoped to their own profession', async () => {
+      const { specialtyId: _omit, ...generalistPayload } = freeFieldsPayload()
+
+      const { body } = await createTemplate(crnToken, {
+        ...generalistPayload,
+        name: 'Prontuário de Nutrição',
+      }).expect(201)
+
+      expect(body.specialtyId).toBeNull()
+      expect(body.councilType).toBe(CouncilType.CRN)
+    })
+
+    it('returns 422 when a non-CRM professional provides a specialtyId', async () => {
+      await createTemplate(crnToken, freeFieldsPayload()).expect(422)
+    })
+
+    it('returns 409 when the non-CRM professional-scoped template already exists', async () => {
+      const { specialtyId: _omit, ...generalistPayload } = freeFieldsPayload()
+
+      await createTemplate(crnToken, { ...generalistPayload, name: 'Nutrição 1' }).expect(201)
+      await createTemplate(crnToken, { ...generalistPayload, name: 'Nutrição 2' }).expect(409)
+    })
+
+    it('ADMIN creates a profession-scoped template by providing councilType explicitly', async () => {
+      const { specialtyId: _omit, ...generalistPayload } = freeFieldsPayload()
+
+      const { body } = await createTemplate(adminToken, {
+        ...generalistPayload,
+        name: 'Prontuário de Fisioterapia',
+        councilType: CouncilType.CREFITO,
+      }).expect(201)
+
+      expect(body.specialtyId).toBeNull()
+      expect(body.councilType).toBe(CouncilType.CREFITO)
     })
   })
 
@@ -363,14 +471,14 @@ describe('MedicalRecordTemplatesController (integration)', () => {
       expect(body.fields[1].key).toMatch(/^altura_[a-z0-9]{4}$/)
     })
 
-    it('returns 403 when DOCTOR tries to update', async () => {
+    it('returns 404 when a PROFESSIONAL user has no professional profile', async () => {
       const { body: created } = await createTemplate(adminToken, freeFieldsPayload()).expect(201)
 
       await request(app.getHttpServer())
         .patch(`/medical-record-templates/${created.id}`)
         .set('Authorization', `Bearer ${doctorToken}`)
         .send({ name: 'New name' })
-        .expect(403)
+        .expect(404)
     })
 
     it('returns 404 for a template from another clinic', async () => {
@@ -381,6 +489,62 @@ describe('MedicalRecordTemplatesController (integration)', () => {
         .set('Authorization', `Bearer ${adminBToken}`)
         .send({ name: 'New name' })
         .expect(404)
+    })
+
+    it('CRM professional updates a template for their own specialty', async () => {
+      const { body: created } = await createTemplate(crmWithSpecialtyToken, freeFieldsPayload()).expect(201)
+
+      const { body } = await request(app.getHttpServer())
+        .patch(`/medical-record-templates/${created.id}`)
+        .set('Authorization', `Bearer ${crmWithSpecialtyToken}`)
+        .send({ name: 'Novo nome' })
+        .expect(200)
+
+      expect(body.name).toBe('Novo nome')
+    })
+
+    it('returns 403 when a CRM professional updates a template outside their own specialty', async () => {
+      const { body: created } = await createTemplate(adminToken, {
+        ...freeFieldsPayload(),
+        specialtyId: otherSpecialtyId,
+      }).expect(201)
+
+      await request(app.getHttpServer())
+        .patch(`/medical-record-templates/${created.id}`)
+        .set('Authorization', `Bearer ${crmWithSpecialtyToken}`)
+        .send({ name: 'Novo nome' })
+        .expect(403)
+    })
+
+    it('non-CRM professional updates their own profession-wide template', async () => {
+      const { specialtyId: _omit, ...generalistPayload } = freeFieldsPayload()
+      const { body: created } = await createTemplate(crnToken, {
+        ...generalistPayload,
+        name: 'Prontuário de Nutrição',
+      }).expect(201)
+
+      const { body } = await request(app.getHttpServer())
+        .patch(`/medical-record-templates/${created.id}`)
+        .set('Authorization', `Bearer ${crnToken}`)
+        .send({ name: 'Novo nome' })
+        .expect(200)
+
+      expect(body.name).toBe('Novo nome')
+    })
+
+    it("returns 403 when a professional updates another profession's template", async () => {
+      const { specialtyId: _omit, ...generalistPayload } = freeFieldsPayload()
+      const { body: created } = await createTemplate(adminToken, {
+        ...generalistPayload,
+        name: 'Prontuário de Fisioterapia',
+        councilType: CouncilType.CREFITO,
+      }).expect(201)
+
+      await request(app.getHttpServer())
+        .patch(`/medical-record-templates/${created.id}`)
+        .set('Authorization', `Bearer ${crnToken}`)
+        .send({ name: 'Novo nome' })
+        .expect(403)
     })
   })
 

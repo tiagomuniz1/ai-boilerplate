@@ -5,7 +5,7 @@ import {
   UnprocessableEntityException,
 } from '@nestjs/common'
 import { DataSource } from 'typeorm'
-import { AppointmentStatus, MedicalRecordFieldType, UserRole } from '@app/shared'
+import { AppointmentStatus, CouncilType, MedicalRecordFieldType, UserRole } from '@app/shared'
 import { ICurrentUser } from '../../auth/types/current-user.type'
 import { IAppointmentsRepository } from '../../appointments/repositories/appointments.repository.interface'
 import { IProfessionalsRepository } from '../../professionals/repositories/professionals.repository.interface'
@@ -164,6 +164,10 @@ describe('CreateMedicalRecordUseCase', () => {
 
   it('creates a generalist record when the appointment has no specialty (null)', async () => {
     mockAppointmentsRepository.findById.mockResolvedValue(makeAppointment({ specialtyId: null }) as any)
+    mockProfessionalsRepository.findById.mockResolvedValue({
+      id: professionalId,
+      registrations: [{ id: 'reg-1', councilType: CouncilType.CRM, isPrimary: true }],
+    } as any)
     ;(mockFindTemplate.execute as jest.Mock).mockResolvedValue(makeTemplate({ specialtyId: null }))
     mockMedicalRecordsRepository.create.mockResolvedValue({
       ...makeRecord(),
@@ -173,11 +177,36 @@ describe('CreateMedicalRecordUseCase', () => {
 
     const result = await useCase.execute({ appointmentId, data: {} }, adminUser)
 
-    expect(mockFindTemplate.execute).toHaveBeenCalledWith(clinicId, null)
+    expect(mockProfessionalsRepository.findById).toHaveBeenCalledWith(professionalId, clinicId)
+    expect(mockFindTemplate.execute).toHaveBeenCalledWith(clinicId, null, CouncilType.CRM)
     const createArg = mockMedicalRecordsRepository.create.mock.calls[0][0]
     expect(createArg.specialtyId).toBeNull()
     expect(result.specialtyId).toBeNull()
     expect(result.specialtyName).toBeNull()
+  })
+
+  it('throws NotFoundException when the appointment professional cannot be resolved for a generalist appointment', async () => {
+    mockAppointmentsRepository.findById.mockResolvedValue(makeAppointment({ specialtyId: null }) as any)
+    mockProfessionalsRepository.findById.mockResolvedValue(null)
+
+    await expect(useCase.execute({ appointmentId, data: {} }, adminUser)).rejects.toThrow(
+      NotFoundException,
+    )
+  })
+
+  it('resolves the appointment professional\'s own council type for a non-CRM generalist appointment', async () => {
+    mockAppointmentsRepository.findById.mockResolvedValue(makeAppointment({ specialtyId: null }) as any)
+    mockProfessionalsRepository.findById.mockResolvedValue({
+      id: professionalId,
+      registrations: [{ id: 'reg-1', councilType: CouncilType.CRN, isPrimary: true }],
+    } as any)
+    ;(mockFindTemplate.execute as jest.Mock).mockResolvedValue(
+      makeTemplate({ specialtyId: null, councilType: CouncilType.CRN }),
+    )
+
+    await useCase.execute({ appointmentId, data: {} }, adminUser)
+
+    expect(mockFindTemplate.execute).toHaveBeenCalledWith(clinicId, null, CouncilType.CRN)
   })
 
   it('throws NotFoundException when template not found', async () => {

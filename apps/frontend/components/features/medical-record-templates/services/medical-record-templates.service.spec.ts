@@ -1,7 +1,7 @@
 jest.mock('@/lib/api-client')
 
 import { apiClient } from '@/lib/api-client'
-import { MedicalRecordFieldType } from '@app/shared'
+import { CouncilType, MedicalRecordFieldType } from '@app/shared'
 import { medicalRecordTemplatesService } from './medical-record-templates.service'
 
 const mockApiClient = apiClient as jest.Mocked<typeof apiClient>
@@ -43,6 +43,12 @@ describe('medicalRecordTemplatesService', () => {
       mockApiClient.get.mockResolvedValue({ data: [], total: 0, page: 1, limit: 1 })
       await medicalRecordTemplatesService.getAll({ generalist: true, limit: 1 })
       expect(mockApiClient.get).toHaveBeenCalledWith('/medical-record-templates?limit=1&generalist=true')
+    })
+
+    it('calls GET with councilType param', async () => {
+      mockApiClient.get.mockResolvedValue({ data: [], total: 0, page: 1, limit: 1 })
+      await medicalRecordTemplatesService.getAll({ councilType: CouncilType.CRN, limit: 1 })
+      expect(mockApiClient.get).toHaveBeenCalledWith('/medical-record-templates?limit=1&councilType=crn')
     })
 
     it('returns API response', async () => {

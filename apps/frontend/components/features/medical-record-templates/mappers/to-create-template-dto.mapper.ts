@@ -32,6 +32,7 @@ function toFieldDto(field: ITemplateFieldInput): MedicalRecordTemplateFieldDto {
 export function toCreateTemplateDto(input: ICreateTemplateInput): CreateMedicalRecordTemplateDto {
   return {
     specialtyId: input.specialtyId,
+    councilType: input.councilType,
     name: input.name,
     fields: input.fields.map((f) => toFieldDto(f)),
     sections: input.sections.map((s) => toSectionDto(s)),

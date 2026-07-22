@@ -2,6 +2,14 @@
 
 ## [Unreleased]
 
+### Added
+
+#### Qualquer profissional pode criar o próprio template de prontuário
+- `POST`/`PATCH /medical-record-templates` liberados para `PROFESSIONAL` (antes exclusivo de `ADMIN`); `DELETE` continua só `ADMIN`
+- Nova coluna `council_type` em `medical_record_templates` — o template generalista (sem `specialty_id`) passa a ser escopado por `clinicId + councilType` (no máximo um por profissão por clínica), em vez de um único generalista por clínica (migration `add-council-type-to-medical-record-templates`, com backfill `council_type = 'crm'` nos generalistas existentes)
+- `CreateMedicalRecordTemplateUseCase`/`UpdateMedicalRecordTemplateUseCase`: PROFESSIONAL com CRM só cria/edita templates das próprias especialidades (ou o generalista do CRM, sem especialidade); demais profissões (CRN, CREFITO, CRP, CRO, COREN, CREF, CRFA) criam/editam direto para a própria profissão, sem especialidade. ADMIN mantém acesso irrestrito, incluindo criar um generalista de profissão não-médica
+- `CreateMedicalRecordUseCase` resolve o template generalista pelo `councilType` do profissional da consulta (via `getPrimaryCouncilType`), não mais só por especialidade nula
+
 ### Changed
 
 #### BREAKING: generalização do modelo de profissional além de médico (CRM)

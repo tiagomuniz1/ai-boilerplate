@@ -1,11 +1,12 @@
-import { ConflictException, NotFoundException, UnprocessableEntityException } from '@nestjs/common'
+import { ConflictException, ForbiddenException, NotFoundException, UnprocessableEntityException } from '@nestjs/common'
 import { DataSource, OptimisticLockVersionMismatchError } from 'typeorm'
 import { faker } from '@faker-js/faker'
-import { MedicalRecordFieldType, UserRole } from '@app/shared'
+import { CouncilType, MedicalRecordFieldType, UserRole } from '@app/shared'
 import { CacheService } from '../../../cache/cache.service'
 import { ICurrentUser } from '../../auth/types/current-user.type'
 import { ISpecialtiesRepository } from '../../specialties/repositories/specialties.repository.interface'
 import { IMedicalRecordCanonicalFieldsRepository } from '../../medical-record-canonical-fields/repositories/medical-record-canonical-fields.repository.interface'
+import { IProfessionalsRepository } from '../../professionals/repositories/professionals.repository.interface'
 import { IMedicalRecordTemplatesRepository } from '../repositories/medical-record-templates.repository.interface'
 import { UpdateMedicalRecordTemplateUseCase } from '../use-cases/update-medical-record-template.use-case'
 
@@ -26,6 +27,10 @@ const mockCanonicalFieldsRepository = {
   findByCanonicalKey: jest.fn(),
 } as unknown as jest.Mocked<IMedicalRecordCanonicalFieldsRepository>
 
+const mockProfessionalsRepository = {
+  findByUserId: jest.fn(),
+} as unknown as jest.Mocked<IProfessionalsRepository>
+
 const mockCacheService = {
   del: jest.fn(),
   delByPattern: jest.fn(),
@@ -33,6 +38,14 @@ const mockCacheService = {
 
 const clinicId = '10000000-0000-4000-8000-000000000000'
 const currentUser: ICurrentUser = { id: 'u1', role: UserRole.ADMIN, clinicId }
+const professionalCurrentUser: ICurrentUser = { id: 'pu1', role: UserRole.PROFESSIONAL, clinicId }
+
+const makeProfessional = (overrides = {}) => ({
+  id: 'prof-1',
+  registrations: [{ id: 'reg-1', councilType: CouncilType.CRM, isPrimary: true }],
+  professionalSpecialties: [{ specialtyId: 'spec-1' }],
+  ...overrides,
+})
 
 const existingField = {
   key: 'observacoes_ab12',
@@ -52,6 +65,7 @@ const makeTemplate = (overrides = {}) => ({
   id: faker.string.uuid(),
   clinicId,
   specialtyId: 'spec-1',
+  councilType: null,
   name: 'Template',
   fields: [existingField],
   sections: [],
@@ -73,6 +87,7 @@ describe('UpdateMedicalRecordTemplateUseCase', () => {
       mockTemplatesRepository,
       mockSpecialtiesRepository,
       mockCanonicalFieldsRepository,
+      mockProfessionalsRepository,
       mockCacheService,
     )
     mockSpecialtiesRepository.findById.mockResolvedValue({ id: 'spec-1', name: 'Cardiologia' } as any)
@@ -520,6 +535,72 @@ describe('UpdateMedicalRecordTemplateUseCase', () => {
       )
 
       expect(result.fields[0].sectionKey).toBe('existing_sec')
+    })
+  })
+
+  describe('PROFESSIONAL', () => {
+    it('throws when the professional record is not found', async () => {
+      const template = makeTemplate()
+      mockTemplatesRepository.findById.mockResolvedValue(template as any)
+      mockProfessionalsRepository.findByUserId.mockResolvedValue(null)
+
+      await expect(
+        useCase.execute(template.id, { name: 'X2' }, professionalCurrentUser),
+      ).rejects.toThrow(NotFoundException)
+      expect(mockTemplatesRepository.update).not.toHaveBeenCalled()
+    })
+
+    it('CRM professional updates a template for their own specialty', async () => {
+      const template = makeTemplate()
+      mockTemplatesRepository.findById.mockResolvedValue(template as any)
+      mockTemplatesRepository.update.mockResolvedValue(makeTemplate({ id: template.id, name: 'Novo' }) as any)
+      mockProfessionalsRepository.findByUserId.mockResolvedValue(makeProfessional() as any)
+
+      const result = await useCase.execute(template.id, { name: 'Novo' }, professionalCurrentUser)
+
+      expect(result.name).toBe('Novo')
+    })
+
+    it('CRM professional is rejected when the template belongs to a different specialty', async () => {
+      const template = makeTemplate()
+      mockTemplatesRepository.findById.mockResolvedValue(template as any)
+      mockProfessionalsRepository.findByUserId.mockResolvedValue(
+        makeProfessional({ professionalSpecialties: [{ specialtyId: 'other-spec' }] }) as any,
+      )
+
+      await expect(
+        useCase.execute(template.id, { name: 'X2' }, professionalCurrentUser),
+      ).rejects.toThrow(ForbiddenException)
+      expect(mockTemplatesRepository.update).not.toHaveBeenCalled()
+    })
+
+    it('professional updates their own profession-wide generalist template', async () => {
+      const template = makeTemplate({ specialtyId: null, councilType: CouncilType.CRN })
+      mockTemplatesRepository.findById.mockResolvedValue(template as any)
+      mockTemplatesRepository.update.mockResolvedValue(
+        makeTemplate({ id: template.id, specialtyId: null, councilType: CouncilType.CRN, name: 'Novo' }) as any,
+      )
+      mockProfessionalsRepository.findByUserId.mockResolvedValue(
+        makeProfessional({
+          registrations: [{ id: 'reg-1', councilType: CouncilType.CRN, isPrimary: true }],
+          professionalSpecialties: [],
+        }) as any,
+      )
+
+      const result = await useCase.execute(template.id, { name: 'Novo' }, professionalCurrentUser)
+
+      expect(result.name).toBe('Novo')
+    })
+
+    it('professional is rejected from updating another profession\'s generalist template', async () => {
+      const template = makeTemplate({ specialtyId: null, councilType: CouncilType.CRN })
+      mockTemplatesRepository.findById.mockResolvedValue(template as any)
+      mockProfessionalsRepository.findByUserId.mockResolvedValue(makeProfessional() as any)
+
+      await expect(
+        useCase.execute(template.id, { name: 'X2' }, professionalCurrentUser),
+      ).rejects.toThrow(ForbiddenException)
+      expect(mockTemplatesRepository.update).not.toHaveBeenCalled()
     })
   })
 })

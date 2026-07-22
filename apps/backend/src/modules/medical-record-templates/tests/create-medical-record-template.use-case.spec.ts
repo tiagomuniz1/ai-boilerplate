@@ -1,7 +1,8 @@
-import { ConflictException, UnprocessableEntityException } from '@nestjs/common'
+import { ConflictException, ForbiddenException, NotFoundException, UnprocessableEntityException } from '@nestjs/common'
 import { DataSource } from 'typeorm'
 import { faker } from '@faker-js/faker'
 import {
+  CouncilType,
   CreateMedicalRecordTemplateDto,
   MedicalRecordFieldType,
   UserRole,
@@ -11,6 +12,7 @@ import { ICurrentUser } from '../../auth/types/current-user.type'
 import { IClinicSpecialtiesRepository } from '../../clinic-specialties/repositories/clinic-specialties.repository.interface'
 import { ISpecialtiesRepository } from '../../specialties/repositories/specialties.repository.interface'
 import { IMedicalRecordCanonicalFieldsRepository } from '../../medical-record-canonical-fields/repositories/medical-record-canonical-fields.repository.interface'
+import { IProfessionalsRepository } from '../../professionals/repositories/professionals.repository.interface'
 import { IMedicalRecordTemplatesRepository } from '../repositories/medical-record-templates.repository.interface'
 import { CreateMedicalRecordTemplateUseCase } from '../use-cases/create-medical-record-template.use-case'
 
@@ -35,17 +37,23 @@ const mockCanonicalFieldsRepository = {
   findByCanonicalKey: jest.fn(),
 } as unknown as jest.Mocked<IMedicalRecordCanonicalFieldsRepository>
 
+const mockProfessionalsRepository = {
+  findByUserId: jest.fn(),
+} as unknown as jest.Mocked<IProfessionalsRepository>
+
 const mockCacheService = {
   delByPattern: jest.fn(),
 } as unknown as jest.Mocked<CacheService>
 
 const clinicId = '10000000-0000-4000-8000-000000000000'
 const currentUser: ICurrentUser = { id: 'u1', role: UserRole.ADMIN, clinicId }
+const professionalCurrentUser: ICurrentUser = { id: 'pu1', role: UserRole.PROFESSIONAL, clinicId }
 
 const makeTemplate = (overrides = {}) => ({
   id: faker.string.uuid(),
   clinicId,
   specialtyId: 'spec-1',
+  councilType: null,
   name: 'Template',
   fields: [],
   sections: [],
@@ -54,6 +62,13 @@ const makeTemplate = (overrides = {}) => ({
   createdAt: new Date(),
   updatedAt: new Date(),
   deletedAt: null,
+  ...overrides,
+})
+
+const makeProfessional = (overrides = {}) => ({
+  id: 'prof-1',
+  registrations: [{ id: 'reg-1', councilType: CouncilType.CRM, isPrimary: true }],
+  professionalSpecialties: [{ specialtyId: 'spec-1' }],
   ...overrides,
 })
 
@@ -76,6 +91,7 @@ describe('CreateMedicalRecordTemplateUseCase', () => {
       mockClinicSpecialtiesRepository,
       mockSpecialtiesRepository,
       mockCanonicalFieldsRepository,
+      mockProfessionalsRepository,
       mockCacheService,
     )
     mockClinicSpecialtiesRepository.findByClinicAndSpecialty.mockResolvedValue({ id: 'cs-1' } as any)
@@ -117,11 +133,36 @@ describe('CreateMedicalRecordTemplateUseCase', () => {
     )
 
     expect(mockClinicSpecialtiesRepository.findByClinicAndSpecialty).not.toHaveBeenCalled()
-    expect(mockTemplatesRepository.findByClinicAndSpecialty).toHaveBeenCalledWith(clinicId, null)
+    expect(mockTemplatesRepository.findByClinicAndSpecialty).toHaveBeenCalledWith(
+      clinicId,
+      null,
+      CouncilType.CRM,
+    )
     const createArg = mockTemplatesRepository.create.mock.calls[0][0] as any
     expect(createArg.specialtyId).toBeNull()
+    expect(createArg.councilType).toBe(CouncilType.CRM)
     expect(result.specialtyId).toBeNull()
     expect(result.specialtyName).toBeNull()
+  })
+
+  it('creates a generalist template for an explicit non-CRM council type when ADMIN provides one', async () => {
+    mockTemplatesRepository.create.mockImplementation((data: any) =>
+      Promise.resolve(makeTemplate({ ...data }) as any),
+    )
+
+    const result = await useCase.execute(
+      { name: 'Prontuário de Nutrição', fields: [freeField], councilType: CouncilType.CRN },
+      currentUser,
+    )
+
+    expect(mockTemplatesRepository.findByClinicAndSpecialty).toHaveBeenCalledWith(
+      clinicId,
+      null,
+      CouncilType.CRN,
+    )
+    const createArg = mockTemplatesRepository.create.mock.calls[0][0] as any
+    expect(createArg.councilType).toBe(CouncilType.CRN)
+    expect(result.councilType).toBe(CouncilType.CRN)
   })
 
   it('throws Conflict when a generalist template already exists for the clinic', async () => {
@@ -374,6 +415,102 @@ describe('CreateMedicalRecordTemplateUseCase', () => {
           currentUser,
         ),
       ).rejects.toThrow(UnprocessableEntityException)
+      expect(mockTemplatesRepository.create).not.toHaveBeenCalled()
+    })
+  })
+
+  describe('PROFESSIONAL', () => {
+    beforeEach(() => {
+      mockTemplatesRepository.create.mockImplementation((data: any) =>
+        Promise.resolve(makeTemplate({ ...data }) as any),
+      )
+    })
+
+    it('throws when the professional record is not found', async () => {
+      mockProfessionalsRepository.findByUserId.mockResolvedValue(null)
+
+      await expect(useCase.execute(baseDto, professionalCurrentUser)).rejects.toThrow(
+        NotFoundException,
+      )
+      expect(mockTemplatesRepository.create).not.toHaveBeenCalled()
+    })
+
+    it('CRM professional creates a template for their own specialty', async () => {
+      mockProfessionalsRepository.findByUserId.mockResolvedValue(makeProfessional() as any)
+
+      const result = await useCase.execute(baseDto, professionalCurrentUser)
+
+      expect(mockTemplatesRepository.findByClinicAndSpecialty).toHaveBeenCalledWith(
+        clinicId,
+        'spec-1',
+        null,
+      )
+      expect(result.specialtyId).toBe('spec-1')
+    })
+
+    it('CRM professional is rejected when the specialty is not their own', async () => {
+      mockProfessionalsRepository.findByUserId.mockResolvedValue(
+        makeProfessional({ professionalSpecialties: [{ specialtyId: 'other-spec' }] }) as any,
+      )
+
+      await expect(useCase.execute(baseDto, professionalCurrentUser)).rejects.toThrow(
+        ForbiddenException,
+      )
+      expect(mockTemplatesRepository.create).not.toHaveBeenCalled()
+    })
+
+    it('CRM professional without a specialtyId targets the clinic CRM-generalist template', async () => {
+      mockProfessionalsRepository.findByUserId.mockResolvedValue(makeProfessional() as any)
+
+      const result = await useCase.execute(
+        { name: 'Prontuário geral', fields: [freeField] },
+        professionalCurrentUser,
+      )
+
+      expect(mockTemplatesRepository.findByClinicAndSpecialty).toHaveBeenCalledWith(
+        clinicId,
+        null,
+        CouncilType.CRM,
+      )
+      const createArg = mockTemplatesRepository.create.mock.calls[0][0] as any
+      expect(createArg.councilType).toBe(CouncilType.CRM)
+      expect(result.councilType).toBe(CouncilType.CRM)
+    })
+
+    it('non-CRM professional creates a template scoped to their own profession', async () => {
+      mockProfessionalsRepository.findByUserId.mockResolvedValue(
+        makeProfessional({
+          registrations: [{ id: 'reg-1', councilType: CouncilType.CRN, isPrimary: true }],
+          professionalSpecialties: [],
+        }) as any,
+      )
+
+      const result = await useCase.execute(
+        { name: 'Prontuário de Nutrição', fields: [freeField] },
+        professionalCurrentUser,
+      )
+
+      expect(mockTemplatesRepository.findByClinicAndSpecialty).toHaveBeenCalledWith(
+        clinicId,
+        null,
+        CouncilType.CRN,
+      )
+      const createArg = mockTemplatesRepository.create.mock.calls[0][0] as any
+      expect(createArg.specialtyId).toBeNull()
+      expect(createArg.councilType).toBe(CouncilType.CRN)
+      expect(result.councilType).toBe(CouncilType.CRN)
+    })
+
+    it('non-CRM professional is rejected when a specialtyId is provided', async () => {
+      mockProfessionalsRepository.findByUserId.mockResolvedValue(
+        makeProfessional({
+          registrations: [{ id: 'reg-1', councilType: CouncilType.CRN, isPrimary: true }],
+        }) as any,
+      )
+
+      await expect(useCase.execute(baseDto, professionalCurrentUser)).rejects.toThrow(
+        UnprocessableEntityException,
+      )
       expect(mockTemplatesRepository.create).not.toHaveBeenCalled()
     })
   })

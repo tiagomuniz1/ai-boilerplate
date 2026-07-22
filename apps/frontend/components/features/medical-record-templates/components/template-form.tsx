@@ -4,10 +4,12 @@ import { useEffect } from 'react'
 import { useFieldArray, useForm, useWatch } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
-import { MedicalRecordFieldType } from '@app/shared'
+import { CouncilType, COUNCIL_TYPE_PROFESSION_LABELS, MedicalRecordFieldType, UserRole, getPrimaryCouncilType } from '@app/shared'
 import { Input } from '@/components/ui/atoms/input/input'
 import { Button } from '@/components/ui/atoms/button/button'
 import { Alert } from '@/components/ui/molecules/alert/alert'
+import { useAuthStore } from '@/stores/auth.store'
+import { useMyProfessional } from '@/components/features/professionals/hooks/use-my-professional.hook'
 import { FieldEditor } from './field-editor'
 import { SectionEditor } from './section-editor'
 import { CanonicalFieldPicker } from './canonical-field-picker'
@@ -19,6 +21,7 @@ import type { ICanonicalFieldModel } from '../types/canonical-field-model.types'
 import type { IApiError } from '@/types/api.types'
 
 const SELECT_TYPES = [MedicalRecordFieldType.SELECT, MedicalRecordFieldType.MULTISELECT]
+const COUNCIL_TYPES = Object.values(CouncilType)
 
 const optionSchema = z.object({
   value: z.string().min(1, 'Obrigatório').max(60, 'Máx. 60 caracteres'),
@@ -76,6 +79,7 @@ function validateFieldOptions(
 const baseObjectSchema = z.object({
   name: z.string().min(2, 'Mínimo 2 caracteres').max(120, 'Máx. 120 caracteres'),
   specialtyId: z.string().optional(),
+  councilType: z.string().optional(),
   fields: z.array(fieldSchema),
   sections: z.array(sectionSchema),
 })
@@ -156,8 +160,19 @@ export function TemplateForm(props: Props) {
   const isEdit = props.mode === 'edit'
   const template = isEdit ? (props as TemplateFormEditProps).template : undefined
 
+  const authUser = useAuthStore((s) => s.user)
+  const isProfessional = authUser?.role === UserRole.PROFESSIONAL
+  const { data: myProfessional } = useMyProfessional({ enabled: isProfessional })
+  // Defaults to CRM while the professional's own profile is still loading, so the specialty
+  // selector doesn't flash hidden-then-visible for the common (CRM) case.
+  const isCrmProfessional =
+    !myProfessional || getPrimaryCouncilType(myProfessional.registrations) === CouncilType.CRM
+
   const { data: specialtiesPaginated } = useSpecialties({ limit: 100 })
-  const specialties = specialtiesPaginated?.data ?? []
+  const specialties =
+    isProfessional && myProfessional
+      ? myProfessional.specialties.map((s) => ({ id: s.id, name: s.name }))
+      : (specialtiesPaginated?.data ?? [])
 
   const defaultFlatFields = template
     ? template.fields
@@ -196,6 +211,9 @@ export function TemplateForm(props: Props) {
     defaultValues: {
       name: template?.name ?? '',
       specialtyId: props.specialtyId ?? '',
+      // Matches the "Profissão" select's first (and implicit default) option — see
+      // showProfessionSelector below, which only ADMIN ever sees.
+      councilType: CouncilType.CRM,
       fields: defaultFlatFields,
       sections: defaultSections,
     },
@@ -212,6 +230,14 @@ export function TemplateForm(props: Props) {
       setValue('specialtyId', props.specialtyId)
     }
   }, [specialties, isEdit, props.specialtyId, setValue])
+
+  // Non-CRM professionals create/manage a template directly for their profession — no specialty
+  // involved at all. Everyone else (ADMIN, and CRM professionals restricted to their own list
+  // above) keeps the specialty picker.
+  const showSpecialtySelector = !isEdit && (!isProfessional || isCrmProfessional)
+  // Only ADMIN can set the profession explicitly for a non-specialty template — a professional's
+  // own profession is always derived server-side from their registration, never user-selected.
+  const showProfessionSelector = !isEdit && !isProfessional && !watchedSpecialtyId
 
   const canonicalPickerSpecialtyId = isEdit ? props.specialtyId : (watchedSpecialtyId || undefined)
 
@@ -256,8 +282,17 @@ export function TemplateForm(props: Props) {
         sections: sectionInputs,
       })
     } else {
+      // A non-CRM professional's profession is always their own, never user-selected — derive it
+      // here rather than trusting a hidden/absent form field. Everyone else uses whatever the
+      // "Profissão" selector resolved to (ADMIN), or nothing at all when a specialty was picked.
+      const councilType =
+        isProfessional && myProfessional && !isCrmProfessional
+          ? getPrimaryCouncilType(myProfessional.registrations)
+          : (values.councilType as CouncilType)
+
       ;(props as TemplateFormProps).onSubmit({
         specialtyId: values.specialtyId || undefined,
+        councilType: values.specialtyId ? undefined : councilType,
         name: values.name,
         fields: allFields,
         sections: sectionInputs,
@@ -383,7 +418,7 @@ export function TemplateForm(props: Props) {
         />
       </div>
 
-      {!isEdit && (
+      {showSpecialtySelector && (
         <div className="flex flex-col gap-1">
           <label className="text-sm font-medium text-text" htmlFor="template-specialty">
             Especialidade
@@ -407,6 +442,26 @@ export function TemplateForm(props: Props) {
               {errors.specialtyId.message}
             </span>
           )}
+        </div>
+      )}
+
+      {showProfessionSelector && (
+        <div className="flex flex-col gap-1">
+          <label className="text-sm font-medium text-text" htmlFor="template-council-type">
+            Profissão
+          </label>
+          <select
+            id="template-council-type"
+            {...register('councilType')}
+            data-testid="template-form-council-type"
+            className="h-10 w-full rounded-md px-3 text-base bg-surface border border-line text-text transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-bg"
+          >
+            {COUNCIL_TYPES.map((councilType) => (
+              <option key={councilType} value={councilType}>
+                {COUNCIL_TYPE_PROFESSION_LABELS[councilType]}
+              </option>
+            ))}
+          </select>
         </div>
       )}
 

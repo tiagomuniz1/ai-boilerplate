@@ -25,7 +25,7 @@ describe('FindTemplateByClinicAndSpecialtyUseCase', () => {
 
     const result = await useCase.execute('clinic-1', 'spec-1')
 
-    expect(mockTemplatesRepository.findByClinicAndSpecialty).toHaveBeenCalledWith('clinic-1', 'spec-1')
+    expect(mockTemplatesRepository.findByClinicAndSpecialty).toHaveBeenCalledWith('clinic-1', 'spec-1', undefined)
     expect(result).toBe(template as any)
   })
 
@@ -43,7 +43,17 @@ describe('FindTemplateByClinicAndSpecialtyUseCase', () => {
 
     const result = await useCase.execute('clinic-1', null)
 
-    expect(mockTemplatesRepository.findByClinicAndSpecialty).toHaveBeenCalledWith('clinic-1', null)
+    expect(mockTemplatesRepository.findByClinicAndSpecialty).toHaveBeenCalledWith('clinic-1', null, undefined)
+    expect(result).toBe(template as any)
+  })
+
+  it('passes councilType through to scope the generalist template to a profession', async () => {
+    const template = { id: 'tpl-crn-generalist' }
+    mockTemplatesRepository.findByClinicAndSpecialty.mockResolvedValue(template as any)
+
+    const result = await useCase.execute('clinic-1', null, 'crn' as any)
+
+    expect(mockTemplatesRepository.findByClinicAndSpecialty).toHaveBeenCalledWith('clinic-1', null, 'crn')
     expect(result).toBe(template as any)
   })
 })

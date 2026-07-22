@@ -1,5 +1,6 @@
 import { apiClient } from '@/lib/api-client'
 import type {
+  CouncilType,
   MedicalRecordTemplateResponseDto,
   PaginatedMedicalRecordTemplatesResponseDto,
   CreateMedicalRecordTemplateDto,
@@ -11,6 +12,7 @@ export interface ITemplateListParams {
   limit?: number
   specialtyId?: string
   generalist?: boolean
+  councilType?: CouncilType
 }
 
 export const medicalRecordTemplatesService = {
@@ -20,6 +22,7 @@ export const medicalRecordTemplatesService = {
     if (params?.limit) searchParams.set('limit', String(params.limit))
     if (params?.specialtyId) searchParams.set('specialtyId', params.specialtyId)
     if (params?.generalist) searchParams.set('generalist', 'true')
+    if (params?.councilType) searchParams.set('councilType', params.councilType)
     const query = searchParams.toString()
     return apiClient.get<PaginatedMedicalRecordTemplatesResponseDto>(
       `/medical-record-templates${query ? `?${query}` : ''}`,

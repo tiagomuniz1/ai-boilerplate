@@ -1,5 +1,6 @@
 import { Transform } from 'class-transformer'
-import { IsBoolean, IsOptional, IsUUID } from 'class-validator'
+import { IsBoolean, IsEnum, IsOptional, IsUUID } from 'class-validator'
+import { CouncilType } from '@app/shared'
 import { PaginationDto } from '../../../common/dto/pagination.dto'
 
 export class MedicalRecordTemplateListQueryDto extends PaginationDto {
@@ -13,4 +14,10 @@ export class MedicalRecordTemplateListQueryDto extends PaginationDto {
   @Transform(({ value }) => value === 'true')
   @IsBoolean()
   generalist?: boolean
+
+  // Scopes the generalist bucket to one profession — used together with `generalist`, or on its
+  // own (both resolve to the same specialty_id IS NULL AND council_type = X query).
+  @IsOptional()
+  @IsEnum(CouncilType)
+  councilType?: CouncilType
 }

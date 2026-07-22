@@ -420,6 +420,7 @@ describe('MedicalRecordsController (integration)', () => {
         templateRepository.create({
           clinicId: SEED_CLINIC_ID,
           specialtyId: null,
+          councilType: CouncilType.CRM,
           name: 'Prontuário clínico geral',
           fields: templateFields,
           isActive: true,

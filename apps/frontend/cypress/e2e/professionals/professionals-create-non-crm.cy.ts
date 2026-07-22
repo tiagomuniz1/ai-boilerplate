@@ -52,17 +52,18 @@ describe('Professionals Create — non-CRM council type', () => {
       .and('have.attr', 'maxlength', '8')
   })
 
-  it('does not show the RQE field for a CRN professional even with a specialty selected', () => {
+  it('hides the specialty section entirely for a CRN professional', () => {
     visitClinic('/professionals/new', mockAuthUser)
     cy.wait('@getSpecialties')
 
-    cy.get('[data-testid="professional-form-registration-council-type-0"]').select('crn')
-    cy.get(`[data-testid="professional-form-specialty-${SPEC_ID_1}"]`).check()
+    cy.get('[data-testid="professional-form-specialty-group"]').should('be.visible')
 
-    cy.get(`[data-testid="professional-form-registryNumber-${SPEC_ID_1}"]`).should('not.exist')
+    cy.get('[data-testid="professional-form-registration-council-type-0"]').select('crn')
+
+    cy.get('[data-testid="professional-form-specialty-group"]').should('not.exist')
   })
 
-  it('creates a CRN professional with the correct registration payload', () => {
+  it('creates a CRN professional with the correct registration payload and no specialties', () => {
     cy.intercept('POST', `${Cypress.env('API_URL')}/professionals`, {
       statusCode: 201,
       body: mockCreatedProfessional,
@@ -82,7 +83,6 @@ describe('Professionals Create — non-CRM council type', () => {
     cy.get('[data-testid="professional-form-registration-council-type-0"]').select('crn')
     cy.get('[data-testid="professional-form-registration-number-0"]').type('12345678')
     cy.get('[data-testid="professional-form-registration-state-0"]').select('SP')
-    cy.get(`[data-testid="professional-form-specialty-${SPEC_ID_1}"]`).check()
 
     cy.get('[data-testid="professional-form-submit"]').click()
 
@@ -90,6 +90,7 @@ describe('Professionals Create — non-CRM council type', () => {
       expect(interception.request.body.registrations).to.deep.equal([
         { councilType: 'crn', number: '12345678', state: 'SP', isPrimary: true },
       ])
+      expect(interception.request.body.specialties).to.deep.equal([])
     })
     expectClinicPath('/professionals')
   })

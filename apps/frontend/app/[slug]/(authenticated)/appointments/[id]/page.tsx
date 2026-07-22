@@ -174,6 +174,7 @@ export default function AppointmentDetailPage() {
                 <MedicalRecordSection
                   appointmentId={id}
                   specialtyId={appointment.specialtyId}
+                  professionalId={appointment.professionalId}
                   appointmentStatus={appointment.status}
                   canManage={canManage}
                 />

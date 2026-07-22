@@ -1,4 +1,4 @@
-import type { MedicalRecordFieldType } from '@app/shared'
+import type { CouncilType, MedicalRecordFieldType } from '@app/shared'
 
 export interface ITemplateSectionInput {
   key?: string
@@ -22,6 +22,7 @@ export interface ITemplateFieldInput {
 
 export interface ICreateTemplateInput {
   specialtyId?: string
+  councilType?: CouncilType
   name: string
   fields: ITemplateFieldInput[]
   sections: ITemplateSectionInput[]

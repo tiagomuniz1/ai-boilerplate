@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { AppointmentStatus } from '@app/shared'
+import { AppointmentStatus, getPrimaryCouncilType } from '@app/shared'
 import { Modal } from '@/components/ui/organisms/modal/modal'
 import { Button } from '@/components/ui/atoms/button/button'
 import { Alert } from '@/components/ui/molecules/alert/alert'
@@ -9,11 +9,13 @@ import { useMedicalRecordByAppointment } from '@/components/features/medical-rec
 import { useTemplates } from '@/components/features/medical-record-templates/hooks/use-templates.hook'
 import { useCreateMedicalRecord } from '@/components/features/medical-records/hooks/use-create-medical-record.hook'
 import { useUpdateMedicalRecord } from '@/components/features/medical-records/hooks/use-update-medical-record.hook'
+import { useProfessional } from '@/components/features/professionals/hooks/use-professional.hook'
 import { MedicalRecordForm } from '@/components/features/medical-records/components/medical-record-form'
 import { MedicalRecordView } from '@/components/features/medical-records/components/medical-record-view'
 import { MedicalRecordFormSkeleton } from '@/components/features/medical-records/components/medical-record-form-skeleton'
 import type { IRecordFieldModel } from '@/components/features/medical-records/types/medical-record-model.types'
 import type { ITemplateFieldModel } from '@/components/features/medical-record-templates/types/template-model.types'
+import type { ITemplateListParams } from '@/components/features/medical-record-templates/services/medical-record-templates.service'
 import type { IApiError } from '@/types/api.types'
 
 type MedicalRecordMode = 'fill' | null
@@ -21,6 +23,7 @@ type MedicalRecordMode = 'fill' | null
 export interface MedicalRecordSectionProps {
   appointmentId: string
   specialtyId: string | null
+  professionalId: string
   appointmentStatus: AppointmentStatus
   canManage: boolean
 }
@@ -42,15 +45,29 @@ function templateFieldToRecordField(f: ITemplateFieldModel, index: number): IRec
 export function MedicalRecordSection({
   appointmentId,
   specialtyId,
+  professionalId,
   appointmentStatus,
   canManage,
 }: MedicalRecordSectionProps) {
   const [mode, setMode] = useState<MedicalRecordMode>(null)
 
   const { data: record, isLoading: isRecordLoading } = useMedicalRecordByAppointment(appointmentId)
-  const { data: templateData, isLoading: isTemplateLoading } = useTemplates(
-    specialtyId ? { specialtyId, limit: 1 } : { generalist: true, limit: 1 },
-  )
+
+  const needsProfessionalLookup = !specialtyId
+  const { data: professional, isLoading: isProfessionalLoading } = useProfessional(professionalId, {
+    enabled: needsProfessionalLookup,
+  })
+  const councilType = professional ? getPrimaryCouncilType(professional.registrations) : undefined
+
+  const templateParams: ITemplateListParams | null = specialtyId
+    ? { specialtyId, limit: 1 }
+    : councilType
+      ? { councilType, limit: 1 }
+      : null
+
+  const { data: templateData, isLoading: isTemplateLoading } = useTemplates(templateParams)
+  const isResolvingTemplate = needsProfessionalLookup ? isProfessionalLoading || isTemplateLoading : isTemplateLoading
+
   const { mutate: createRecord, isPending: isCreating, error: createError } = useCreateMedicalRecord()
   const { mutate: updateRecord, isPending: isUpdating, error: updateError } = useUpdateMedicalRecord()
 
@@ -146,13 +163,13 @@ export function MedicalRecordSection({
         className="max-w-2xl"
         data-testid="medical-record-form-modal"
       >
-        {isTemplateLoading && <MedicalRecordFormSkeleton />}
-        {!isTemplateLoading && schema.length === 0 && (
+        {isResolvingTemplate && <MedicalRecordFormSkeleton />}
+        {!isResolvingTemplate && schema.length === 0 && (
           <Alert variant="error" data-testid="no-template-alert">
             Nenhum template de prontuário encontrado para esta especialidade.
           </Alert>
         )}
-        {!isTemplateLoading && schema.length > 0 && (
+        {!isResolvingTemplate && schema.length > 0 && (
           <MedicalRecordForm
             schema={schema}
             sections={sections}

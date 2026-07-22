@@ -32,6 +32,7 @@ function makeTemplate(overrides = {}): MedicalRecordTemplate {
     id: faker.string.uuid(),
     clinicId,
     specialtyId: 'spec-1',
+    councilType: null,
     name: 'Template',
     fields: [],
     sections: [],
@@ -104,6 +105,19 @@ describe('MedicalRecordTemplatesRepository', () => {
         specialtyId: 'spec-1',
       })
     })
+
+    it('filters for the generalist template scoped by council type when councilType is set', async () => {
+      const qb = makeQueryBuilder()
+      qb.getManyAndCount.mockResolvedValue([[], 0])
+      repo.createQueryBuilder.mockReturnValue(qb as any)
+
+      await repository.findAll(clinicId, 1, 20, undefined, undefined, 'crn' as any)
+
+      expect(qb.andWhere).toHaveBeenCalledWith('template.specialtyId IS NULL')
+      expect(qb.andWhere).toHaveBeenCalledWith('template.councilType = :councilType', {
+        councilType: 'crn',
+      })
+    })
   })
 
   describe('findById', () => {
@@ -129,13 +143,31 @@ describe('MedicalRecordTemplatesRepository', () => {
       expect(result).toBe(template)
     })
 
-    it('resolves the generalist template with IsNull() when specialtyId is null', async () => {
+    it('resolves the generalist template with IsNull() for both columns when councilType is omitted', async () => {
       const template = makeTemplate()
       repo.findOneBy.mockResolvedValue(template)
 
       const result = await repository.findByClinicAndSpecialty(clinicId, null)
 
-      expect(repo.findOneBy).toHaveBeenCalledWith({ clinicId, specialtyId: IsNull() })
+      expect(repo.findOneBy).toHaveBeenCalledWith({
+        clinicId,
+        specialtyId: IsNull(),
+        councilType: IsNull(),
+      })
+      expect(result).toBe(template)
+    })
+
+    it('resolves the generalist template scoped by council type when provided', async () => {
+      const template = makeTemplate({ specialtyId: null, councilType: 'crn' })
+      repo.findOneBy.mockResolvedValue(template)
+
+      const result = await repository.findByClinicAndSpecialty(clinicId, null, 'crn' as any)
+
+      expect(repo.findOneBy).toHaveBeenCalledWith({
+        clinicId,
+        specialtyId: IsNull(),
+        councilType: 'crn',
+      })
       expect(result).toBe(template)
     })
   })

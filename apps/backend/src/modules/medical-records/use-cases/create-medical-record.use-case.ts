@@ -7,11 +7,12 @@ import {
   UnprocessableEntityException,
 } from '@nestjs/common'
 import { DataSource } from 'typeorm'
-import { CreateMedicalRecordDto, MedicalRecordResponseDto, UserRole } from '@app/shared'
+import { CouncilType, CreateMedicalRecordDto, MedicalRecordResponseDto, UserRole } from '@app/shared'
 import { BaseUseCase } from '../../../common/base.use-case'
 import { ICurrentUser } from '../../auth/types/current-user.type'
 import { IAppointmentsRepository } from '../../appointments/repositories/appointments.repository.interface'
 import { IProfessionalsRepository } from '../../professionals/repositories/professionals.repository.interface'
+import { getPrimaryCouncilType } from '../../professionals/utils/get-primary-council-type.util'
 import { FindTemplateByClinicAndSpecialtyUseCase } from '../../medical-record-templates/use-cases/find-template-by-clinic-and-specialty.use-case'
 import { IMedicalRecordsRepository } from '../repositories/medical-records.repository.interface'
 import { ValidateRecordDataService } from '../services/validate-record-data.service'
@@ -66,10 +67,25 @@ export class CreateMedicalRecordUseCase extends BaseUseCase {
       }
     }
 
-    // Generalist appointment carries a null specialty → resolves the clinic's generalist template.
+    // Generalist appointment carries a null specialty → resolves the clinic's generalist
+    // template for the appointment's professional's own profession (a CRM doctor and a CRN
+    // nutritionist each have their own generalist template, never the wrong one's).
     const specialtyId = appointment.specialtyId
+    let councilType: CouncilType | undefined
+    if (!specialtyId) {
+      const appointmentProfessional = await this.professionalsRepository.findById(
+        appointment.professionalId,
+        clinicId,
+      )
+      if (!appointmentProfessional) throw new NotFoundException('Professional not found')
+      councilType = getPrimaryCouncilType(appointmentProfessional)
+    }
 
-    const template = await this.findTemplateByClinicAndSpecialtyUseCase.execute(clinicId, specialtyId)
+    const template = await this.findTemplateByClinicAndSpecialtyUseCase.execute(
+      clinicId,
+      specialtyId,
+      councilType,
+    )
     if (!template) {
       throw new NotFoundException('No active template found for this specialty')
     }

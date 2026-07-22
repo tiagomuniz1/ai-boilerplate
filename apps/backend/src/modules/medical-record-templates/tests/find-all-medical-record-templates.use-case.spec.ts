@@ -73,7 +73,7 @@ describe('FindAllMedicalRecordTemplatesUseCase', () => {
 
     const result = await useCase.execute({ specialtyId: 'spec-1' } as any, currentUser)
 
-    expect(mockTemplatesRepository.findAll).toHaveBeenCalledWith(clinicId, 1, 20, 'spec-1', undefined)
+    expect(mockTemplatesRepository.findAll).toHaveBeenCalledWith(clinicId, 1, 20, 'spec-1', undefined, undefined)
     expect(result.data[0].specialtyName).toBe('Cardiologia')
     expect(result.total).toBe(1)
     expect(mockCacheService.set).toHaveBeenCalledWith(
@@ -104,7 +104,7 @@ describe('FindAllMedicalRecordTemplatesUseCase', () => {
 
     const result = await useCase.execute({ generalist: true } as any, currentUser)
 
-    expect(mockTemplatesRepository.findAll).toHaveBeenCalledWith(clinicId, 1, 20, undefined, true)
+    expect(mockTemplatesRepository.findAll).toHaveBeenCalledWith(clinicId, 1, 20, undefined, true, undefined)
     expect(mockCacheService.get).toHaveBeenCalledWith(
       `medical_record_templates:list:${clinicId}:1:20:generalist`,
     )
@@ -112,6 +112,21 @@ describe('FindAllMedicalRecordTemplatesUseCase', () => {
       `medical_record_templates:list:${clinicId}:1:20:generalist`,
       result,
       60,
+    )
+    expect(result.data[0].specialtyId).toBeNull()
+  })
+
+  it('forwards the councilType filter and uses it as the cache key', async () => {
+    mockCacheService.get.mockResolvedValue(null)
+    const generalistTemplate = makeTemplate({ specialtyId: null, councilType: 'crn' })
+    mockTemplatesRepository.findAll.mockResolvedValue([[generalistTemplate] as any, 1])
+    mockSpecialtiesRepository.findByIds.mockResolvedValue([])
+
+    const result = await useCase.execute({ councilType: 'crn' } as any, currentUser)
+
+    expect(mockTemplatesRepository.findAll).toHaveBeenCalledWith(clinicId, 1, 20, undefined, undefined, 'crn')
+    expect(mockCacheService.get).toHaveBeenCalledWith(
+      `medical_record_templates:list:${clinicId}:1:20:crn`,
     )
     expect(result.data[0].specialtyId).toBeNull()
   })

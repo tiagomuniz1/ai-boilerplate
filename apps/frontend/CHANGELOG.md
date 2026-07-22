@@ -4,6 +4,14 @@
 
 ### Added
 
+#### Qualquer profissional pode criar o próprio template de prontuário
+- Item "Modelos de prontuário" liberado na sidebar para `PROFESSIONAL` (antes exclusivo de `ADMIN`)
+- Novo hook `useMyProfessional` — resolve o próprio registro de profissional do usuário logado
+- `TemplateForm`: profissional CRM vê o seletor de especialidade restrito às próprias especialidades; profissional não-CRM não vê seletor de especialidade (profissão derivada do próprio registro); ADMIN ganha um novo seletor de "Profissão" ao criar um generalista
+- `TemplateList`/`TemplateDetails`: botão de criar visível para `PROFESSIONAL`; edição visível quando o profissional é dono do escopo do template (própria especialidade ou própria profissão); exclusão continua exclusiva de `ADMIN`
+- Guard de role explícito nas 4 páginas de `medical-record-templates` (antes só a sidebar escondia o link)
+- `MedicalRecordSection` resolve o template pelo `councilType` do profissional da consulta (nova prop `professionalId`) quando a consulta não tem especialidade, em vez de um único generalista por clínica
+
 #### Preparação para deploy em produção (subdomain-mode multi-tenant)
 - **`api-client` deriva o `x-clinic-slug` do subdomínio** (`clinica.pulso.center` → `clinica`) em vez do path, com fallback path-mode em dev e redirect de 401 subdomain-aware — corrige o slug errado que quebrava a auth em produção
 - Helper puro `extractSlugFromSubdomain` compartilhado pelo `middleware.ts` e pelo `api-client` (`lib/subdomain.ts`), suportando base domain de múltiplos níveis (ex.: `staging.pulso.center`)

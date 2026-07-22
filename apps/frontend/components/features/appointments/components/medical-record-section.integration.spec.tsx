@@ -1,16 +1,30 @@
 jest.mock('@/components/features/medical-records/services/medical-records.service')
 jest.mock('@/components/features/medical-record-templates/services/medical-record-templates.service')
+jest.mock('@/components/features/professionals/services/professionals.service')
 
 import { screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { AppointmentStatus, MedicalRecordFieldType } from '@app/shared'
+import { AppointmentStatus, CouncilType, MedicalRecordFieldType } from '@app/shared'
 import { medicalRecordsService } from '@/components/features/medical-records/services/medical-records.service'
 import { medicalRecordTemplatesService } from '@/components/features/medical-record-templates/services/medical-record-templates.service'
+import { professionalsService } from '@/components/features/professionals/services/professionals.service'
 import { renderWithProviders } from '@/tests/utils/render-with-providers'
 import { MedicalRecordSection } from './medical-record-section'
 
 const mockMedicalRecordsService = medicalRecordsService as jest.Mocked<typeof medicalRecordsService>
 const mockTemplatesService = medicalRecordTemplatesService as jest.Mocked<typeof medicalRecordTemplatesService>
+const mockProfessionalsService = professionalsService as jest.Mocked<typeof professionalsService>
+
+const makeProfessionalDto = (overrides: object = {}) => ({
+  id: 'doctor-uuid',
+  user: { id: 'user-uuid', fullName: 'Dr. Test', email: 'doctor@example.com', isActive: true },
+  registrations: [{ id: 'reg-1', councilType: CouncilType.CRM, number: '12345', state: 'SP', isPrimary: true }],
+  specialties: [],
+  bio: null,
+  createdAt: new Date().toISOString(),
+  updatedAt: new Date().toISOString(),
+  ...overrides,
+})
 
 const makeTemplateDto = (overrides: object = {}) => ({
   id: 'tpl-uuid',
@@ -86,6 +100,7 @@ const makeRecordDto = (overrides: object = {}) => ({
 const defaultProps = {
   appointmentId: 'appt-uuid',
   specialtyId: 'spec-uuid',
+  professionalId: 'doctor-uuid',
   appointmentStatus: AppointmentStatus.SCHEDULED,
   canManage: true,
 }
@@ -95,6 +110,7 @@ describe('MedicalRecordSection (integration)', () => {
     jest.clearAllMocks()
     mockMedicalRecordsService.getByAppointment.mockResolvedValue(null)
     mockTemplatesService.getAll.mockResolvedValue({ data: [], total: 0, page: 1, limit: 1 })
+    mockProfessionalsService.getById.mockResolvedValue(makeProfessionalDto() as any)
   })
 
   it('shows fill-medical-record button when canManage and no record exists', async () => {
@@ -111,9 +127,9 @@ describe('MedicalRecordSection (integration)', () => {
     })
   })
 
-  it('fetches the generalist template when specialtyId is null', async () => {
+  it('fetches the generalist template for the professional own council type when specialtyId is null', async () => {
     mockTemplatesService.getAll.mockResolvedValue({
-      data: [makeTemplateDto({ specialtyId: null, specialtyName: null }) as any],
+      data: [makeTemplateDto({ specialtyId: null, specialtyName: null, councilType: CouncilType.CRM }) as any],
       total: 1,
       page: 1,
       limit: 1,
@@ -125,7 +141,8 @@ describe('MedicalRecordSection (integration)', () => {
       expect(screen.getByTestId('fill-medical-record-button')).toBeInTheDocument()
     })
 
-    expect(mockTemplatesService.getAll).toHaveBeenCalledWith({ generalist: true, limit: 1 })
+    expect(mockProfessionalsService.getById).toHaveBeenCalledWith('doctor-uuid')
+    expect(mockTemplatesService.getAll).toHaveBeenCalledWith({ councilType: CouncilType.CRM, limit: 1 })
 
     await userEvent.click(screen.getByTestId('fill-medical-record-button'))
 
@@ -133,6 +150,23 @@ describe('MedicalRecordSection (integration)', () => {
       expect(screen.getByTestId('medical-record-form-modal')).toBeInTheDocument()
     })
     expect(screen.queryByTestId('no-template-alert')).not.toBeInTheDocument()
+  })
+
+  it('does not query templates until the professional council type has resolved when specialtyId is null', async () => {
+    mockProfessionalsService.getById.mockReturnValue(new Promise(() => {}))
+
+    renderWithProviders(<MedicalRecordSection {...defaultProps} specialtyId={null} />)
+
+    await waitFor(() => {
+      expect(screen.getByTestId('fill-medical-record-button')).toBeInTheDocument()
+    })
+
+    await userEvent.click(screen.getByTestId('fill-medical-record-button'))
+
+    await waitFor(() => {
+      expect(screen.getByTestId('medical-record-form-skeleton')).toBeInTheDocument()
+    })
+    expect(mockTemplatesService.getAll).not.toHaveBeenCalled()
   })
 
   it('shows medical record view inline when record exists', async () => {

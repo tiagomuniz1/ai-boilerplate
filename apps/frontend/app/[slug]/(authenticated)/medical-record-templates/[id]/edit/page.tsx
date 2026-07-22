@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
+import { UserRole } from '@app/shared'
 import { useBasePath } from '@/lib/slug-context'
 import { Button } from '@/components/ui/atoms/button/button'
 import { Typography } from '@/components/ui/atoms/typography/typography'
@@ -10,6 +11,7 @@ import { TemplateForm } from '@/components/features/medical-record-templates/com
 import { TemplateListSkeleton } from '@/components/features/medical-record-templates/components/template-list-skeleton'
 import { useTemplate } from '@/components/features/medical-record-templates/hooks/use-template.hook'
 import { useUpdateTemplate } from '@/components/features/medical-record-templates/hooks/use-update-template.hook'
+import { useAuthStore } from '@/stores/auth.store'
 import type { IUpdateTemplateInput } from '@/components/features/medical-record-templates/types/template-input.types'
 import type { IApiError } from '@/types/api.types'
 
@@ -19,9 +21,21 @@ interface EditMedicalRecordTemplatePageProps {
 
 export default function EditMedicalRecordTemplatePage({ params }: EditMedicalRecordTemplatePageProps) {
   const basePath = useBasePath()
+  const role = useAuthStore((state) => state.user?.role)
+  const canEditTemplate = role === UserRole.ADMIN || role === UserRole.PROFESSIONAL
   const { data: template, isPending: isLoadingTemplate, isError: isLoadError } = useTemplate(params.id)
   const { mutate, isPending: isSaving } = useUpdateTemplate(params.id)
   const [globalError, setGlobalError] = useState<string | null>(null)
+
+  if (!canEditTemplate) {
+    return (
+      <main className="p-6 max-w-3xl" data-testid="edit-medical-record-template-page">
+        <Alert variant="error" data-testid="edit-medical-record-template-page-forbidden">
+          Você não tem permissão para acessar esta página.
+        </Alert>
+      </main>
+    )
+  }
 
   function handleSubmit(data: IUpdateTemplateInput) {
     setGlobalError(null)

@@ -30,8 +30,8 @@ export class FindAllMedicalRecordTemplatesUseCase extends BaseUseCase {
     currentUser: ICurrentUser,
   ): Promise<PaginatedMedicalRecordTemplatesResponseDto> {
     const clinicId = currentUser.clinicId!
-    const { page = 1, limit = 20, specialtyId, generalist } = query
-    const filterKey = generalist ? 'generalist' : specialtyId ?? 'all'
+    const { page = 1, limit = 20, specialtyId, generalist, councilType } = query
+    const filterKey = councilType ?? (generalist ? 'generalist' : specialtyId ?? 'all')
     const cacheKey = `medical_record_templates:list:${clinicId}:${page}:${limit}:${filterKey}`
 
     try {
@@ -50,6 +50,7 @@ export class FindAllMedicalRecordTemplatesUseCase extends BaseUseCase {
       limit,
       specialtyId,
       generalist,
+      councilType,
     )
 
     const specialtyIds = [
@@ -93,6 +94,7 @@ export class FindAllMedicalRecordTemplatesUseCase extends BaseUseCase {
       id: template.id,
       specialtyId: template.specialtyId,
       specialtyName,
+      councilType: template.councilType,
       name: template.name,
       fields: template.fields,
       sections: template.sections,

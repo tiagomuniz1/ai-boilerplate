@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common'
 import { DataSource } from 'typeorm'
+import { CouncilType } from '@app/shared'
 import { BaseUseCase } from '../../../common/base.use-case'
 import { MedicalRecordTemplate } from '../entities/medical-record-template.entity'
 import { IMedicalRecordTemplatesRepository } from '../repositories/medical-record-templates.repository.interface'
@@ -16,7 +17,8 @@ export class FindTemplateByClinicAndSpecialtyUseCase extends BaseUseCase {
   async execute(
     clinicId: string,
     specialtyId: string | null,
+    councilType?: CouncilType,
   ): Promise<MedicalRecordTemplate | null> {
-    return this.templatesRepository.findByClinicAndSpecialty(clinicId, specialtyId)
+    return this.templatesRepository.findByClinicAndSpecialty(clinicId, specialtyId, councilType)
   }
 }

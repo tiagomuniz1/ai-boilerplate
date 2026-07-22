@@ -37,7 +37,7 @@ export class MedicalRecordTemplatesController {
   ) {}
 
   @Post()
-  @Roles(UserRole.ADMIN)
+  @Roles(UserRole.ADMIN, UserRole.PROFESSIONAL)
   @HttpCode(201)
   create(
     @Body() dto: CreateMedicalRecordTemplateDto,
@@ -65,7 +65,7 @@ export class MedicalRecordTemplatesController {
   }
 
   @Patch(':id')
-  @Roles(UserRole.ADMIN)
+  @Roles(UserRole.ADMIN, UserRole.PROFESSIONAL)
   update(
     @Param('id') id: string,
     @Body() dto: UpdateMedicalRecordTemplateDto,

@@ -6,13 +6,15 @@ import { useBasePath } from '@/lib/slug-context'
 import { Button } from '@/components/ui/atoms/button/button'
 import { Alert } from '@/components/ui/molecules/alert/alert'
 import { useAuthStore } from '@/stores/auth.store'
-import { UserRole } from '@app/shared'
+import { COUNCIL_TYPE_PROFESSION_LABELS, UserRole, getPrimaryCouncilType } from '@app/shared'
+import type { IProfessionalModel } from '@/components/features/professionals/types/professional-model.types'
+import { useMyProfessional } from '@/components/features/professionals/hooks/use-my-professional.hook'
 import { useTemplate } from '../hooks/use-template.hook'
 import { useDeleteTemplate } from '../hooks/use-delete-template.hook'
 import { TemplateListSkeleton } from './template-list-skeleton'
 import { TemplateDeleteDialog } from './template-delete-dialog'
 import type { MedicalRecordFieldType } from '@app/shared'
-import type { ITemplateFieldModel, ITemplateSectionModel } from '../types/template-model.types'
+import type { ITemplateFieldModel, ITemplateModel, ITemplateSectionModel } from '../types/template-model.types'
 
 const FIELD_TYPE_LABELS: Record<MedicalRecordFieldType, string> = {
   text: 'Texto',
@@ -23,6 +25,24 @@ const FIELD_TYPE_LABELS: Record<MedicalRecordFieldType, string> = {
   select: 'Seleção única',
   multiselect: 'Seleção múltipla',
 } as Record<MedicalRecordFieldType, string>
+
+function specialtyLabel(template: ITemplateModel): string {
+  if (template.specialtyName) return template.specialtyName
+  return template.councilType
+    ? `Generalista (${COUNCIL_TYPE_PROFESSION_LABELS[template.councilType]})`
+    : 'Generalista'
+}
+
+// Ownership mirrors the backend's rule in AssertProfessionalOwnsTemplateScope: a specialty
+// template belongs to whoever has that specialty; a profession-wide (generalist) template
+// belongs to whoever's own primary registration matches its councilType.
+function ownsTemplateScope(template: ITemplateModel, myProfessional: IProfessionalModel | undefined): boolean {
+  if (!myProfessional) return false
+  if (template.specialtyId) {
+    return myProfessional.specialties.some((s) => s.id === template.specialtyId)
+  }
+  return template.councilType === getPrimaryCouncilType(myProfessional.registrations)
+}
 
 function FieldCard({ field, index }: { field: ITemplateFieldModel; index: number }) {
   return (
@@ -100,6 +120,8 @@ export function TemplateDetails({ templateId }: TemplateDetailsProps) {
   const basePath = useBasePath()
   const role = useAuthStore((s) => s.user?.role)
   const isAdmin = role === UserRole.ADMIN
+  const isProfessional = role === UserRole.PROFESSIONAL
+  const { data: myProfessional } = useMyProfessional({ enabled: isProfessional })
 
   const { data: template, isPending, isError } = useTemplate(templateId)
   const { mutate: deleteTemplate, isPending: isDeleting } = useDeleteTemplate()
@@ -136,6 +158,7 @@ export function TemplateDetails({ templateId }: TemplateDetailsProps) {
   const sortedSections = [...template.sections].sort((a, b) => a.order - b.order)
 
   const totalFields = template.fields.length
+  const canEdit = isAdmin || (isProfessional && ownsTemplateScope(template, myProfessional))
 
   return (
     <div className="flex flex-col gap-6" data-testid="template-details">
@@ -145,7 +168,7 @@ export function TemplateDetails({ templateId }: TemplateDetailsProps) {
             {template.name}
           </h1>
           <p className="mt-0.5 text-sm text-text-dim">
-            Especialidade: <span data-testid="template-details-specialty">{template.specialtyName ?? 'Generalista'}</span>
+            Especialidade: <span data-testid="template-details-specialty">{specialtyLabel(template)}</span>
           </p>
           <span
             className={`mt-2 inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${
@@ -157,22 +180,26 @@ export function TemplateDetails({ templateId }: TemplateDetailsProps) {
           </span>
         </div>
 
-        {isAdmin && (
+        {(canEdit || isAdmin) && (
           <div className="flex items-center gap-3">
-            <Link href={`${basePath}/medical-record-templates/${templateId}/edit`}>
-              <Button variant="ghost" size="sm" data-testid="template-details-edit-button">
-                Editar
+            {canEdit && (
+              <Link href={`${basePath}/medical-record-templates/${templateId}/edit`}>
+                <Button variant="ghost" size="sm" data-testid="template-details-edit-button">
+                  Editar
+                </Button>
+              </Link>
+            )}
+            {isAdmin && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setIsDeleteOpen(true)}
+                data-testid="template-details-delete-button"
+                className="text-error hover:text-error"
+              >
+                Excluir
               </Button>
-            </Link>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => setIsDeleteOpen(true)}
-              data-testid="template-details-delete-button"
-              className="text-error hover:text-error"
-            >
-              Excluir
-            </Button>
+            )}
           </div>
         )}
       </div>

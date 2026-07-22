@@ -4,6 +4,7 @@ import { CacheModule } from '../../cache/cache.module'
 import { SpecialtiesModule } from '../specialties/specialties.module'
 import { ClinicSpecialtiesModule } from '../clinic-specialties/clinic-specialties.module'
 import { MedicalRecordCanonicalFieldsModule } from '../medical-record-canonical-fields/medical-record-canonical-fields.module'
+import { ProfessionalsModule } from '../professionals/professionals.module'
 import { MedicalRecordTemplate } from './entities/medical-record-template.entity'
 import { MedicalRecordTemplatesController } from './controllers/medical-record-templates.controller'
 import { CreateMedicalRecordTemplateUseCase } from './use-cases/create-medical-record-template.use-case'
@@ -22,6 +23,7 @@ import { MedicalRecordTemplatesRepository } from './repositories/medical-record-
     SpecialtiesModule,
     ClinicSpecialtiesModule,
     MedicalRecordCanonicalFieldsModule,
+    ProfessionalsModule,
   ],
   controllers: [MedicalRecordTemplatesController],
   providers: [

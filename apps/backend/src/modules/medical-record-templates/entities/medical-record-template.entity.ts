@@ -7,7 +7,7 @@ import {
   UpdateDateColumn,
   VersionColumn,
 } from 'typeorm'
-import { MedicalRecordFieldOptionDto, MedicalRecordFieldType } from '@app/shared'
+import { CouncilType, MedicalRecordFieldOptionDto, MedicalRecordFieldType } from '@app/shared'
 
 export interface MedicalRecordTemplateSection {
   key: string
@@ -39,6 +39,11 @@ export class MedicalRecordTemplate {
 
   @Column({ name: 'specialty_id', type: 'uuid', nullable: true })
   specialtyId: string | null
+
+  // Set exclusively when specialtyId is null — scopes a "generalist" template to a profession
+  // (e.g. every CRN nutritionist in the clinic shares one) instead of one shared row per clinic.
+  @Column({ name: 'council_type', type: 'varchar', length: 20, nullable: true })
+  councilType: CouncilType | null
 
   @Column()
   name: string

@@ -141,13 +141,13 @@ O sistema possui quatro perfis de usuário (`UserRole`). Cada perfil reflete um 
 
 | Ação | ADMIN | PROFESSIONAL | USER | PATIENT |
 |---|:---:|:---:|:---:|:---:|
-| Criar template | ✓ | ✗ | ✗ | ✗ |
+| Criar template | ✓ qualquer | ✓ só o próprio escopo | ✗ | ✗ |
 | Listar templates | ✓ | ✓ (leitura) | ✗ | ✗ |
 | Ver por ID | ✓ | ✓ (leitura) | ✗ | ✗ |
-| Editar / Ativar-Desativar | ✓ | ✗ | ✗ | ✗ |
+| Editar / Ativar-Desativar | ✓ qualquer | ✓ só o próprio escopo | ✗ | ✗ |
 | Excluir | ✓ | ✗ | ✗ | ✗ |
 
-> Templates são escopados por `clinicId + specialtyId`. PROFESSIONAL tem leitura para carregar o template ao preencher um prontuário — não vê a tela de gestão de templates no menu lateral.
+> Templates são escopados por `clinicId + specialtyId` **ou**, para o template generalista (sem especialidade), por `clinicId + councilType` — no máximo um por profissão por clínica. Todo profissional pode criar e editar o próprio modelo: médico (CRM) através de uma das próprias especialidades (ou sem especialidade, gerando o generalista do CRM); as demais profissões (CRN, CREFITO, CRP, CRO, COREN, CREF, CRFA) direto para a profissão, sem passar por especialidade. "Próprio escopo" = especialidade que o profissional possui, ou `councilType` que bate com o próprio registro principal. ADMIN pode criar/editar qualquer template, inclusive um generalista de profissão não-médica. Excluir continua exclusivo do ADMIN.
 
 ---
 
@@ -200,7 +200,7 @@ Endpoint **público** (sem autenticação, `@Public`) consumido ao bipar o QR Co
 Acesso irrestrito. Gerencia usuários, profissionais, pacientes, agendas e todas as consultas. Único perfil que pode criar usuários, ativar/desativar contas e excluir registros. Cria e edita templates de prontuário da clínica. Pode criar, editar e excluir qualquer prontuário.
 
 ### PROFESSIONAL
-Acessa o sistema para gerenciar a própria agenda, criar e acompanhar as próprias consultas. Pode editar os próprios dados de usuário e de profissional. Não vê dados de outros profissionais, agendas de outros ou consultas de outros profissionais. Cria e edita prontuários das próprias consultas (bloqueado após conclusão). Não acessa templates de prontuário.
+Acessa o sistema para gerenciar a própria agenda, criar e acompanhar as próprias consultas. Pode editar os próprios dados de usuário e de profissional. Não vê dados de outros profissionais, agendas de outros ou consultas de outros profissionais. Cria e edita prontuários das próprias consultas (bloqueado após conclusão). Cria e edita o próprio template de prontuário — médico (CRM) através de uma das próprias especialidades, demais profissões direto para a profissão — sem acesso aos templates de outros profissionais nem à exclusão.
 
 ### USER (Recepcionista)
 Acessa o sistema para consultar dados operacionais. Pode ver a lista de pacientes, profissionais e consultas (somente leitura). Pode ver a disponibilidade de qualquer profissional. Pode editar o próprio cadastro de usuário. Não cria, cancela ou conclui consultas. Não acessa prontuários nem templates.

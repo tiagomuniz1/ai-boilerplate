@@ -2,11 +2,14 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
+import { UserRole } from '@app/shared'
 import { useBasePath } from '@/lib/slug-context'
 import { Button } from '@/components/ui/atoms/button/button'
 import { Typography } from '@/components/ui/atoms/typography/typography'
+import { Alert } from '@/components/ui/molecules/alert/alert'
 import { TemplateForm } from '@/components/features/medical-record-templates/components/template-form'
 import { useCreateTemplate } from '@/components/features/medical-record-templates/hooks/use-create-template.hook'
+import { useAuthStore } from '@/stores/auth.store'
 import type { ICreateTemplateInput } from '@/components/features/medical-record-templates/types/template-input.types'
 import type { IApiError } from '@/types/api.types'
 
@@ -16,6 +19,8 @@ interface NewMedicalRecordTemplatePageProps {
 
 export default function NewMedicalRecordTemplatePage({ searchParams }: NewMedicalRecordTemplatePageProps) {
   const basePath = useBasePath()
+  const role = useAuthStore((state) => state.user?.role)
+  const canCreateTemplate = role === UserRole.ADMIN || role === UserRole.PROFESSIONAL
   const specialtyId = searchParams.specialtyId ?? ''
   const { mutate, isPending } = useCreateTemplate()
   const [globalError, setGlobalError] = useState<string | null>(null)
@@ -32,6 +37,16 @@ export default function NewMedicalRecordTemplatePage({ searchParams }: NewMedica
         }
       },
     })
+  }
+
+  if (!canCreateTemplate) {
+    return (
+      <main className="p-6 max-w-3xl" data-testid="new-medical-record-template-page">
+        <Alert variant="error" data-testid="new-medical-record-template-page-forbidden">
+          Você não tem permissão para acessar esta página.
+        </Alert>
+      </main>
+    )
   }
 
   return (

@@ -6,14 +6,23 @@ import { Alert } from '@/components/ui/molecules/alert/alert'
 import { Button } from '@/components/ui/atoms/button/button'
 import { MobileListCard } from '@/components/ui/molecules/mobile-list-card/mobile-list-card'
 import { useAuthStore } from '@/stores/auth.store'
-import { UserRole } from '@app/shared'
+import { COUNCIL_TYPE_PROFESSION_LABELS, UserRole } from '@app/shared'
 import { useTemplates } from '../hooks/use-templates.hook'
 import { TemplateListSkeleton } from './template-list-skeleton'
+import type { ITemplateModel } from '../types/template-model.types'
+
+function specialtyLabel(template: ITemplateModel): string {
+  if (template.specialtyName) return template.specialtyName
+  return template.councilType
+    ? `Generalista (${COUNCIL_TYPE_PROFESSION_LABELS[template.councilType]})`
+    : 'Generalista'
+}
 
 export function TemplateList() {
   const basePath = useBasePath()
   const role = useAuthStore((s) => s.user?.role)
   const isAdmin = role === UserRole.ADMIN
+  const isProfessional = role === UserRole.PROFESSIONAL
 
   const { data: paginated, isPending, isError } = useTemplates()
 
@@ -28,7 +37,7 @@ export function TemplateList() {
             </p>
           )}
         </div>
-        {isAdmin && (
+        {(isAdmin || isProfessional) && (
           <Link href={`${basePath}/medical-record-templates/new`} className="block sm:inline-block">
             <Button variant="primary" data-testid="template-list-new-button" className="w-full sm:w-auto">
               + Novo modelo
@@ -93,7 +102,7 @@ export function TemplateList() {
                       className="px-6 py-4 text-sm text-text-dim"
                       data-testid={`template-specialty-${template.id}`}
                     >
-                      {template.specialtyName ?? 'Generalista'}
+                      {specialtyLabel(template)}
                     </td>
                     <td
                       className="px-6 py-4 text-sm text-text-dim"
@@ -137,7 +146,7 @@ export function TemplateList() {
                 data-testid={`template-card-${template.id}`}
                 title={template.name}
                 rows={[
-                  { label: 'Especialidade', value: template.specialtyName ?? 'Generalista' },
+                  { label: 'Especialidade', value: specialtyLabel(template) },
                   { label: 'Campos', value: template.fields.length },
                   {
                     label: 'Status',

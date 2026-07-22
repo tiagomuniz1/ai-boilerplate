@@ -2,17 +2,33 @@ jest.mock('next/navigation', () => ({ useRouter: jest.fn() }))
 jest.mock('@/lib/slug-context', () => ({ useSlug: jest.fn(() => 'clinic-slug'), useBasePath: () => '/clinic-slug' }))
 jest.mock('../services/canonical-fields.service')
 jest.mock('../../specialties/services/specialties.service')
+jest.mock('../../professionals/services/professionals.service')
 
 import { screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { useRouter } from 'next/navigation'
-import { MedicalRecordFieldType } from '@app/shared'
+import { CouncilType, MedicalRecordFieldType, UserRole } from '@app/shared'
 import { canonicalFieldsService } from '../services/canonical-fields.service'
 import { specialtiesService } from '../../specialties/services/specialties.service'
+import { professionalsService } from '../../professionals/services/professionals.service'
 import { renderWithProviders } from '@/tests/utils/render-with-providers'
+import { useAuthStore } from '@/stores/auth.store'
 import { TemplateForm } from './template-form'
 
 ;(useRouter as jest.Mock).mockReturnValue({ push: jest.fn() })
+
+function makeProfessional(overrides = {}) {
+  return {
+    id: 'my-professional-uuid',
+    user: { id: 'user-uuid', fullName: 'Dr. João', email: 'joao@example.com', isActive: true },
+    registrations: [{ id: 'reg-1', councilType: CouncilType.CRM, number: '12345', state: 'SP', isPrimary: true }],
+    specialties: [],
+    bio: null,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+    ...overrides,
+  }
+}
 
 const emptySpecialtiesResponse = { data: [], total: 0, page: 1, limit: 100 }
 
@@ -38,8 +54,10 @@ const mockCanonicalFields = [
 describe('TemplateForm (integration)', () => {
   beforeEach(() => {
     jest.clearAllMocks()
+    useAuthStore.setState({ user: null })
     ;(canonicalFieldsService.getAll as jest.Mock).mockResolvedValue([])
     ;(specialtiesService.getAll as jest.Mock).mockResolvedValue(emptySpecialtiesResponse)
+    ;(professionalsService.getAll as jest.Mock).mockResolvedValue({ data: [], total: 0, page: 1, limit: 20 })
   })
 
   describe('create mode', () => {
@@ -858,6 +876,146 @@ describe('TemplateForm (integration)', () => {
               expect.objectContaining({ label: 'Queixa principal', sectionKey: 'anamnese_xyz9' }),
             ]),
           }),
+        )
+      })
+    })
+  })
+
+  describe('PROFESSIONAL', () => {
+    function renderAsProfessional(professional: ReturnType<typeof makeProfessional>, onSubmit = jest.fn()) {
+      useAuthStore.setState({
+        user: { id: 'user-uuid', fullName: 'Dr. João', email: 'joao@example.com', role: UserRole.PROFESSIONAL, clinicId: 'clinic-1' },
+      })
+      ;(professionalsService.getAll as jest.Mock).mockResolvedValue({
+        data: [professional],
+        total: 1,
+        page: 1,
+        limit: 20,
+      })
+      return renderWithProviders(<TemplateForm mode="create" onSubmit={onSubmit} isPending={false} />)
+    }
+
+    it('CRM professional sees the specialty selector restricted to their own specialties only', async () => {
+      const professional = makeProfessional({
+        specialties: [{ id: 'own-spec', name: 'Cardiologia', registryNumber: null }],
+      })
+      renderAsProfessional(professional)
+
+      await waitFor(() => {
+        expect(screen.getByRole('option', { name: 'Cardiologia' })).toBeInTheDocument()
+      })
+      expect(screen.queryByRole('option', { name: 'Neurologia' })).not.toBeInTheDocument()
+      expect(screen.queryByTestId('template-form-council-type')).not.toBeInTheDocument()
+    })
+
+    it('CRM professional without a specialty submits their own council type (CRM) for the generalist template', async () => {
+      const onSubmit = jest.fn()
+      const professional = makeProfessional({ specialties: [] })
+      renderAsProfessional(professional, onSubmit)
+
+      await userEvent.type(screen.getByTestId('template-form-name'), 'Prontuário geral')
+      await userEvent.click(screen.getByTestId('template-form-add-field'))
+      await userEvent.type(screen.getByTestId('field-editor-label-0'), 'Sintoma')
+      await userEvent.click(screen.getByTestId('template-form-submit'))
+
+      await waitFor(() => {
+        expect(onSubmit).toHaveBeenCalledWith(
+          expect.objectContaining({ specialtyId: undefined, councilType: CouncilType.CRM }),
+        )
+      })
+    })
+
+    it('non-CRM professional does not see the specialty selector at all', async () => {
+      const professional = makeProfessional({
+        registrations: [{ id: 'reg-1', councilType: CouncilType.CRN, number: '123456', state: 'SP', isPrimary: true }],
+        specialties: [],
+      })
+      renderAsProfessional(professional)
+
+      await waitFor(() => {
+        expect(screen.queryByTestId('template-form-specialty')).not.toBeInTheDocument()
+      })
+      expect(screen.queryByTestId('template-form-council-type')).not.toBeInTheDocument()
+    })
+
+    it('falls back to CRM when no registration is flagged primary', async () => {
+      const professional = makeProfessional({
+        registrations: [{ id: 'reg-1', councilType: CouncilType.CRN, number: '123456', state: 'SP', isPrimary: false }],
+        specialties: [{ id: 'own-spec', name: 'Cardiologia', registryNumber: null }],
+      })
+      renderAsProfessional(professional)
+
+      await waitFor(() => {
+        expect(screen.getByRole('option', { name: 'Cardiologia' })).toBeInTheDocument()
+      })
+    })
+
+    it('non-CRM professional submits with councilType derived from their own registration', async () => {
+      const onSubmit = jest.fn()
+      const professional = makeProfessional({
+        registrations: [{ id: 'reg-1', councilType: CouncilType.CRN, number: '123456', state: 'SP', isPrimary: true }],
+        specialties: [],
+      })
+      renderAsProfessional(professional, onSubmit)
+
+      await waitFor(() => {
+        expect(screen.queryByTestId('template-form-specialty')).not.toBeInTheDocument()
+      })
+      await userEvent.type(screen.getByTestId('template-form-name'), 'Prontuário de Nutrição')
+      await userEvent.click(screen.getByTestId('template-form-add-field'))
+      await userEvent.type(screen.getByTestId('field-editor-label-0'), 'Peso')
+      await userEvent.click(screen.getByTestId('template-form-submit'))
+
+      await waitFor(() => {
+        expect(onSubmit).toHaveBeenCalledWith(
+          expect.objectContaining({ specialtyId: undefined, councilType: CouncilType.CRN }),
+        )
+      })
+    })
+  })
+
+  describe('ADMIN profession selector', () => {
+    it('shows the profession selector when no specialty is selected', async () => {
+      renderWithProviders(
+        <TemplateForm mode="create" specialtyId="" onSubmit={jest.fn()} isPending={false} />,
+      )
+
+      expect(screen.getByTestId('template-form-council-type')).toBeInTheDocument()
+      expect(screen.getByRole('option', { name: 'Nutrição' })).toBeInTheDocument()
+    })
+
+    it('hides the profession selector once a specialty is selected', async () => {
+      ;(specialtiesService.getAll as jest.Mock).mockResolvedValue({
+        data: mockSpecialties,
+        total: 2,
+        page: 1,
+        limit: 100,
+      })
+      renderWithProviders(
+        <TemplateForm mode="create" specialtyId="spec-uuid" onSubmit={jest.fn()} isPending={false} />,
+      )
+
+      await waitFor(() => {
+        expect(screen.getByTestId('template-form-specialty')).toHaveValue('spec-uuid')
+      })
+      expect(screen.queryByTestId('template-form-council-type')).not.toBeInTheDocument()
+    })
+
+    it('submits the selected profession for a generalist template', async () => {
+      const onSubmit = jest.fn()
+      renderWithProviders(
+        <TemplateForm mode="create" specialtyId="" onSubmit={onSubmit} isPending={false} />,
+      )
+
+      await userEvent.selectOptions(screen.getByTestId('template-form-council-type'), CouncilType.CREFITO)
+      await userEvent.type(screen.getByTestId('template-form-name'), 'Prontuário de Fisioterapia')
+      await userEvent.click(screen.getByTestId('template-form-add-field'))
+      await userEvent.type(screen.getByTestId('field-editor-label-0'), 'Amplitude de movimento')
+      await userEvent.click(screen.getByTestId('template-form-submit'))
+
+      await waitFor(() => {
+        expect(onSubmit).toHaveBeenCalledWith(
+          expect.objectContaining({ specialtyId: undefined, councilType: CouncilType.CREFITO }),
         )
       })
     })

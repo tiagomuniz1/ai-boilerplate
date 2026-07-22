@@ -38,6 +38,7 @@ export function toTemplateModel(dto: MedicalRecordTemplateResponseDto): ITemplat
     id: dto.id,
     specialtyId: dto.specialtyId,
     specialtyName: dto.specialtyName,
+    councilType: dto.councilType,
     name: dto.name,
     fields: dto.fields.map((f) => toTemplateFieldModel(f)),
     sections: (dto.sections ?? []).map((s) => toTemplateSectionModel(s)),

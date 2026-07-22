@@ -104,7 +104,7 @@ describe('Medical Record Templates List', () => {
     cy.get('[data-testid="template-list-new-button"]').should('be.visible')
   })
 
-  it('does NOT show new template button for PROFESSIONAL', () => {
+  it('shows new template button for PROFESSIONAL (can create own template)', () => {
     cy.intercept('GET', `${Cypress.env('API_URL')}/medical-record-templates*`, {
       statusCode: 200,
       body: emptyPaginated,
@@ -112,7 +112,7 @@ describe('Medical Record Templates List', () => {
 
     visitClinic('/medical-record-templates', mockProfessional)
     cy.wait('@getTemplates')
-    cy.get('[data-testid="template-list-new-button"]').should('not.exist')
+    cy.get('[data-testid="template-list-new-button"]').should('be.visible')
   })
 
   it('view details link navigates to template page', () => {

@@ -90,14 +90,13 @@ describe('useSidebarNavigation', () => {
     expect(ids).not.toContain('specialties')
   })
 
-  it('PROFESSIONAL sees dashboard, professionals, prescription-templates, appointments and schedules', () => {
+  it('PROFESSIONAL sees dashboard, professionals, medical-record-templates, prescription-templates, appointments and schedules', () => {
     setRole(UserRole.PROFESSIONAL)
     const { result } = renderHook(() => useSidebarNavigation())
     const ids = result.current.items.map((i) => i.id)
-    expect(ids).toEqual(expect.arrayContaining(['dashboard', 'professionals', 'prescription-templates', 'appointments', 'schedules']))
+    expect(ids).toEqual(expect.arrayContaining(['dashboard', 'professionals', 'medical-record-templates', 'prescription-templates', 'appointments', 'schedules']))
     expect(ids).not.toContain('users')
     expect(ids).not.toContain('patients')
-    expect(ids).not.toContain('medical-record-templates')
     expect(ids).not.toContain('specialties')
   })
 

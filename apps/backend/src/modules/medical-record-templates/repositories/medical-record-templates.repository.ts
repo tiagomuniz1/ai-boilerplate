@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
 import { IsNull, QueryRunner, Repository } from 'typeorm'
+import { CouncilType } from '@app/shared'
 import { MedicalRecordTemplate } from '../entities/medical-record-template.entity'
 import { IMedicalRecordTemplatesRepository } from './medical-record-templates.repository.interface'
 
@@ -17,13 +18,17 @@ export class MedicalRecordTemplatesRepository implements IMedicalRecordTemplates
     limit: number,
     specialtyId?: string,
     generalist?: boolean,
+    councilType?: CouncilType,
   ): Promise<[MedicalRecordTemplate[], number]> {
     const queryBuilder = this.repository
       .createQueryBuilder('template')
       .where('template.clinicId = :clinicId', { clinicId })
 
-    if (generalist) {
+    if (generalist || councilType) {
       queryBuilder.andWhere('template.specialtyId IS NULL')
+      if (councilType) {
+        queryBuilder.andWhere('template.councilType = :councilType', { councilType })
+      }
     } else if (specialtyId) {
       queryBuilder.andWhere('template.specialtyId = :specialtyId', { specialtyId })
     }
@@ -42,10 +47,16 @@ export class MedicalRecordTemplatesRepository implements IMedicalRecordTemplates
   async findByClinicAndSpecialty(
     clinicId: string,
     specialtyId: string | null,
+    councilType?: CouncilType | null,
   ): Promise<MedicalRecordTemplate | null> {
-    // A raw null generates `specialty_id = NULL` which never matches — use IsNull() so the
-    // generalist template (specialty_id IS NULL) is resolvable.
-    return this.repository.findOneBy({ clinicId, specialtyId: specialtyId ?? IsNull() })
+    // A raw null generates `specialty_id = NULL` which never matches — use IsNull(). When
+    // specialtyId is null, councilType disambiguates which profession's generalist template
+    // this is (every such row always has one — see the backfill in the migration that added it).
+    return this.repository.findOneBy(
+      specialtyId
+        ? { clinicId, specialtyId }
+        : { clinicId, specialtyId: IsNull(), councilType: councilType ?? IsNull() },
+    )
   }
 
   async create(

@@ -1,16 +1,20 @@
 import {
   ConflictException,
+  ForbiddenException,
   Injectable,
   Logger,
+  NotFoundException,
   UnprocessableEntityException,
 } from '@nestjs/common'
 import { DataSource } from 'typeorm'
 import {
+  CouncilType,
   CreateMedicalRecordTemplateDto,
   MedicalRecordFieldType,
   MedicalRecordTemplateSectionDto,
   MedicalRecordTemplateFieldDto,
   MedicalRecordTemplateResponseDto,
+  UserRole,
 } from '@app/shared'
 import { BaseUseCase } from '../../../common/base.use-case'
 import { CacheService } from '../../../cache/cache.service'
@@ -18,6 +22,8 @@ import { ICurrentUser } from '../../auth/types/current-user.type'
 import { IClinicSpecialtiesRepository } from '../../clinic-specialties/repositories/clinic-specialties.repository.interface'
 import { ISpecialtiesRepository } from '../../specialties/repositories/specialties.repository.interface'
 import { IMedicalRecordCanonicalFieldsRepository } from '../../medical-record-canonical-fields/repositories/medical-record-canonical-fields.repository.interface'
+import { IProfessionalsRepository } from '../../professionals/repositories/professionals.repository.interface'
+import { getPrimaryCouncilType } from '../../professionals/utils/get-primary-council-type.util'
 import {
   MedicalRecordTemplate,
   MedicalRecordTemplateField,
@@ -25,6 +31,11 @@ import {
 } from '../entities/medical-record-template.entity'
 import { IMedicalRecordTemplatesRepository } from '../repositories/medical-record-templates.repository.interface'
 import { generateFieldKey } from '../utils/generate-field-key.util'
+
+interface ResolvedScope {
+  specialtyId: string | null
+  councilType: CouncilType | null
+}
 
 @Injectable()
 export class CreateMedicalRecordTemplateUseCase extends BaseUseCase {
@@ -36,6 +47,7 @@ export class CreateMedicalRecordTemplateUseCase extends BaseUseCase {
     private readonly clinicSpecialtiesRepository: IClinicSpecialtiesRepository,
     private readonly specialtiesRepository: ISpecialtiesRepository,
     private readonly canonicalFieldsRepository: IMedicalRecordCanonicalFieldsRepository,
+    private readonly professionalsRepository: IProfessionalsRepository,
     private readonly cacheService: CacheService,
   ) {
     super(dataSource)
@@ -46,7 +58,7 @@ export class CreateMedicalRecordTemplateUseCase extends BaseUseCase {
     currentUser: ICurrentUser,
   ): Promise<MedicalRecordTemplateResponseDto> {
     const clinicId = currentUser.clinicId!
-    const specialtyId = dto.specialtyId ?? null
+    const { specialtyId, councilType } = await this.resolveScope(dto, currentUser, clinicId)
 
     // Generalist template (no specialty) has no clinic-specialty link to validate.
     if (specialtyId) {
@@ -57,12 +69,16 @@ export class CreateMedicalRecordTemplateUseCase extends BaseUseCase {
       if (!link) throw new UnprocessableEntityException('Specialty is not linked to this clinic')
     }
 
-    const existing = await this.templatesRepository.findByClinicAndSpecialty(clinicId, specialtyId)
+    const existing = await this.templatesRepository.findByClinicAndSpecialty(
+      clinicId,
+      specialtyId,
+      councilType,
+    )
     if (existing) {
       throw new ConflictException(
         specialtyId
           ? 'A template already exists for this specialty'
-          : 'A generalist template already exists',
+          : 'A template already exists for this profession',
       )
     }
 
@@ -71,7 +87,7 @@ export class CreateMedicalRecordTemplateUseCase extends BaseUseCase {
     const fields = await this.resolveFields(dto.fields, validSectionKeys)
 
     const created = await this.templatesRepository.create(
-      { specialtyId, name: dto.name, fields, sections },
+      { specialtyId, councilType, name: dto.name, fields, sections },
       clinicId,
     )
 
@@ -87,6 +103,48 @@ export class CreateMedicalRecordTemplateUseCase extends BaseUseCase {
       ? await this.specialtiesRepository.findById(specialtyId)
       : null
     return this.toResponse(created, specialty?.name ?? null)
+  }
+
+  // ADMIN keeps full flexibility: any specialty in the clinic's catalog, or an explicit
+  // councilType for a profession-wide template (defaults to CRM, preserving the pre-existing
+  // "generalist doctor" behavior when neither specialtyId nor councilType is sent).
+  //
+  // PROFESSIONAL is scoped to their own profession: CRM professionals may only pick one of
+  // their own specialties (or none, for the clinic's shared CRM-generalist template); every
+  // other council type is barred from specialties entirely and always targets their own
+  // profession-wide template.
+  private async resolveScope(
+    dto: CreateMedicalRecordTemplateDto,
+    currentUser: ICurrentUser,
+    clinicId: string,
+  ): Promise<ResolvedScope> {
+    const specialtyId = dto.specialtyId ?? null
+
+    if (currentUser.role !== UserRole.PROFESSIONAL) {
+      return { specialtyId, councilType: specialtyId ? null : (dto.councilType ?? CouncilType.CRM) }
+    }
+
+    const professional = await this.professionalsRepository.findByUserId(currentUser.id, clinicId)
+    if (!professional) throw new NotFoundException('Professional not found')
+
+    const primaryCouncilType = getPrimaryCouncilType(professional)
+
+    if (primaryCouncilType !== CouncilType.CRM) {
+      if (specialtyId) {
+        throw new UnprocessableEntityException('Specialties are not applicable to this profession')
+      }
+      return { specialtyId: null, councilType: primaryCouncilType }
+    }
+
+    if (!specialtyId) return { specialtyId: null, councilType: CouncilType.CRM }
+
+    const ownsSpecialty = professional.professionalSpecialties.some(
+      (professionalSpecialty) => professionalSpecialty.specialtyId === specialtyId,
+    )
+    if (!ownsSpecialty) {
+      throw new ForbiddenException('You can only create a template for your own specialty')
+    }
+    return { specialtyId, councilType: null }
   }
 
   private resolveSections(
@@ -201,6 +259,7 @@ export class CreateMedicalRecordTemplateUseCase extends BaseUseCase {
       id: template.id,
       specialtyId: template.specialtyId,
       specialtyName,
+      councilType: template.councilType,
       name: template.name,
       fields: template.fields,
       sections: template.sections,

@@ -61,6 +61,7 @@ export class FindMedicalRecordTemplateByIdUseCase extends BaseUseCase {
       id: template.id,
       specialtyId: template.specialtyId,
       specialtyName,
+      councilType: template.councilType,
       name: template.name,
       fields: template.fields,
       sections: template.sections,

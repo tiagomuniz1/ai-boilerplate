@@ -226,7 +226,7 @@ export const NAVIGATION_ITEMS: INavigationItem[] = [
     id: 'medical-record-templates',
     label: 'Modelos de prontuário',
     href: '/medical-record-templates',
-    requiredRoles: [UserRole.ADMIN],
+    requiredRoles: [UserRole.ADMIN, UserRole.PROFESSIONAL],
     icon: (
       <svg
         xmlns="http://www.w3.org/2000/svg"
