@@ -292,7 +292,7 @@ describe('ProfessionalForm (integration) — create mode', () => {
     })
   })
 
-  it('creates a professional with a CRN registration and hides the RQE field', async () => {
+  it('creates a professional with a CRN registration and hides the whole specialties section', async () => {
     const onSubmit = jest.fn()
     renderWithProviders(<ProfessionalForm mode="create" isPending={false} onSubmit={onSubmit} />)
 
@@ -303,16 +303,15 @@ describe('ProfessionalForm (integration) — create mode', () => {
     )
     await userEvent.click(screen.getByTestId('professional-form-user-option'))
 
+    await waitFor(() => {
+      expect(screen.getByTestId('professional-form-specialty-group')).toBeInTheDocument()
+    })
+
     await userEvent.selectOptions(screen.getByTestId('professional-form-registration-council-type-0'), 'crn')
     fireEvent.change(screen.getByTestId('professional-form-registration-number-0'), { target: { value: '12345678' } })
     fireEvent.change(screen.getByTestId('professional-form-registration-state-0'), { target: { value: 'SP' } })
 
-    await waitFor(() => {
-      expect(screen.getByTestId(`professional-form-specialty-${SPEC_ID_1}`)).toBeInTheDocument()
-    })
-    await userEvent.click(screen.getByTestId(`professional-form-specialty-${SPEC_ID_1}`))
-
-    expect(screen.queryByTestId(`professional-form-registryNumber-${SPEC_ID_1}`)).not.toBeInTheDocument()
+    expect(screen.queryByTestId('professional-form-specialty-group')).not.toBeInTheDocument()
 
     await userEvent.click(screen.getByTestId('professional-form-submit'))
 
@@ -320,8 +319,40 @@ describe('ProfessionalForm (integration) — create mode', () => {
       expect(onSubmit).toHaveBeenCalledWith(
         expect.objectContaining({
           registrations: [{ number: '12345678', state: 'SP', isPrimary: true, councilType: 'crn' }],
-          specialties: [{ specialtyId: SPEC_ID_1, registryNumber: undefined }],
+          specialties: [],
         }),
+        expect.any(Function),
+      )
+    })
+  })
+
+  it('clears previously selected specialties when switching the primary registration away from CRM', async () => {
+    const onSubmit = jest.fn()
+    renderWithProviders(<ProfessionalForm mode="create" isPending={false} onSubmit={onSubmit} />)
+
+    await userEvent.type(screen.getByTestId('professional-form-user-search'), 'João')
+    await waitFor(
+      () => expect(screen.getByTestId('professional-form-user-option')).toBeInTheDocument(),
+      { timeout: 2000 },
+    )
+    await userEvent.click(screen.getByTestId('professional-form-user-option'))
+
+    await waitFor(() => {
+      expect(screen.getByTestId(`professional-form-specialty-${SPEC_ID_1}`)).toBeInTheDocument()
+    })
+    await userEvent.click(screen.getByTestId(`professional-form-specialty-${SPEC_ID_1}`))
+
+    await userEvent.selectOptions(screen.getByTestId('professional-form-registration-council-type-0'), 'crn')
+    fireEvent.change(screen.getByTestId('professional-form-registration-number-0'), { target: { value: '12345678' } })
+    fireEvent.change(screen.getByTestId('professional-form-registration-state-0'), { target: { value: 'SP' } })
+
+    expect(screen.queryByTestId('professional-form-specialty-group')).not.toBeInTheDocument()
+
+    await userEvent.click(screen.getByTestId('professional-form-submit'))
+
+    await waitFor(() => {
+      expect(onSubmit).toHaveBeenCalledWith(
+        expect.objectContaining({ specialties: [] }),
         expect.any(Function),
       )
     })
@@ -661,9 +692,10 @@ describe('ProfessionalForm (integration) — edit mode', () => {
     })
   })
 
-  it('hides the RQE field in edit mode when the primary registration is switched away from CRM', async () => {
+  it('hides the whole specialties section in edit mode when the primary registration is switched away from CRM', async () => {
+    const onSubmit = jest.fn()
     renderWithProviders(
-      <ProfessionalForm mode="edit" defaultValues={existingProfessional} isPending={false} onSubmit={jest.fn()} />,
+      <ProfessionalForm mode="edit" defaultValues={existingProfessional} isPending={false} onSubmit={onSubmit} />,
     )
 
     await waitFor(() => {
@@ -671,8 +703,19 @@ describe('ProfessionalForm (integration) — edit mode', () => {
     })
 
     await userEvent.selectOptions(screen.getByTestId('professional-form-registration-council-type-0'), 'crn')
+    fireEvent.change(screen.getByTestId('professional-form-registration-number-0'), { target: { value: '12345678' } })
+    fireEvent.change(screen.getByTestId('professional-form-registration-state-0'), { target: { value: 'SP' } })
 
-    expect(screen.queryByTestId(`professional-form-registryNumber-${SPEC_ID_1}`)).not.toBeInTheDocument()
+    expect(screen.queryByTestId('professional-form-specialty-group')).not.toBeInTheDocument()
+
+    await userEvent.click(screen.getByTestId('professional-form-submit'))
+
+    await waitFor(() => {
+      expect(onSubmit).toHaveBeenCalledWith(
+        expect.objectContaining({ specialties: [] }),
+        expect.any(Function),
+      )
+    })
   })
 
   it('deselects pre-selected specialty when clicked in edit mode', async () => {

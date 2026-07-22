@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { useBasePath } from '@/lib/slug-context'
 import { useAuthStore } from '@/stores/auth.store'
-import { UserRole } from '@app/shared'
+import { UserRole, COUNCIL_TYPE_LABELS, COUNCIL_TYPE_PROFESSION_LABELS } from '@app/shared'
 import { Alert } from '@/components/ui/molecules/alert/alert'
 import { Button } from '@/components/ui/atoms/button/button'
 import { Input } from '@/components/ui/atoms/input/input'
@@ -15,11 +15,21 @@ import { ProfessionalListSkeleton } from './professional-list-skeleton'
 import { ProfessionalDeleteDialog } from './professional-delete-dialog'
 import type { IProfessionalRegistrationModel, IProfessionalModel } from '../types/professional-model.types'
 
+function primaryRegistration(registrations: IProfessionalRegistrationModel[]): IProfessionalRegistrationModel | null {
+  if (registrations.length === 0) return null
+  return registrations.find((r) => r.isPrimary) ?? registrations[0]
+}
+
+function primaryProfessionLabel(registrations: IProfessionalRegistrationModel[]): string {
+  const primary = primaryRegistration(registrations)
+  return primary ? COUNCIL_TYPE_PROFESSION_LABELS[primary.councilType] : '—'
+}
+
 function primaryRegistrationLabel(registrations: IProfessionalRegistrationModel[]): string {
-  if (registrations.length === 0) return '—'
-  const primary = registrations.find((crm) => crm.isPrimary) ?? registrations[0]
+  const primary = primaryRegistration(registrations)
+  if (!primary) return '—'
   const suffix = registrations.length > 1 ? ` +${registrations.length - 1}` : ''
-  return `${primary.number}/${primary.state}${suffix}`
+  return `${COUNCIL_TYPE_LABELS[primary.councilType]} ${primary.number}/${primary.state}${suffix}`
 }
 
 export function ProfessionalList() {
@@ -135,7 +145,7 @@ export function ProfessionalList() {
                     Profissional
                   </th>
                   <th className="px-6 py-3 text-xs font-medium uppercase tracking-wider text-text-mute">
-                    CRM
+                    Tipo / Registro
                   </th>
                   <th className="px-6 py-3 text-xs font-medium uppercase tracking-wider text-text-mute">
                     Especialidade
@@ -167,10 +177,18 @@ export function ProfessionalList() {
                       </p>
                     </td>
                     <td
-                      className="px-6 py-4 text-sm text-text-dim whitespace-nowrap"
+                      className="px-6 py-4 whitespace-nowrap"
                       data-testid={`professional-crm-${professional.id}`}
                     >
-                      {primaryRegistrationLabel(professional.registrations)}
+                      <p
+                        className="text-sm font-medium text-text"
+                        data-testid={`professional-type-${professional.id}`}
+                      >
+                        {primaryProfessionLabel(professional.registrations)}
+                      </p>
+                      <p className="text-xs text-text-dim">
+                        {primaryRegistrationLabel(professional.registrations)}
+                      </p>
                     </td>
                     <td
                       className="px-6 py-4"
@@ -252,7 +270,8 @@ export function ProfessionalList() {
                   </span>
                 }
                 rows={[
-                  { label: 'CRM', value: primaryRegistrationLabel(professional.registrations) },
+                  { label: 'Tipo', value: primaryProfessionLabel(professional.registrations) },
+                  { label: 'Registro', value: primaryRegistrationLabel(professional.registrations) },
                   {
                     label: 'Especialidade',
                     value: (
