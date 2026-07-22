@@ -48,12 +48,44 @@ PARAMETER_STORE_ENV=${ENVIRONMENT}
 ENV
 aws ecr get-login-password --region ${AWS_REGION} | docker login --username AWS --password-stdin ${ECR_REGISTRY}
 cd "\$APP_DIR"
+
+echo "── Disk usage before cleanup ──"
+df -h /
+
+# Reclaim everything not backing a currently-running container. Every deploy
+# tags images with a distinct IMAGE_TAG (git sha), so every previous deploy's
+# image is "unused" but still tagged — a plain \`docker image prune\` (no -a)
+# never touches those, and on a small t3.micro root volume with no cleanup the
+# disk fills up silently over successive deploys until a pull fails outright.
+docker image prune -af || true
+docker builder prune -af || true
+
+echo "── Disk usage after cleanup, before pull ──"
+df -h /
+
+# Fail fast with a clear message instead of a cryptic mid-pull "no space left
+# on device" if there still isn't enough headroom for a fresh set of images —
+# pull briefly needs room for old + new images at once, before the post-cutover
+# prune below can reclaim the old ones.
+MIN_REQUIRED_KB=\$((3 * 1024 * 1024)) # 3GB safety margin
+AVAILABLE_KB=\$(df -Pk / | awk 'NR==2 {print \$4}')
+if [ "\$AVAILABLE_KB" -lt "\$MIN_REQUIRED_KB" ]; then
+  echo "Only \$((AVAILABLE_KB / 1024))MB free on / after cleanup — refusing to pull (need at least 3GB). Investigate disk usage on the instance manually before retrying." >&2
+  exit 1
+fi
+
 docker compose --env-file deploy.env -f docker-compose.prod.yml pull --quiet
 docker compose --env-file deploy.env -f docker-compose.prod.yml up -d
-# nginx.conf is bind-mounted, so `up -d` won't recreate the proxy when only the
+# nginx.conf is bind-mounted, so \`up -d\` won't recreate the proxy when only the
 # file changed. Reload gracefully so routing changes take effect (no-op on first boot).
 docker compose --env-file deploy.env -f docker-compose.prod.yml exec -T proxy nginx -s reload || true
-docker image prune -f
+
+# Now that containers point at the new images, the ones this deploy just
+# replaced are unused — reclaim them so the next deploy starts with headroom.
+docker image prune -af || true
+
+echo "── Disk usage after deploy ──"
+df -h /
 docker compose --env-file deploy.env -f docker-compose.prod.yml ps
 REMOTE_EOF
 )
