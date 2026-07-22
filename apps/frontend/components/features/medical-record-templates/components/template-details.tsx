@@ -6,7 +6,7 @@ import { useBasePath } from '@/lib/slug-context'
 import { Button } from '@/components/ui/atoms/button/button'
 import { Alert } from '@/components/ui/molecules/alert/alert'
 import { useAuthStore } from '@/stores/auth.store'
-import { COUNCIL_TYPE_PROFESSION_LABELS, UserRole, getPrimaryCouncilType } from '@app/shared'
+import { CouncilType, COUNCIL_TYPE_PROFESSION_LABELS, UserRole, getPrimaryCouncilType } from '@app/shared'
 import type { IProfessionalModel } from '@/components/features/professionals/types/professional-model.types'
 import { useMyProfessional } from '@/components/features/professionals/hooks/use-my-professional.hook'
 import { useTemplate } from '../hooks/use-template.hook'
@@ -26,11 +26,16 @@ const FIELD_TYPE_LABELS: Record<MedicalRecordFieldType, string> = {
   multiselect: 'Seleção múltipla',
 } as Record<MedicalRecordFieldType, string>
 
+// Specialties only exist for Medicina (CRM) — a specialty template has no councilType of its
+// own (only specialtyId), so its profession is always CRM. Every other template carries its
+// profession directly via councilType.
+function professionLabel(template: ITemplateModel): string {
+  const councilType = template.specialtyId ? CouncilType.CRM : template.councilType
+  return councilType ? COUNCIL_TYPE_PROFESSION_LABELS[councilType] : '—'
+}
+
 function specialtyLabel(template: ITemplateModel): string {
-  if (template.specialtyName) return template.specialtyName
-  return template.councilType
-    ? `Generalista (${COUNCIL_TYPE_PROFESSION_LABELS[template.councilType]})`
-    : 'Generalista'
+  return template.specialtyName ?? '—'
 }
 
 // Ownership mirrors the backend's rule in AssertProfessionalOwnsTemplateScope: a specialty
@@ -167,6 +172,9 @@ export function TemplateDetails({ templateId }: TemplateDetailsProps) {
           <h1 className="text-2xl font-semibold text-text" data-testid="template-details-name">
             {template.name}
           </h1>
+          <p className="mt-0.5 text-sm text-text-dim">
+            Profissão: <span data-testid="template-details-profession">{professionLabel(template)}</span>
+          </p>
           <p className="mt-0.5 text-sm text-text-dim">
             Especialidade: <span data-testid="template-details-specialty">{specialtyLabel(template)}</span>
           </p>

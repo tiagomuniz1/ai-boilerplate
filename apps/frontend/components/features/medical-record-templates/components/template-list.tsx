@@ -6,16 +6,21 @@ import { Alert } from '@/components/ui/molecules/alert/alert'
 import { Button } from '@/components/ui/atoms/button/button'
 import { MobileListCard } from '@/components/ui/molecules/mobile-list-card/mobile-list-card'
 import { useAuthStore } from '@/stores/auth.store'
-import { COUNCIL_TYPE_PROFESSION_LABELS, UserRole } from '@app/shared'
+import { CouncilType, COUNCIL_TYPE_PROFESSION_LABELS, UserRole } from '@app/shared'
 import { useTemplates } from '../hooks/use-templates.hook'
 import { TemplateListSkeleton } from './template-list-skeleton'
 import type { ITemplateModel } from '../types/template-model.types'
 
+// Specialties only exist for Medicina (CRM) — a specialty template has no councilType of its
+// own (only specialtyId), so its profession is always CRM. Every other template carries its
+// profession directly via councilType.
+function professionLabel(template: ITemplateModel): string {
+  const councilType = template.specialtyId ? CouncilType.CRM : template.councilType
+  return councilType ? COUNCIL_TYPE_PROFESSION_LABELS[councilType] : '—'
+}
+
 function specialtyLabel(template: ITemplateModel): string {
-  if (template.specialtyName) return template.specialtyName
-  return template.councilType
-    ? `Generalista (${COUNCIL_TYPE_PROFESSION_LABELS[template.councilType]})`
-    : 'Generalista'
+  return template.specialtyName ?? '—'
 }
 
 export function TemplateList() {
@@ -72,6 +77,9 @@ export function TemplateList() {
                     Nome
                   </th>
                   <th className="px-6 py-3 text-xs font-medium uppercase tracking-wider text-text-mute">
+                    Profissão
+                  </th>
+                  <th className="px-6 py-3 text-xs font-medium uppercase tracking-wider text-text-mute">
                     Especialidade
                   </th>
                   <th className="px-6 py-3 text-xs font-medium uppercase tracking-wider text-text-mute">
@@ -97,6 +105,12 @@ export function TemplateList() {
                       data-testid={`template-name-${template.id}`}
                     >
                       {template.name}
+                    </td>
+                    <td
+                      className="px-6 py-4 text-sm text-text-dim"
+                      data-testid={`template-profession-${template.id}`}
+                    >
+                      {professionLabel(template)}
                     </td>
                     <td
                       className="px-6 py-4 text-sm text-text-dim"
@@ -146,6 +160,7 @@ export function TemplateList() {
                 data-testid={`template-card-${template.id}`}
                 title={template.name}
                 rows={[
+                  { label: 'Profissão', value: professionLabel(template) },
                   { label: 'Especialidade', value: specialtyLabel(template) },
                   { label: 'Campos', value: template.fields.length },
                   {

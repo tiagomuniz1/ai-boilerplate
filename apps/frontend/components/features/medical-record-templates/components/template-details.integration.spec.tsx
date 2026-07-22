@@ -92,6 +92,7 @@ describe('TemplateDetails (integration)', () => {
       })
 
       expect(screen.getByTestId('template-details-name')).toHaveTextContent('Anamnese Cardíaca')
+      expect(screen.getByTestId('template-details-profession')).toHaveTextContent('Medicina')
       expect(screen.getByTestId('template-details-specialty')).toHaveTextContent('Cardiologia')
       expect(screen.getByTestId('template-details-status')).toHaveTextContent('Ativo')
     })
@@ -107,16 +108,17 @@ describe('TemplateDetails (integration)', () => {
       expect(screen.getByText('Sintoma principal')).toBeInTheDocument()
     })
 
-    it('labels a generalist template (null specialty) as "Generalista"', async () => {
+    it('shows the profession for a generalist (null specialty) template and leaves specialty blank', async () => {
       ;(medicalRecordTemplatesService.getById as jest.Mock).mockResolvedValue(
-        makeDto({ specialtyId: null, specialtyName: null }),
+        makeDto({ specialtyId: null, specialtyName: null, councilType: 'crm' }),
       )
 
       renderWithProviders(<TemplateDetails templateId="uuid-1" />)
 
       await waitFor(() => expect(screen.getByTestId('template-details')).toBeInTheDocument())
 
-      expect(screen.getByTestId('template-details-specialty')).toHaveTextContent('Generalista')
+      expect(screen.getByTestId('template-details-profession')).toHaveTextContent('Medicina')
+      expect(screen.getByTestId('template-details-specialty')).toHaveTextContent('—')
     })
 
     it('renders error state when fetch fails', async () => {
@@ -451,10 +453,10 @@ describe('TemplateDetails (integration)', () => {
     })
   })
 
-  describe('generalist template label', () => {
+  describe('profession and specialty fields', () => {
     beforeEach(() => mockAuthStoreAs(UserRole.ADMIN))
 
-    it('shows the profession in parentheses for a generalist (non-specialty) template', async () => {
+    it('shows the profession for a non-CRM (specialty-less) template and leaves specialty blank', async () => {
       ;(medicalRecordTemplatesService.getById as jest.Mock).mockResolvedValue(
         makeDto({ specialtyId: null, specialtyName: null, councilType: CouncilType.CRN }),
       )
@@ -462,8 +464,9 @@ describe('TemplateDetails (integration)', () => {
       renderWithProviders(<TemplateDetails templateId="uuid-1" />)
 
       await waitFor(() => {
-        expect(screen.getByTestId('template-details-specialty')).toHaveTextContent('Generalista (Nutrição)')
+        expect(screen.getByTestId('template-details-profession')).toHaveTextContent('Nutrição')
       })
+      expect(screen.getByTestId('template-details-specialty')).toHaveTextContent('—')
     })
   })
 })

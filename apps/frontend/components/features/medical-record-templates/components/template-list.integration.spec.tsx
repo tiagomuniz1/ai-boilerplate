@@ -63,6 +63,7 @@ describe('TemplateList (integration)', () => {
       })
 
       expect(screen.getByTestId('template-name-uuid-1')).toHaveTextContent('Anamnese Cardíaca')
+      expect(screen.getByTestId('template-profession-uuid-1')).toHaveTextContent('Medicina')
       expect(screen.getByTestId('template-specialty-uuid-1')).toHaveTextContent('Cardiologia')
       expect(screen.getByTestId('template-fields-count-uuid-1')).toHaveTextContent('1')
       expect(screen.getByTestId('template-status-uuid-1')).toHaveTextContent('Ativo')
@@ -83,17 +84,18 @@ describe('TemplateList (integration)', () => {
       )
     })
 
-    it('labels a generalist template (null specialty) as "Generalista" in table and card', async () => {
+    it('shows the profession for a generalist (null specialty) template and leaves specialty blank', async () => {
       ;(medicalRecordTemplatesService.getAll as jest.Mock).mockResolvedValue(
-        makePaginated([makeDto({ specialtyId: null, specialtyName: null })]),
+        makePaginated([makeDto({ specialtyId: null, specialtyName: null, councilType: 'crm' })]),
       )
 
       renderWithProviders(<TemplateList />)
 
       await waitFor(() => expect(screen.getByTestId('template-list-table')).toBeInTheDocument())
 
-      expect(screen.getByTestId('template-specialty-uuid-1')).toHaveTextContent('Generalista')
-      expect(screen.getByTestId('template-card-uuid-1')).toHaveTextContent('Generalista')
+      expect(screen.getByTestId('template-profession-uuid-1')).toHaveTextContent('Medicina')
+      expect(screen.getByTestId('template-specialty-uuid-1')).toHaveTextContent('—')
+      expect(screen.getByTestId('template-card-uuid-1')).toHaveTextContent('Medicina')
     })
 
     it('renders Inativo status for inactive template', async () => {
@@ -182,10 +184,10 @@ describe('TemplateList (integration)', () => {
     })
   })
 
-  describe('generalist template label', () => {
+  describe('profession and specialty columns', () => {
     beforeEach(() => mockAuthStoreAs(UserRole.ADMIN))
 
-    it('shows the profession in parentheses for a generalist (non-specialty) template', async () => {
+    it('shows the profession for a non-CRM (specialty-less) template and leaves specialty blank', async () => {
       ;(medicalRecordTemplatesService.getAll as jest.Mock).mockResolvedValue(
         makePaginated([makeDto({ specialtyId: null, specialtyName: null, councilType: 'crn' })]),
       )
@@ -193,8 +195,20 @@ describe('TemplateList (integration)', () => {
       renderWithProviders(<TemplateList />)
 
       await waitFor(() => {
-        expect(screen.getByTestId('template-specialty-uuid-1')).toHaveTextContent('Generalista (Nutrição)')
+        expect(screen.getByTestId('template-profession-uuid-1')).toHaveTextContent('Nutrição')
       })
+      expect(screen.getByTestId('template-specialty-uuid-1')).toHaveTextContent('—')
+    })
+
+    it('shows Medicina as the profession for a CRM template with a specialty', async () => {
+      ;(medicalRecordTemplatesService.getAll as jest.Mock).mockResolvedValue(makePaginated())
+
+      renderWithProviders(<TemplateList />)
+
+      await waitFor(() => {
+        expect(screen.getByTestId('template-profession-uuid-1')).toHaveTextContent('Medicina')
+      })
+      expect(screen.getByTestId('template-specialty-uuid-1')).toHaveTextContent('Cardiologia')
     })
   })
 })

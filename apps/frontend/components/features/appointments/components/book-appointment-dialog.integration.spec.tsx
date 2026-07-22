@@ -323,19 +323,17 @@ describe('BookAppointmentDialog (integration)', () => {
       })
     })
 
-    it('shows a neutral generalist note and keeps submit enabled when doctor has 0 specialties', async () => {
+    it('shows no specialty field and keeps submit enabled when the professional has 0 specialties', async () => {
       mockDoctorsService.getById.mockResolvedValue(makeDoctorResponse([]))
 
       renderWithProviders(<BookAppointmentDialog {...defaultProps} />)
 
       await waitFor(() => {
-        expect(screen.getByTestId('book-dialog-no-specialty')).toBeInTheDocument()
+        expect(screen.getByTestId('book-dialog-submit')).not.toBeDisabled()
       })
 
-      expect(screen.getByTestId('book-dialog-no-specialty')).toHaveTextContent(
-        'o atendimento será registrado como atendimento geral',
-      )
-      expect(screen.getByTestId('book-dialog-submit')).not.toBeDisabled()
+      expect(screen.queryByTestId('book-dialog-specialty-readonly')).not.toBeInTheDocument()
+      expect(screen.queryByTestId('book-dialog-specialty')).not.toBeInTheDocument()
     })
 
     it('books a generalist appointment (no specialtyId) when doctor has 0 specialties', async () => {

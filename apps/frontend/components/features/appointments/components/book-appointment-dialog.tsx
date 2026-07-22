@@ -147,12 +147,6 @@ export function BookAppointmentDialog({
           </Alert>
         )}
 
-        {doctorLoaded && specialtyCount === 0 && (
-          <Alert variant="info" data-testid="book-dialog-no-specialty">
-            Profissional sem especialidade — o atendimento será registrado como atendimento geral.
-          </Alert>
-        )}
-
         <div>
           <label htmlFor="patientId" className="block text-sm font-medium mb-1">
             Paciente <span className="text-danger">*</span>
