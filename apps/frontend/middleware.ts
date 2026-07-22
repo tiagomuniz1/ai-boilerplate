@@ -108,5 +108,9 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ['/((?!_next/static|_next/image|favicon.ico|api).*)'],
+  // Static assets (favicon.ico, app/icon.png's generated route, files under /public like
+  // /brand/*.png) have no clinic slug — without this exclusion the auth check above treats
+  // their first path segment as a slug and redirects them to a login page instead of serving
+  // the file.
+  matcher: ['/((?!_next/static|_next/image|favicon.ico|api|.*\\.(?:png|jpg|jpeg|gif|svg|webp|ico)$).*)'],
 }

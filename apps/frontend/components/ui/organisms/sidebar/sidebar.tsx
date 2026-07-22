@@ -65,7 +65,20 @@ export function Sidebar() {
         style={{ padding: '20px 14px 16px' }}
       >
       <div className="flex items-center gap-[10px] pb-5 px-2">
-        {logoUrl ? (
+        {isBackoffice ? (
+          <div data-testid="sidebar-logo" className="flex-1 min-w-0">
+            <img
+              src="/brand/pulso-logo-light.png"
+              alt="Pulso"
+              className="w-full h-auto object-contain object-left dark:hidden"
+            />
+            <img
+              src="/brand/pulso-logo-dark.png"
+              alt="Pulso"
+              className="hidden w-full h-auto object-contain object-left dark:block"
+            />
+          </div>
+        ) : logoUrl ? (
           <div data-testid="sidebar-logo" className="flex-1 min-w-0">
             <img
               src={logoUrl}

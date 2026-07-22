@@ -12,9 +12,18 @@ export default function BackofficeLoginPage() {
   return (
     <main className="flex min-h-screen items-center justify-center bg-bg p-4">
       <div className="w-full max-w-md space-y-6">
-        <div className="text-center">
-          <h1 className="text-2xl font-bold text-text">Backoffice</h1>
-          <p className="mt-2 text-sm text-text-dim">Acesse a administração da plataforma</p>
+        <div className="flex flex-col items-center gap-3 text-center">
+          <img
+            src="/brand/pulso-logo-light.png"
+            alt="Pulso"
+            className="max-h-14 max-w-[220px] object-contain dark:hidden"
+          />
+          <img
+            src="/brand/pulso-logo-dark.png"
+            alt="Pulso"
+            className="hidden max-h-14 max-w-[220px] object-contain dark:block"
+          />
+          <p className="text-sm text-text-dim">Acesse a administração da plataforma</p>
         </div>
         <LoginForm />
       </div>

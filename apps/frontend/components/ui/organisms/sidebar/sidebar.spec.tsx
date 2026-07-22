@@ -90,16 +90,19 @@ describe('Sidebar', () => {
     expect(screen.getByTestId('sidebar-logo')).toHaveTextContent('C')
   })
 
-  it('shows "Backoffice" when on a /backoffice path', () => {
+  it('shows the Pulso brand logo instead of the clinic name on a /backoffice path', () => {
     ;(usePathname as jest.Mock).mockReturnValue('/backoffice/clinics')
     render(<Sidebar />)
-    expect(screen.getByTestId('sidebar-clinic-name')).toHaveTextContent('Backoffice')
+    expect(screen.queryByTestId('sidebar-clinic-name')).not.toBeInTheDocument()
   })
 
-  it('shows "B" in logo icon on backoffice path', () => {
+  it('renders both Pulso logo variants (light/dark theme) on backoffice path', () => {
     ;(usePathname as jest.Mock).mockReturnValue('/backoffice/clinics')
     render(<Sidebar />)
-    expect(screen.getByTestId('sidebar-logo')).toHaveTextContent('B')
+    const images = screen.getAllByRole('img', { name: 'Pulso' })
+    expect(images).toHaveLength(2)
+    expect(images[0]).toHaveAttribute('src', '/brand/pulso-logo-light.png')
+    expect(images[1]).toHaveAttribute('src', '/brand/pulso-logo-dark.png')
   })
 
   it('renders <img> with logoUrl when clinic has a logo', () => {
