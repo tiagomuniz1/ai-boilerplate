@@ -54,7 +54,7 @@ function toFormItem(templateItem: IPrescriptionTemplateItemModel) {
 
 export function PrescriptionForm({ appointmentId, professionalId, isPending, globalError, onSubmit }: PrescriptionFormProps) {
   const [search, setSearch] = useState('')
-  const [crmId, setCrmId] = useState('')
+  const [registrationId, setRegistrationId] = useState('')
   const [specialtyId, setSpecialtyId] = useState('')
   const [inputMode, setInputMode] = useState<'medication' | 'ingredient'>('medication')
   const [manualText, setManualText] = useState('')
@@ -135,7 +135,7 @@ export function PrescriptionForm({ appointmentId, professionalId, isPending, glo
   function onFormSubmit(values: FormValues) {
     onSubmit({
       appointmentId,
-      ...(crmId ? { crmId } : {}),
+      ...(registrationId ? { registrationId } : {}),
       ...(specialtyId ? { specialtyId } : {}),
       items: values.items.map((item) => ({
         ...(item.isManual
@@ -398,9 +398,9 @@ export function PrescriptionForm({ appointmentId, professionalId, isPending, glo
 
       <ProfessionalSignatureSelect
         professionalId={professionalId}
-        registrationId={crmId}
+        registrationId={registrationId}
         specialtyId={specialtyId}
-        onRegistrationIdChange={setCrmId}
+        onRegistrationIdChange={setRegistrationId}
         onSpecialtyIdChange={setSpecialtyId}
       />
 

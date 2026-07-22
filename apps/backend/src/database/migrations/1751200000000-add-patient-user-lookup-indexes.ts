@@ -38,7 +38,7 @@ export class AddPatientUserLookupIndexes1751200000000 implements MigrationInterf
       WHERE deleted_at IS NULL
     `)
 
-    // Covers schedules.findActiveByDoctorAndDate, findOverlapping and deleteAllByDoctorId —
+    // Covers schedules.findActiveByProfessionalAndDate, findOverlapping and deleteAllByProfessionalId —
     // called on every appointment booking to resolve available slots.
     await queryRunner.query(`
       CREATE INDEX IF NOT EXISTS "IDX_schedules_doctor_id"

@@ -34,7 +34,7 @@ const makeDoctor = (overrides: any = {}) => {
   return {
     id: professionalId,
     user: { fullName: 'Doctor Smith' },
-    registrations: [{ id: 'crm-1', number: '12345', state: 'SP', isPrimary: true }],
+    registrations: [{ id: 'crm-1', number: '12345', state: 'SP', councilType: CouncilType.CRM, isPrimary: true }],
     professionalSpecialties: specialties.map((s: any) => ({ specialtyId: s.id, specialty: { id: s.id, name: s.name } })),
     ...rest,
   }
@@ -228,6 +228,29 @@ describe('CreateExamRequestUseCase', () => {
     expect(createCall.snapshot.patient.documentNumber).toBe('12345678900')
     expect(createCall.snapshot.items[0].name).toBe('Hemograma')
     expect(createCall.snapshot.items[0].observations).toBe('Jejum de 8h')
+  })
+
+  it('signs with the professional council type for a non-CRM generalist professional (no specialty)', async () => {
+    const physioId = 'physio-uuid'
+    const physiotherapist = {
+      id: physioId,
+      user: { fullName: 'Fisio Pedro' },
+      registrations: [{ id: 'crefito-1', number: '5432', state: 'SP', councilType: CouncilType.CREFITO, isPrimary: true }],
+      professionalSpecialties: [],
+    }
+    mockAppointmentsRepository.findById.mockResolvedValue(
+      makeAppointment({ professionalId: physioId, specialtyId: null }) as any,
+    )
+    mockProfessionalsRepository.findById.mockResolvedValue(physiotherapist as any)
+
+    await useCase.execute(baseDto, adminUser)
+
+    const createCall = mockExamRequestsRepository.create.mock.calls[0][0]
+    expect(createCall.professionalId).toBe(physioId)
+    expect(createCall.snapshot.professional.councilType).toBe(CouncilType.CREFITO)
+    expect(createCall.snapshot.professional.registrationNumber).toBe('5432/SP')
+    expect(createCall.snapshot.professional.specialtyName).toBeNull()
+    expect(createCall.snapshot.professional.registryNumber).toBeNull()
   })
 
   it('sets item observations to null when not provided', async () => {

@@ -163,7 +163,7 @@ export class SchedulesRepository implements ISchedulesRepository {
       .getMany()
   }
 
-  async deleteAllByDoctorId(professionalId: string, _clinicId: string, queryRunner?: QueryRunner): Promise<void> {
+  async deleteAllByProfessionalId(professionalId: string, _clinicId: string, queryRunner?: QueryRunner): Promise<void> {
     const repo = queryRunner
       ? queryRunner.manager.getRepository(Schedule)
       : this.repository

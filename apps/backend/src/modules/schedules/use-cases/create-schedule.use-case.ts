@@ -35,7 +35,7 @@ export class CreateScheduleUseCase extends BaseUseCase {
 
   async execute(dto: CreateScheduleDto, currentUser: ICurrentUser): Promise<ScheduleResponseDto> {
     if (currentUser.role !== UserRole.PROFESSIONAL && currentUser.role !== UserRole.ADMIN) {
-      throw new ForbiddenException('Only doctors and admins can create schedules')
+      throw new ForbiddenException('Only professionals and admins can create schedules')
     }
 
     const clinicId = currentUser.clinicId!

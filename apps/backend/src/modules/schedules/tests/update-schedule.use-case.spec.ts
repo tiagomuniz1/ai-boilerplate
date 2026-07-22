@@ -16,7 +16,7 @@ const mockSchedulesRepository: jest.Mocked<ISchedulesRepository> = {
   create: jest.fn(),
   update: jest.fn(),
   delete: jest.fn(),
-  deleteAllByDoctorId: jest.fn(),
+  deleteAllByProfessionalId: jest.fn(),
   findActiveByProfessionalAndDate: jest.fn(),
 }
 

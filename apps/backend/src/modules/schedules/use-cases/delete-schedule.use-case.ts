@@ -36,7 +36,7 @@ export class DeleteScheduleUseCase extends BaseUseCase {
 
     if (currentUser.role !== UserRole.ADMIN) {
       if (currentUser.role !== UserRole.PROFESSIONAL) {
-        throw new ForbiddenException('Only doctors and admins can manage schedules')
+        throw new ForbiddenException('Only professionals and admins can manage schedules')
       }
       const professional = await this.professionalsRepository.findByUserId(currentUser.id, clinicId)
       if (!professional) throw new NotFoundException('Professional not found')
@@ -61,7 +61,7 @@ export class DeleteScheduleUseCase extends BaseUseCase {
   }
 
   async deleteByProfessionalId(professionalId: string, clinicId: string, queryRunner?: QueryRunner): Promise<void> {
-    await this.schedulesRepository.deleteAllByDoctorId(professionalId, clinicId, queryRunner)
+    await this.schedulesRepository.deleteAllByProfessionalId(professionalId, clinicId, queryRunner)
 
     try {
       await this.cacheService.delByPrefix(`schedules:list:${clinicId}:`)

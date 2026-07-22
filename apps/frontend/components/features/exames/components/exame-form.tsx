@@ -30,7 +30,7 @@ export interface ExameFormProps {
 }
 
 export function ExameForm({ appointmentId, professionalId, isPending, globalError, onSubmit }: ExameFormProps) {
-  const [crmId, setCrmId] = useState('')
+  const [registrationId, setRegistrationId] = useState('')
   const [specialtyId, setSpecialtyId] = useState('')
   const { control, register, handleSubmit, formState: { errors } } = useForm<FormValues>({
     resolver: zodResolver(schema),
@@ -42,7 +42,7 @@ export function ExameForm({ appointmentId, professionalId, isPending, globalErro
   function onFormSubmit(values: FormValues) {
     onSubmit({
       appointmentId,
-      ...(crmId ? { crmId } : {}),
+      ...(registrationId ? { registrationId } : {}),
       ...(specialtyId ? { specialtyId } : {}),
       items: values.items.map((item) => ({
         name: item.name,
@@ -156,9 +156,9 @@ export function ExameForm({ appointmentId, professionalId, isPending, globalErro
 
       <ProfessionalSignatureSelect
         professionalId={professionalId}
-        registrationId={crmId}
+        registrationId={registrationId}
         specialtyId={specialtyId}
-        onRegistrationIdChange={setCrmId}
+        onRegistrationIdChange={setRegistrationId}
         onSpecialtyIdChange={setSpecialtyId}
       />
 

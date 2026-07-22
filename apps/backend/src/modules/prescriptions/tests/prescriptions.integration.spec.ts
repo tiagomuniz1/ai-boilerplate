@@ -318,11 +318,11 @@ describe('PrescriptionsController (integration)', () => {
         .expect(422)
     })
 
-    it('returns 422 when crmId does not belong to the doctor', async () => {
+    it('returns 422 when registrationId does not belong to the doctor', async () => {
       await request(app.getHttpServer())
         .post('/prescriptions')
         .set('Cookie', `access_token=${doctorToken}`)
-        .send({ ...validPayload(), crmId: faker.string.uuid() })
+        .send({ ...validPayload(), registrationId: faker.string.uuid() })
         .expect(422)
     })
 

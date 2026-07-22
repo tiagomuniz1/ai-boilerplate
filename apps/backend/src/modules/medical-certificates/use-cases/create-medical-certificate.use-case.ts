@@ -68,10 +68,10 @@ export class CreateMedicalCertificateUseCase extends BaseUseCase {
     const appointment = await this.appointmentsRepository.findById(dto.appointmentId, clinicId)
     if (!appointment) throw new NotFoundException('Appointment not found')
 
-    let doctorForRbac = null
+    let professionalForRbac = null
     if (currentUser.role === UserRole.PROFESSIONAL) {
-      doctorForRbac = await this.professionalsRepository.findByUserId(currentUser.id, clinicId)
-      if (!doctorForRbac || doctorForRbac.id !== appointment.professionalId) {
+      professionalForRbac = await this.professionalsRepository.findByUserId(currentUser.id, clinicId)
+      if (!professionalForRbac || professionalForRbac.id !== appointment.professionalId) {
         throw new ForbiddenException('Insufficient permissions')
       }
     }
@@ -82,13 +82,13 @@ export class CreateMedicalCertificateUseCase extends BaseUseCase {
 
     const clinic = await this.findClinicByIdUseCase.execute(clinicId)
 
-    const professional = doctorForRbac ?? (await this.professionalsRepository.findById(appointment.professionalId, clinicId))
+    const professional = professionalForRbac ?? (await this.professionalsRepository.findById(appointment.professionalId, clinicId))
     if (!professional) throw new NotFoundException('Professional not found')
 
     const { councilType, registrationNumber, registryNumber, specialtyName } = resolveProfessionalSigningIdentity(
       professional,
       appointment.specialtyId,
-      dto.crmId,
+      dto.registrationId,
       dto.specialtyId,
     )
 

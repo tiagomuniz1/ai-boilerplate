@@ -17,12 +17,12 @@ export class CreateExamRequestDto {
   @IsUUID()
   appointmentId: string
 
-  // Optional: which of the doctor's CRMs to sign with. Defaults to the primary CRM.
+  // Optional: which of the professional's registrations to sign with. Defaults to the primary one.
   @IsOptional()
   @IsUUID()
-  crmId?: string
+  registrationId?: string
 
-  // Optional: which of the doctor's registered specialties to sign as (carries RQE and title).
+  // Optional: which of the professional's registered specialties to sign as (carries RQE and title).
   // Defaults to the appointment's specialty.
   @IsOptional()
   @IsUUID()

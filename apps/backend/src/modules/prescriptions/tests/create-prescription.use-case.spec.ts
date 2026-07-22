@@ -36,7 +36,7 @@ const makeDoctor = (overrides: any = {}) => {
   return {
     id: professionalId,
     user: { fullName: 'Doctor Smith' },
-    registrations: [{ id: 'crm-1', number: '12345', state: 'SP', isPrimary: true }],
+    registrations: [{ id: 'crm-1', number: '12345', state: 'SP', councilType: CouncilType.CRM, isPrimary: true }],
     professionalSpecialties: specialties.map((s: any) => ({ specialtyId: s.id, specialty: { id: s.id, name: s.name } })),
     ...rest,
   }
@@ -223,7 +223,7 @@ describe('CreatePrescriptionUseCase', () => {
     expect(createCall.snapshot.items[0].activeIngredient).toBe('dipirona sódica')
   })
 
-  it('signs with the chosen CRM and specialty (alternate RQE and profession title) when crmId/specialtyId are provided', async () => {
+  it('signs with the chosen CRM and specialty (alternate RQE and profession title) when registrationId/specialtyId are provided', async () => {
     const altSpecialtyId = 'specialty-alt'
     const doctorWithOptions = {
       id: professionalId,
@@ -239,12 +239,35 @@ describe('CreatePrescriptionUseCase', () => {
     }
     mockProfessionalsRepository.findById.mockResolvedValue(doctorWithOptions as any)
 
-    await useCase.execute({ ...baseDto, crmId: 'crm-2', specialtyId: altSpecialtyId }, adminUser)
+    await useCase.execute({ ...baseDto, registrationId: 'crm-2', specialtyId: altSpecialtyId }, adminUser)
 
     const createCall = mockPrescriptionsRepository.create.mock.calls[0][0]
     expect(createCall.snapshot.professional.registrationNumber).toBe('67890/RJ')
     expect(createCall.snapshot.professional.registryNumber).toBe('222')
     expect(createCall.snapshot.professional.specialtyName).toBe('mastologista')
+  })
+
+  it('signs with the professional council type for a non-CRM generalist professional (no specialty)', async () => {
+    const nutritionistId = 'nutritionist-uuid'
+    const nutritionist = {
+      id: nutritionistId,
+      user: { fullName: 'Nutri Ana' },
+      registrations: [{ id: 'crn-1', number: '9876', state: 'SP', councilType: CouncilType.CRN, isPrimary: true }],
+      professionalSpecialties: [],
+    }
+    mockAppointmentsRepository.findById.mockResolvedValue(
+      makeAppointment({ professionalId: nutritionistId, specialtyId: null }) as any,
+    )
+    mockProfessionalsRepository.findById.mockResolvedValue(nutritionist as any)
+
+    await useCase.execute(baseDto, adminUser)
+
+    const createCall = mockPrescriptionsRepository.create.mock.calls[0][0]
+    expect(createCall.professionalId).toBe(nutritionistId)
+    expect(createCall.snapshot.professional.councilType).toBe(CouncilType.CRN)
+    expect(createCall.snapshot.professional.registrationNumber).toBe('9876/SP')
+    expect(createCall.snapshot.professional.specialtyName).toBeNull()
+    expect(createCall.snapshot.professional.registryNumber).toBeNull()
   })
 
   it('rejects an unknown specialtyId that does not belong to the doctor', async () => {

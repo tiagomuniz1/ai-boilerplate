@@ -34,7 +34,7 @@ const makeDoctor = (overrides: any = {}) => {
   return {
     id: professionalId,
     user: { fullName: 'Doctor Smith' },
-    registrations: [{ id: 'crm-1', number: '12345', state: 'SP', isPrimary: true }],
+    registrations: [{ id: 'crm-1', number: '12345', state: 'SP', councilType: CouncilType.CRM, isPrimary: true }],
     professionalSpecialties: specialties.map((s: any) => ({ specialtyId: s.id, specialty: { id: s.id, name: s.name } })),
     ...rest,
   }
@@ -203,6 +203,29 @@ describe('CreateMedicalCertificateUseCase', () => {
 
     expect(mockProfessionalsRepository.findByUserId).not.toHaveBeenCalled()
     expect(mockProfessionalsRepository.findById).toHaveBeenCalledWith(professionalId, clinicId)
+  })
+
+  it('signs with the professional council type for a non-CRM generalist professional (no specialty)', async () => {
+    const speechTherapistId = 'speech-therapist-uuid'
+    const speechTherapist = {
+      id: speechTherapistId,
+      user: { fullName: 'Fono Carla' },
+      registrations: [{ id: 'crfa-1', number: '4321', state: 'SP', councilType: CouncilType.CRFA, isPrimary: true }],
+      professionalSpecialties: [],
+    }
+    mockAppointmentsRepository.findById.mockResolvedValue(
+      makeAppointment({ professionalId: speechTherapistId, specialtyId: null }) as any,
+    )
+    mockProfessionalsRepository.findById.mockResolvedValue(speechTherapist as any)
+
+    await useCase.execute(attendanceDto as any, adminUser)
+
+    const createCall = mockMedicalCertificatesRepository.create.mock.calls[0][0]
+    expect(createCall.professionalId).toBe(speechTherapistId)
+    expect(createCall.snapshot.professional.councilType).toBe(CouncilType.CRFA)
+    expect(createCall.snapshot.professional.registrationNumber).toBe('4321/SP')
+    expect(createCall.snapshot.professional.specialtyName).toBeNull()
+    expect(createCall.snapshot.professional.registryNumber).toBeNull()
   })
 
   it('builds snapshot with LEAVE fields and null ATTENDANCE fields', async () => {

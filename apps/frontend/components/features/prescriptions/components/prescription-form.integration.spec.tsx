@@ -254,7 +254,7 @@ describe('PrescriptionForm (integration)', () => {
     await waitFor(() => expect(onSubmit).toHaveBeenCalled())
     expect(onSubmit.mock.calls[0][0]).toEqual({
       appointmentId: 'appt-uuid',
-      crmId: 'crm-2',
+      registrationId: 'crm-2',
       specialtyId: 'spec-2',
       items: [{ activeIngredientName: 'Amoxicilina', instructions: 'Tomar 1 cp 8/8h' }],
       notes: undefined,

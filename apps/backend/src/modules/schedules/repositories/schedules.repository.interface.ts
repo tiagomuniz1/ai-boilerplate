@@ -19,6 +19,6 @@ export abstract class ISchedulesRepository {
   abstract create(data: CreateScheduleDto & { professionalId: string }, queryRunner?: QueryRunner): Promise<Schedule>
   abstract update(id: string, data: UpdateScheduleDto, queryRunner?: QueryRunner): Promise<Schedule>
   abstract delete(id: string, queryRunner?: QueryRunner): Promise<void>
-  abstract deleteAllByDoctorId(professionalId: string, clinicId: string, queryRunner?: QueryRunner): Promise<void>
+  abstract deleteAllByProfessionalId(professionalId: string, clinicId: string, queryRunner?: QueryRunner): Promise<void>
   abstract findActiveByProfessionalAndDate(professionalId: string, dayOfWeek: DayOfWeek, date: string, clinicId: string): Promise<Schedule[]>
 }

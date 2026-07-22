@@ -13,29 +13,35 @@ export interface ProfessionalSigningIdentity {
  * Resolves the council registration number, registry number and specialty/profession title used
  * to sign a prescription, medical certificate or exam request.
  *
- * - Registration: defaults to the professional's primary registration; `crmId` overrides it (must
+ * - Registration: defaults to the professional's primary registration; `registrationId` overrides it (must
  *   belong to the professional).
  * - Specialty: defaults to the appointment's specialty; `specialtyId` overrides it (must be one
  *   the professional is registered in). The chosen registration carries the registry number and
  *   the profession title (`specialty.titleName`, falling back to `specialty.name`).
  *
- * Throws `UnprocessableEntityException` when an explicitly provided `crmId`/`specialtyId` does
- * not belong to the professional. When falling back to the defaults, missing data resolves
- * silently to empty/null, preserving the previous behaviour.
+ * Throws `UnprocessableEntityException` when an explicitly provided `registrationId`/`specialtyId` does
+ * not belong to the professional, or when the professional has no primary registration to fall
+ * back to (every professional is required to have exactly one — see `getPrimaryCouncilType`).
  */
 export function resolveProfessionalSigningIdentity(
   professional: Professional,
   appointmentSpecialtyId: string | null,
-  crmId?: string,
+  registrationId?: string,
   specialtyId?: string,
 ): ProfessionalSigningIdentity {
-  let selectedRegistration = professional.registrations.find((registration) => registration.isPrimary) ?? null
-  if (crmId) {
-    selectedRegistration = professional.registrations.find((registration) => registration.id === crmId) ?? null
-    if (!selectedRegistration) throw new UnprocessableEntityException('Registration not found for this professional')
+  const primaryRegistration = professional.registrations.find((registration) => registration.isPrimary)
+  if (!primaryRegistration) {
+    throw new UnprocessableEntityException('Professional has no primary registration')
   }
-  const councilType = selectedRegistration?.councilType ?? CouncilType.CRM
-  const registrationNumber = selectedRegistration ? `${selectedRegistration.number}/${selectedRegistration.state}` : ''
+
+  let selectedRegistration = primaryRegistration
+  if (registrationId) {
+    const found = professional.registrations.find((registration) => registration.id === registrationId)
+    if (!found) throw new UnprocessableEntityException('Registration not found for this professional')
+    selectedRegistration = found
+  }
+  const councilType = selectedRegistration.councilType
+  const registrationNumber = `${selectedRegistration.number}/${selectedRegistration.state}`
 
   const targetSpecialtyId = specialtyId ?? appointmentSpecialtyId
   const signingSpecialty = targetSpecialtyId

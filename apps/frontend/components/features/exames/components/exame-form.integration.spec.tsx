@@ -103,7 +103,7 @@ describe('ExameForm (integration)', () => {
     await userEvent.click(screen.getByTestId('exame-form-submit'))
 
     await waitFor(() => expect(onSubmit).toHaveBeenCalled())
-    expect(onSubmit.mock.calls[0][0]).toMatchObject({ crmId: 'crm-2', specialtyId: 'spec-2' })
+    expect(onSubmit.mock.calls[0][0]).toMatchObject({ registrationId: 'crm-2', specialtyId: 'spec-2' })
   })
 
   it('includes observations for an item when filled', async () => {

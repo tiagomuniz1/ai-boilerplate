@@ -17,7 +17,7 @@ export class FindAllPrescriptionTemplatesUseCase extends BaseUseCase {
     super(dataSource)
   }
 
-  async execute(currentUser: ICurrentUser, filterDoctorId?: string): Promise<PrescriptionTemplateResponseDto[]> {
+  async execute(currentUser: ICurrentUser, filterProfessionalId?: string): Promise<PrescriptionTemplateResponseDto[]> {
     const clinicId = currentUser.clinicId!
 
     if (currentUser.role === UserRole.PROFESSIONAL) {
@@ -27,7 +27,7 @@ export class FindAllPrescriptionTemplatesUseCase extends BaseUseCase {
       return templates.map(toPrescriptionTemplateResponse)
     }
 
-    const templates = await this.prescriptionTemplatesRepository.findAll(clinicId, filterDoctorId)
+    const templates = await this.prescriptionTemplatesRepository.findAll(clinicId, filterProfessionalId)
     return templates.map(toPrescriptionTemplateResponse)
   }
 }

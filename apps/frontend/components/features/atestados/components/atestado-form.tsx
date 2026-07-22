@@ -65,7 +65,7 @@ export interface AtestadoFormProps {
 }
 
 export function AtestadoForm({ appointmentId, professionalId, isPending, globalError, onSubmit }: AtestadoFormProps) {
-  const [crmId, setCrmId] = useState('')
+  const [registrationId, setRegistrationId] = useState('')
   const [specialtyId, setSpecialtyId] = useState('')
   const { register, handleSubmit, watch, setValue, control, formState: { errors } } = useForm<FormValues>({
     resolver: zodResolver(schema),
@@ -86,7 +86,7 @@ export function AtestadoForm({ appointmentId, professionalId, isPending, globalE
   function onFormSubmit(values: FormValues) {
     onSubmit({
       appointmentId,
-      ...(crmId ? { crmId } : {}),
+      ...(registrationId ? { registrationId } : {}),
       ...(specialtyId ? { specialtyId } : {}),
       type: values.type,
       ...(values.type === MedicalCertificateType.LEAVE
@@ -288,9 +288,9 @@ export function AtestadoForm({ appointmentId, professionalId, isPending, globalE
 
       <ProfessionalSignatureSelect
         professionalId={professionalId}
-        registrationId={crmId}
+        registrationId={registrationId}
         specialtyId={specialtyId}
-        onRegistrationIdChange={setCrmId}
+        onRegistrationIdChange={setRegistrationId}
         onSpecialtyIdChange={setSpecialtyId}
       />
 

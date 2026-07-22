@@ -75,13 +75,13 @@ describe('resolveProfessionalSigningIdentity', () => {
     })
   })
 
-  it('uses the provided crmId when it belongs to the professional', () => {
+  it('uses the provided registrationId when it belongs to the professional', () => {
     const result = resolveProfessionalSigningIdentity(makeProfessional(), APPOINTMENT_SPECIALTY_ID, SECONDARY_CRM_ID)
 
     expect(result.registrationNumber).toBe('67890/RJ')
   })
 
-  it('throws when the provided crmId does not belong to the professional', () => {
+  it('throws when the provided registrationId does not belong to the professional', () => {
     expect(() =>
       resolveProfessionalSigningIdentity(makeProfessional(), APPOINTMENT_SPECIALTY_ID, 'unknown-crm'),
     ).toThrow(UnprocessableEntityException)
@@ -109,16 +109,16 @@ describe('resolveProfessionalSigningIdentity', () => {
     ).toThrow(UnprocessableEntityException)
   })
 
-  it('returns an empty registration number when the professional has no primary registration and none is chosen', () => {
+  it('throws when the professional has no primary registration and none is chosen', () => {
     const professional = makeProfessional({
       registrations: [
         { id: SECONDARY_CRM_ID, number: '67890', state: 'RJ', councilType: CouncilType.CRM, isPrimary: false },
       ] as any,
     })
 
-    const result = resolveProfessionalSigningIdentity(professional, APPOINTMENT_SPECIALTY_ID)
-
-    expect(result.registrationNumber).toBe('')
+    expect(() => resolveProfessionalSigningIdentity(professional, APPOINTMENT_SPECIALTY_ID)).toThrow(
+      UnprocessableEntityException,
+    )
   })
 
   it('resolves a non-CRM council type from the primary registration', () => {
@@ -132,5 +132,23 @@ describe('resolveProfessionalSigningIdentity', () => {
 
     expect(result.councilType).toBe(CouncilType.CRN)
     expect(result.registrationNumber).toBe('9876543/SP')
+  })
+
+  it('resolves a generalist non-CRM professional (no specialties) with null specialty/registry data', () => {
+    const professional = {
+      registrations: [
+        { id: PRIMARY_CRM_ID, number: '9876543', state: 'SP', councilType: CouncilType.CREFITO, isPrimary: true },
+      ],
+      professionalSpecialties: [],
+    } as unknown as Professional
+
+    const result = resolveProfessionalSigningIdentity(professional, null)
+
+    expect(result).toEqual({
+      councilType: CouncilType.CREFITO,
+      registrationNumber: '9876543/SP',
+      registryNumber: null,
+      specialtyName: null,
+    })
   })
 })

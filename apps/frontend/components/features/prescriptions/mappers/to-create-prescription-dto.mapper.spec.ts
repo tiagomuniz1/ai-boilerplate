@@ -81,15 +81,15 @@ describe('toCreatePrescriptionDto', () => {
     expect(dto.notes).toBe('Retornar em 7 dias.')
   })
 
-  it('omits crmId and specialtyId when not provided', () => {
+  it('omits registrationId and specialtyId when not provided', () => {
     const dto = toCreatePrescriptionDto(baseInput)
-    expect(dto).not.toHaveProperty('crmId')
+    expect(dto).not.toHaveProperty('registrationId')
     expect(dto).not.toHaveProperty('specialtyId')
   })
 
-  it('includes crmId and specialtyId when provided', () => {
-    const dto = toCreatePrescriptionDto({ ...baseInput, crmId: 'crm-2', specialtyId: 'spec-2' })
-    expect(dto.crmId).toBe('crm-2')
+  it('includes registrationId and specialtyId when provided', () => {
+    const dto = toCreatePrescriptionDto({ ...baseInput, registrationId: 'crm-2', specialtyId: 'spec-2' })
+    expect(dto.registrationId).toBe('crm-2')
     expect(dto.specialtyId).toBe('spec-2')
   })
 })

@@ -47,7 +47,7 @@ export class UpdateScheduleUseCase extends BaseUseCase {
 
     if (currentUser.role !== UserRole.ADMIN) {
       if (currentUser.role !== UserRole.PROFESSIONAL) {
-        throw new ForbiddenException('Only doctors and admins can manage schedules')
+        throw new ForbiddenException('Only professionals and admins can manage schedules')
       }
       const professional = await this.professionalsRepository.findByUserId(currentUser.id, clinicId)
       if (!professional) throw new NotFoundException('Professional not found')

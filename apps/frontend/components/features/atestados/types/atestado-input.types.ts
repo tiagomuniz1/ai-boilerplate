@@ -2,7 +2,7 @@ import type { MedicalCertificateType } from '@app/shared'
 
 export interface ICreateAtestadoInput {
   appointmentId: string
-  crmId?: string
+  registrationId?: string
   specialtyId?: string
   type: MedicalCertificateType
   daysOff?: number

@@ -1,3 +1,4 @@
+import { UnprocessableEntityException } from '@nestjs/common'
 import { CouncilType } from '@app/shared'
 import { Professional } from '../entities/professional.entity'
 import { getPrimaryCouncilType } from './get-primary-council-type.util'
@@ -16,9 +17,15 @@ describe('getPrimaryCouncilType', () => {
     expect(getPrimaryCouncilType(professional)).toBe(CouncilType.CRM)
   })
 
-  it('falls back to CRM when no registration is flagged primary', () => {
+  it('returns the council type of the primary registration for a non-CRM profession', () => {
+    const professional = makeProfessional([{ councilType: CouncilType.CREFITO, isPrimary: true }])
+
+    expect(getPrimaryCouncilType(professional)).toBe(CouncilType.CREFITO)
+  })
+
+  it('throws when no registration is flagged primary', () => {
     const professional = makeProfessional([{ councilType: CouncilType.CRN, isPrimary: false }])
 
-    expect(getPrimaryCouncilType(professional)).toBe(CouncilType.CRM)
+    expect(() => getPrimaryCouncilType(professional)).toThrow(UnprocessableEntityException)
   })
 })

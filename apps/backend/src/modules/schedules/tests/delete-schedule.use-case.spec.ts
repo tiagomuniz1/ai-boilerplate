@@ -16,7 +16,7 @@ const mockSchedulesRepository: jest.Mocked<ISchedulesRepository> = {
   create: jest.fn(),
   update: jest.fn(),
   delete: jest.fn(),
-  deleteAllByDoctorId: jest.fn(),
+  deleteAllByProfessionalId: jest.fn(),
   findActiveByProfessionalAndDate: jest.fn(),
 }
 
@@ -157,30 +157,30 @@ describe('DeleteScheduleUseCase', () => {
   })
 
   describe('deleteByProfessionalId', () => {
-    it('calls deleteAllByDoctorId on repository and invalidates cache', async () => {
+    it('calls deleteAllByProfessionalId on repository and invalidates cache', async () => {
       const professionalId = faker.string.uuid()
-      mockSchedulesRepository.deleteAllByDoctorId = jest.fn().mockResolvedValue(undefined)
+      mockSchedulesRepository.deleteAllByProfessionalId = jest.fn().mockResolvedValue(undefined)
       mockCacheService.delByPrefix.mockResolvedValue(undefined)
 
       await useCase.deleteByProfessionalId(professionalId, CLINIC_ID)
 
-      expect(mockSchedulesRepository.deleteAllByDoctorId).toHaveBeenCalledWith(professionalId, CLINIC_ID, undefined)
+      expect(mockSchedulesRepository.deleteAllByProfessionalId).toHaveBeenCalledWith(professionalId, CLINIC_ID, undefined)
       expect(mockCacheService.delByPrefix).toHaveBeenCalledWith(`schedules:list:${CLINIC_ID}:`)
     })
 
     it('passes queryRunner to repository when provided', async () => {
       const professionalId = faker.string.uuid()
       const queryRunner = {} as any
-      mockSchedulesRepository.deleteAllByDoctorId = jest.fn().mockResolvedValue(undefined)
+      mockSchedulesRepository.deleteAllByProfessionalId = jest.fn().mockResolvedValue(undefined)
 
       await useCase.deleteByProfessionalId(professionalId, CLINIC_ID, queryRunner)
 
-      expect(mockSchedulesRepository.deleteAllByDoctorId).toHaveBeenCalledWith(professionalId, CLINIC_ID, queryRunner)
+      expect(mockSchedulesRepository.deleteAllByProfessionalId).toHaveBeenCalledWith(professionalId, CLINIC_ID, queryRunner)
     })
 
     it('continues without throwing when cache invalidation fails', async () => {
       const professionalId = faker.string.uuid()
-      mockSchedulesRepository.deleteAllByDoctorId = jest.fn().mockResolvedValue(undefined)
+      mockSchedulesRepository.deleteAllByProfessionalId = jest.fn().mockResolvedValue(undefined)
       mockCacheService.delByPrefix.mockRejectedValue(new Error('Redis error'))
 
       await expect(useCase.deleteByProfessionalId(professionalId, CLINIC_ID)).resolves.toBeUndefined()
