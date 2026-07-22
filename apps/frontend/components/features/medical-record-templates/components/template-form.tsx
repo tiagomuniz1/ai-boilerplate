@@ -224,6 +224,7 @@ export function TemplateForm(props: Props) {
 
   const watchedFields = useWatch({ control, name: 'fields' })
   const watchedSpecialtyId = useWatch({ control, name: 'specialtyId' })
+  const watchedCouncilType = useWatch({ control, name: 'councilType' })
 
   useEffect(() => {
     if (!isEdit && props.specialtyId && specialties.some((s) => s.id === props.specialtyId)) {
@@ -231,13 +232,22 @@ export function TemplateForm(props: Props) {
     }
   }, [specialties, isEdit, props.specialtyId, setValue])
 
-  // Non-CRM professionals create/manage a template directly for their profession — no specialty
-  // involved at all. Everyone else (ADMIN, and CRM professionals restricted to their own list
-  // above) keeps the specialty picker.
-  const showSpecialtySelector = !isEdit && (!isProfessional || isCrmProfessional)
   // Only ADMIN can set the profession explicitly for a non-specialty template — a professional's
   // own profession is always derived server-side from their registration, never user-selected.
-  const showProfessionSelector = !isEdit && !isProfessional && !watchedSpecialtyId
+  // Always shown first: which profession the template is for drives whether specialty even applies.
+  const showProfessionSelector = !isEdit && !isProfessional
+  // Specialties only exist for medicine (CRM) — every other profession goes straight to the
+  // profession-wide template (see permissions.md). CRM professionals keep the picker restricted
+  // to their own specialties; ADMIN only sees it once "Profissão" is set to Medicina.
+  const showSpecialtySelector =
+    !isEdit && (isProfessional ? isCrmProfessional : watchedCouncilType === CouncilType.CRM)
+
+  // Clear a stale specialty selection if ADMIN switches "Profissão" away from Medicina.
+  useEffect(() => {
+    if (showProfessionSelector && watchedCouncilType !== CouncilType.CRM && watchedSpecialtyId) {
+      setValue('specialtyId', '')
+    }
+  }, [showProfessionSelector, watchedCouncilType, watchedSpecialtyId, setValue])
 
   const canonicalPickerSpecialtyId = isEdit ? props.specialtyId : (watchedSpecialtyId || undefined)
 
@@ -418,6 +428,26 @@ export function TemplateForm(props: Props) {
         />
       </div>
 
+      {showProfessionSelector && (
+        <div className="flex flex-col gap-1">
+          <label className="text-sm font-medium text-text" htmlFor="template-council-type">
+            Profissão
+          </label>
+          <select
+            id="template-council-type"
+            {...register('councilType')}
+            data-testid="template-form-council-type"
+            className="h-10 w-full rounded-md px-3 text-base bg-surface border border-line text-text transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-bg"
+          >
+            {COUNCIL_TYPES.map((councilType) => (
+              <option key={councilType} value={councilType}>
+                {COUNCIL_TYPE_PROFESSION_LABELS[councilType]}
+              </option>
+            ))}
+          </select>
+        </div>
+      )}
+
       {showSpecialtySelector && (
         <div className="flex flex-col gap-1">
           <label className="text-sm font-medium text-text" htmlFor="template-specialty">
@@ -442,26 +472,6 @@ export function TemplateForm(props: Props) {
               {errors.specialtyId.message}
             </span>
           )}
-        </div>
-      )}
-
-      {showProfessionSelector && (
-        <div className="flex flex-col gap-1">
-          <label className="text-sm font-medium text-text" htmlFor="template-council-type">
-            Profissão
-          </label>
-          <select
-            id="template-council-type"
-            {...register('councilType')}
-            data-testid="template-form-council-type"
-            className="h-10 w-full rounded-md px-3 text-base bg-surface border border-line text-text transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-bg"
-          >
-            {COUNCIL_TYPES.map((councilType) => (
-              <option key={councilType} value={councilType}>
-                {COUNCIL_TYPE_PROFESSION_LABELS[councilType]}
-              </option>
-            ))}
-          </select>
         </div>
       )}
 

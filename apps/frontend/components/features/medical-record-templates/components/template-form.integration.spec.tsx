@@ -975,16 +975,7 @@ describe('TemplateForm (integration)', () => {
   })
 
   describe('ADMIN profession selector', () => {
-    it('shows the profession selector when no specialty is selected', async () => {
-      renderWithProviders(
-        <TemplateForm mode="create" specialtyId="" onSubmit={jest.fn()} isPending={false} />,
-      )
-
-      expect(screen.getByTestId('template-form-council-type')).toBeInTheDocument()
-      expect(screen.getByRole('option', { name: 'Nutrição' })).toBeInTheDocument()
-    })
-
-    it('hides the profession selector once a specialty is selected', async () => {
+    it('always shows the profession selector for ADMIN in create mode, even with a specialty pre-filled', async () => {
       ;(specialtiesService.getAll as jest.Mock).mockResolvedValue({
         data: mockSpecialties,
         total: 2,
@@ -995,10 +986,52 @@ describe('TemplateForm (integration)', () => {
         <TemplateForm mode="create" specialtyId="spec-uuid" onSubmit={jest.fn()} isPending={false} />,
       )
 
-      await waitFor(() => {
-        expect(screen.getByTestId('template-form-specialty')).toHaveValue('spec-uuid')
-      })
-      expect(screen.queryByTestId('template-form-council-type')).not.toBeInTheDocument()
+      expect(screen.getByTestId('template-form-council-type')).toBeInTheDocument()
+      expect(screen.getByRole('option', { name: 'Nutrição' })).toBeInTheDocument()
+    })
+
+    it('renders "Profissão" before "Especialidade" in the form', async () => {
+      renderWithProviders(
+        <TemplateForm mode="create" specialtyId="" onSubmit={jest.fn()} isPending={false} />,
+      )
+
+      const councilTypeEl = screen.getByTestId('template-form-council-type')
+      const specialtyEl = screen.getByTestId('template-form-specialty')
+      expect(
+        councilTypeEl.compareDocumentPosition(specialtyEl) & Node.DOCUMENT_POSITION_FOLLOWING,
+      ).toBeTruthy()
+    })
+
+    it('shows the specialty selector by default (profession defaults to Medicina/CRM)', async () => {
+      renderWithProviders(
+        <TemplateForm mode="create" specialtyId="" onSubmit={jest.fn()} isPending={false} />,
+      )
+
+      expect(screen.getByTestId('template-form-specialty')).toBeInTheDocument()
+    })
+
+    it('hides the specialty selector once the profession is changed away from Medicina', async () => {
+      renderWithProviders(
+        <TemplateForm mode="create" specialtyId="" onSubmit={jest.fn()} isPending={false} />,
+      )
+
+      expect(screen.getByTestId('template-form-specialty')).toBeInTheDocument()
+
+      await userEvent.selectOptions(screen.getByTestId('template-form-council-type'), CouncilType.CREFITO)
+
+      expect(screen.queryByTestId('template-form-specialty')).not.toBeInTheDocument()
+    })
+
+    it('shows the specialty selector again after switching back to Medicina', async () => {
+      renderWithProviders(
+        <TemplateForm mode="create" specialtyId="" onSubmit={jest.fn()} isPending={false} />,
+      )
+
+      await userEvent.selectOptions(screen.getByTestId('template-form-council-type'), CouncilType.CREFITO)
+      expect(screen.queryByTestId('template-form-specialty')).not.toBeInTheDocument()
+
+      await userEvent.selectOptions(screen.getByTestId('template-form-council-type'), CouncilType.CRM)
+      expect(screen.getByTestId('template-form-specialty')).toBeInTheDocument()
     })
 
     it('submits the selected profession for a generalist template', async () => {
