@@ -147,7 +147,7 @@ O sistema possui quatro perfis de usuário (`UserRole`). Cada perfil reflete um 
 | Editar / Ativar-Desativar | ✓ qualquer | ✓ só o próprio escopo | ✗ | ✗ |
 | Excluir | ✓ | ✗ | ✗ | ✗ |
 
-> Templates são escopados por `clinicId + specialtyId` **ou**, para o template generalista (sem especialidade), por `clinicId + councilType` — no máximo um por profissão por clínica. Todo profissional pode criar e editar o próprio modelo: médico (CRM) através de uma das próprias especialidades (ou sem especialidade, gerando o generalista do CRM); as demais profissões (CRN, CREFITO, CRP, CRO, COREN, CREF, CRFA) direto para a profissão, sem passar por especialidade. "Próprio escopo" = especialidade que o profissional possui, ou `councilType` que bate com o próprio registro principal. ADMIN pode criar/editar qualquer template, inclusive um generalista de profissão não-médica. Excluir continua exclusivo do ADMIN.
+> Templates são escopados por `clinicId + specialtyId` **ou**, para o template generalista (sem especialidade), por `clinicId + councilType` — no máximo um por profissão por clínica. Todo profissional pode criar e editar o próprio modelo: médico (CRM) através de uma das próprias especialidades (ou sem especialidade, gerando o generalista do CRM); as demais profissões (CRN, CREFITO, CRP, CRO, CRFA) direto para a profissão, sem passar por especialidade. "Próprio escopo" = especialidade que o profissional possui, ou `councilType` que bate com o próprio registro principal. ADMIN pode criar/editar qualquer template, inclusive um generalista de profissão não-médica. Excluir continua exclusivo do ADMIN.
 
 ---
 

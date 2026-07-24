@@ -38,18 +38,6 @@ export const COUNCIL_REGISTRATION_FORMATS: Record<CouncilType, CouncilRegistrati
     numberPlaceholder: '12345',
     label: 'CRO',
   },
-  [CouncilType.COREN]: {
-    numberPattern: /^\d{1,7}$/,
-    numberMaxLength: 7,
-    numberPlaceholder: '1234567',
-    label: 'COREN',
-  },
-  [CouncilType.CREF]: {
-    numberPattern: /^\d{1,6}-?G\/?[A-Z]{0,2}$/,
-    numberMaxLength: 10,
-    numberPlaceholder: '123456-G/SP',
-    label: 'CREF',
-  },
   [CouncilType.CRFA]: {
     numberPattern: /^\d{1,2}-\d{1,5}$/,
     numberMaxLength: 8,

@@ -6,7 +6,5 @@ export const COUNCIL_TYPE_LABELS: Record<CouncilType, string> = {
   [CouncilType.CREFITO]: 'CREFITO',
   [CouncilType.CRP]: 'CRP',
   [CouncilType.CRO]: 'CRO',
-  [CouncilType.COREN]: 'COREN',
-  [CouncilType.CREF]: 'CREF',
   [CouncilType.CRFA]: 'CRFA',
 }
