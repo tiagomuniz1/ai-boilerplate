@@ -17,7 +17,7 @@ variable "github_owner" {
 variable "github_repo" {
   description = "GitHub repository name."
   type        = string
-  default     = "ai-boilerplate"
+  default     = "pulso"
 }
 
 variable "create_oidc_provider" {
