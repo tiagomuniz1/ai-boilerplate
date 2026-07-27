@@ -17,7 +17,19 @@ variable "github_owner" {
 variable "github_repo" {
   description = "GitHub repository name."
   type        = string
-  default     = "ai-boilerplate"
+  default     = "pulso"
+}
+
+variable "github_owner_id" {
+  description = "GitHub numeric (immutable) ID of the owner. GitHub's default OIDC subject claim scopes to this ID instead of the mutable login, so the trust relationship isn't broken by a rename. Fetch via `gh api repos/OWNER/REPO --jq .owner.id`."
+  type        = string
+  default     = "14317632"
+}
+
+variable "github_repo_id" {
+  description = "GitHub numeric (immutable) ID of the repository. See github_owner_id. Fetch via `gh api repos/OWNER/REPO --jq .id`."
+  type        = string
+  default     = "1213836286"
 }
 
 variable "create_oidc_provider" {
