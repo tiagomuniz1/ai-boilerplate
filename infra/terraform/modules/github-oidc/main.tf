@@ -9,7 +9,14 @@ locals {
 
   # Trust is scoped to the specific GitHub Environment so the staging role can
   # only be assumed by a staging deployment, and production by a production one.
-  subject = "repo:${var.github_owner}/${var.github_repo}:environment:${var.environment}"
+  #
+  # GitHub's default OIDC subject claim is scoped to the owner/repo *immutable IDs*,
+  # not the mutable login/name (this prevents trust hijacking via rename or repo
+  # transfer). Confirmed via `gh api repos/OWNER/REPO/actions/oidc/customization/sub`
+  # (see `sub_claim_prefix`) and cross-checked against the actual CloudTrail
+  # AssumeRoleWithWebIdentity principal — both show
+  # "repo:${var.github_owner}@${var.github_owner_id}/${var.github_repo}@${var.github_repo_id}".
+  subject = "repo:${var.github_owner}@${var.github_owner_id}/${var.github_repo}@${var.github_repo_id}:environment:${var.environment}"
 
   oidc_provider_arn = var.create_oidc_provider ? aws_iam_openid_connect_provider.github[0].arn : data.aws_iam_openid_connect_provider.github[0].arn
 
