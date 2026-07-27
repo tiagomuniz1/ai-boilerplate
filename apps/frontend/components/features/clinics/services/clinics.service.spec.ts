@@ -176,24 +176,4 @@ describe('clinicsService', () => {
     expect(formData.get('favicon')).toBe(file)
     expect(result).toBe(dto)
   })
-
-  it('register calls POST /clinics/register with data and returns result', async () => {
-    const response = {
-      clinic: { id: 'uuid-1', name: 'Clínica do Coração', slug: 'clinica-do-coracao' },
-      admin: { id: 'admin-uuid', fullName: 'Admin Silva', email: 'admin@clinica.com' },
-    }
-    mockApiClient.post.mockResolvedValue(response)
-    const input = {
-      clinicName: 'Clínica do Coração',
-      slug: 'clinica-do-coracao',
-      adminFullName: 'Admin Silva',
-      adminEmail: 'admin@clinica.com',
-      adminPassword: 'senha1234',
-    }
-
-    const result = await clinicsService.register(input as any)
-
-    expect(mockApiClient.post).toHaveBeenCalledWith('/clinics/register', input)
-    expect(result).toBe(response)
-  })
 })

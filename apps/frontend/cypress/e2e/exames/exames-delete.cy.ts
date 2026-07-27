@@ -120,4 +120,51 @@ describe('Exames — Delete', () => {
     cy.get(`[data-testid="exame-item-${EXAM_REQUEST_UUID}"]`).should('not.exist')
     cy.get('[data-testid="exame-section-empty"]').should('be.visible')
   })
+
+  it('cancels the delete dialog without deleting the exam request', () => {
+    cy.fixture('exames.json').then((examRequest) => {
+      cy.intercept('GET', `${Cypress.env('API_URL')}/exam-requests*`, {
+        statusCode: 200,
+        body: [examRequest],
+      }).as('getExamRequests')
+    })
+
+    visitClinic(`/appointments/${APPT_UUID}`, mockProfessionalUser)
+    cy.wait('@getAppointment')
+    cy.wait('@getExamRequests')
+
+    cy.get('[data-testid="tab-exames"]').click()
+    cy.get(`[data-testid="exame-delete-button-${EXAM_REQUEST_UUID}"]`).click()
+    cy.get('[data-testid="exame-delete-dialog"]').should('be.visible')
+    cy.get('[data-testid="exame-delete-dialog-message"]').should('be.visible')
+    cy.get('[data-testid="exame-delete-dialog-cancel"]').click()
+
+    cy.get('[data-testid="exame-delete-dialog"]').should('not.exist')
+    cy.get(`[data-testid="exame-item-${EXAM_REQUEST_UUID}"]`).should('exist')
+  })
+
+  it('shows a skeleton while the exam list is loading, then an error state on failure', () => {
+    cy.intercept('GET', `${Cypress.env('API_URL')}/exam-requests*`, {
+      statusCode: 200,
+      body: [],
+      delay: 500,
+    }).as('getExamRequestsSlow')
+
+    visitClinic(`/appointments/${APPT_UUID}`, mockProfessionalUser)
+    cy.wait('@getAppointment')
+    cy.get('[data-testid="tab-exames"]').click()
+    cy.get('[data-testid="exame-list-skeleton"]').should('be.visible')
+    cy.wait('@getExamRequestsSlow')
+    cy.get('[data-testid="exame-list-skeleton"]').should('not.exist')
+
+    cy.intercept('GET', `${Cypress.env('API_URL')}/exam-requests*`, {
+      statusCode: 500,
+      body: { type: 'https://httpstatuses.com/500', title: 'INTERNAL_SERVER_ERROR', status: 500, detail: 'Internal error' },
+    }).as('getExamRequestsError')
+    cy.reload()
+    cy.wait('@getAppointment')
+    cy.get('[data-testid="tab-exames"]').click()
+    cy.wait('@getExamRequestsError')
+    cy.get('[data-testid="exame-section-error"]').should('be.visible')
+  })
 })

@@ -150,25 +150,50 @@ describe('Medical Record Fill', () => {
     cy.get('[data-testid="fill-medical-record-button"]').should('be.visible')
   })
 
-  it('PROFESSIONAL fills medical record form and creates record', () => {
-    cy.intercept('GET', `${Cypress.env('API_URL')}/medical-records/by-appointment/${APPT_UUID}`, {
+  it('shows a no-template alert when the specialty has no template', () => {
+    cy.intercept('GET', `${Cypress.env('API_URL')}/medical-record-templates*`, {
       statusCode: 200,
-      body: null,
-    }).as('noRecord')
+      body: { data: [], total: 0, page: 1, limit: 1 },
+    }).as('getNoTemplate')
 
     visitClinic(`/appointments/${APPT_UUID}`, mockProfessionalUser)
-
     cy.wait('@getAppointment')
-    cy.wait('@noRecord')
+    cy.wait('@getRecord')
 
     cy.get('[data-testid="tab-prontuario"]').click()
-    cy.wait('@getTemplate')
-
     cy.get('[data-testid="fill-medical-record-button"]').click()
-    cy.get('[data-testid="medical-record-form"]').should('be.visible')
-
-    cy.get('[data-testid="dynamic-field-symptom"]').type('Dor no peito')
-    cy.get('[data-testid="medical-record-form-submit"]').click()
-    cy.wait('@createRecord')
+    cy.wait('@getNoTemplate')
+    cy.get('[data-testid="no-template-alert"]').should('be.visible')
   })
+
+  it('shows a skeleton while resolving the template, then a generic error on submit failure', () => {
+    cy.intercept('GET', `${Cypress.env('API_URL')}/medical-record-templates*`, {
+      statusCode: 200,
+      body: mockTemplate,
+      delay: 500,
+    }).as('getTemplateSlow')
+
+    visitClinic(`/appointments/${APPT_UUID}`, mockProfessionalUser)
+    cy.wait('@getAppointment')
+    cy.wait('@getRecord')
+
+    cy.get('[data-testid="tab-prontuario"]').click()
+    cy.get('[data-testid="fill-medical-record-button"]').click()
+    cy.get('[data-testid="medical-record-form-skeleton"]').should('be.visible')
+    cy.wait('@getTemplateSlow')
+    cy.get('[data-testid="medical-record-form-skeleton"]').should('not.exist')
+
+    cy.get(`[data-testid="dynamic-field-symptom"]`).type('Dor no peito')
+
+    cy.intercept('POST', `${Cypress.env('API_URL')}/medical-records`, {
+      statusCode: 500,
+      body: { type: 'https://httpstatuses.com/500', title: 'INTERNAL_SERVER_ERROR', status: 500, detail: 'Internal error' },
+    }).as('createRecordError')
+    cy.get('[data-testid="medical-record-form-submit"]').click()
+    cy.wait('@createRecordError')
+    cy.get('[data-testid="medical-record-form-error"]').should('be.visible')
+  })
+
+  // Real-backend happy path (specialty inherited from the appointment, real
+  // template fields) lives in medical-records-happy-path-real.cy.ts.
 })

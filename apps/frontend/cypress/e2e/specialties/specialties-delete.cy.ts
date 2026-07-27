@@ -72,6 +72,7 @@ describe('Specialties Delete', () => {
       cy.get('[data-testid="delete-specialty-dialog-confirm"]').click()
       cy.wait('@deleteSpecialty')
       cy.get('[data-testid="delete-specialty-dialog"]').should('not.exist')
+      cy.get('[data-testid="specialty-list-delete-error"]').should('be.visible')
       cy.get(`[data-testid="specialty-table-row-${MOCK_SPECIALTY_ID}"]`).should('exist')
     })
 

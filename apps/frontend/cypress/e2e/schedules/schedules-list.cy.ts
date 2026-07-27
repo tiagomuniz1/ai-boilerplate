@@ -63,6 +63,18 @@ describe('Schedules List', () => {
     expectClinicPath('/login')
   })
 
+  it('shows a skeleton while loading', () => {
+    cy.intercept('GET', `${Cypress.env('API_URL')}/schedules*`, {
+      statusCode: 200,
+      body: emptyListResponse,
+      delay: 500,
+    }).as('getSchedulesSlow')
+    visitClinic('/schedules', mockProfessionalUser)
+    cy.get('[data-testid="schedule-list-skeleton"]').should('be.visible')
+    cy.wait('@getSchedulesSlow')
+    cy.get('[data-testid="schedule-list-skeleton"]').should('not.exist')
+  })
+
   it('shows empty state when no schedules exist', () => {
     cy.intercept('GET', `${Cypress.env('API_URL')}/schedules*`, { statusCode: 200, body: emptyListResponse }).as('getSchedules')
     visitClinic('/schedules', mockProfessionalUser)

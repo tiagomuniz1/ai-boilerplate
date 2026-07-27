@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 import { extractSlugFromSubdomain } from '@/lib/subdomain'
 
-const PUBLIC_SEGMENTS = ['/login', '/register', '/set-password', '/verify']
+const PUBLIC_SEGMENTS = ['/login', '/set-password', '/verify']
 
 function extractSlugFromPath(pathname: string): string | null {
   return pathname.split('/').filter(Boolean)[0] ?? null

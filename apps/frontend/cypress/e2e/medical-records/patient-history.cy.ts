@@ -96,4 +96,43 @@ describe('Patient Medical History', () => {
     cy.get('[data-testid="history-card-specialty"]').first().should('contain.text', 'Cardiologia')
     cy.get('[data-testid="history-card-professional"]').first().should('contain.text', 'Dr. João')
   })
+
+  it('shows a skeleton while loading, then an error state on failure', () => {
+    cy.intercept('GET', `${Cypress.env('API_URL')}/medical-records*`, {
+      statusCode: 200,
+      body: { data: [], total: 0, page: 1, limit: 10 },
+      delay: 500,
+    }).as('getHistorySlow')
+
+    cy.visit(`/pulso/patients/${PATIENT_UUID}`)
+    cy.wait('@getPatient')
+    cy.get('[data-testid="patient-history-skeleton"]').should('be.visible')
+    cy.wait('@getHistorySlow')
+    cy.get('[data-testid="patient-history-skeleton"]').should('not.exist')
+
+    cy.intercept('GET', `${Cypress.env('API_URL')}/medical-records*`, {
+      statusCode: 500,
+      body: { type: 'https://httpstatuses.com/500', title: 'INTERNAL_SERVER_ERROR', status: 500, detail: 'Internal error' },
+    }).as('getHistoryError')
+    cy.reload()
+    cy.wait('@getPatient')
+    cy.wait('@getHistoryError')
+    cy.get('[data-testid="patient-history-error"]').should('be.visible')
+  })
+
+  it('shows a loading state in the record detail modal', () => {
+    cy.visit(`/pulso/patients/${PATIENT_UUID}`)
+    cy.wait('@getPatient')
+    cy.wait('@getHistory')
+
+    cy.intercept('GET', `${Cypress.env('API_URL')}/medical-records/r1`, {
+      statusCode: 200,
+      body: makeRecord('r1', '2024-03-15'),
+      delay: 500,
+    }).as('getRecordSlow')
+    cy.get('[data-testid="history-card"]').first().click()
+    cy.get('[data-testid="record-detail-loading"]').should('be.visible')
+    cy.wait('@getRecordSlow')
+    cy.get('[data-testid="record-detail-loading"]').should('not.exist')
+  })
 })

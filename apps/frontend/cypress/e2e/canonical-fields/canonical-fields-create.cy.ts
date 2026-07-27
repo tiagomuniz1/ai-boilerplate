@@ -119,6 +119,40 @@ describe('Canonical Fields Create', () => {
     cy.get('[data-testid="canonical-field-form-type"]').select('number')
     cy.get('[data-testid="canonical-field-options-editor"]').should('not.exist')
   })
+
+  it('shows a validation error when submitting a SELECT field with no options', () => {
+    visitBackoffice('/canonical-fields/new', mockAdminUser)
+    cy.get('[data-testid="canonical-field-form-canonical-key"]').type('risk_level')
+    cy.get('[data-testid="canonical-field-form-label"]').type('Nível de risco')
+    cy.get('[data-testid="canonical-field-form-type"]').select('select')
+    cy.get('[data-testid="canonical-field-options-empty"]').should('be.visible')
+
+    cy.get('[data-testid="canonical-field-form-submit"]').click()
+    cy.get('[data-testid="canonical-field-options-error"]').should('be.visible')
+  })
+
+  it('adds an option to a SELECT field and creates it', () => {
+    cy.intercept('GET', `${Cypress.env('API_URL')}/medical-record-canonical-fields*`, {
+      statusCode: 200,
+      body: emptyListResponse,
+    }).as('getFields')
+    visitBackoffice('/canonical-fields/new', mockAdminUser)
+    cy.get('[data-testid="canonical-field-form-canonical-key"]').type('risk_level')
+    cy.get('[data-testid="canonical-field-form-label"]').type('Nível de risco')
+    cy.get('[data-testid="canonical-field-form-type"]').select('select')
+
+    cy.get('[data-testid="canonical-field-options-add"]').click()
+    cy.get('[data-testid="canonical-field-options-empty"]').should('not.exist')
+    cy.get('[data-testid="canonical-field-option-value-0"]').type('low')
+    cy.get('[data-testid="canonical-field-option-label-0"]').type('Baixo')
+
+    cy.intercept('POST', `${Cypress.env('API_URL')}/medical-record-canonical-fields`, {
+      statusCode: 201,
+      body: { ...mockCreatedField, type: 'select', options: [{ value: 'low', label: 'Baixo' }] },
+    }).as('createField')
+    cy.get('[data-testid="canonical-field-form-submit"]').click()
+    cy.wait('@createField').its('request.body.options').should('deep.equal', [{ value: 'low', label: 'Baixo' }])
+  })
 })
 
 export {}

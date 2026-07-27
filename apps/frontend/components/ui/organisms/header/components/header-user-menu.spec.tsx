@@ -1,5 +1,6 @@
 import { screen, fireEvent, waitFor } from '@testing-library/react'
 import { renderWithProviders } from '@/tests/utils/render-with-providers'
+import { SlugProvider } from '@/lib/slug-context'
 import { HeaderUserMenu, getInitials } from './header-user-menu'
 import type { IHeaderUserModel } from '../types/header.types'
 
@@ -18,7 +19,11 @@ function renderMenu(
     isLoggingOut: false,
     logoutError: null,
   }
-  return renderWithProviders(<HeaderUserMenu {...defaultProps} {...props} />)
+  return renderWithProviders(
+    <SlugProvider slug="pulso">
+      <HeaderUserMenu {...defaultProps} {...props} />
+    </SlugProvider>,
+  )
 }
 
 describe('HeaderUserMenu', () => {
@@ -118,10 +123,10 @@ describe('HeaderUserMenu', () => {
       expect(screen.getByTestId('header-profile-link')).toBeInTheDocument()
     })
 
-    it('"Meu perfil" link points to user edit page', () => {
+    it('"Meu perfil" link points to the slug-scoped user edit page', () => {
       renderMenu()
       fireEvent.click(screen.getByTestId('header-avatar-button'))
-      expect(screen.getByTestId('header-profile-link')).toHaveAttribute('href', '/users/user-1/edit')
+      expect(screen.getByTestId('header-profile-link')).toHaveAttribute('href', '/pulso/users/user-1/edit')
     })
 
     it('renders logout button in dropdown', () => {

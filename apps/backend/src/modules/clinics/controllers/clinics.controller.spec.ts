@@ -5,7 +5,6 @@ import { CreateClinicUseCase } from '../use-cases/create-clinic.use-case'
 import { FindAllClinicsUseCase } from '../use-cases/find-all-clinics.use-case'
 import { FindClinicByIdUseCase } from '../use-cases/find-clinic-by-id.use-case'
 import { FindClinicBySlugUseCase } from '../use-cases/find-clinic-by-slug.use-case'
-import { RegisterClinicUseCase } from '../use-cases/register-clinic.use-case'
 import { UpdateClinicUseCase } from '../use-cases/update-clinic.use-case'
 import { UploadClinicLogoUseCase } from '../use-cases/upload-clinic-logo.use-case'
 import { UploadClinicLogoDarkUseCase } from '../use-cases/upload-clinic-logo-dark.use-case'
@@ -14,7 +13,6 @@ import { StreamClinicAssetUseCase } from '../use-cases/stream-clinic-asset.use-c
 import { ListClinicsQueryDto } from '../dto/list-clinics-query.dto'
 import type { ICurrentUser } from '../../auth/types/current-user.type'
 
-const mockRegister = { execute: jest.fn() } as unknown as jest.Mocked<RegisterClinicUseCase>
 const mockCreate = { execute: jest.fn() } as unknown as jest.Mocked<CreateClinicUseCase>
 const mockFindAll = { execute: jest.fn() } as unknown as jest.Mocked<FindAllClinicsUseCase>
 const mockFindById = { execute: jest.fn() } as unknown as jest.Mocked<FindClinicByIdUseCase>
@@ -63,33 +61,12 @@ describe('ClinicsController', () => {
       mockFindAll,
       mockFindById,
       mockFindBySlug,
-      mockRegister,
       mockUpdate,
       mockUploadLogo,
       mockUploadLogoDark,
       mockUploadFavicon,
       mockStreamAsset,
     )
-  })
-
-  it('register delegates to RegisterClinicUseCase', async () => {
-    const dto = {
-      clinicName: 'Clínica do Coração',
-      slug: 'clinica-do-coracao',
-      adminFullName: 'Admin Silva',
-      adminEmail: 'admin@clinica.com',
-      adminPassword: 'Password123!',
-    }
-    const response = {
-      clinic: makeClinicResponse(),
-      admin: { id: 'admin-uuid', fullName: 'Admin Silva', email: 'admin@clinica.com' },
-    }
-    mockRegister.execute.mockResolvedValue(response as any)
-
-    const result = await controller.register(dto as any)
-
-    expect(mockRegister.execute).toHaveBeenCalledWith(dto)
-    expect(result).toBe(response)
   })
 
   it('create delegates to CreateClinicUseCase', async () => {

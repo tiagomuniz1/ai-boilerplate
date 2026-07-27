@@ -3,6 +3,7 @@ import type { ICreatePatientInput } from '../types/patient-input.types'
 
 export function toCreatePatientDto(input: ICreatePatientInput): CreatePatientDto {
   return {
+    userId: input.userId,
     fullName: input.fullName,
     email: input.email,
     phoneNumber: input.phoneNumber,

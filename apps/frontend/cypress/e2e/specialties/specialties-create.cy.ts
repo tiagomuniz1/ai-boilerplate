@@ -98,10 +98,11 @@ describe('Specialties Create', () => {
     visitBackoffice('/specialties/new', mockAuthUser)
     cy.fixture('specialties').then((fixture) => {
       cy.get('[data-testid="specialty-form-name"]').type(fixture.newSpecialty.name)
+      cy.get('[data-testid="specialty-form-title-name"]').type('Cardiologista')
       cy.get('[data-testid="specialty-form-description"]').type(fixture.newSpecialty.description)
     })
     cy.get('[data-testid="specialty-form-submit"]').click()
-    cy.wait('@createSpecialty')
+    cy.wait('@createSpecialty').its('request.body.titleName').should('eq', 'Cardiologista')
     expectBackofficePath('/specialties')
     cy.wait('@getSpecialties')
     cy.get(`[data-testid="specialty-table-row-${mockCreatedSpecialty.id}"]`).should('exist')

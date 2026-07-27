@@ -128,7 +128,11 @@ const mockPlatformAdmin = {
 
 // Visita uma página do backoffice. `path` é SEM o prefixo /backoffice
 // (ex: '/clinics/123/edit'); o prefixo é adicionado internamente.
-export function visitBackoffice(path: string, authUser = mockPlatformAdmin) {
+export function visitBackoffice(
+  path: string,
+  authUser = mockPlatformAdmin,
+  themesResponse?: { statusCode: number; body: object; delay?: number },
+) {
   const user = { clinicId: null, ...authUser }
 
   cy.intercept('GET', `${Cypress.env('API_URL')}/auth/me`, {
@@ -139,10 +143,19 @@ export function visitBackoffice(path: string, authUser = mockPlatformAdmin) {
   // A listagem de clínicas (ClinicList) busca os temas via GET /themes?page&limit
   // para o seletor de tema. Sem este intercept a chamada bate no backend real com
   // o token mock → 401 → loop de redirect (login do backoffice → /backoffice/clinics).
-  cy.intercept('GET', `${Cypress.env('API_URL')}/themes*`, {
-    statusCode: 200,
-    body: { data: [mockActiveThemeResponse], total: 1, page: 1, limit: 50 },
-  })
+  // `themesResponse` permite o chamador sobrescrever esse default (ex: simular
+  // loading/erro) — precisa ser passado aqui porque um cy.intercept('/themes*')
+  // registrado pelo chamador ANTES de visitBackoffice() seria sobrescrito por
+  // este (mais recente vence), e um registrado DEPOIS corre risco de perder a
+  // corrida contra o fetch inicial do React Query.
+  cy.intercept(
+    'GET',
+    `${Cypress.env('API_URL')}/themes*`,
+    themesResponse ?? {
+      statusCode: 200,
+      body: { data: [mockActiveThemeResponse], total: 1, page: 1, limit: 50 },
+    },
+  )
 
   cy.setCookie('access_token', MOCK_TOKEN, {
     httpOnly: true,

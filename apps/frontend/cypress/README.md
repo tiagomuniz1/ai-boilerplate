@@ -65,15 +65,41 @@ cypress/
 
 ## Comandos customizados
 
+Todos os comandos abaixo fazem requisições reais contra `API_URL` (o backend real, não mock) — são a base dos specs "real" que batem no backend de verdade, em vez de `cy.intercept`.
+
 | Comando | Descrição |
 |---|---|
-| `cy.login(email, password)` | Autentica via API e configura cookies |
+| `cy.login(email, password)` | Autentica via API (backoffice) e configura cookies |
+| `cy.loginAsClinicUser(email, password, slug)` | Autentica via API num tenant e devolve o access token bruto |
 | `cy.createUserViaApi(input)` | Cria usuário via API (requer login prévio) |
 | `cy.deleteUserViaApi(id)` | Remove usuário via API (requer login prévio) |
 | `cy.seedUser()` | Cria usuário de teste com dados únicos |
+| `cy.seedSpecialty()` / `cy.createSpecialtyViaApi(input)` | Cria especialidade via API |
+| `cy.seedPatient()` | Cria paciente via API |
+| `cy.seedProfessional()` | Cria usuário + especialidade + profissional via API, devolve credenciais e access token |
+| `cy.seedClinic()` | Cria clínica via API (login como platform admin) |
+| `cy.createScheduleViaApi(input, accessToken)` / `cy.deleteScheduleViaApi(id)` | Agenda de um profissional |
+| `cy.createAppointmentViaApi(input, accessToken)` | Consulta (slot derivado da agenda pelo backend) |
+| `cy.createPrescriptionViaApi(input, accessToken)` / `cy.deletePrescriptionViaApi(id)` | Receita vinculada a uma consulta |
+| `cy.createMedicalCertificateViaApi(input, accessToken)` / `cy.deleteMedicalCertificateViaApi(id)` | Atestado vinculado a uma consulta |
+| `cy.createScheduleExceptionViaApi(input, accessToken)` / `cy.deleteScheduleExceptionViaApi(id)` | Bloqueio de horário na agenda |
+
+### Acesso direto ao banco (`cy.task('dbQuery', ...)`)
+
+Para os poucos casos onde nenhum endpoint devolve o dado necessário para montar o teste (ex.: o token de verificação em texto puro de uma receita, ou simular o token que um e-mail de "definir senha" entregaria), existe uma task Node em `cypress.config.ts` que consulta o Postgres diretamente:
+
+```ts
+cy.task('dbQuery', { sql: 'SELECT verification_token FROM prescriptions WHERE id = $1', params: [prescriptionId] })
+  .then((rows) => { /* rows[0].verification_token */ })
+```
+
+- Conecta usando `DB_HOST/DB_PORT/DB_USER/DB_PASS/DB_NAME/DB_SCHEMA` do bloco `env` do `cypress.config.ts` (mesmos defaults de `apps/backend/.env.local.example`, schema `dev` — o schema que o backend local usa em `yarn dev`), sobrescrevíveis via `cypress.env.json`.
+- Recusa rodar se `NODE_ENV=production`.
+- Use com moderação — é uma via de escape para os 1-2 fluxos sem alternativa via API, não um substituto geral para `*ViaApi`.
 
 ## Convenções
 
+- **Cobertura completa, não só fluxos críticos**: toda funcionalidade do frontend precisa de teste E2E, por menor que seja — happy path, erro/loading, validação de formulário, toggles, diálogos secundários, menus, widgets embutidos em outras telas. Nenhuma feature é pequena demais para ficar sem teste.
 - Seletores exclusivamente via `data-testid`
 - Nunca `cy.wait(ms)` — usar `cy.wait('@alias')` ou asserções em elementos
 - Cada `it()` é independente: setup em `beforeEach`, limpeza em `afterEach` ou inline

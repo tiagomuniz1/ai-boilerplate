@@ -103,31 +103,9 @@ describe('Patients Create', () => {
     expectClinicPath('/patients')
   })
 
-  it('creates patient and redirects to /patients list', () => {
-    cy.intercept('POST', `${Cypress.env('API_URL')}/patients`, {
-      statusCode: 201,
-      body: mockCreatedPatient,
-    }).as('createPatient')
-    cy.intercept('GET', `${Cypress.env('API_URL')}/patients*`, {
-      statusCode: 200,
-      body: { data: [mockCreatedPatient], total: 1, page: 1, limit: 20 },
-    }).as('getPatients')
-
-    visitClinic('/patients/new', mockAuthUser)
-    cy.fixture('patients').then((fixture) => {
-      cy.get('[data-testid="patient-form-fullname"]').type(fixture.newPatient.fullName)
-      cy.get('[data-testid="patient-form-email"]').type(fixture.newPatient.email)
-      cy.get('[data-testid="patient-form-phone"]').type(fixture.newPatient.phone)
-      cy.get('[data-testid="patient-form-document"]').type(fixture.newPatient.documentNumber)
-      cy.get('[data-testid="patient-form-birthdate"]').type(fixture.newPatient.birthDate)
-      cy.get('[data-testid="patient-form-gender"]').select(fixture.newPatient.gender)
-    })
-    cy.get('[data-testid="patient-form-submit"]').click()
-    cy.wait('@createPatient')
-    expectClinicPath('/patients')
-    cy.wait('@getPatients')
-    cy.get(`[data-testid="patient-table-row-${mockCreatedPatient.id}"]`).should('exist')
-  })
+  // Real-backend happy path (slot/contract-level behavior) lives in
+  // patients-happy-path-real.cy.ts — this file stays focused on client-side
+  // validation and mocked error/loading states.
 })
 
 export {}

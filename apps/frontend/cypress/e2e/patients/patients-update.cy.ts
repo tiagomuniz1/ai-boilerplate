@@ -118,27 +118,8 @@ describe('Patients Update', () => {
     cy.wait('@updatePatient')
   })
 
-  it('updates patient and redirects to details page', () => {
-    cy.intercept('GET', `${Cypress.env('API_URL')}/patients/${MOCK_PATIENT_ID}`, {
-      statusCode: 200,
-      body: mockPatient,
-    }).as('getPatient')
-    cy.intercept('PATCH', `${Cypress.env('API_URL')}/patients/${MOCK_PATIENT_ID}`, {
-      statusCode: 200,
-      body: mockUpdatedPatient,
-    }).as('updatePatient')
-
-    visitClinic(`/patients/${MOCK_PATIENT_ID}/edit`, mockAuthUser)
-    cy.wait('@getPatient')
-
-    cy.fixture('patients').then((fixture) => {
-      cy.get('[data-testid="patient-form-fullname"]').clear().type(fixture.updatedPatient.fullName)
-      cy.get('[data-testid="patient-form-email"]').clear().type(fixture.updatedPatient.email)
-    })
-    cy.get('[data-testid="patient-form-submit"]').click()
-    cy.wait('@updatePatient')
-    expectClinicPath(`/patients/${MOCK_PATIENT_ID}`)
-  })
+  // Real-backend happy path lives in patients-happy-path-real.cy.ts — this
+  // file stays focused on client-side validation and mocked error/loading states.
 
   it('shows details page correctly after navigating from list', () => {
     cy.intercept('GET', `${Cypress.env('API_URL')}/patients*`, {

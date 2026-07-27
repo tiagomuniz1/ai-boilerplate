@@ -55,11 +55,6 @@ const mockPastScheduledAppointment = {
   },
 }
 
-const mockCompletedAppointment = {
-  ...mockPastScheduledAppointment,
-  status: 'completed',
-}
-
 describe('Appointments — complete', () => {
   beforeEach(() => {
     cy.clearCookies()
@@ -97,35 +92,16 @@ describe('Appointments — complete', () => {
     cy.get('[data-testid="appointment-detail-complete-button"]').should('be.visible')
   })
 
-  it('ADMIN completes appointment successfully', () => {
-    cy.intercept('PATCH', `${Cypress.env('API_URL')}/appointments/${APPT_UUID}/complete`, {
-      statusCode: 200,
-      body: mockCompletedAppointment,
-    }).as('completeAppointment')
-
+  it('cancels the complete confirmation dialog without completing', () => {
     visitClinic(`/appointments/${APPT_UUID}`, mockAdminUser)
 
     cy.get('[data-testid="appointment-detail-complete-button"]').click()
     cy.get('[data-testid="complete-appointment-dialog"]').should('be.visible')
-    cy.get('[data-testid="complete-dialog-confirm"]').click()
-
-    cy.wait('@completeAppointment').its('response.statusCode').should('eq', 200)
+    cy.get('[data-testid="complete-dialog-cancel"]').click()
+    cy.get('[data-testid="complete-appointment-dialog"]').should('not.exist')
+    cy.get('[data-testid="appointment-detail-status"]').should('contain', 'Agendada')
   })
 
-  it('shows error when trying to complete a future appointment', () => {
-    cy.intercept('PATCH', `${Cypress.env('API_URL')}/appointments/${APPT_UUID}/complete`, {
-      statusCode: 422,
-      body: { title: 'Unprocessable', detail: 'Cannot complete a future appointment' },
-    }).as('completeFail')
-
-    visitClinic(`/appointments/${APPT_UUID}`, mockAdminUser)
-
-    cy.get('[data-testid="appointment-detail-complete-button"]').click()
-    cy.get('[data-testid="complete-appointment-dialog"]').should('be.visible')
-    cy.get('[data-testid="complete-dialog-confirm"]').click()
-
-    cy.wait('@completeFail')
-    cy.get('[data-testid="appointment-detail-complete-error"]').should('contain.text', 'futura')
-    cy.get('[data-testid="appointment-detail-complete-button"]').should('be.visible')
-  })
+  // Real-backend happy path (completes a real past appointment, rejects a
+  // real future one with 422) lives in appointments-happy-path-real.cy.ts.
 })

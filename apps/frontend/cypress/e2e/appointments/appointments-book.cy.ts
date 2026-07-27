@@ -106,19 +106,8 @@ describe('Appointments — book', () => {
     cy.get('[data-testid="book-dialog-patient-error"]').should('be.visible')
   })
 
-  it('PROFESSIONAL books appointment successfully and dialog closes', () => {
-    cy.intercept('POST', `${Cypress.env('API_URL')}/appointments`, {
-      statusCode: 201,
-      body: mockCreatedAppointment,
-    }).as('bookAppointment')
-
-    cy.get('[data-testid="agenda-slot-free"]:not([disabled])', { timeout: 10000 }).first().click()
-    cy.get('[data-testid="book-dialog-patient"]').select(PATIENT_UUID)
-    cy.get('[data-testid="book-dialog-submit"]').click()
-
-    cy.wait('@bookAppointment')
-    cy.get('[data-testid="book-appointment-dialog"]').should('not.exist')
-  })
+  // Real-backend happy path (slot derived from the professional's actual
+  // schedule) lives in appointments-happy-path-real.cy.ts.
 
   it('shows 409 conflict error when slot is double-booked', () => {
     cy.intercept('POST', `${Cypress.env('API_URL')}/appointments`, {
@@ -181,11 +170,15 @@ describe('Appointments — book', () => {
     cy.get('[data-testid="agenda-slot-free"]:not([disabled])', { timeout: 10000 }).first().click()
 
     cy.get('[data-testid="book-dialog-specialty"]', { timeout: 5000 }).should('be.visible')
-    cy.get('[data-testid="book-dialog-specialty"]').select(SPEC_UUID_2)
     cy.get('[data-testid="book-dialog-patient"]').select(PATIENT_UUID)
     cy.get('[data-testid="book-dialog-submit"]').click()
+    cy.get('[data-testid="book-dialog-specialty-error"]').should('be.visible')
 
-    cy.wait('@bookAppointment').its('request.body').should('include', { specialtyId: SPEC_UUID_2 })
+    cy.get('[data-testid="book-dialog-specialty"]').select(SPEC_UUID_2)
+    cy.get('[data-testid="book-dialog-reason"]').type('Consulta de rotina')
+    cy.get('[data-testid="book-dialog-submit"]').click()
+
+    cy.wait('@bookAppointment').its('request.body').should('include', { specialtyId: SPEC_UUID_2, reason: 'Consulta de rotina' })
     cy.get('[data-testid="book-appointment-dialog"]').should('not.exist')
   })
 })

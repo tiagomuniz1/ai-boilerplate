@@ -36,7 +36,14 @@ export function useLogout(): IUseLogoutResult {
 
   const logout = async (): Promise<void> => {
     setError(null)
-    await mutation.mutateAsync()
+    // onError above already captures the failure into `error` for display —
+    // swallow the rejection here so it doesn't surface as an unhandled
+    // promise rejection in the caller (mutateAsync rethrows on failure).
+    try {
+      await mutation.mutateAsync()
+    } catch {
+      /* handled via onError */
+    }
   }
 
   return {

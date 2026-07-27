@@ -135,6 +135,29 @@ describe('Medications List', () => {
     cy.get('[data-testid="medication-list-include-inactive"]').check()
     cy.wait('@getInactive').its('request.url').should('include', 'includeInactive=true')
   })
+
+  it('paginates through the medication list', () => {
+    cy.intercept('GET', `${Cypress.env('API_URL')}/medications*`, {
+      statusCode: 200,
+      body: { data: [mockMedication], total: 45, page: 1, limit: 20 },
+    }).as('getPage1')
+
+    visitBackoffice('/medications', mockAdminUser)
+    cy.wait('@getPage1')
+
+    cy.get('[data-testid="medication-list-count"]').should('contain.text', '45')
+    cy.get('[data-testid="medication-list-page-info"]').should('contain.text', 'Página 1 de 3')
+    cy.get('[data-testid="medication-list-prev-page"]').should('be.disabled')
+
+    cy.intercept('GET', `${Cypress.env('API_URL')}/medications*`, {
+      statusCode: 200,
+      body: { data: [mockMedication], total: 45, page: 2, limit: 20 },
+    }).as('getPage2')
+    cy.get('[data-testid="medication-list-next-page"]').click()
+    cy.wait('@getPage2').its('request.url').should('include', 'page=2')
+    cy.get('[data-testid="medication-list-page-info"]').should('contain.text', 'Página 2 de 3')
+    cy.get('[data-testid="medication-list-prev-page"]').should('not.be.disabled')
+  })
 })
 
 export {}

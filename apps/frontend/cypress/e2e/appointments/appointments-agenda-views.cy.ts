@@ -99,6 +99,101 @@ describe('Appointments — agenda views', () => {
     cy.get('[data-testid="toolbar-date-label"]').should('contain.text', String(new Date().getFullYear()))
   })
 
+  it('navigates back with prev button in day view', () => {
+    visitClinic('/appointments', mockProfessionalUser)
+
+    cy.get('[data-testid="toolbar-next"]').click()
+    const afterNext = cy.get('[data-testid="toolbar-date-label"]').invoke('text')
+    cy.get('[data-testid="toolbar-prev"]').click()
+    cy.get('[data-testid="toolbar-date-label"]').invoke('text').should('not.equal', afterNext)
+  })
+
+  it('shows a skeleton while the day agenda is loading', () => {
+    cy.intercept('GET', `${Cypress.env('API_URL')}/appointments/availability*`, {
+      statusCode: 200,
+      body: emptyAvailability,
+      delay: 500,
+    }).as('getAvailabilitySlow')
+    visitClinic('/appointments?view=day', mockProfessionalUser)
+
+    cy.get('[data-testid="agenda-skeleton"]').should('be.visible')
+    cy.wait('@getAvailabilitySlow')
+    cy.get('[data-testid="agenda-skeleton"]').should('not.exist')
+  })
+
+  it('shows an error state when the day agenda fails to load', () => {
+    cy.intercept('GET', `${Cypress.env('API_URL')}/appointments/availability*`, {
+      statusCode: 500,
+      body: { type: 'https://httpstatuses.com/500', title: 'INTERNAL_SERVER_ERROR', status: 500, detail: 'Internal error' },
+    }).as('getAvailabilityError')
+    visitClinic('/appointments?view=day', mockProfessionalUser)
+
+    cy.wait('@getAvailabilityError')
+    cy.get('[data-testid="agenda-day-error"]').should('be.visible')
+  })
+
+  it('opens the quick details dialog on a booked slot and shows its loading state', () => {
+    const bookedAppointment = {
+      id: 'appt-booked-uuid',
+      professionalId: DOC_UUID,
+      patientId: 'patient-uuid',
+      patientName: 'Maria Souza',
+      specialtyId: null,
+      specialtyName: null,
+      date: new Date().toISOString().split('T')[0],
+      startTime: '09:00',
+      endTime: '09:30',
+      status: 'scheduled',
+      reason: null,
+    }
+    cy.intercept('GET', `${Cypress.env('API_URL')}/appointments*`, {
+      statusCode: 200,
+      body: { data: [bookedAppointment], total: 1, page: 1, limit: 100 },
+    })
+    cy.intercept('GET', `${Cypress.env('API_URL')}/appointments/${bookedAppointment.id}`, {
+      statusCode: 200,
+      body: bookedAppointment,
+      delay: 500,
+    }).as('getDetailSlow')
+
+    visitClinic('/appointments?view=day', mockProfessionalUser)
+    cy.get('[data-testid="agenda-slot-booked"]', { timeout: 10000 }).click()
+
+    cy.get('[data-testid="appointment-details-dialog"]').should('be.visible')
+    cy.get('[data-testid="details-loading"]').should('be.visible')
+    cy.wait('@getDetailSlow')
+    cy.get('[data-testid="details-loading"]').should('not.exist')
+  })
+
+  it('shows an error state in the quick details dialog when the appointment fails to load', () => {
+    const bookedAppointment = {
+      id: 'appt-booked-uuid-2',
+      professionalId: DOC_UUID,
+      patientId: 'patient-uuid',
+      patientName: 'Maria Souza',
+      specialtyId: null,
+      specialtyName: null,
+      date: new Date().toISOString().split('T')[0],
+      startTime: '09:00',
+      endTime: '09:30',
+      status: 'scheduled',
+      reason: null,
+    }
+    cy.intercept('GET', `${Cypress.env('API_URL')}/appointments*`, {
+      statusCode: 200,
+      body: { data: [bookedAppointment], total: 1, page: 1, limit: 100 },
+    })
+    cy.intercept('GET', `${Cypress.env('API_URL')}/appointments/${bookedAppointment.id}`, {
+      statusCode: 500,
+      body: { type: 'https://httpstatuses.com/500', title: 'INTERNAL_SERVER_ERROR', status: 500, detail: 'Internal error' },
+    }).as('getDetailError')
+
+    visitClinic('/appointments?view=day', mockProfessionalUser)
+    cy.get('[data-testid="agenda-slot-booked"]', { timeout: 10000 }).click()
+    cy.wait('@getDetailError')
+    cy.get('[data-testid="details-error"]').should('be.visible')
+  })
+
   it('mobile (375px): hides the Dia/Semana toggle and always shows the day grid, even with view=week in the URL', () => {
     cy.viewport(375, 700)
     visitClinic('/appointments?view=week', mockProfessionalUser)

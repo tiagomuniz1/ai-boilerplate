@@ -93,29 +93,7 @@ describe('Users Create', () => {
     expectClinicPath('/users')
   })
 
-  it('creates user and redirects to /users list', () => {
-    cy.intercept('POST', `${Cypress.env('API_URL')}/users`, {
-      statusCode: 201,
-      body: mockCreatedUser,
-    }).as('createUser')
-    cy.intercept('GET', `${Cypress.env('API_URL')}/users*`, {
-      statusCode: 200,
-      body: { data: [mockCreatedUser], total: 1, page: 1, limit: 20 },
-    }).as('getUsers')
-
-    visitClinic('/users/new', mockAuthUser)
-    cy.fixture('users').then((fixture) => {
-      cy.get('[data-testid="user-form-fullname"]').type(fixture.newUser.fullName)
-      cy.get('[data-testid="user-form-email"]').type(fixture.newUser.email)
-      cy.get('[data-testid="user-form-password"]').type(fixture.newUser.password)
-    })
-    cy.get('[data-testid="user-form-submit"]').click()
-    cy.wait('@createUser')
-    expectClinicPath('/users')
-    cy.wait('@getUsers')
-    cy.get(`[data-testid="user-table-row-${mockCreatedUser.id}"]`).should('exist')
-  })
-
+  // Real-backend happy path lives in users-happy-path-real.cy.ts.
 })
 
 export {}
