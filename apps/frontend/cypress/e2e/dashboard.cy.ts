@@ -84,6 +84,38 @@ describe('Dashboard', () => {
     cy.get('[data-testid="dashboard-birthdays"]').should('contain', 'João Silva')
   })
 
+  it('opens the "ver mais" birthday modal, filters by name and closes it', () => {
+    cy.fixture('dashboard.json').then((data) => {
+      const manyBirthdays = Array.from({ length: 7 }, (_, i) => ({
+        patientId: `p${i + 1}`,
+        fullName: i === 6 ? 'Zélia Fernandes' : `Paciente Aniversariante ${i + 1}`,
+        age: 20 + i,
+      }))
+      cy.intercept('GET', `${Cypress.env('API_URL')}/dashboard*`, {
+        ...data,
+        todayBirthdays: manyBirthdays,
+      }).as('getDashboardManyBirthdays')
+    })
+    visitClinic('/dashboard', mockAuthUser)
+    cy.wait('@getDashboardManyBirthdays')
+
+    cy.get('[data-testid="dashboard-birthdays"] li').should('have.length', 5)
+    cy.get('[data-testid="birthday-ver-mais"]').should('contain', 'Ver mais (7)').click()
+
+    cy.get('[data-testid="birthday-modal-overlay"]').should('be.visible')
+    cy.get('[data-testid="birthday-modal-overlay"] li').should('have.length', 7)
+    cy.get('[data-testid="birthday-modal-overlay"]').should('contain', 'Zélia Fernandes')
+
+    cy.get('[data-testid="birthday-search"]').type('Zélia')
+    cy.get('[data-testid="birthday-modal-overlay"] li').should('have.length', 1).and('contain', 'Zélia Fernandes')
+
+    cy.get('[data-testid="birthday-search"]').clear().type('Ninguém com esse nome')
+    cy.get('[data-testid="birthday-modal-overlay"]').should('contain', 'Nenhum resultado.')
+
+    cy.get('[data-testid="birthday-modal-close"]').click()
+    cy.get('[data-testid="birthday-modal-overlay"]').should('not.exist')
+  })
+
   it('renders date range filter', () => {
     stubDashboard()
     visitClinic('/dashboard', mockAuthUser)

@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
+import { useBasePath } from '@/lib/slug-context'
 import type { IHeaderUserModel } from '../types/header.types'
 
 export interface IHeaderUserMenuProps {
@@ -19,6 +20,7 @@ export function getInitials(fullName: string): string {
 
 export function HeaderUserMenu({ user, onLogout, isLoggingOut, logoutError }: IHeaderUserMenuProps) {
   const [isOpen, setIsOpen] = useState(false)
+  const basePath = useBasePath()
 
   function handleAvatarClick() {
     setIsOpen((prev) => !prev)
@@ -80,7 +82,7 @@ export function HeaderUserMenu({ user, onLogout, isLoggingOut, logoutError }: IH
 
             <div className="p-1">
               <Link
-                href={`/users/${user.id}/edit`}
+                href={`${basePath}/users/${user.id}/edit`}
                 data-testid="header-profile-link"
                 className="flex items-center gap-2 px-3 py-2 text-sm text-text-dim hover:bg-surface-2 rounded transition-colors"
               >

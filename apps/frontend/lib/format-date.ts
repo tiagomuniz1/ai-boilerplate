@@ -11,3 +11,17 @@ export function formatDateToBR(date: string): string {
 
   return `${day}/${month}/${year}`
 }
+
+/**
+ * Formats a `Date` object into `YYYY-MM-DD` using its local calendar date.
+ * Uses local getters (not `toISOString`, which converts to UTC) so the result
+ * does not shift to the next or previous day depending on the timezone offset
+ * and time of day — e.g. `toISOString()` on "now" late in the evening in a
+ * UTC-behind timezone rolls over into tomorrow's UTC date.
+ */
+export function toLocalDateString(date: Date): string {
+  const year = date.getFullYear()
+  const month = String(date.getMonth() + 1).padStart(2, '0')
+  const day = String(date.getDate()).padStart(2, '0')
+  return `${year}-${month}-${day}`
+}

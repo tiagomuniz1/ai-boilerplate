@@ -7,15 +7,12 @@ import { useAuthStore } from '@/stores/auth.store'
 import { useIsMobile } from '@/hooks/use-is-mobile.hook'
 import { useProfessionals } from '@/components/features/professionals/hooks/use-professionals.hook'
 import { BlockTimeDialog } from '@/components/features/schedule-exceptions/components/BlockTimeDialog'
+import { toLocalDateString } from '@/lib/format-date'
 import { AgendaToolbar } from './agenda-toolbar'
 import { AgendaDayGrid } from './agenda-day-grid'
 import { AgendaWeekGrid } from './agenda-week-grid'
 
 type AgendaView = 'day' | 'week'
-
-function toDateString(date: Date): string {
-  return date.toISOString().split('T')[0]
-}
 
 function getWeekStart(date: Date): Date {
   const d = new Date(date)
@@ -65,13 +62,13 @@ export function AppointmentAgenda() {
     ? undefined
     : selectedDoctorId ?? undefined
 
-  const dateString = toDateString(currentDate)
-  const weekStart = toDateString(getWeekStart(currentDate))
+  const dateString = toLocalDateString(currentDate)
+  const weekStart = toLocalDateString(getWeekStart(currentDate))
 
   const syncUrl = useCallback(
     (date: Date, v: AgendaView, professionalId: string | null) => {
       const params = new URLSearchParams()
-      params.set('date', toDateString(date))
+      params.set('date', toLocalDateString(date))
       params.set('view', v)
       if (professionalId) params.set('doctor', professionalId)
       router.replace(`?${params.toString()}`, { scroll: false })

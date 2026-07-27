@@ -502,6 +502,7 @@ export function PrescriptionForm({ appointmentId, professionalId, isPending, glo
           </div>
           <div className="flex justify-end gap-2">
             <Button
+              type="button"
               variant="ghost"
               onClick={() => setIsSaveTemplateOpen(false)}
               disabled={saveTemplateMutation.isPending}
@@ -510,6 +511,7 @@ export function PrescriptionForm({ appointmentId, professionalId, isPending, glo
               Cancelar
             </Button>
             <Button
+              type="button"
               onClick={handleSaveAsTemplate}
               isLoading={saveTemplateMutation.isPending}
               disabled={!saveTemplateName.trim() || saveTemplateMutation.isPending}

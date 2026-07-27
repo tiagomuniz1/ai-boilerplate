@@ -127,31 +127,7 @@ describe('Users Update', () => {
     cy.wait('@updateUser')
   })
 
-  it('updates user and redirects to /users', () => {
-    cy.intercept('GET', `${Cypress.env('API_URL')}/users/${MOCK_USER_ID}`, {
-      statusCode: 200,
-      body: mockUser,
-    }).as('getUser')
-    cy.intercept('PATCH', `${Cypress.env('API_URL')}/users/${MOCK_USER_ID}`, {
-      statusCode: 200,
-      body: mockUpdatedUser,
-    }).as('updateUser')
-    cy.intercept('GET', `${Cypress.env('API_URL')}/users*`, {
-      statusCode: 200,
-      body: listWithUpdatedUser,
-    }).as('getUsers')
-
-    visitClinic(`/users/${MOCK_USER_ID}/edit`, mockAuthUser)
-    cy.wait('@getUser')
-
-    cy.fixture('users').then((fixture) => {
-      cy.get('[data-testid="user-form-fullname"]').clear().type(fixture.updatedUser.fullName)
-      cy.get('[data-testid="user-form-email"]').clear().type(fixture.updatedUser.email)
-    })
-    cy.get('[data-testid="user-form-submit"]').click()
-    cy.wait('@updateUser')
-    expectClinicPath('/users')
-  })
+  // Real-backend happy path lives in users-happy-path-real.cy.ts.
 
   it('shows isActive checkbox checked when user is active', () => {
     cy.intercept('GET', `${Cypress.env('API_URL')}/users/${MOCK_USER_ID}`, {

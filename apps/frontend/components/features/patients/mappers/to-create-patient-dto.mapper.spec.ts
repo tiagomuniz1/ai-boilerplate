@@ -21,4 +21,16 @@ describe('toCreatePatientDto', () => {
     expect(dto.documentNumber).toBe(input.documentNumber)
     expect(dto.gender).toBe(input.gender)
   })
+
+  it('maps userId when linking to an existing user', () => {
+    const dto = toCreatePatientDto({
+      userId: 'user-uuid-1',
+      phoneNumber: input.phoneNumber,
+      birthDate: input.birthDate,
+      documentNumber: input.documentNumber,
+      gender: input.gender,
+    })
+
+    expect(dto.userId).toBe('user-uuid-1')
+  })
 })

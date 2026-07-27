@@ -134,6 +134,30 @@ describe('Appointment Detail Page', () => {
       cy.get('[data-testid="appointment-detail-status"]').should('contain', 'Agendada')
     })
 
+    it('shows a skeleton while the appointment is loading', () => {
+      cy.intercept('GET', `${Cypress.env('API_URL')}/appointments/${APPT_ID}`, {
+        statusCode: 200,
+        body: mockAppointmentDetail,
+        delay: 500,
+      }).as('getAppointmentDetailSlow')
+      visitClinic(`/appointments/${APPT_ID}`, mockAdminUser)
+
+      cy.get('[data-testid="appointment-detail-skeleton"]').should('be.visible')
+      cy.wait('@getAppointmentDetailSlow')
+      cy.get('[data-testid="appointment-detail-skeleton"]').should('not.exist')
+    })
+
+    it('shows an error state when the appointment fails to load', () => {
+      cy.intercept('GET', `${Cypress.env('API_URL')}/appointments/${APPT_ID}`, {
+        statusCode: 500,
+        body: { type: 'https://httpstatuses.com/500', title: 'INTERNAL_SERVER_ERROR', status: 500, detail: 'Internal error' },
+      }).as('getAppointmentDetailError')
+      visitClinic(`/appointments/${APPT_ID}`, mockAdminUser)
+
+      cy.wait('@getAppointmentDetailError')
+      cy.get('[data-testid="appointment-detail-error"]').should('be.visible')
+    })
+
     it('renders patient info card', () => {
       stubAppointmentDetail()
       visitClinic(`/appointments/${APPT_ID}`, mockAdminUser)
@@ -158,6 +182,20 @@ describe('Appointment Detail Page', () => {
       cy.get('[data-testid="appointment-detail-status"]').should('contain', 'Concluída')
       cy.get('[data-testid="appointment-detail-cancel-button"]').should('not.exist')
       cy.get('[data-testid="appointment-detail-complete-button"]').should('not.exist')
+    })
+
+    it('mobile: expands the collapsible details panel via the toggle button', () => {
+      cy.viewport(375, 800)
+      stubAppointmentDetail()
+      visitClinic(`/appointments/${APPT_ID}`, mockAdminUser)
+
+      cy.get('[data-testid="appointment-detail-patient-name"]').should('contain.text', 'João Silva')
+      cy.get('[data-testid="appointment-detail-full-info"]').should('not.be.visible')
+      cy.get('[data-testid="appointment-detail-toggle"]').should('have.attr', 'aria-expanded', 'false').click()
+      cy.get('[data-testid="appointment-detail-toggle"]').should('have.attr', 'aria-expanded', 'true')
+      cy.get('[data-testid="appointment-detail-full-info"]').should('be.visible')
+
+      cy.get('[data-testid="appointment-detail-back-button-mobile"]').should('be.visible')
     })
 
     it('back button links to appointments list', () => {
@@ -201,6 +239,91 @@ describe('Appointment Detail Page', () => {
       cy.get('[data-testid="appointment-detail-cancel-button"]').should('exist')
       cy.get('[data-testid="tab-prontuario"]').click()
       cy.get('[data-testid="fill-medical-record-button"]').should('exist')
+    })
+
+    it('atestados tab: shows a skeleton while loading, then the empty state', () => {
+      stubProfessionals()
+      stubMedicalRecord()
+      stubTemplates()
+      stubPrescriptions()
+      stubExamRequests()
+      stubAppointmentDetail({ professionalId: PROFESSIONAL_ID })
+      cy.intercept('GET', `${Cypress.env('API_URL')}/medical-certificates*`, {
+        statusCode: 200,
+        body: [],
+        delay: 500,
+      }).as('getAtestadosSlow')
+      visitClinic(`/appointments/${APPT_ID}`, mockProfessionalUser)
+
+      cy.get('[data-testid="tab-atestados"]').click()
+      cy.get('[data-testid="atestado-list-skeleton"]').should('be.visible')
+      cy.wait('@getAtestadosSlow')
+      cy.get('[data-testid="atestado-list-skeleton"]').should('not.exist')
+      cy.get('[data-testid="atestado-section-empty"]').should('be.visible')
+    })
+
+    it('atestados tab: shows an error state when the list fails to load', () => {
+      stubProfessionals()
+      stubMedicalRecord()
+      stubTemplates()
+      stubPrescriptions()
+      stubExamRequests()
+      stubAppointmentDetail({ professionalId: PROFESSIONAL_ID })
+      cy.intercept('GET', `${Cypress.env('API_URL')}/medical-certificates*`, {
+        statusCode: 500,
+        body: { type: 'https://httpstatuses.com/500', title: 'INTERNAL_SERVER_ERROR', status: 500, detail: 'Internal error' },
+      }).as('getAtestadosError')
+      visitClinic(`/appointments/${APPT_ID}`, mockProfessionalUser)
+
+      cy.get('[data-testid="tab-atestados"]').click()
+      cy.wait('@getAtestadosError')
+      cy.get('[data-testid="atestado-section-error"]').should('be.visible')
+    })
+
+    it('atestados tab: cancels and confirms deleting an existing atestado', () => {
+      const mockAtestado = {
+        id: 'atestado-uuid',
+        appointmentId: APPT_ID,
+        type: 'attendance',
+        attendanceDate: '2025-06-10T00:00:00.000Z',
+        checkInTime: '09:00',
+        checkOutTime: '09:30',
+        daysOff: null,
+        startDate: null,
+        cidCode: null,
+        observations: null,
+        issuedAt: '2025-06-10T09:30:00.000Z',
+        patientName: 'João Silva',
+        professionalName: 'Dr. Owner',
+      }
+      stubProfessionals()
+      stubMedicalRecord()
+      stubTemplates()
+      stubPrescriptions()
+      stubExamRequests()
+      stubAppointmentDetail({ professionalId: PROFESSIONAL_ID })
+      cy.intercept('GET', `${Cypress.env('API_URL')}/medical-certificates*`, {
+        statusCode: 200,
+        body: [mockAtestado],
+      }).as('getAtestados')
+      visitClinic(`/appointments/${APPT_ID}`, mockProfessionalUser)
+
+      cy.get('[data-testid="tab-atestados"]').click()
+      cy.wait('@getAtestados')
+      cy.get(`[data-testid="atestado-delete-button-${mockAtestado.id}"]`).click()
+      cy.get('[data-testid="atestado-delete-dialog"]').should('be.visible')
+      cy.get('[data-testid="atestado-delete-dialog-message"]').should('be.visible')
+      cy.get('[data-testid="atestado-delete-dialog-cancel"]').click()
+      cy.get('[data-testid="atestado-delete-dialog"]').should('not.exist')
+      cy.get(`[data-testid="atestado-item-${mockAtestado.id}"]`).should('exist')
+
+      cy.intercept('DELETE', `${Cypress.env('API_URL')}/medical-certificates/${mockAtestado.id}`, {
+        statusCode: 204,
+      }).as('deleteAtestado')
+      cy.get(`[data-testid="atestado-delete-button-${mockAtestado.id}"]`).click()
+      cy.get('[data-testid="atestado-delete-dialog-confirm"]').click()
+      cy.wait('@deleteAtestado')
+      cy.get('[data-testid="atestado-delete-dialog"]').should('not.exist')
     })
   })
 

@@ -191,6 +191,7 @@ describe('Specialties Detail', () => {
     cy.get('[data-testid="delete-specialty-dialog-confirm"]').click()
     cy.wait('@deleteSpecialty')
     cy.get('[data-testid="delete-specialty-dialog"]').should('not.exist')
+    cy.get('[data-testid="specialty-details-delete-error"]').should('be.visible')
     expectBackofficePath(`/specialties/${MOCK_SPECIALTY_ID}`)
   })
 

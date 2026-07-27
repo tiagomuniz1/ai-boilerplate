@@ -1,8 +1,8 @@
 {
   "admin": {
-    "email": "tiagomuniz1@gmail.com",
+    "email": "admin@pulso.center",
     "password": "123123123",
-    "fullName": "Tiago Muniz"
+    "fullName": "Administrator"
   },
   "newUser": {
     "fullName": "Novo Usuário E2E",

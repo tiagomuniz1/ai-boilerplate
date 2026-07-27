@@ -76,6 +76,19 @@ describe('Professionals Create', () => {
     cy.get(`[data-testid="professional-form-specialty-${SPEC_ID_2}"]`).should('exist')
   })
 
+  it('shows a loading state while specialties are being fetched', () => {
+    cy.intercept('GET', `${Cypress.env('API_URL')}/clinics/${CLINIC_ID}/specialties*`, {
+      statusCode: 200,
+      body: specialtiesListResponse,
+      delay: 500,
+    }).as('getSpecialtiesSlow')
+
+    visitClinic('/professionals/new', mockAuthUser)
+    cy.get('[data-testid="professional-form-specialty-loading"]').should('be.visible')
+    cy.wait('@getSpecialtiesSlow')
+    cy.get('[data-testid="professional-form-specialty-loading"]').should('not.exist')
+  })
+
   it('shows conflict error when registration already exists (409)', () => {
     cy.intercept('POST', `${Cypress.env('API_URL')}/professionals`, {
       statusCode: 409,
@@ -119,31 +132,8 @@ describe('Professionals Create', () => {
     expectClinicPath('/professionals')
   })
 
-  it('creates professional and redirects to /professionals list', () => {
-    cy.intercept('POST', `${Cypress.env('API_URL')}/professionals`, {
-      statusCode: 201,
-      body: mockCreatedProfessional,
-    }).as('createProfessional')
-    cy.intercept('GET', `${Cypress.env('API_URL')}/professionals*`, {
-      statusCode: 200,
-      body: { data: [mockCreatedProfessional], total: 1, page: 1, limit: 20 },
-    }).as('getProfessionals')
-
-    visitClinic('/professionals/new', mockAuthUser)
-    cy.wait('@getSpecialties')
-    fillNewUser()
-    fillFirstRegistration()
-    cy.get(`[data-testid="professional-form-specialty-${SPEC_ID_1}"]`).check()
-    cy.get('[data-testid="professional-form-submit"]').click()
-    cy.wait('@createProfessional').then((interception) => {
-      expect(interception.request.body.registrations).to.deep.equal([
-        { councilType: 'crm', number: '12345', state: 'SP', isPrimary: true },
-      ])
-    })
-    expectClinicPath('/professionals')
-    cy.wait('@getProfessionals')
-    cy.get(`[data-testid="professional-table-row-${mockCreatedProfessional.id}"]`).should('exist')
-  })
+  // Real-backend happy path (CRM + specialty, CRN + no specialty) lives in
+  // professionals-happy-path-real.cy.ts.
 
   it('allows selecting multiple specialties', () => {
     cy.intercept('POST', `${Cypress.env('API_URL')}/professionals`, (req) => {

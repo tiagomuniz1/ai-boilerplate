@@ -1,10 +1,5 @@
 import { apiClient } from '@/lib/api-client'
-import type {
-  ClinicResponseDto,
-  PaginatedClinicsResponseDto,
-  RegisterClinicDto,
-  RegisterClinicResponseDto,
-} from '@app/shared'
+import type { ClinicResponseDto, PaginatedClinicsResponseDto } from '@app/shared'
 import type { IClinicListParams, ICreateClinicInput, IUpdateClinicInput } from '../types/clinic.types'
 
 export const clinicsService = {
@@ -24,8 +19,6 @@ export const clinicsService = {
   create: (data: ICreateClinicInput) => apiClient.post<ClinicResponseDto>('/clinics', data),
   update: (id: string, data: IUpdateClinicInput) =>
     apiClient.patch<ClinicResponseDto>(`/clinics/${id}`, data),
-  register: (data: RegisterClinicDto) =>
-    apiClient.post<RegisterClinicResponseDto>('/clinics/register', data),
   uploadLogo: (file: File) => {
     const formData = new FormData()
     formData.append('logo', file)

@@ -339,6 +339,44 @@ describe('MedicalRecordCanonicalFieldsController (integration)', () => {
     })
   })
 
+  describe('GET /medical-record-canonical-fields/:id', () => {
+    it('returns 200 with the field for PLATFORM_ADMIN', async () => {
+      const { body: created } = await createField(platformAdminToken, generalField).expect(201)
+
+      const { body } = await request(app.getHttpServer())
+        .get(`/medical-record-canonical-fields/${created.id}`)
+        .set('Authorization', `Bearer ${platformAdminToken}`)
+        .expect(200)
+
+      expect(body.id).toBe(created.id)
+      expect(body.canonicalKey).toBe('weight')
+    })
+
+    it('returns 404 when the field does not exist', async () => {
+      await request(app.getHttpServer())
+        .get(`/medical-record-canonical-fields/${faker.string.uuid()}`)
+        .set('Authorization', `Bearer ${platformAdminToken}`)
+        .expect(404)
+    })
+
+    it('returns 403 for ADMIN', async () => {
+      const { body: created } = await createField(platformAdminToken, generalField).expect(201)
+
+      await request(app.getHttpServer())
+        .get(`/medical-record-canonical-fields/${created.id}`)
+        .set('Authorization', `Bearer ${adminToken}`)
+        .expect(403)
+    })
+
+    it('returns 401 when no token is provided', async () => {
+      const { body: created } = await createField(platformAdminToken, generalField).expect(201)
+
+      await request(app.getHttpServer())
+        .get(`/medical-record-canonical-fields/${created.id}`)
+        .expect(401)
+    })
+  })
+
   describe('PATCH /medical-record-canonical-fields/:id', () => {
     it('returns 200 with the updated field', async () => {
       const { body: created } = await createField(platformAdminToken, generalField).expect(201)

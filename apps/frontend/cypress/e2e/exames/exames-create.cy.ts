@@ -138,4 +138,29 @@ describe('Exames — Create', () => {
     cy.get('[data-testid="exame-preview-item-1"]').should('contain.text', 'Raio-X de tórax')
     cy.get('[data-testid="exame-preview-notes"]').should('contain.text', 'Retornar com resultado em 7 dias')
   })
+
+  it('shows a generic error when the API fails to create the exam request', () => {
+    cy.intercept('GET', `${Cypress.env('API_URL')}/exam-requests*`, {
+      statusCode: 200,
+      body: [],
+    }).as('getExamRequests')
+
+    visitClinic(`/appointments/${APPT_UUID}`, mockProfessionalUser)
+    cy.wait('@getAppointment')
+    cy.wait('@getExamRequests')
+
+    cy.get('[data-testid="tab-exames"]').click()
+    cy.get('[data-testid="exame-new-button"]').click()
+    cy.get('[data-testid="exame-form-item-name-0"]').type('Hemograma completo')
+
+    cy.intercept('POST', `${Cypress.env('API_URL')}/exam-requests`, {
+      statusCode: 500,
+      body: { type: 'https://httpstatuses.com/500', title: 'INTERNAL_SERVER_ERROR', status: 500, detail: 'Internal error' },
+    }).as('createExamRequestError')
+
+    cy.get('[data-testid="exame-form-submit"]').click()
+    cy.wait('@createExamRequestError')
+    cy.get('[data-testid="exame-form-error"]').should('be.visible')
+    cy.get('[data-testid="exame-form-modal"]').should('be.visible')
+  })
 })

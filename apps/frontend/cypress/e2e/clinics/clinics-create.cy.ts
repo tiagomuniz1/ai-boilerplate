@@ -100,6 +100,64 @@ describe('Clinics Create', () => {
     cy.get(`[data-testid="clinic-table-row-${mockCreatedClinic.id}"]`).should('exist')
   })
 
+  it('shows a live slug preview while typing the name, and submits the picked theme', () => {
+    // visitBackoffice registers its own default /themes* intercept as part of the
+    // visit itself (a single "Default" theme, id below) — a caller override
+    // registered beforehand gets superseded by it (most-recently-registered wins),
+    // so this test uses that built-in default instead of fighting it.
+    const themeId = '20000000-0000-4000-8000-000000000000'
+
+    cy.intercept('POST', `${Cypress.env('API_URL')}/clinics`, {
+      statusCode: 201,
+      body: mockCreatedClinic,
+    }).as('createClinic')
+    cy.intercept('GET', `${Cypress.env('API_URL')}/clinics*`, {
+      statusCode: 200,
+      body: emptyListResponse,
+    })
+
+    visitBackoffice('/clinics/new', mockPlatformAdmin)
+
+    cy.get('[data-testid="clinic-form-name"]').type('Clinica Preview')
+    cy.get('[data-testid="clinic-form-slug-preview"]').should('contain.text', 'clinica-preview')
+
+    cy.get('[data-testid="clinic-form-theme-none"]').should('be.visible')
+    cy.get(`[data-testid="clinic-form-theme-option-${themeId}"]`, { timeout: 10000 }).click()
+
+    cy.get('[data-testid="clinic-form-address-street"]').type('Rua das Flores')
+    cy.get('[data-testid="clinic-form-address-number"]').type('123')
+    cy.get('[data-testid="clinic-form-address-complement"]').type('Sala 4')
+    cy.get('[data-testid="clinic-form-address-neighborhood"]').type('Centro')
+    cy.get('[data-testid="clinic-form-address-city"]').type('São Paulo')
+    cy.get('[data-testid="clinic-form-address-state"]').type('SP')
+    cy.get('[data-testid="clinic-form-address-zipcode"]').type('01310-100')
+
+    cy.get('[data-testid="clinic-form-submit"]').click()
+    cy.wait('@createClinic').its('request.body').should('deep.include', {
+      themeId,
+      address: {
+        street: 'Rua das Flores',
+        number: '123',
+        complement: 'Sala 4',
+        neighborhood: 'Centro',
+        city: 'São Paulo',
+        state: 'SP',
+        zipCode: '01310-100',
+        country: 'BR',
+      },
+    })
+  })
+
+  it('shows a loading state while the theme list is being fetched', () => {
+    visitBackoffice('/clinics/new', mockPlatformAdmin, {
+      statusCode: 200,
+      body: { data: [], total: 0, page: 1, limit: 50 },
+      delay: 500,
+    })
+    cy.get('[data-testid="clinic-form-theme-loading"]').should('be.visible')
+    cy.get('[data-testid="clinic-form-theme-loading"]', { timeout: 10000 }).should('not.exist')
+    cy.get('[data-testid="clinic-form-theme-selector"]').should('be.visible')
+  })
 })
 
 export {}

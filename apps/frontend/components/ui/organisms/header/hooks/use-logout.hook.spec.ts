@@ -97,16 +97,21 @@ describe('useLogout', () => {
     removeItemSpy.mockRestore()
   })
 
+  it('does not throw when the logout request fails', async () => {
+    mockAuthService.logout.mockRejectedValue(new Error('Network error'))
+    const { result } = renderLogoutHook()
+
+    await expect(act(async () => {
+      await result.current.logout()
+    })).resolves.not.toThrow()
+  })
+
   it('sets friendly error message on failure', async () => {
     mockAuthService.logout.mockRejectedValue(new Error('Network error'))
     const { result } = renderLogoutHook()
 
     await act(async () => {
-      try {
-        await result.current.logout()
-      } catch {
-        // swallow — mutateAsync re-throws, onError already set state
-      }
+      await result.current.logout()
     })
 
     expect(result.current.error).toBe('Ocorreu um erro ao sair. Tente novamente.')
@@ -119,11 +124,7 @@ describe('useLogout', () => {
     const { result } = renderLogoutHook()
 
     await act(async () => {
-      try {
-        await result.current.logout()
-      } catch {
-        // swallow
-      }
+      await result.current.logout()
     })
 
     expect(result.current.error).toBe('Ocorreu um erro ao sair. Tente novamente.')

@@ -137,27 +137,7 @@ describe('Medical Record Templates Create', () => {
     cy.get('[data-testid="template-form-global-error"]').should('be.visible')
   })
 
-  it('redirects to list on successful creation', () => {
-    cy.intercept('POST', `${Cypress.env('API_URL')}/medical-record-templates`, {
-      statusCode: 201,
-      body: mockTemplate,
-    }).as('createTemplate')
-    cy.intercept('GET', `${Cypress.env('API_URL')}/medical-record-templates*`, {
-      statusCode: 200,
-      body: { data: [mockTemplate], total: 1, page: 1, limit: 20 },
-    }).as('getTemplates')
-
-    visitClinic('/medical-record-templates/new', mockAdmin)
-    cy.wait('@getSpecialties')
-    cy.get('[data-testid="template-form-name"]').type('Nova Anamnese')
-    cy.get('[data-testid="template-form-specialty"]').select('uuid-spec-1')
-    cy.get('[data-testid="template-form-add-field"]').click()
-    cy.get('[data-testid="field-editor-label-0"]').type('Sintoma')
-    cy.get('[data-testid="template-form-submit"]').click()
-
-    cy.wait('@createTemplate')
-    expectClinicPath('/medical-record-templates')
-  })
+  // Real-backend happy path lives in medical-record-templates-happy-path-real.cy.ts.
 
   it('loads and shows canonical fields for adoption', () => {
     cy.intercept('GET', `${Cypress.env('API_URL')}/medical-record-canonical-fields*`, {
@@ -168,6 +148,31 @@ describe('Medical Record Templates Create', () => {
     visitClinic('/medical-record-templates/new', mockAdmin)
     cy.wait('@getCanonicalFields')
     cy.get('[data-testid="canonical-field-picker-adopt-cf-uuid-1"]').should('be.visible')
+  })
+
+  it('shows a loading state, then an empty state when there are no canonical fields', () => {
+    cy.intercept('GET', `${Cypress.env('API_URL')}/medical-record-canonical-fields*`, {
+      statusCode: 200,
+      body: [],
+      delay: 500,
+    }).as('getCanonicalFieldsSlow')
+
+    visitClinic('/medical-record-templates/new', mockAdmin)
+    cy.get('[data-testid="canonical-field-picker-loading"]').should('be.visible')
+    cy.wait('@getCanonicalFieldsSlow')
+    cy.get('[data-testid="canonical-field-picker-loading"]').should('not.exist')
+    cy.get('[data-testid="canonical-field-picker-empty"]').should('be.visible')
+  })
+
+  it('shows an error state when canonical fields fail to load', () => {
+    cy.intercept('GET', `${Cypress.env('API_URL')}/medical-record-canonical-fields*`, {
+      statusCode: 500,
+      body: { type: 'https://httpstatuses.com/500', title: 'INTERNAL_SERVER_ERROR', status: 500, detail: 'Internal error' },
+    }).as('getCanonicalFieldsError')
+
+    visitClinic('/medical-record-templates/new', mockAdmin)
+    cy.wait('@getCanonicalFieldsError')
+    cy.get('[data-testid="canonical-field-picker-error"]').should('be.visible')
   })
 
   it('adopts canonical field and pre-fills the field editor', () => {

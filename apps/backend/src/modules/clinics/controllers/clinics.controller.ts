@@ -16,13 +16,7 @@ import { FileInterceptor } from '@nestjs/platform-express'
 import { Throttle } from '@nestjs/throttler'
 import { Response } from 'express'
 import { memoryStorage } from 'multer'
-import {
-  ClinicResponseDto,
-  PaginatedClinicsResponseDto,
-  RegisterClinicDto,
-  RegisterClinicResponseDto,
-  UserRole,
-} from '@app/shared'
+import { ClinicResponseDto, PaginatedClinicsResponseDto, UserRole } from '@app/shared'
 import { Public } from '../../auth/decorators/public.decorator'
 import { CurrentUser } from '../../auth/decorators/current-user.decorator'
 import { Roles } from '../../auth/decorators/roles.decorator'
@@ -34,7 +28,6 @@ import { CreateClinicUseCase } from '../use-cases/create-clinic.use-case'
 import { FindAllClinicsUseCase } from '../use-cases/find-all-clinics.use-case'
 import { FindClinicByIdUseCase } from '../use-cases/find-clinic-by-id.use-case'
 import { FindClinicBySlugUseCase } from '../use-cases/find-clinic-by-slug.use-case'
-import { RegisterClinicUseCase } from '../use-cases/register-clinic.use-case'
 import { UpdateClinicUseCase } from '../use-cases/update-clinic.use-case'
 import { UploadClinicLogoUseCase } from '../use-cases/upload-clinic-logo.use-case'
 import { UploadClinicLogoDarkUseCase } from '../use-cases/upload-clinic-logo-dark.use-case'
@@ -48,7 +41,6 @@ export class ClinicsController {
     private readonly findAllClinicsUseCase: FindAllClinicsUseCase,
     private readonly findClinicByIdUseCase: FindClinicByIdUseCase,
     private readonly findClinicBySlugUseCase: FindClinicBySlugUseCase,
-    private readonly registerClinicUseCase: RegisterClinicUseCase,
     private readonly updateClinicUseCase: UpdateClinicUseCase,
     private readonly uploadClinicLogoUseCase: UploadClinicLogoUseCase,
     private readonly uploadClinicLogoDarkUseCase: UploadClinicLogoDarkUseCase,
@@ -90,13 +82,6 @@ export class ClinicsController {
   @Public()
   async streamFavicon(@Param('slug') slug: string, @Res({ passthrough: false }) res: Response): Promise<void> {
     await this.streamAsset(slug, 'favicon', res)
-  }
-
-  @Post('register')
-  @Roles(UserRole.PLATFORM_ADMIN)
-  @HttpCode(201)
-  register(@Body() dto: RegisterClinicDto): Promise<RegisterClinicResponseDto> {
-    return this.registerClinicUseCase.execute(dto)
   }
 
   @Post()

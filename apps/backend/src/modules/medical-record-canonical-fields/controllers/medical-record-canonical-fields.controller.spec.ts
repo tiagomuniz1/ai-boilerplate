@@ -4,9 +4,11 @@ import { CanonicalFieldListQueryDto } from '../dto/canonical-field-list-query.dt
 import { MedicalRecordCanonicalFieldsController } from './medical-record-canonical-fields.controller'
 import { CreateCanonicalFieldUseCase } from '../use-cases/create-canonical-field.use-case'
 import { FindCanonicalFieldsUseCase } from '../use-cases/find-canonical-fields.use-case'
+import { FindCanonicalFieldByIdUseCase } from '../use-cases/find-canonical-field-by-id.use-case'
 import { UpdateCanonicalFieldUseCase } from '../use-cases/update-canonical-field.use-case'
 
 const mockFind = { execute: jest.fn() } as unknown as jest.Mocked<FindCanonicalFieldsUseCase>
+const mockFindById = { execute: jest.fn() } as unknown as jest.Mocked<FindCanonicalFieldByIdUseCase>
 const mockCreate = { execute: jest.fn() } as unknown as jest.Mocked<CreateCanonicalFieldUseCase>
 const mockUpdate = { execute: jest.fn() } as unknown as jest.Mocked<UpdateCanonicalFieldUseCase>
 
@@ -17,7 +19,7 @@ describe('MedicalRecordCanonicalFieldsController', () => {
 
   beforeEach(() => {
     jest.clearAllMocks()
-    controller = new MedicalRecordCanonicalFieldsController(mockFind, mockCreate, mockUpdate)
+    controller = new MedicalRecordCanonicalFieldsController(mockFind, mockFindById, mockCreate, mockUpdate)
   })
 
   it('findAll delegates to FindCanonicalFieldsUseCase with query and user', async () => {
@@ -28,6 +30,16 @@ describe('MedicalRecordCanonicalFieldsController', () => {
     const result = await controller.findAll(query, currentUser)
 
     expect(mockFind.execute).toHaveBeenCalledWith(query, currentUser)
+    expect(result).toBe(response)
+  })
+
+  it('findById delegates to FindCanonicalFieldByIdUseCase', async () => {
+    const response = { id: 'f1' } as any
+    mockFindById.execute.mockResolvedValue(response)
+
+    const result = await controller.findById('f1')
+
+    expect(mockFindById.execute).toHaveBeenCalledWith('f1')
     expect(result).toBe(response)
   })
 

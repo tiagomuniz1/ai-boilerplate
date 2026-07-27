@@ -61,12 +61,3 @@ export interface IPaginatedClinics {
   page: number
   limit: number
 }
-
-export interface IRegisterClinicInput {
-  clinicName: string
-  slug?: string
-  adminFullName: string
-  adminEmail: string
-  adminPassword: string
-  adminPasswordConfirm: string
-}

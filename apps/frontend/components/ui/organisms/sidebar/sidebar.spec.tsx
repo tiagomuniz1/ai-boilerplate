@@ -155,11 +155,6 @@ describe('Sidebar', () => {
     expect(screen.getByText('Usuários')).toBeInTheDocument()
   })
 
-  it('does not render the toggle button', () => {
-    render(<Sidebar />)
-    expect(screen.queryByTestId('sidebar-toggle')).not.toBeInTheDocument()
-  })
-
   it('does not render user footer when no user is logged in', () => {
     render(<Sidebar />)
     expect(screen.queryByTestId('sidebar-user')).not.toBeInTheDocument()

@@ -1,4 +1,4 @@
-import { visitBackoffice } from '../../support/clinic'
+import { visitBackoffice, expectBackofficePath } from '../../support/clinic'
 
 const MOCK_MEDICATION_ID = '33330000-0000-0000-0000-000000000001'
 
@@ -52,6 +52,23 @@ describe('Medications Update', () => {
     cy.get('[data-testid="medication-form-name"]').should('have.value', 'Dipirona Sódica')
     cy.get('[data-testid="medication-form-source-readonly"]').should('contain', 'ANVISA')
     cy.get('[data-testid="medication-form-is-active"]').should('be.checked')
+    cy.get('[data-testid="medication-form-regulatory-category"]').should('have.value', 'Genérico')
+    cy.get('[data-testid="medication-form-holder-company"]').should('have.value', 'ACME')
+    cy.get('[data-testid="medication-form-registration-number"]').should('have.value', '123')
+    cy.get('[data-testid="medication-form-registration-status"]').should('have.value', 'Ativo')
+  })
+
+  it('shows a skeleton while loading, and a back button linking to the list', () => {
+    cy.intercept('GET', `${Cypress.env('API_URL')}/medications/${MOCK_MEDICATION_ID}`, {
+      statusCode: 200,
+      body: mockMedication,
+      delay: 500,
+    }).as('getMedicationSlow')
+
+    visitBackoffice(`/medications/${MOCK_MEDICATION_ID}/edit`, mockAdminUser)
+    cy.get('[data-testid="edit-medication-skeleton"]').should('be.visible')
+    cy.get('[data-testid="edit-medication-back-button"]').should('be.visible').click()
+    expectBackofficePath('/medications')
   })
 
   it('updates the medication and shows a success message', () => {

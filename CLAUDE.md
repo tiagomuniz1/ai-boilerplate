@@ -172,7 +172,7 @@ Cypress.Commands.add('login', (email: string, password: string) => {
 
 * Sempre usar `data-testid` — nunca classes CSS ou texto
 * Cada teste deve ser independente — sem depender do estado de outro teste
-* Cobrir apenas fluxos críticos: login, navegação principal, CRUD completo
+* **Cobertura obrigatória e completa — toda funcionalidade do frontend precisa de teste E2E, por menor que seja.** Não existe "funcionalidade pequena demais para testar": happy path, estados de erro/loading, validação de formulário, toggles, diálogos secundários, menus, widgets embutidos em outras telas — tudo entra. Uma funcionalidade nova só está pronta quando tem teste E2E cobrindo-a.
 * Credenciais de teste via `cypress.env.json` — no `.gitignore`
 
 ---
@@ -195,7 +195,7 @@ Cypress.Commands.add('login', (email: string, password: string) => {
 ### Testes
 * [ ] Testes unitários com 100% de cobertura
 * [ ] Testes de integração para endpoints novos ou alterados
-* [ ] Testes E2E para fluxos críticos novos
+* [ ] Testes E2E para toda funcionalidade nova ou alterada — sem exceção de tamanho
 
 ### Padrões
 * [ ] Segue arquitetura e naming convention

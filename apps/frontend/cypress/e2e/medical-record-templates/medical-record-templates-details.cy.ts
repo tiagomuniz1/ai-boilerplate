@@ -82,8 +82,22 @@ describe('Medical Record Templates Details', () => {
     cy.get('[data-testid="template-details-name"]').should('contain', 'Anamnese Cardíaca')
     cy.get('[data-testid="template-details-specialty"]').should('contain', 'Cardiologia')
     cy.get('[data-testid="template-details-status"]').should('contain', 'Ativo')
+    cy.get('[data-testid="template-details-profession"]').should('be.visible')
+    cy.get('[data-testid="template-details-fields"]').should('be.visible')
     cy.get('[data-testid="template-details-field-0"]').should('be.visible')
     cy.contains('Sintoma principal').should('be.visible')
+  })
+
+  it('shows a no-fields message when the template has none', () => {
+    cy.intercept('GET', `${Cypress.env('API_URL')}/medical-record-templates/${MOCK_TEMPLATE_ID}`, {
+      statusCode: 200,
+      body: { ...mockTemplate, fields: [] },
+    }).as('getTemplate')
+
+    visitClinic(`/medical-record-templates/${MOCK_TEMPLATE_ID}`, mockAdmin)
+    cy.wait('@getTemplate')
+
+    cy.get('[data-testid="template-details-no-fields"]').should('be.visible')
   })
 
   it('shows edit and delete buttons for ADMIN', () => {

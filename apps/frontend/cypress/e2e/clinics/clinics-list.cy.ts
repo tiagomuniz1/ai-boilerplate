@@ -107,6 +107,24 @@ describe('Clinics List', () => {
     expectBackofficePath('/clinics/new')
   })
 
+  it('filters the clinic list by typing in the search field', () => {
+    cy.intercept('GET', `${Cypress.env('API_URL')}/clinics*`, {
+      statusCode: 200,
+      body: populatedListResponse,
+    }).as('getClinics')
+
+    visitBackoffice('/clinics', mockPlatformAdmin)
+    cy.wait('@getClinics')
+
+    cy.intercept('GET', `${Cypress.env('API_URL')}/clinics*search=coracao*`, {
+      statusCode: 200,
+      body: populatedListResponse,
+    }).as('searchClinics')
+    cy.get('[data-testid="clinic-list-search"]').type('coracao')
+    cy.wait('@searchClinics')
+    cy.get(`[data-testid="clinic-table-row-${mockClinic.id}"]`).should('exist')
+  })
+
 })
 
 export {}

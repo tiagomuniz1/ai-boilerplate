@@ -11,15 +11,16 @@ import { AppointmentsTimelineCard } from './components/AppointmentsTimelineCard'
 import { AgeDistributionCard } from './components/AgeDistributionCard'
 import { BirthdayPanel } from './components/BirthdayPanel'
 import { DashboardDateRangeFilter } from './components/DashboardDateRangeFilter'
+import { toLocalDateString } from '@/lib/format-date'
 import type { IDashboardFilters } from './types/dashboard.types'
 
 function defaultDates(): { from: string; to: string } {
   const today = new Date()
   const from = new Date(today)
-  from.setUTCDate(from.getUTCDate() - 29)
+  from.setDate(from.getDate() - 29)
   return {
-    from: from.toISOString().split('T')[0],
-    to: today.toISOString().split('T')[0],
+    from: toLocalDateString(from),
+    to: toLocalDateString(today),
   }
 }
 

@@ -13,7 +13,6 @@ import { CreateClinicUseCase } from './use-cases/create-clinic.use-case'
 import { FindAllClinicsUseCase } from './use-cases/find-all-clinics.use-case'
 import { FindClinicByIdUseCase } from './use-cases/find-clinic-by-id.use-case'
 import { FindClinicBySlugUseCase } from './use-cases/find-clinic-by-slug.use-case'
-import { RegisterClinicUseCase } from './use-cases/register-clinic.use-case'
 import { UpdateClinicUseCase } from './use-cases/update-clinic.use-case'
 import { UploadClinicLogoUseCase } from './use-cases/upload-clinic-logo.use-case'
 import { UploadClinicLogoDarkUseCase } from './use-cases/upload-clinic-logo-dark.use-case'
@@ -30,7 +29,6 @@ import { ClinicsRepository } from './repositories/clinics.repository'
     FindAllClinicsUseCase,
     FindClinicByIdUseCase,
     FindClinicBySlugUseCase,
-    RegisterClinicUseCase,
     UpdateClinicUseCase,
     UploadClinicLogoUseCase,
     UploadClinicLogoDarkUseCase,

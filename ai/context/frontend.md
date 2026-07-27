@@ -265,7 +265,7 @@ export function createQueryClient() {
 **E2E (Cypress):**
 * Sempre `data-testid` — nunca classes CSS ou texto
 * Cada teste independente — sem depender do estado de outro
-* Cobrir fluxos críticos: login, navegação principal, CRUD completo
+* **Cobertura completa, não só fluxos críticos** — toda funcionalidade do frontend precisa de teste E2E, por menor que seja: happy path, erro/loading, validação, toggles, diálogos, menus, widgets secundários embutidos em outras telas. Nenhuma feature é pequena demais para ficar sem teste.
 
 ---
 
@@ -275,6 +275,7 @@ export function createQueryClient() {
 * [ ] Sem erros de build / warnings de lint / `console.log` ou código comentado
 * [ ] Testes unitários com 100% de cobertura
 * [ ] Testes de integração (loading, error, success)
+* [ ] Teste E2E (Cypress) cobrindo a funcionalidade — sem exceção de tamanho
 * [ ] Segue arquitetura e naming convention
 * [ ] Sem mistura de camadas
 * [ ] Nenhum tipo do axios fora de `lib/api-client.ts`

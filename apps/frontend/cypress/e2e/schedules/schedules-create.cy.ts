@@ -102,34 +102,8 @@ describe('Schedules Create', () => {
     cy.get('[data-testid="schedule-form-start-time"]').should('have.value', '09:00')
   })
 
-  it('PROFESSIONAL: creates schedule and redirects to /schedules', () => {
-    cy.intercept('POST', `${Cypress.env('API_URL')}/schedules`, { statusCode: 201, body: mockCreatedSchedule }).as('createSchedule')
-
-    visitClinic('/schedules/new', mockProfessionalUser)
-    cy.get('[data-testid="schedule-form-day"]').select('TUESDAY')
-    cy.get('[data-testid="schedule-form-start-time"]').clear().type('09:00')
-    cy.get('[data-testid="schedule-form-end-time"]').clear().type('13:00')
-    cy.get('[data-testid="schedule-form-slot"]').type('{selectall}60')
-    cy.get('[data-testid="schedule-form-submit"]').click()
-
-    cy.wait('@createSchedule')
-    expectClinicPath('/schedules')
-  })
-
-  it('ADMIN: selects professional and creates schedule', () => {
-    cy.intercept('POST', `${Cypress.env('API_URL')}/schedules`, { statusCode: 201, body: mockCreatedSchedule }).as('createSchedule')
-
-    visitClinic('/schedules/new', mockAdminUser)
-    cy.get('[data-testid="schedule-form-professional"]').select(DOC_UUID)
-    cy.get('[data-testid="schedule-form-day"]').select('TUESDAY')
-    cy.get('[data-testid="schedule-form-start-time"]').clear().type('09:00')
-    cy.get('[data-testid="schedule-form-end-time"]').clear().type('13:00')
-    cy.get('[data-testid="schedule-form-slot"]').type('{selectall}60')
-    cy.get('[data-testid="schedule-form-submit"]').click()
-
-    cy.wait('@createSchedule').its('request.body').should('have.property', 'professionalId', DOC_UUID)
-    expectClinicPath('/schedules')
-  })
+  // Real-backend happy path (PROFESSIONAL creating own schedule, ADMIN creating
+  // on behalf of a professional) lives in schedules-happy-path-real.cy.ts.
 
   it('shows conflict error on 409 response', () => {
     cy.intercept('POST', `${Cypress.env('API_URL')}/schedules`, {

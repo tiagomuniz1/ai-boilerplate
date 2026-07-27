@@ -1,4 +1,4 @@
-import { visitClinic, expectClinicPath, CLINIC_ID } from '../../support/clinic'
+import { visitClinic, CLINIC_ID } from '../../support/clinic'
 
 // Cobre a permissão de qualquer profissional criar o próprio modelo de prontuário:
 // médico (CRM) restrito às próprias especialidades, e demais profissões (ex: CRN)
@@ -31,18 +31,6 @@ const mockCrnProfessional = {
   registrations: [{ id: 'reg-1', councilType: 'crn', number: '654321', state: 'SP', isPrimary: true }],
   specialties: [],
   bio: null,
-  createdAt: '2024-01-15T10:00:00.000Z',
-  updatedAt: '2024-01-15T10:00:00.000Z',
-}
-
-const mockCreatedTemplate = {
-  id: 'uuid-template-new',
-  specialtyId: SPEC_ID_CARDIO,
-  specialtyName: 'Cardiologia',
-  name: 'Anamnese própria',
-  fields: [],
-  sections: [],
-  isActive: true,
   createdAt: '2024-01-15T10:00:00.000Z',
   updatedAt: '2024-01-15T10:00:00.000Z',
 }
@@ -94,31 +82,7 @@ describe('Medical Record Templates — professional creation', () => {
       cy.get('[data-testid="template-form-council-type"]').should('not.exist')
     })
 
-    it('creates a template for the professional own specialty', () => {
-      cy.intercept('POST', `${Cypress.env('API_URL')}/medical-record-templates`, {
-        statusCode: 201,
-        body: mockCreatedTemplate,
-      }).as('createTemplate')
-      cy.intercept('GET', `${Cypress.env('API_URL')}/medical-record-templates*`, {
-        statusCode: 200,
-        body: { data: [mockCreatedTemplate], total: 1, page: 1, limit: 20 },
-      }).as('getTemplates')
-
-      visitClinic('/medical-record-templates/new', mockUser)
-      cy.wait('@getMyProfessional')
-
-      cy.get('[data-testid="template-form-name"]').type('Anamnese própria')
-      cy.get('[data-testid="template-form-specialty"]').select(SPEC_ID_CARDIO)
-      cy.get('[data-testid="template-form-add-field"]').click()
-      cy.get('[data-testid="field-editor-label-0"]').type('Sintoma')
-      cy.get('[data-testid="template-form-submit"]').click()
-
-      cy.wait('@createTemplate').then((interception) => {
-        expect(interception.request.body.specialtyId).to.eq(SPEC_ID_CARDIO)
-        expect(interception.request.body.councilType).to.be.undefined
-      })
-      expectClinicPath('/medical-record-templates')
-    })
+    // Real-backend happy path lives in medical-record-templates-happy-path-real.cy.ts.
   })
 
   describe('non-CRM professional (CRN)', () => {
@@ -137,31 +101,8 @@ describe('Medical Record Templates — professional creation', () => {
       cy.get('[data-testid="template-form-council-type"]').should('not.exist')
     })
 
-    it('creates a template directly for the professional own profession', () => {
-      const createdCrnTemplate = { ...mockCreatedTemplate, specialtyId: null, specialtyName: null, councilType: 'crn' }
-      cy.intercept('POST', `${Cypress.env('API_URL')}/medical-record-templates`, {
-        statusCode: 201,
-        body: createdCrnTemplate,
-      }).as('createTemplate')
-      cy.intercept('GET', `${Cypress.env('API_URL')}/medical-record-templates*`, {
-        statusCode: 200,
-        body: { data: [createdCrnTemplate], total: 1, page: 1, limit: 20 },
-      }).as('getTemplates')
-
-      visitClinic('/medical-record-templates/new', mockUser)
-      cy.wait('@getMyProfessional')
-
-      cy.get('[data-testid="template-form-name"]').type('Avaliação nutricional')
-      cy.get('[data-testid="template-form-add-field"]').click()
-      cy.get('[data-testid="field-editor-label-0"]').type('Peso')
-      cy.get('[data-testid="template-form-submit"]').click()
-
-      cy.wait('@createTemplate').then((interception) => {
-        expect(interception.request.body.specialtyId).to.be.undefined
-        expect(interception.request.body.councilType).to.eq('crn')
-      })
-      expectClinicPath('/medical-record-templates')
-    })
+    // Real-backend happy path (+ the real 409 for a 2nd generalist template of the
+    // same council type) lives in medical-record-templates-happy-path-real.cy.ts.
   })
 
   describe('USER role', () => {

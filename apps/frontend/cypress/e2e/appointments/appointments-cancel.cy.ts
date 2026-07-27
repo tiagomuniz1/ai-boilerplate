@@ -115,9 +115,10 @@ describe('Appointments — cancel', () => {
     visitClinic(`/appointments/${APPT_UUID}`, mockProfessionalUser)
 
     cy.get('[data-testid="appointment-detail-cancel-button"]').click()
+    cy.get('[data-testid="cancel-reason-input"]').type('Paciente remarcou')
     cy.get('[data-testid="cancel-dialog-confirm"]').click()
 
-    cy.wait('@cancelAppointment')
+    cy.wait('@cancelAppointment').its('request.body').should('include', { cancellationReason: 'Paciente remarcou' })
     cy.get('[data-testid="cancel-appointment-dialog"]').should('not.exist')
   })
 

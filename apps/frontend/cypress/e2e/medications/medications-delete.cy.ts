@@ -43,6 +43,7 @@ describe('Medications Delete', () => {
 
     cy.get(`[data-testid="medication-delete-button-${MOCK_MEDICATION_ID}"]`).click()
     cy.get('[data-testid="medication-delete-dialog"]').should('be.visible')
+    cy.get('[data-testid="medication-delete-dialog-message"]').should('be.visible')
     cy.get('[data-testid="medication-delete-dialog-cancel"]').click()
     cy.get('[data-testid="medication-delete-dialog"]').should('not.exist')
     cy.get(`[data-testid="medication-row-${MOCK_MEDICATION_ID}"]`).should('exist')
