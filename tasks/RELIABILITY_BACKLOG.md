@@ -51,11 +51,15 @@ O `CLAUDE.md` e `ai/context/architecture.md` descrevem o fluxo `feature/* → de
 
 **Sugestão:** decidir entre (a) recriar o fluxo `develop` de verdade, com PR e testes em staging antes de chegar em `main`, ou (b) atualizar a documentação para refletir o fluxo real (branch única + escolha manual de ambiente no dispatch). Deixar como está gera dissonância entre o que o time acha que está seguindo e o que de fato acontece.
 
-### Drift de AMI na instância EC2 de staging
+### ~~Drift de AMI na instância EC2 de staging~~ — **aconteceu de verdade e foi corrigido (2026-07-27)**
 
-Um `terraform plan` em staging (rodado durante esse mesmo diagnóstico) mostrou que a AMI referenciada mudou (`ami-0fd6240f599091088` → `ami-004f790b835b26145`), forçando a substituição completa da instância EC2 num próximo `apply` sem `-target`. Isso é efeito de uma data source `aws_ami` com `most_recent = true` (padrão comum), que vai "descobrir" uma AMI mais nova a qualquer momento e pedir replace da instância.
+O que este item previa como risco se confirmou no mesmo dia: um `apply` com `-target=module.github_oidc` (módulo inteiro, não o recurso específico) em staging arrastou `aws_instance.this` como dependência e encontrou uma AMI mais nova (`most_recent = true`), substituindo a instância EC2 de staging. A Elastic IP (`18.211.167.222`, a que o CloudFront/DNS aponta) não foi realocada automaticamente para a nova instância — ficou órfã — e o site ficou fora do ar com `504 Gateway Timeout` até o usuário notar e pedir verificação.
 
-**Sugestão:** fixar a AMI por ID explícito (atualizado deliberadamente via PR) em vez de `most_recent = true`, para que substituições de instância sejam sempre uma decisão consciente, não um efeito colateral de rodar `plan`/`apply` por outro motivo.
+**Correção aplicada:**
+1. Reassociada a EIP manualmente via `aws ec2 associate-address` (restaurou o site imediatamente, sem tocar na instância).
+2. AMI fixada explicitamente (`ami_id = "ami-00adf8f2fe708c532"`) em `infra/terraform/environments/staging/main.tf`, eliminando o `most_recent = true` como fonte de drift — confirmado com `terraform plan` retornando "No changes" depois do fix.
+
+**Lição prática:** `-target` no nível de módulo (`module.x`) não é seguro — ele arrasta qualquer dependência do módulo, incluindo recursos com drift pendente não relacionado à mudança pretendida. Sempre targetar o **recurso específico** (`module.x.recurso.nome`), nunca o módulo inteiro, ao usar `-target` para isolar uma correção.
 
 ---
 
