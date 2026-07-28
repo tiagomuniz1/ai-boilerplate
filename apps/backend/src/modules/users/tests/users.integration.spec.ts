@@ -323,6 +323,7 @@ describe('UsersController (integration)', () => {
       const found = body.data.find((u: any) => u.id === created.id)
       expect(found.isProfessional).toBe(false)
       expect(found.isPatient).toBe(false)
+      expect(found.councilType).toBeNull()
     })
 
     it('returns isProfessional true for users with a linked doctor profile', async () => {
@@ -348,6 +349,7 @@ describe('UsersController (integration)', () => {
       const found = body.data.find((u: any) => u.id === doctorUserId)
       expect(found.isProfessional).toBe(true)
       expect(found.isPatient).toBe(false)
+      expect(found.councilType).toBe(CouncilType.CRM)
 
       await doctorRepository.softDelete(doctor.id)
       await specialtyRepository.softDelete(specialty.id)

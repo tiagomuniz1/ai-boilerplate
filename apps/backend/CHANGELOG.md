@@ -4,6 +4,11 @@
 
 ### Added
 
+#### `GET /users` retorna o `councilType` do registro profissional principal
+- `UserResponseDto.councilType` (opcional) — `councilType` da `ProfessionalRegistration` primária do usuário, ou `null` quando não é profissional ou não tem registro primário
+- `FindAllUsersUseCase` faz uma query batelada (`professionals` + `professional_registrations`, `is_primary = true`) para popular o campo sem N+1, no mesmo padrão das queries existentes de `isProfessional`/`isPatient`
+- Usado pelo frontend para exibir a profissão real (Médico, Nutricionista etc.) na listagem de usuários, em vez do rótulo genérico "Profissional"
+
 #### Qualquer profissional pode criar o próprio template de prontuário
 - `POST`/`PATCH /medical-record-templates` liberados para `PROFESSIONAL` (antes exclusivo de `ADMIN`); `DELETE` continua só `ADMIN`
 - Nova coluna `council_type` em `medical_record_templates` — o template generalista (sem `specialty_id`) passa a ser escopado por `clinicId + councilType` (no máximo um por profissão por clínica), em vez de um único generalista por clínica (migration `add-council-type-to-medical-record-templates`, com backfill `council_type = 'crm'` nos generalistas existentes)

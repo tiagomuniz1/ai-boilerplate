@@ -1,4 +1,4 @@
-import { UserRole } from '@app/shared'
+import { CouncilType, UserRole } from '@app/shared'
 import { toUserModel } from './to-user-model.mapper'
 
 describe('toUserModel', () => {
@@ -8,6 +8,9 @@ describe('toUserModel', () => {
     email: 'alice@example.com',
     role: UserRole.USER,
     isActive: true,
+    isProfessional: false,
+    isPatient: false,
+    councilType: null,
     createdAt: '2024-01-15T10:00:00.000Z' as unknown as Date,
     updatedAt: '2024-01-16T10:00:00.000Z' as unknown as Date,
   }
@@ -25,6 +28,17 @@ describe('toUserModel', () => {
   it('maps isActive false', () => {
     const model = toUserModel({ ...dto, isActive: false })
     expect(model.isActive).toBe(false)
+  })
+
+  it('maps councilType when present', () => {
+    const model = toUserModel({ ...dto, isProfessional: true, councilType: CouncilType.CRN })
+    expect(model.councilType).toBe(CouncilType.CRN)
+  })
+
+  it('maps councilType to null when absent from the dto', () => {
+    const { councilType: _councilType, ...dtoWithoutCouncilType } = dto
+    const model = toUserModel(dtoWithoutCouncilType)
+    expect(model.councilType).toBeNull()
   })
 
   it('converts createdAt string to Date instance', () => {
