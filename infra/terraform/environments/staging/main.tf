@@ -48,6 +48,11 @@ module "ec2_app" {
   subnet_id        = data.aws_subnets.default.ids[0]
   operator_ip_cidr = var.operator_ip_cidr
 
+  # Pinned to the AMI currently running (2026-07-27) so `most_recent` drift no
+  # longer forces an instance replacement as a side effect of unrelated applies.
+  # Bump deliberately via PR when a new AMI is actually needed.
+  ami_id = "ami-00adf8f2fe708c532"
+
   ecr_registry        = module.ecr.registry_url
   ecr_repository_arns = module.ecr.repository_arns
   s3_iam_policy_arn   = module.clinic_assets.iam_policy_arn
