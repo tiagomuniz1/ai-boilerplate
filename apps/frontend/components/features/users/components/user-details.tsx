@@ -5,16 +5,12 @@ import { UserRole } from '@app/shared'
 import { useBasePath } from '@/lib/slug-context'
 import { Button } from '@/components/ui/atoms/button/button'
 import { Typography } from '@/components/ui/atoms/typography/typography'
+import { Skeleton } from '@/components/ui/atoms/skeleton/skeleton'
 import { cn } from '@/lib/cn'
+import { USER_ROLE_LABELS, USER_ROLE_DESCRIPTIONS } from '@/lib/user-role-labels'
+import { primaryProfessionLabel, primaryRegistrationLabel } from '@/components/features/professionals/utils/profession-label'
+import { useProfessionalByUserId } from '../hooks/use-professional-by-user-id.hook'
 import type { IUserModel } from '../types/user-model.types'
-
-const roleLabel: Record<UserRole, string> = {
-  [UserRole.ADMIN]: 'Admin',
-  [UserRole.PROFESSIONAL]: 'Profissional',
-  [UserRole.USER]: 'Usuário',
-  [UserRole.PATIENT]: 'Paciente',
-  [UserRole.PLATFORM_ADMIN]: 'Platform Admin',
-}
 
 interface UserDetailsProps {
   user: IUserModel
@@ -22,19 +18,36 @@ interface UserDetailsProps {
   onDeleteClick: () => void
 }
 
-function DetailRow({ label, value, testId }: { label: string; value: string; testId: string }) {
+function DetailRow({
+  label,
+  value,
+  description,
+  testId,
+}: {
+  label: string
+  value: string
+  description?: string
+  testId: string
+}) {
   return (
     <div className="flex flex-col gap-0.5">
       <span className="text-xs font-medium uppercase tracking-wider text-text-mute">{label}</span>
       <span className="text-sm text-text" data-testid={testId}>
         {value}
       </span>
+      {description && <span className="text-xs text-text-dim">{description}</span>}
     </div>
   )
 }
 
 export function UserDetails({ user, canDelete, onDeleteClick }: UserDetailsProps) {
   const basePath = useBasePath()
+  const isProfessional = user.role === UserRole.PROFESSIONAL
+  const {
+    professional,
+    isPending: isProfessionalPending,
+    isError: isProfessionalError,
+  } = useProfessionalByUserId(user.id, { enabled: isProfessional })
 
   return (
     <div className="flex flex-col gap-6" data-testid="user-details">
@@ -85,8 +98,9 @@ export function UserDetails({ user, canDelete, onDeleteClick }: UserDetailsProps
           </div>
           <div className="bg-surface px-6 py-4">
             <DetailRow
-              label="Role"
-              value={roleLabel[user.role]}
+              label="Perfil de acesso"
+              value={USER_ROLE_LABELS[user.role]}
+              description={USER_ROLE_DESCRIPTIONS[user.role]}
               testId="user-details-role"
             />
           </div>
@@ -101,6 +115,20 @@ export function UserDetails({ user, canDelete, onDeleteClick }: UserDetailsProps
               testId="user-details-created-at"
             />
           </div>
+          {isProfessional && isProfessionalPending && (
+            <div className="bg-surface px-6 py-4" data-testid="user-details-profession-cell">
+              <Skeleton height={16} className="w-40" />
+            </div>
+          )}
+          {isProfessional && !isProfessionalPending && !isProfessionalError && professional && (
+            <div className="bg-surface px-6 py-4" data-testid="user-details-profession-cell">
+              <DetailRow
+                label="Profissão"
+                value={`${primaryProfessionLabel(professional.registrations)} (${primaryRegistrationLabel(professional.registrations)})`}
+                testId="user-details-profession"
+              />
+            </div>
+          )}
         </div>
       </div>
     </div>

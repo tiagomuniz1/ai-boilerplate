@@ -1,11 +1,13 @@
 jest.mock('next/navigation', () => ({ useRouter: jest.fn() }))
 jest.mock('../services/users.service')
+jest.mock('@/components/features/professionals/services/professionals.service')
 
 import { screen, waitFor, fireEvent } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { useRouter } from 'next/navigation'
 import { UserRole } from '@app/shared'
 import { userService } from '../services/users.service'
+import { professionalsService } from '@/components/features/professionals/services/professionals.service'
 import { renderWithProviders } from '@/tests/utils/render-with-providers'
 import { UserForm } from './user-form'
 import type { IUserModel } from '../types/user-model.types'
@@ -21,6 +23,23 @@ const existingUser: IUserModel = {
   isActive: true,
   createdAt: new Date('2024-01-15'),
   updatedAt: new Date('2024-01-16'),
+}
+
+const professionalUser: IUserModel = {
+  ...existingUser,
+  id: 'uuid-professional-1',
+  fullName: 'Ana Nutri',
+  role: UserRole.PROFESSIONAL,
+}
+
+const professionalDto = {
+  id: 'professional-uuid-1',
+  user: { id: 'uuid-professional-1', fullName: 'Ana Nutri', email: 'ana@example.com', isActive: true },
+  registrations: [{ id: 'reg-1', councilType: 'crn', number: '12345', state: 'SP', isPrimary: true }],
+  specialties: [],
+  bio: null,
+  createdAt: new Date().toISOString(),
+  updatedAt: new Date().toISOString(),
 }
 
 describe('UserForm (integration) — create mode', () => {
@@ -128,7 +147,7 @@ describe('UserForm (integration) — create mode', () => {
     await userEvent.click(screen.getByTestId('user-form-submit'))
 
     await waitFor(() => {
-      expect(screen.getByText('Role inválida')).toBeInTheDocument()
+      expect(screen.getByText('Perfil de acesso inválido')).toBeInTheDocument()
     })
   })
 
@@ -176,6 +195,20 @@ describe('UserForm (integration) — create mode', () => {
     const options = Array.from((roleSelect as HTMLSelectElement).options).map((o) => o.value)
     expect(options).toContain(UserRole.PLATFORM_ADMIN)
     expect(options).toEqual([UserRole.USER, UserRole.ADMIN, UserRole.PLATFORM_ADMIN])
+  })
+
+  it('shows a description of what the selected role can do', async () => {
+    renderWithProviders(<UserForm mode="create" isPending={false} onSubmit={jest.fn()} />)
+
+    expect(screen.getByTestId('user-form-role-description')).toHaveTextContent(
+      'Consulta pacientes, profissionais e consultas',
+    )
+
+    fireEvent.change(screen.getByTestId('user-form-role'), { target: { value: UserRole.ADMIN } })
+
+    await waitFor(() => {
+      expect(screen.getByTestId('user-form-role-description')).toHaveTextContent('Acesso total')
+    })
   })
 })
 
@@ -237,7 +270,7 @@ describe('UserForm (integration) — edit mode', () => {
     await userEvent.click(screen.getByTestId('user-form-submit'))
 
     await waitFor(() => {
-      expect(screen.getByText('Role inválida')).toBeInTheDocument()
+      expect(screen.getByText('Perfil de acesso inválido')).toBeInTheDocument()
     })
   })
 
@@ -348,6 +381,71 @@ describe('UserForm (integration) — edit mode', () => {
 
     await waitFor(() => {
       expect(onSubmit).toHaveBeenCalled()
+    })
+  })
+})
+
+describe('UserForm (integration) — edit mode, PROFESSIONAL role', () => {
+  beforeEach(() => {
+    jest.clearAllMocks()
+    ;(useRouter as jest.Mock).mockReturnValue({ push: mockPush })
+  })
+
+  it('shows a read-only notice instead of the role select, with a link to the professional', async () => {
+    ;(professionalsService.getAll as jest.Mock).mockResolvedValue({
+      data: [professionalDto],
+      total: 1,
+      page: 1,
+      limit: 100,
+    })
+
+    renderWithProviders(
+      <UserForm mode="edit" defaultValues={professionalUser} isPending={false} onSubmit={jest.fn()} />,
+    )
+
+    expect(screen.queryByTestId('user-form-role')).not.toBeInTheDocument()
+    expect(screen.getByTestId('user-form-role-readonly')).toHaveTextContent('Profissional')
+
+    await waitFor(() => {
+      expect(screen.getByTestId('user-form-professional-link')).toHaveAttribute(
+        'href',
+        expect.stringContaining('/professionals/professional-uuid-1/edit'),
+      )
+    })
+  })
+
+  it('omits the professional link when no linked professional is found', async () => {
+    ;(professionalsService.getAll as jest.Mock).mockResolvedValue({ data: [], total: 0, page: 1, limit: 100 })
+
+    renderWithProviders(
+      <UserForm mode="edit" defaultValues={professionalUser} isPending={false} onSubmit={jest.fn()} />,
+    )
+
+    expect(screen.getByTestId('user-form-professional-notice')).toBeInTheDocument()
+    expect(screen.queryByTestId('user-form-professional-link')).not.toBeInTheDocument()
+  })
+
+  it('submits the unchanged role when editing a professional (no select to alter it)', async () => {
+    ;(professionalsService.getAll as jest.Mock).mockResolvedValue({
+      data: [professionalDto],
+      total: 1,
+      page: 1,
+      limit: 100,
+    })
+    const onSubmit = jest.fn()
+
+    renderWithProviders(
+      <UserForm mode="edit" defaultValues={professionalUser} isPending={false} onSubmit={onSubmit} />,
+    )
+
+    await waitFor(() => {
+      expect(screen.getByTestId<HTMLInputElement>('user-form-fullname').value).toBe('Ana Nutri')
+    })
+
+    await userEvent.click(screen.getByTestId('user-form-submit'))
+
+    await waitFor(() => {
+      expect(onSubmit).toHaveBeenCalledWith(expect.objectContaining({ role: UserRole.PROFESSIONAL }), expect.any(Function))
     })
   })
 })

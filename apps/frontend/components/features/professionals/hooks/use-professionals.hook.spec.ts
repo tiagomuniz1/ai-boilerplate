@@ -55,4 +55,13 @@ describe('useProfessionals', () => {
 
     await waitFor(() => expect(result.current.isError).toBe(true))
   })
+
+  it('does not fetch when enabled is false', async () => {
+    ;(listProfessionalsUseCase as jest.Mock).mockResolvedValue([])
+
+    const { result } = renderHook(() => useProfessionals(undefined, { enabled: false }), { wrapper })
+
+    expect(result.current.fetchStatus).toBe('idle')
+    expect(listProfessionalsUseCase).not.toHaveBeenCalled()
+  })
 })

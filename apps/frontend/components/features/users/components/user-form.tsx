@@ -4,11 +4,15 @@ import { useEffect } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
+import Link from 'next/link'
 import { UserRole } from '@app/shared'
 import { Input } from '@/components/ui/atoms/input/input'
 import { Button } from '@/components/ui/atoms/button/button'
 import { Alert } from '@/components/ui/molecules/alert/alert'
 import { cn } from '@/lib/cn'
+import { useBasePath } from '@/lib/slug-context'
+import { USER_ROLE_LABELS, USER_ROLE_DESCRIPTIONS } from '@/lib/user-role-labels'
+import { useProfessionalByUserId } from '../hooks/use-professional-by-user-id.hook'
 import type { ICreateUserInput, IUpdateUserInput } from '../types/user-input.types'
 import type { IUserModel } from '../types/user-model.types'
 import type { IApiError } from '@/types/api.types'
@@ -17,13 +21,13 @@ const createSchema = z.object({
   fullName: z.string().min(3, 'Nome deve ter no mínimo 3 caracteres'),
   email: z.string().email('E-mail inválido'),
   password: z.string().min(8, 'Senha deve ter no mínimo 8 caracteres'),
-  role: z.nativeEnum(UserRole, { errorMap: () => ({ message: 'Role inválida' }) }),
+  role: z.nativeEnum(UserRole, { errorMap: () => ({ message: 'Perfil de acesso inválido' }) }),
 })
 
 const updateSchema = z.object({
   fullName: z.string().min(3, 'Nome deve ter no mínimo 3 caracteres').optional().or(z.literal('')),
   email: z.string().email('E-mail inválido').optional().or(z.literal('')),
-  role: z.nativeEnum(UserRole, { errorMap: () => ({ message: 'Role inválida' }) }).optional(),
+  role: z.nativeEnum(UserRole, { errorMap: () => ({ message: 'Perfil de acesso inválido' }) }).optional(),
   isActive: z.boolean(),
 })
 
@@ -62,11 +66,14 @@ function UserFormCreate({ isPending, globalError, availableRoles = DEFAULT_ROLES
     register,
     handleSubmit,
     setError,
+    watch,
     formState: { errors },
   } = useForm<CreateFormValues>({
     resolver: zodResolver(createSchema),
     defaultValues: { role: UserRole.USER },
   })
+
+  const selectedRole = watch('role')
 
   function handleFormSubmit(data: CreateFormValues) {
     onSubmit(data, setError as (field: keyof ICreateUserInput, error: { message: string }) => void)
@@ -104,7 +111,12 @@ function UserFormCreate({ isPending, globalError, availableRoles = DEFAULT_ROLES
           error={errors.password?.message}
           {...register('password')}
         />
-        <RoleSelect registerProps={register('role')} error={errors.role?.message} availableRoles={availableRoles} />
+        <RoleSelect
+          registerProps={register('role')}
+          error={errors.role?.message}
+          availableRoles={availableRoles}
+          selectedRole={selectedRole}
+        />
         <Button
           type="submit"
           isLoading={isPending}
@@ -119,15 +131,22 @@ function UserFormCreate({ isPending, globalError, availableRoles = DEFAULT_ROLES
 }
 
 function UserFormEdit({ defaultValues, isPending, globalError, onSubmit }: UserFormEditProps) {
+  const basePath = useBasePath()
+  const isProfessional = defaultValues.role === UserRole.PROFESSIONAL
+  const { professional } = useProfessionalByUserId(defaultValues.id, { enabled: isProfessional })
+
   const {
     register,
     handleSubmit,
     setError,
     reset,
+    watch,
     formState: { errors },
   } = useForm<UpdateFormValues>({
     resolver: zodResolver(updateSchema),
   })
+
+  const selectedRole = watch('role')
 
   useEffect(() => {
     reset({
@@ -171,7 +190,15 @@ function UserFormEdit({ defaultValues, isPending, globalError, onSubmit }: UserF
           error={errors.email?.message}
           {...register('email')}
         />
-        <RoleSelect registerProps={register('role')} error={errors.role?.message} />
+        {isProfessional ? (
+          <ProfessionalRoleNotice basePath={basePath} professionalId={professional?.id} />
+        ) : (
+          <RoleSelect
+            registerProps={register('role')}
+            error={errors.role?.message}
+            selectedRole={selectedRole}
+          />
+        )}
         <label className="flex cursor-pointer items-center gap-3">
           <input
             type="checkbox"
@@ -194,22 +221,16 @@ function UserFormEdit({ defaultValues, isPending, globalError, onSubmit }: UserF
   )
 }
 
-const ROLE_LABELS: Record<UserRole, string> = {
-  [UserRole.USER]: 'Usuário',
-  [UserRole.ADMIN]: 'Administrador',
-  [UserRole.PLATFORM_ADMIN]: 'Platform Admin',
-  [UserRole.PROFESSIONAL]: 'Profissional',
-  [UserRole.PATIENT]: 'Paciente',
-}
-
 function RoleSelect({
   registerProps,
   error,
   availableRoles = DEFAULT_ROLES,
+  selectedRole,
 }: {
   registerProps: React.SelectHTMLAttributes<HTMLSelectElement> & { name: string }
   error?: string
   availableRoles?: UserRole[]
+  selectedRole?: UserRole
 }) {
   const selectId = 'role'
   return (
@@ -218,7 +239,7 @@ function RoleSelect({
         htmlFor={selectId}
         className="text-sm font-medium text-text"
       >
-        Role
+        Perfil de acesso
       </label>
       <select
         id={selectId}
@@ -237,15 +258,47 @@ function RoleSelect({
       >
         {availableRoles.map((role) => (
           <option key={role} value={role}>
-            {ROLE_LABELS[role]}
+            {USER_ROLE_LABELS[role]}
           </option>
         ))}
       </select>
+      {selectedRole && (
+        <p className="text-xs text-text-dim" data-testid="user-form-role-description">
+          {USER_ROLE_DESCRIPTIONS[selectedRole]}
+        </p>
+      )}
       {error && (
         <span id={`${selectId}-error`} role="alert" className="text-xs text-danger">
           {error}
         </span>
       )}
+    </div>
+  )
+}
+
+function ProfessionalRoleNotice({ basePath, professionalId }: { basePath: string; professionalId?: string }) {
+  return (
+    <div className="flex flex-col gap-1.5">
+      <span className="text-sm font-medium text-text">Perfil de acesso</span>
+      <p className="text-sm text-text" data-testid="user-form-role-readonly">
+        {USER_ROLE_LABELS[UserRole.PROFESSIONAL]}
+      </p>
+      <p className="text-xs text-text-dim">{USER_ROLE_DESCRIPTIONS[UserRole.PROFESSIONAL]}</p>
+      <p className="text-xs text-text-dim" data-testid="user-form-professional-notice">
+        Profissão e registro (CRM/CRN/etc.) são gerenciados na tela de Profissionais.
+        {professionalId && (
+          <>
+            {' '}
+            <Link
+              href={`${basePath}/professionals/${professionalId}/edit`}
+              className="text-accent hover:underline"
+              data-testid="user-form-professional-link"
+            >
+              Editar profissional
+            </Link>
+          </>
+        )}
+      </p>
     </div>
   )
 }
