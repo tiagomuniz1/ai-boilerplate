@@ -4,7 +4,7 @@ jest.mock('@/lib/slug-context', () => ({ useSlug: () => 'test-clinic', useBasePa
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { useRouter } from 'next/navigation'
-import { UserRole } from '@app/shared'
+import { CouncilType, UserRole } from '@app/shared'
 import { UserTableRow } from './user-table-row'
 import type { IUserModel } from '../types/user-model.types'
 
@@ -16,6 +16,7 @@ const makeUser = (overrides: Partial<IUserModel> = {}): IUserModel => ({
   isActive: true,
   isProfessional: false,
   isPatient: false,
+  councilType: null,
   createdAt: new Date('2024-01-15'),
   updatedAt: new Date('2024-01-16'),
   ...overrides,
@@ -88,7 +89,23 @@ describe('UserTableRow', () => {
     expect(screen.getByTestId('user-role-uuid-1')).toHaveTextContent('Platform Admin')
   })
 
-  it('shows Profissional profile badge when isProfessional is true', () => {
+  it('shows the profession label when isProfessional is true and councilType is known', () => {
+    render(
+      <table>
+        <tbody>
+          <UserTableRow
+            user={makeUser({ isProfessional: true, councilType: CouncilType.CRN })}
+            isCurrentUser={false}
+            onDeleteClick={jest.fn()}
+          />
+        </tbody>
+      </table>,
+    )
+
+    expect(screen.getByTestId('user-profile-professional-uuid-1')).toHaveTextContent('Nutricionista')
+  })
+
+  it('falls back to "Profissional" when isProfessional is true but councilType is unknown', () => {
     render(
       <table>
         <tbody>

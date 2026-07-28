@@ -1,6 +1,6 @@
 import { DataSource } from 'typeorm'
 import { faker } from '@faker-js/faker'
-import { UserRole } from '@app/shared'
+import { CouncilType, UserRole } from '@app/shared'
 import { FindAllUsersUseCase } from '../use-cases/find-all-users.use-case'
 import { IUsersRepository } from '../repositories/users.repository.interface'
 import { CacheService } from '../../../cache/cache.service'
@@ -26,10 +26,12 @@ const mockCacheService = {
   delByPattern: jest.fn(),
 } as unknown as jest.Mocked<CacheService>
 
-function makeQueryBuilder(rawResult: Array<{ user_id: string }> = []) {
+function makeQueryBuilder(rawResult: unknown[] = []) {
   return {
     select: jest.fn().mockReturnThis(),
+    addSelect: jest.fn().mockReturnThis(),
     from: jest.fn().mockReturnThis(),
+    innerJoin: jest.fn().mockReturnThis(),
     where: jest.fn().mockReturnThis(),
     andWhere: jest.fn().mockReturnThis(),
     getRawMany: jest.fn().mockResolvedValue(rawResult),
@@ -39,11 +41,13 @@ function makeQueryBuilder(rawResult: Array<{ user_id: string }> = []) {
 function makeMockDataSource(
   doctorRows: Array<{ user_id: string }> = [],
   patientRows: Array<{ user_id: string }> = [],
+  councilTypeRows: Array<{ user_id: string; council_type: CouncilType }> = [],
 ): DataSource {
   const mock = {
     createQueryBuilder: jest.fn()
       .mockReturnValueOnce(makeQueryBuilder(doctorRows))
-      .mockReturnValueOnce(makeQueryBuilder(patientRows)),
+      .mockReturnValueOnce(makeQueryBuilder(patientRows))
+      .mockReturnValueOnce(makeQueryBuilder(councilTypeRows)),
     createQueryRunner: jest.fn(),
   }
   return mock as unknown as DataSource
@@ -126,6 +130,38 @@ describe('FindAllUsersUseCase', () => {
 
     expect(result.data[0].isProfessional).toBe(false)
     expect(result.data[0].isPatient).toBe(false)
+  })
+
+  it('response includes councilType null when user has no professional profile', async () => {
+    const user = makeUser()
+    mockCacheService.get.mockResolvedValue(null)
+    mockUsersRepository.findAll.mockResolvedValue([[user], 1])
+    mockCacheService.set.mockResolvedValue(undefined)
+
+    const result = await useCase.execute(pagination, adminCurrentUser)
+
+    expect(result.data[0].councilType).toBeNull()
+  })
+
+  it('response includes the primary councilType when user has a professional profile', async () => {
+    const user = makeUser()
+    useCase = new FindAllUsersUseCase(
+      makeMockDataSource(
+        [{ user_id: user.id }],
+        [],
+        [{ user_id: user.id, council_type: CouncilType.CRN }],
+      ),
+      mockUsersRepository,
+      mockCacheService,
+    )
+    mockCacheService.get.mockResolvedValue(null)
+    mockUsersRepository.findAll.mockResolvedValue([[user], 1])
+    mockCacheService.set.mockResolvedValue(undefined)
+
+    const result = await useCase.execute(pagination, adminCurrentUser)
+
+    expect(result.data[0].isProfessional).toBe(true)
+    expect(result.data[0].councilType).toBe(CouncilType.CRN)
   })
 
   it('response includes isProfessional true when user has a linked doctor profile', async () => {

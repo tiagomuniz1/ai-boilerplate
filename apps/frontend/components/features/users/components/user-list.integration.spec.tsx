@@ -8,7 +8,7 @@ import { screen, waitFor, fireEvent, act } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { useRouter } from 'next/navigation'
 import { useAuthStore } from '@/stores/auth.store'
-import { UserRole } from '@app/shared'
+import { CouncilType, UserRole } from '@app/shared'
 import { userService } from '../services/users.service'
 import { deleteUserUseCase } from '../use-cases/delete-user.use-case'
 import { renderWithProviders } from '@/tests/utils/render-with-providers'
@@ -276,7 +276,25 @@ describe('UserList (integration)', () => {
     expect(screen.getByTestId('user-profiles-uuid-1')).toHaveTextContent('—')
   })
 
-  it('shows Profissional badge when user is a professional', async () => {
+  it('shows the profession label when user is a professional with a known councilType', async () => {
+    ;(userService.getAll as jest.Mock).mockResolvedValue({
+      data: [makeDto({ isProfessional: true, isPatient: false, councilType: CouncilType.CRM })],
+      total: 1,
+      page: 1,
+      limit: 20,
+    })
+
+    renderWithProviders(<UserList />)
+
+    await waitFor(() => {
+      expect(screen.getByTestId('user-profile-professional-uuid-1')).toBeInTheDocument()
+    })
+
+    expect(screen.getByTestId('user-profile-professional-uuid-1')).toHaveTextContent('Médico')
+    expect(screen.queryByTestId('user-profile-patient-uuid-1')).not.toBeInTheDocument()
+  })
+
+  it('falls back to "Profissional" when user is a professional without a known councilType', async () => {
     ;(userService.getAll as jest.Mock).mockResolvedValue({
       data: [makeDto({ isProfessional: true, isPatient: false })],
       total: 1,
@@ -314,7 +332,7 @@ describe('UserList (integration)', () => {
 
   it('shows both badges when user has doctor and patient profiles', async () => {
     ;(userService.getAll as jest.Mock).mockResolvedValue({
-      data: [makeDto({ isProfessional: true, isPatient: true })],
+      data: [makeDto({ isProfessional: true, isPatient: true, councilType: CouncilType.CRN })],
       total: 1,
       page: 1,
       limit: 20,
@@ -326,7 +344,7 @@ describe('UserList (integration)', () => {
       expect(screen.getByTestId('user-profile-professional-uuid-1')).toBeInTheDocument()
     })
 
-    expect(screen.getByTestId('user-profile-professional-uuid-1')).toHaveTextContent('Profissional')
+    expect(screen.getByTestId('user-profile-professional-uuid-1')).toHaveTextContent('Nutricionista')
     expect(screen.getByTestId('user-profile-patient-uuid-1')).toHaveTextContent('Paciente')
   })
 

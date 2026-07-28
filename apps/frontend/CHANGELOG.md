@@ -4,6 +4,11 @@
 
 ### Added
 
+#### Coluna "Tipo" na listagem de usuários mostra a profissão, não mais "Perfis"
+- Coluna renomeada de "Perfis" para "Tipo" na tabela e no card mobile — o nome antigo era confuso por soar sinônimo da coluna "Role"
+- Profissional passa a exibir a profissão real (Médico, Nutricionista, Fisioterapeuta, Psicólogo, Dentista, Fonoaudiólogo) em vez do rótulo genérico "Profissional"; paciente continua exibindo "Paciente"
+- Novo `COUNCIL_TYPE_OCCUPATION_LABELS` em `packages/shared` (councilType → substantivo de ocupação), consumido via `IUserModel.councilType` (novo campo, populado pelo backend a partir do registro profissional principal)
+
 #### Qualquer profissional pode criar o próprio template de prontuário
 - Item "Modelos de prontuário" liberado na sidebar para `PROFESSIONAL` (antes exclusivo de `ADMIN`)
 - Novo hook `useMyProfessional` — resolve o próprio registro de profissional do usuário logado

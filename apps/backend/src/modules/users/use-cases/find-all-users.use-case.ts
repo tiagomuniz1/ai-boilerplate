@@ -1,6 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common'
 import { DataSource } from 'typeorm'
-import { PaginatedUsersResponseDto, UserResponseDto } from '@app/shared'
+import { CouncilType, PaginatedUsersResponseDto, UserResponseDto } from '@app/shared'
 import { BaseUseCase } from '../../../common/base.use-case'
 import { CacheService } from '../../../cache/cache.service'
 import { ICurrentUser } from '../../auth/types/current-user.type'
@@ -35,13 +35,14 @@ export class FindAllUsersUseCase extends BaseUseCase {
     const [users, total] = await this.usersRepository.findAll(page, limit, clinicId, search)
 
     const userIds = users.map((u) => u.id)
-    const [professionalUserIds, patientUserIds] = await Promise.all([
+    const [professionalUserIds, patientUserIds, professionCouncilTypes] = await Promise.all([
       this.getDoctorUserIds(userIds),
       this.getPatientUserIds(userIds),
+      this.getProfessionCouncilTypes(userIds),
     ])
 
     const result: PaginatedUsersResponseDto = {
-      data: users.map((u) => this.toResponse(u, professionalUserIds, patientUserIds)),
+      data: users.map((u) => this.toResponse(u, professionalUserIds, patientUserIds, professionCouncilTypes)),
       total,
       page,
       limit,
@@ -80,7 +81,30 @@ export class FindAllUsersUseCase extends BaseUseCase {
     return new Set(rows.map((r) => r.user_id))
   }
 
-  private toResponse(user: User, professionalUserIds: Set<string>, patientUserIds: Set<string>): UserResponseDto {
+  private async getProfessionCouncilTypes(userIds: string[]): Promise<Map<string, CouncilType>> {
+    if (userIds.length === 0) return new Map()
+    const rows: Array<{ user_id: string; council_type: CouncilType }> = await this.dataSource
+      .createQueryBuilder()
+      .select('d.user_id', 'user_id')
+      .addSelect('r.council_type', 'council_type')
+      .from('professionals', 'd')
+      .innerJoin(
+        'professional_registrations',
+        'r',
+        'r.professional_id = d.id AND r.is_primary = true AND r.deleted_at IS NULL',
+      )
+      .where('d.user_id IN (:...userIds)', { userIds })
+      .andWhere('d.deleted_at IS NULL')
+      .getRawMany()
+    return new Map(rows.map((r) => [r.user_id, r.council_type]))
+  }
+
+  private toResponse(
+    user: User,
+    professionalUserIds: Set<string>,
+    patientUserIds: Set<string>,
+    professionCouncilTypes: Map<string, CouncilType>,
+  ): UserResponseDto {
     return {
       id: user.id,
       fullName: user.fullName,
@@ -89,6 +113,7 @@ export class FindAllUsersUseCase extends BaseUseCase {
       isActive: user.isActive,
       isProfessional: professionalUserIds.has(user.id),
       isPatient: patientUserIds.has(user.id),
+      councilType: professionCouncilTypes.get(user.id) ?? null,
       createdAt: user.createdAt,
       updatedAt: user.updatedAt,
     }

@@ -13,8 +13,28 @@ const mockUser = {
   role: 'user',
   isProfessional: false,
   isPatient: false,
+  councilType: null,
   createdAt: '2024-01-15T10:00:00.000Z',
   updatedAt: '2024-01-15T10:00:00.000Z',
+}
+
+const mockDoctorUser = {
+  ...mockUser,
+  id: 'aaaaaaaa-0000-0000-0000-000000000002',
+  fullName: 'Ana Médica',
+  email: 'ana.medica@test.com',
+  role: 'professional',
+  isProfessional: true,
+  councilType: 'crm',
+}
+
+const mockPatientUser = {
+  ...mockUser,
+  id: 'aaaaaaaa-0000-0000-0000-000000000003',
+  fullName: 'Paulo Paciente',
+  email: 'paulo.paciente@test.com',
+  role: 'user',
+  isPatient: true,
 }
 
 const emptyListResponse = { data: [], total: 0, page: 1, limit: 20 }
@@ -104,6 +124,42 @@ describe('Users List', () => {
     visitClinic('/users', mockAuthUser)
     cy.wait('@getUsers')
     cy.get('[data-testid="user-list-search"]').should('be.visible')
+  })
+
+  it('shows a dash in the "Tipo" column for a user with no professional or patient record', () => {
+    cy.intercept('GET', `${Cypress.env('API_URL')}/users*`, {
+      statusCode: 200,
+      body: populatedListResponse,
+    }).as('getUsers')
+
+    visitClinic('/users', mockAuthUser)
+    cy.wait('@getUsers')
+
+    cy.get(`[data-testid="user-profiles-${mockUser.id}"]`).should('contain', '—')
+  })
+
+  it('shows the profession label (not the generic role) in the "Tipo" column for a professional', () => {
+    cy.intercept('GET', `${Cypress.env('API_URL')}/users*`, {
+      statusCode: 200,
+      body: { data: [mockDoctorUser], total: 1, page: 1, limit: 20 },
+    }).as('getUsers')
+
+    visitClinic('/users', mockAuthUser)
+    cy.wait('@getUsers')
+
+    cy.get(`[data-testid="user-profile-professional-${mockDoctorUser.id}"]`).should('contain', 'Médico')
+  })
+
+  it('shows "Paciente" in the "Tipo" column for a patient', () => {
+    cy.intercept('GET', `${Cypress.env('API_URL')}/users*`, {
+      statusCode: 200,
+      body: { data: [mockPatientUser], total: 1, page: 1, limit: 20 },
+    }).as('getUsers')
+
+    visitClinic('/users', mockAuthUser)
+    cy.wait('@getUsers')
+
+    cy.get(`[data-testid="user-profile-patient-${mockPatientUser.id}"]`).should('contain', 'Paciente')
   })
 
   it('typing in search sends query param to API', () => {

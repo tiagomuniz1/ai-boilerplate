@@ -10,6 +10,7 @@ export function toUserModel(dto: UserResponseDto): IUserModel {
     isActive: dto.isActive,
     isProfessional: dto.isProfessional,
     isPatient: dto.isPatient,
+    councilType: dto.councilType ?? null,
     createdAt: new Date(dto.createdAt),
     updatedAt: new Date(dto.updatedAt),
   }

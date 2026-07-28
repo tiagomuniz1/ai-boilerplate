@@ -11,7 +11,7 @@ import { useAuthStore } from '@/stores/auth.store'
 import { MobileListCard } from '@/components/ui/molecules/mobile-list-card/mobile-list-card'
 import { useUsers } from '../hooks/use-users.hook'
 import { useDeleteUser } from '../hooks/use-delete-user.hook'
-import { UserTableRow, getInitials, roleBadge } from './user-table-row'
+import { UserTableRow, getInitials, roleBadge, professionLabel } from './user-table-row'
 import { DeleteUserDialog } from './delete-user-dialog'
 import type { IUserModel } from '../types/user-model.types'
 import { cn } from '@/lib/cn'
@@ -133,7 +133,7 @@ export function UserList() {
                   <th className="px-6 py-3 text-xs font-medium uppercase tracking-wider text-text-mute">Usuário</th>
                   <th className="px-6 py-3 text-xs font-medium uppercase tracking-wider text-text-mute">Status</th>
                   <th className="px-6 py-3 text-xs font-medium uppercase tracking-wider text-text-mute">Role</th>
-                  <th className="px-6 py-3 text-xs font-medium uppercase tracking-wider text-text-mute">Perfis</th>
+                  <th className="px-6 py-3 text-xs font-medium uppercase tracking-wider text-text-mute">Tipo</th>
                   <th className="hidden px-6 py-3 text-xs font-medium uppercase tracking-wider text-text-mute lg:table-cell">Criado em</th>
                   <th className="px-6 py-3 text-xs font-medium uppercase tracking-wider text-text-mute">Ações</th>
                 </tr>
@@ -195,9 +195,9 @@ export function UserList() {
                       ),
                     },
                     {
-                      label: 'Perfis',
+                      label: 'Tipo',
                       value: user.isProfessional
-                        ? 'Profissional'
+                        ? professionLabel(user)
                         /* c8 ignore next */
                         : user.isPatient
                           ? 'Paciente'

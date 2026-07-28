@@ -1,4 +1,4 @@
-import { UserRole } from '@app/shared'
+import { CouncilType, UserRole } from '@app/shared'
 
 export interface IUserModel {
   id: string
@@ -8,6 +8,7 @@ export interface IUserModel {
   isActive: boolean
   isProfessional: boolean
   isPatient: boolean
+  councilType: CouncilType | null
   createdAt: Date
   updatedAt: Date
 }

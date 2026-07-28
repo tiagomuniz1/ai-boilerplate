@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import { UserRole } from '@app/shared'
+import { COUNCIL_TYPE_OCCUPATION_LABELS, UserRole } from '@app/shared'
 import { useBasePath } from '@/lib/slug-context'
 import { Button } from '@/components/ui/atoms/button/button'
 import { cn } from '@/lib/cn'
@@ -36,7 +36,11 @@ const roleBadge: Record<UserRole, { label: string; className: string }> = {
   },
 }
 
-export { getInitials, roleBadge }
+function professionLabel(user: IUserModel): string {
+  return user.councilType ? COUNCIL_TYPE_OCCUPATION_LABELS[user.councilType] : 'Profissional'
+}
+
+export { getInitials, roleBadge, professionLabel }
 
 export interface UserTableRowProps {
   user: IUserModel
@@ -100,7 +104,7 @@ export function UserTableRow({ user, isCurrentUser, onDeleteClick }: UserTableRo
               className="inline-flex items-center rounded-full bg-accent-soft px-2.5 py-0.5 text-xs font-medium text-accent"
               data-testid={`user-profile-professional-${user.id}`}
             >
-              Profissional
+              {professionLabel(user)}
             </span>
           )}
           {user.isPatient && (
