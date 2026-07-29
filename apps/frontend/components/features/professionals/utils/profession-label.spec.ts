@@ -1,5 +1,5 @@
 import { CouncilType } from '@app/shared'
-import { primaryRegistration, primaryProfessionLabel, primaryRegistrationLabel } from './profession-label'
+import { primaryRegistration, primaryProfessionLabel, primaryOccupationLabel, primaryRegistrationLabel } from './profession-label'
 import type { IProfessionalRegistrationModel } from '../types/professional-model.types'
 
 function buildRegistration(overrides: Partial<IProfessionalRegistrationModel> = {}): IProfessionalRegistrationModel {
@@ -38,6 +38,24 @@ describe('primaryProfessionLabel', () => {
 
   it('returns a dash when there are no registrations', () => {
     expect(primaryProfessionLabel([])).toBe('—')
+  })
+})
+
+describe('primaryOccupationLabel', () => {
+  it('returns the occupation label for the primary registration', () => {
+    expect(primaryOccupationLabel([buildRegistration({ councilType: CouncilType.CRN })])).toBe('Nutricionista')
+  })
+
+  it('returns the occupation label matching each council type', () => {
+    expect(primaryOccupationLabel([buildRegistration({ councilType: CouncilType.CRM })])).toBe('Médico')
+    expect(primaryOccupationLabel([buildRegistration({ councilType: CouncilType.CREFITO })])).toBe('Fisioterapeuta')
+    expect(primaryOccupationLabel([buildRegistration({ councilType: CouncilType.CRP })])).toBe('Psicólogo')
+    expect(primaryOccupationLabel([buildRegistration({ councilType: CouncilType.CRO })])).toBe('Dentista')
+    expect(primaryOccupationLabel([buildRegistration({ councilType: CouncilType.CRFA })])).toBe('Fonoaudiólogo')
+  })
+
+  it('returns a dash when there are no registrations', () => {
+    expect(primaryOccupationLabel([])).toBe('—')
   })
 })
 

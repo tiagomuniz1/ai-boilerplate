@@ -5,7 +5,7 @@ jest.mock('../use-cases/delete-professional.use-case')
 import { screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { useRouter } from 'next/navigation'
-import { UserRole } from '@app/shared'
+import { CouncilType, UserRole } from '@app/shared'
 import { useAuthStore } from '@/stores/auth.store'
 import { professionalsService } from '../services/professionals.service'
 import { deleteProfessionalUseCase } from '../use-cases/delete-professional.use-case'
@@ -25,7 +25,7 @@ const mockPush = jest.fn()
 const makeDto = (overrides = {}) => ({
   id: 'uuid-1',
   user: { id: 'user-uuid-1', fullName: 'Dr. João Silva', email: 'joao@example.com', isActive: true },
-  registrations: [{ id: 'crm-uuid-1', number: '12345', state: 'SP', isPrimary: true }],
+  registrations: [{ id: 'crm-uuid-1', councilType: CouncilType.CRM, number: '12345', state: 'SP', isPrimary: true }],
   specialties: [{ id: 'spec-uuid-1', name: 'Cardiologia', registryNumber: null }],
   bio: null,
   createdAt: '2024-01-15T10:00:00.000Z',
@@ -155,7 +155,7 @@ describe('ProfessionalList (integration)', () => {
     expect(within(table).getByText('+2 mais')).toBeInTheDocument()
   })
 
-  it('renders empty specialty cell when professional has no specialties', async () => {
+  it('shows the occupation label when a CRM professional has no specialty (generalist)', async () => {
     const dto = makeDto({ specialties: [] })
     ;(professionalsService.getAll as jest.Mock).mockResolvedValue({ data: [dto], total: 1, page: 1, limit: 20 })
 
@@ -165,8 +165,25 @@ describe('ProfessionalList (integration)', () => {
       expect(screen.getByTestId('professional-list-table')).toBeInTheDocument()
     })
 
-    expect(screen.getByTestId('professional-specialty-uuid-1')).toBeInTheDocument()
     expect(screen.queryByTestId(/professional-specialty-badge-/)).not.toBeInTheDocument()
+    expect(screen.getByTestId('professional-occupation-uuid-1')).toHaveTextContent('Médico')
+  })
+
+  it('shows the occupation label instead of an empty specialty cell for a non-doctor professional', async () => {
+    const dto = makeDto({
+      registrations: [{ id: 'reg-1', councilType: CouncilType.CRN, number: '999', state: 'SP', isPrimary: true }],
+      specialties: [],
+    })
+    ;(professionalsService.getAll as jest.Mock).mockResolvedValue({ data: [dto], total: 1, page: 1, limit: 20 })
+
+    renderWithProviders(<ProfessionalList />)
+
+    await waitFor(() => {
+      expect(screen.getByTestId('professional-list-table')).toBeInTheDocument()
+    })
+
+    expect(screen.queryByTestId(/professional-specialty-badge-/)).not.toBeInTheDocument()
+    expect(screen.getByTestId('professional-occupation-uuid-1')).toHaveTextContent('Nutricionista')
   })
 
   it('renders empty state when no professionals', async () => {
@@ -367,6 +384,21 @@ describe('ProfessionalList (integration)', () => {
     expect(screen.getByTestId('professional-card-specialty-badge-spec-uuid-1')).toHaveTextContent('Cardiologia')
     expect(screen.getByTestId('professional-card-edit-link-uuid-1')).toBeInTheDocument()
     expect(screen.getByTestId('professional-card-view-link-uuid-1')).toBeInTheDocument()
+  })
+
+  it('mobile card shows the occupation label instead of an empty specialty for a non-doctor professional', async () => {
+    useAuthStore.setState({ user: makeUser(UserRole.ADMIN) })
+    const dto = makeDto({
+      registrations: [{ id: 'reg-1', councilType: CouncilType.CREFITO, number: '999', state: 'SP', isPrimary: true }],
+      specialties: [],
+    })
+    ;(professionalsService.getAll as jest.Mock).mockResolvedValue({ data: [dto], total: 1, page: 1, limit: 20 })
+
+    renderWithProviders(<ProfessionalList />)
+
+    await waitFor(() => expect(screen.getByTestId('professional-card-uuid-1')).toBeInTheDocument())
+
+    expect(screen.getByTestId('professional-card-occupation-uuid-1')).toHaveTextContent('Fisioterapeuta')
   })
 
   it('mobile card shows Consultas link for roles that can view appointments', async () => {

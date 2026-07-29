@@ -109,6 +109,26 @@ describe('Professionals List', () => {
     cy.get(`[data-testid="professional-specialty-${mockProfessional.id}"]`).should('contain', '+2 mais')
   })
 
+  it('shows the occupation label instead of an empty specialty cell for a non-doctor professional', () => {
+    const nutritionist = {
+      ...mockProfessional,
+      id: 'aaaaaaaa-2222-2222-2222-000000000002',
+      user: { id: 'user-uuid-2', fullName: 'Ana Nutri', email: 'ana@test.com' },
+      registrations: [{ id: 'reg-2', councilType: 'crn', number: '999', state: 'SP', isPrimary: true }],
+      specialties: [],
+    }
+    cy.intercept('GET', `${Cypress.env('API_URL')}/professionals*`, {
+      statusCode: 200,
+      body: { data: [nutritionist], total: 1, page: 1, limit: 20 },
+    }).as('getProfessionals')
+
+    visitClinic('/professionals', mockAuthUser)
+    cy.wait('@getProfessionals')
+
+    cy.get(`[data-testid="professional-occupation-${nutritionist.id}"]`).should('contain', 'Nutricionista')
+    cy.get(`[data-testid="professional-specialty-${nutritionist.id}"]`).find('[data-testid^="professional-specialty-badge-"]').should('not.exist')
+  })
+
   it('shows "Novo profissional" button that links to /professionals/new', () => {
     cy.intercept('GET', `${Cypress.env('API_URL')}/professionals*`, {
       statusCode: 200,

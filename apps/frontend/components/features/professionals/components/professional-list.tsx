@@ -13,7 +13,7 @@ import { useProfessionals } from '../hooks/use-professionals.hook'
 import { useDeleteProfessional } from '../hooks/use-delete-professional.hook'
 import { ProfessionalListSkeleton } from './professional-list-skeleton'
 import { ProfessionalDeleteDialog } from './professional-delete-dialog'
-import { primaryProfessionLabel, primaryRegistrationLabel } from '../utils/profession-label'
+import { primaryProfessionLabel, primaryOccupationLabel, primaryRegistrationLabel } from '../utils/profession-label'
 import type { IProfessionalModel } from '../types/professional-model.types'
 
 export function ProfessionalList() {
@@ -179,18 +179,29 @@ export function ProfessionalList() {
                       data-testid={`professional-specialty-${professional.id}`}
                     >
                       <div className="flex flex-wrap gap-1">
-                        {professional.specialties.slice(0, 2).map((s) => (
+                        {professional.specialties.length > 0 ? (
+                          <>
+                            {professional.specialties.slice(0, 2).map((s) => (
+                              <span
+                                key={s.id}
+                                data-testid={`professional-specialty-badge-${s.id}`}
+                                className="inline-flex items-center rounded-full border border-line bg-surface-2 px-2 py-0.5 text-xs text-text"
+                              >
+                                {s.name}
+                              </span>
+                            ))}
+                            {professional.specialties.length > 2 && (
+                              <span className="inline-flex items-center text-xs text-text-mute">
+                                +{professional.specialties.length - 2} mais
+                              </span>
+                            )}
+                          </>
+                        ) : (
                           <span
-                            key={s.id}
-                            data-testid={`professional-specialty-badge-${s.id}`}
+                            data-testid={`professional-occupation-${professional.id}`}
                             className="inline-flex items-center rounded-full border border-line bg-surface-2 px-2 py-0.5 text-xs text-text"
                           >
-                            {s.name}
-                          </span>
-                        ))}
-                        {professional.specialties.length > 2 && (
-                          <span className="inline-flex items-center text-xs text-text-mute">
-                            +{professional.specialties.length - 2} mais
+                            {primaryOccupationLabel(professional.registrations)}
                           </span>
                         )}
                       </div>
@@ -260,21 +271,31 @@ export function ProfessionalList() {
                     label: 'Especialidade',
                     value: (
                       <span className="flex flex-wrap justify-end gap-1">
-                        {professional.specialties.slice(0, 2).map((s) => (
+                        {professional.specialties.length > 0 ? (
+                          <>
+                            {professional.specialties.slice(0, 2).map((s) => (
+                              <span
+                                key={s.id}
+                                data-testid={`professional-card-specialty-badge-${s.id}`}
+                                className="inline-flex items-center rounded-full border border-line bg-surface-2 px-2 py-0.5 text-xs text-text"
+                              >
+                                {s.name}
+                              </span>
+                            ))}
+                            {professional.specialties.length > 2 && (
+                              <span className="inline-flex items-center text-xs text-text-mute">
+                                +{professional.specialties.length - 2} mais
+                              </span>
+                            )}
+                          </>
+                        ) : (
                           <span
-                            key={s.id}
-                            data-testid={`professional-card-specialty-badge-${s.id}`}
+                            data-testid={`professional-card-occupation-${professional.id}`}
                             className="inline-flex items-center rounded-full border border-line bg-surface-2 px-2 py-0.5 text-xs text-text"
                           >
-                            {s.name}
-                          </span>
-                        ))}
-                        {professional.specialties.length > 2 && (
-                          <span className="inline-flex items-center text-xs text-text-mute">
-                            +{professional.specialties.length - 2} mais
+                            {primaryOccupationLabel(professional.registrations)}
                           </span>
                         )}
-                        {professional.specialties.length === 0 && <span className="text-xs text-text-mute">—</span>}
                       </span>
                     ),
                   },

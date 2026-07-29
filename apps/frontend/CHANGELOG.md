@@ -4,6 +4,10 @@
 
 ### Added
 
+#### Coluna "Especialidade" na listagem de profissionais mostra a profissão para não-médicos
+- Quando o profissional não tem especialidade (todo não-CRM, e o CRM generalista sem especialidade), a célula deixa de ficar vazia e passa a mostrar a profissão (Nutricionista, Fisioterapeuta, Psicólogo, Dentista, Fonoaudiólogo, ou Médico no caso do generalista) — tabela e card mobile
+- Novo `primaryOccupationLabel` em `professionals/utils/profession-label.ts`, reaproveitando `COUNCIL_TYPE_OCCUPATION_LABELS` do `@app/shared`
+
 #### Coluna "Tipo" na listagem de usuários mostra a profissão, não mais "Perfis"
 - Coluna renomeada de "Perfis" para "Tipo" na tabela e no card mobile — o nome antigo era confuso por soar sinônimo da coluna "Role"
 - Profissional passa a exibir a profissão real (Médico, Nutricionista, Fisioterapeuta, Psicólogo, Dentista, Fonoaudiólogo) em vez do rótulo genérico "Profissional"; paciente continua exibindo "Paciente"

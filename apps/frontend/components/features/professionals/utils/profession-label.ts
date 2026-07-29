@@ -1,4 +1,4 @@
-import { COUNCIL_TYPE_LABELS, COUNCIL_TYPE_PROFESSION_LABELS } from '@app/shared'
+import { COUNCIL_TYPE_LABELS, COUNCIL_TYPE_OCCUPATION_LABELS, COUNCIL_TYPE_PROFESSION_LABELS } from '@app/shared'
 import type { IProfessionalRegistrationModel } from '../types/professional-model.types'
 
 export function primaryRegistration(
@@ -11,6 +11,11 @@ export function primaryRegistration(
 export function primaryProfessionLabel(registrations: IProfessionalRegistrationModel[]): string {
   const primary = primaryRegistration(registrations)
   return primary ? COUNCIL_TYPE_PROFESSION_LABELS[primary.councilType] : '—'
+}
+
+export function primaryOccupationLabel(registrations: IProfessionalRegistrationModel[]): string {
+  const primary = primaryRegistration(registrations)
+  return primary ? COUNCIL_TYPE_OCCUPATION_LABELS[primary.councilType] : '—'
 }
 
 export function primaryRegistrationLabel(registrations: IProfessionalRegistrationModel[]): string {
