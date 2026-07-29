@@ -53,7 +53,7 @@ describe('useBookAppointment', () => {
     expect(firstArg).toEqual(makeInput())
   })
 
-  it('invalidates appointments and availability queries on success', async () => {
+  it('invalidates appointments, availability and dashboard queries on success', async () => {
     ;(bookAppointmentUseCase as jest.Mock).mockResolvedValue(makeModel())
 
     const queryClient = createQueryClient()
@@ -70,6 +70,7 @@ describe('useBookAppointment', () => {
 
     expect(invalidate).toHaveBeenCalledWith({ queryKey: ['appointments'] })
     expect(invalidate).toHaveBeenCalledWith({ queryKey: ['availability'] })
+    expect(invalidate).toHaveBeenCalledWith({ queryKey: ['dashboard'] })
   })
 
   it('returns error state on failure', async () => {

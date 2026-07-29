@@ -166,6 +166,20 @@ O sistema possui quatro perfis de usuário (`UserRole`). Cada perfil reflete um 
 
 ---
 
+## Fotos da Consulta (`/consultation-photos`)
+
+| Ação | ADMIN | PROFESSIONAL | USER | PATIENT |
+|---|:---:|:---:|:---:|:---:|
+| Enviar foto | ✗ | ✓ só na própria consulta | ✗ | ✗ |
+| Listar por consulta | ✓ todas | ✓ só as próprias | ✗ | ✗ |
+| Ver/baixar arquivo | ✓ qualquer | ✓ só as próprias | ✗ | ✗ |
+| Excluir | ✓ qualquer | ✓ só as próprias | ✗ | ✗ |
+| Ver galeria por paciente (`by-patient/:patientId`) | ✓ todos os profissionais | ✓ só as próprias consultas | ✗ | ✗ |
+
+> Fotos são organizadas por data de envio (`createdAt`), não pela data da consulta. A galeria por paciente (`GET /consultation-photos/by-patient/:patientId`) agrega fotos de todas as consultas daquele paciente, mas restringe PROFESSIONAL às fotos das próprias consultas — sem parâmetro de query para sobrepor esse filtro, é 100% servidor. Um profissional nunca vê fotos que outro profissional anexou em consultas diferentes com o mesmo paciente, mesmo sendo o mesmo paciente/clínica.
+
+---
+
 ## Sidebar — Itens visíveis por role
 
 | Item | ADMIN | PROFESSIONAL | USER |

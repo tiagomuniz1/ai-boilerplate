@@ -26,6 +26,7 @@ jest.mock('@aws-sdk/client-s3', () => ({
   S3Client: jest.fn().mockImplementation(() => ({ send: mockSend })),
   PutObjectCommand: jest.fn().mockImplementation((params) => params),
   GetObjectCommand: jest.fn().mockImplementation((params) => params),
+  DeleteObjectCommand: jest.fn().mockImplementation((params) => params),
 }))
 
 import { getEnvConfig } from '../../config/env.config'
@@ -122,6 +123,31 @@ describe('StorageAdapter', () => {
       const adapter = new StorageAdapter()
 
       await expect(adapter.download('path/file.pdf')).rejects.toThrow('S3 failure')
+    })
+  })
+
+  describe('remove', () => {
+    it('throws InternalServerErrorException when AWS_S3_BUCKET is missing', async () => {
+      ;(getEnvConfig as jest.Mock).mockReturnValue({ AWS_S3_BUCKET: undefined, AWS_REGION: 'us-east-1' })
+      const adapter = new StorageAdapter()
+
+      await expect(adapter.remove('path/file.jpg')).rejects.toThrow(InternalServerErrorException)
+      expect(mockSend).not.toHaveBeenCalled()
+    })
+
+    it('deletes the object from S3', async () => {
+      const adapter = new StorageAdapter()
+
+      await adapter.remove('exam-results/clinic/request/result.pdf')
+
+      expect(mockSend).toHaveBeenCalled()
+    })
+
+    it('rethrows S3 client errors', async () => {
+      mockSend.mockRejectedValue(new Error('S3 failure'))
+      const adapter = new StorageAdapter()
+
+      await expect(adapter.remove('path/file.jpg')).rejects.toThrow('S3 failure')
     })
   })
 })

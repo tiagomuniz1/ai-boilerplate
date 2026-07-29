@@ -13,6 +13,7 @@ import { PatientDeleteDialog } from '@/components/features/patients/components/p
 import { usePatient } from '@/components/features/patients/hooks/use-patient.hook'
 import { useDeletePatient } from '@/components/features/patients/hooks/use-delete-patient.hook'
 import { PatientMedicalHistory } from '@/components/features/medical-records/components/patient-medical-history'
+import { PatientPhotoGallery } from '@/components/features/consultation-photos/components/patient-photo-gallery'
 import { useAuthStore } from '@/stores/auth.store'
 
 export default function PatientDetailsPage() {
@@ -74,6 +75,14 @@ export default function PatientDetailsPage() {
                 Histórico de Prontuários
               </h2>
               <PatientMedicalHistory patientId={id} />
+            </section>
+          )}
+          {canSeeMedicalHistory && (
+            <section className="mt-8">
+              <h2 className="text-base font-semibold text-text mb-4" data-testid="patient-photos-title">
+                Fotos de Evolução
+              </h2>
+              <PatientPhotoGallery patientId={id} />
             </section>
           )}
         </>

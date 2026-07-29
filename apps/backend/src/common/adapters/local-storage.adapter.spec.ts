@@ -67,4 +67,23 @@ describe('LocalStorageAdapter', () => {
       await expect(adapter.download('missing.pdf')).rejects.toThrow(NotFoundException)
     })
   })
+
+  describe('remove', () => {
+    it('deletes the file from uploads-private/', async () => {
+      mockFs.existsSync.mockReturnValue(true)
+
+      await adapter.remove('exam-results/clinic/request/result.pdf')
+
+      expect(mockFs.unlinkSync).toHaveBeenCalledWith(
+        expect.stringContaining(path.join('uploads-private', 'exam-results', 'clinic', 'request', 'result.pdf')),
+      )
+    })
+
+    it('resolves without error when the file does not exist (idempotent)', async () => {
+      mockFs.existsSync.mockReturnValue(false)
+
+      await expect(adapter.remove('missing.jpg')).resolves.toBeUndefined()
+      expect(mockFs.unlinkSync).not.toHaveBeenCalled()
+    })
+  })
 })

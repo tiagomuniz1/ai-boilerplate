@@ -2,7 +2,22 @@
 
 ## [Unreleased]
 
+### Fixed
+
+#### Dashboard não atualizava após concluir/cancelar/criar consulta ou marcar falta
+- `CompleteAppointmentUseCase`, `CancelAppointmentUseCase`, `CreateAppointmentUseCase` e `MarkAppointmentNoShowUseCase` não invalidavam o cache `dashboard:${clinicId}:*` (TTL de 60s) — qualquer mudança de status de consulta ficava invisível no dashboard até o cache expirar sozinho
+- Os 4 use-cases agora chamam `cacheService.delByPrefix(\`dashboard:${clinicId}:\`)` junto com as invalidações de `appointments:*` já existentes
+- Novo teste de integração em `dashboard.integration.spec.ts` cobrindo o cenário fim a fim (completar consulta → GET /dashboard sem esperar o TTL → KPI atualizado)
+
 ### Added
+
+#### Acervo de fotos da consulta (`/consultation-photos`)
+- Novo módulo `consultation-photos`: upload (`POST /consultation-photos/appointments/:appointmentId`, multipart, `FilesInterceptor`, só imagens JPEG/PNG/WebP, até 8MB/arquivo), listagem por consulta (`GET ?appointmentId=`), download autenticado do arquivo (`GET /:id/file`, nunca URL pública) e exclusão (`DELETE /:id`)
+- Galeria agregada por paciente (`GET /consultation-photos/by-patient/:patientId`, paginada) — um PROFESSIONAL só vê fotos das **próprias** consultas, mesmo paciente/clínica; sem parâmetro de query para sobrepor esse filtro, é 100% servidor. ADMIN vê de todos os profissionais
+- `IStorageAdapter.remove(path)` — novo método (S3 `DeleteObjectCommand` / `fs.unlinkSync` local, idempotente), primeira exclusão real de arquivo do storage do projeto (`exams`/`clinics` continuam sem remover o arquivo ao excluir o registro — fica registrado como gap conhecido, fora de escopo aqui)
+- `ConsultationPhotoResponseDto`, `ConsultationPhotoGalleryItemResponseDto`, `PaginatedConsultationPhotosResponseDto` no `@app/shared`
+- Nova seção `Fotos da Consulta` em `ai/context/permissions.md`
+- Fotos organizadas por data de envio (`createdAt`), não pela data da consulta
 
 #### `GET /users` retorna o `councilType` do registro profissional principal
 - `UserResponseDto.councilType` (opcional) — `councilType` da `ProfessionalRegistration` primária do usuário, ou `null` quando não é profissional ou não tem registro primário

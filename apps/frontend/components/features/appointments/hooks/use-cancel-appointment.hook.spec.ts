@@ -34,7 +34,7 @@ describe('useCancelAppointment', () => {
     expect(cancelAppointmentUseCase).toHaveBeenCalledWith('uuid-1', { cancellationReason: 'reason' })
   })
 
-  it('invalidates appointments and availability on success', async () => {
+  it('invalidates appointments, availability and dashboard on success', async () => {
     ;(cancelAppointmentUseCase as jest.Mock).mockResolvedValue(makeModel())
 
     const queryClient = createQueryClient()
@@ -51,6 +51,7 @@ describe('useCancelAppointment', () => {
 
     expect(invalidate).toHaveBeenCalledWith({ queryKey: ['appointments'] })
     expect(invalidate).toHaveBeenCalledWith({ queryKey: ['availability'] })
+    expect(invalidate).toHaveBeenCalledWith({ queryKey: ['dashboard'] })
   })
 
   it('returns error state on failure', async () => {

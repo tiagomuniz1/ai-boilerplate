@@ -36,7 +36,7 @@ describe('useCompleteAppointment', () => {
     expect(firstArg).toBe('uuid-1')
   })
 
-  it('invalidates appointments and availability on success', async () => {
+  it('invalidates appointments, availability and dashboard on success', async () => {
     ;(completeAppointmentUseCase as jest.Mock).mockResolvedValue(makeModel())
 
     const queryClient = createQueryClient()
@@ -53,6 +53,7 @@ describe('useCompleteAppointment', () => {
 
     expect(invalidate).toHaveBeenCalledWith({ queryKey: ['appointments'] })
     expect(invalidate).toHaveBeenCalledWith({ queryKey: ['availability'] })
+    expect(invalidate).toHaveBeenCalledWith({ queryKey: ['dashboard'] })
   })
 
   it('returns error state on failure', async () => {

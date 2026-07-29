@@ -15,6 +15,7 @@ import { useProfessionals } from '@/components/features/professionals/hooks/use-
 import { usePrescriptions } from '@/components/features/prescriptions/hooks/use-prescriptions.hook'
 import { useAtestados } from '@/components/features/atestados/hooks/use-atestados.hook'
 import { useExamRequests } from '@/components/features/exames/hooks/use-exam-requests.hook'
+import { useAppointmentPhotos } from '@/components/features/consultation-photos/hooks/use-appointment-photos.hook'
 import { useMedicalRecordByAppointment } from '@/components/features/medical-records/hooks/use-medical-record-by-appointment.hook'
 import { AppointmentHeaderCard } from '@/components/features/appointments/components/appointment-header-card'
 import { ResumoTab } from '@/components/features/appointments/components/resumo-tab'
@@ -22,11 +23,12 @@ import { MedicalRecordSection } from '@/components/features/appointments/compone
 import { PrescriptionSection } from '@/components/features/prescriptions/components/prescription-section'
 import { AtestadoSection } from '@/components/features/atestados/components/atestado-section'
 import { ExameSection } from '@/components/features/exames/components/exame-section'
+import { PhotoSection } from '@/components/features/consultation-photos/components/photo-section'
 import { CancelAppointmentDialog } from '@/components/features/appointments/components/cancel-appointment-dialog'
 import { CompleteAppointmentDialog } from '@/components/features/appointments/components/complete-appointment-dialog'
 import type { IApiError } from '@/types/api.types'
 
-type TabId = 'resumo' | 'prontuario' | 'receitas' | 'atestados' | 'exames'
+type TabId = 'resumo' | 'prontuario' | 'receitas' | 'atestados' | 'exames' | 'fotos'
 
 export default function AppointmentDetailPage() {
   const { id } = useParams<{ id: string }>()
@@ -60,6 +62,7 @@ export default function AppointmentDetailPage() {
   const { data: prescriptions } = usePrescriptions(id)
   const { data: atestados } = useAtestados(id)
   const { data: examRequests } = useExamRequests(id)
+  const { data: photos } = useAppointmentPhotos(id)
   const { data: record } = useMedicalRecordByAppointment(canSeeMedicalRecord ? id : '')
 
   const completeApiError = completeError as IApiError | null
@@ -97,6 +100,9 @@ export default function AppointmentDetailPage() {
       : []),
     ...(canManage
       ? [{ id: 'exames', label: 'Exames', count: examRequests?.length ?? 0 }]
+      : []),
+    ...(canManage
+      ? [{ id: 'fotos', label: 'Fotos', count: photos?.length ?? 0 }]
       : []),
   ]
 
@@ -166,6 +172,8 @@ export default function AppointmentDetailPage() {
                   showCertificates={canManage}
                   examCount={canManage ? (examRequests?.length ?? 0) : undefined}
                   showExames={canManage}
+                  photoCount={canManage ? (photos?.length ?? 0) : undefined}
+                  showPhotos={canManage}
                   onNavigate={(tab) => setActiveTab(tab as TabId)}
                 />
               )}
@@ -205,6 +213,10 @@ export default function AppointmentDetailPage() {
                   canManage={canManage}
                   userRole={role}
                 />
+              )}
+
+              {activeTab === 'fotos' && canManage && (
+                <PhotoSection appointmentId={id} canManage={canManage} userRole={role} />
               )}
             </div>
           </>

@@ -64,6 +64,7 @@ export class CancelAppointmentUseCase extends BaseUseCase {
     try {
       await this.cacheService.delByPrefix(`appointments:list:${clinicId}:`)
       await this.cacheService.delByPrefix(`appointments:availability:${clinicId}:${appointment.professionalId}:`)
+      await this.cacheService.delByPrefix(`dashboard:${clinicId}:`)
     } catch {
       this.logger.warn('Cache invalidation failed', { context: CancelAppointmentUseCase.name })
     }

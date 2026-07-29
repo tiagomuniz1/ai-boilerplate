@@ -2,7 +2,20 @@
 
 ## [Unreleased]
 
+### Fixed
+
+#### Dashboard não atualizava após concluir/cancelar/criar consulta
+- `useCompleteAppointment`, `useCancelAppointment` e `useBookAppointment` não invalidavam a query `['dashboard']` no `onSuccess` — mesmo depois do backend atualizar, quem navegava de volta ao dashboard dentro do `staleTime` (60s) via SPA continuava vendo os números antigos
+- Os 3 hooks agora também invalidam `['dashboard']` junto com `['appointments']`/`['availability']`
+
 ### Added
+
+#### Acervo de fotos da consulta
+- Nova aba "Fotos" na tela da consulta: upload múltiplo (JPEG/PNG/WebP, até 8MB/arquivo), grade de miniaturas ordenada por data de envio, preview ampliado e exclusão (PROFESSIONAL da própria consulta / ADMIN qualquer uma) — `components/features/consultation-photos/`
+- Nova seção "Fotos de Evolução" na página do paciente: galeria paginada agregando fotos de todas as consultas daquele paciente, sem ação de excluir; a restrição de PROFESSIONAL às próprias consultas é inteira do backend, o frontend só exibe o que a API retorna
+- `PhotoPreviewModal` ganha navegação entre fotos (setinhas anterior/próxima sobrepostas à imagem + teclas de seta), reaproveitada tanto na aba da consulta quanto na galeria do paciente; navegação fica restrita à página atualmente carregada na galeria paginada
+- Novo padrão `usePhotoThumbnail`: imagem exibida via `apiClient.getBlob` + `URL.createObjectURL` (nunca `<img src>` direto pra API, já que o endpoint é autenticado), com revogação da URL no unmount/troca de foto — primeiro componente do projeto a renderizar imagem autenticada inline
+- Nova linha "Fotos" no resumo da consulta (`ResumoTab`), com contador real
 
 #### Coluna "Especialidade" na listagem de profissionais mostra a profissão para não-médicos
 - Quando o profissional não tem especialidade (todo não-CRM, e o CRM generalista sem especialidade), a célula deixa de ficar vazia e passa a mostrar a profissão (Nutricionista, Fisioterapeuta, Psicólogo, Dentista, Fonoaudiólogo, ou Médico no caso do generalista) — tabela e card mobile

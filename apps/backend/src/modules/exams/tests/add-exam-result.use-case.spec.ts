@@ -93,6 +93,7 @@ const mockProfessionalsRepository: jest.Mocked<IProfessionalsRepository> = {
 const mockStorageAdapter = {
   upload: jest.fn(),
   download: jest.fn(),
+  remove: jest.fn(),
 } as unknown as jest.Mocked<IStorageAdapter>
 
 const mockCacheService = {

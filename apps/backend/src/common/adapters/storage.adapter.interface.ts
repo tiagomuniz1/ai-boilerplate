@@ -3,4 +3,6 @@ export abstract class IStorageAdapter {
   // through `download()` (e.g. the backend streams clinic branding and exam results).
   abstract upload(buffer: Buffer, path: string, mimeType: string): Promise<string>
   abstract download(path: string): Promise<Buffer>
+  // Idempotent — resolves without error even if the object no longer exists.
+  abstract remove(path: string): Promise<void>
 }

@@ -25,6 +25,8 @@ const defaultProps = {
   showCertificates: true,
   examCount: 1,
   showExames: true,
+  photoCount: 1,
+  showPhotos: true,
   onNavigate: jest.fn(),
 }
 
@@ -91,6 +93,29 @@ describe('ResumoTab', () => {
   it('hides exames row when showExames is false', () => {
     renderWithProviders(<ResumoTab {...defaultProps} showExames={false} />)
     expect(screen.queryByTestId('resumo-tab-exames')).not.toBeInTheDocument()
+  })
+
+  it('falls back to 0 for photoCount when undefined', () => {
+    renderWithProviders(<ResumoTab {...defaultProps} photoCount={undefined} />)
+    expect(screen.getByTestId('resumo-tab-fotos-count')).toHaveTextContent('0')
+  })
+
+  it('renders fotos row with photoCount when showPhotos is true', () => {
+    renderWithProviders(<ResumoTab {...defaultProps} photoCount={5} />)
+    expect(screen.getByTestId('resumo-tab-fotos')).toBeInTheDocument()
+    expect(screen.getByTestId('resumo-tab-fotos-count')).toHaveTextContent('5')
+  })
+
+  it('hides fotos row when showPhotos is false', () => {
+    renderWithProviders(<ResumoTab {...defaultProps} showPhotos={false} />)
+    expect(screen.queryByTestId('resumo-tab-fotos')).not.toBeInTheDocument()
+  })
+
+  it('calls onNavigate with fotos when fotos row clicked', async () => {
+    const onNavigate = jest.fn()
+    renderWithProviders(<ResumoTab {...defaultProps} onNavigate={onNavigate} />)
+    await userEvent.click(screen.getByTestId('resumo-tab-fotos'))
+    expect(onNavigate).toHaveBeenCalledWith('fotos')
   })
 
   it('calls onNavigate with receitas when prescription row clicked', async () => {

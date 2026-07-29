@@ -78,6 +78,8 @@ interface ResumoTabProps {
   showCertificates: boolean
   examCount?: number
   showExames: boolean
+  photoCount?: number
+  showPhotos: boolean
   onNavigate: (tab: string) => void
 }
 
@@ -89,6 +91,8 @@ export function ResumoTab({
   showCertificates,
   examCount,
   showExames,
+  photoCount,
+  showPhotos,
   onNavigate,
 }: ResumoTabProps) {
   const birthDateFormatted = patient.birthDate.toLocaleDateString('pt-BR', {
@@ -153,6 +157,14 @@ export function ResumoTab({
               count={examCount ?? 0}
               testId="resumo-tab-exames"
               onClick={() => onNavigate('exames')}
+            />
+          )}
+          {showPhotos && (
+            <DocumentRow
+              label="Fotos"
+              count={photoCount ?? 0}
+              testId="resumo-tab-fotos"
+              onClick={() => onNavigate('fotos')}
             />
           )}
         </div>

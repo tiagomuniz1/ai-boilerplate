@@ -301,6 +301,7 @@ describe('CreateAppointmentUseCase', () => {
     )
     expect(mockCacheService.delByPrefix).toHaveBeenCalledWith(`appointments:list:${CLINIC_ID}:`)
     expect(mockCacheService.delByPrefix).toHaveBeenCalledWith(`appointments:availability:${CLINIC_ID}:${professionalId}:`)
+    expect(mockCacheService.delByPrefix).toHaveBeenCalledWith(`dashboard:${CLINIC_ID}:`)
   })
 
   it('continues when cache invalidation fails', async () => {

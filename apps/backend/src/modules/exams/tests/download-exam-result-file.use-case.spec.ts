@@ -83,6 +83,7 @@ const mockProfessionalsRepository: jest.Mocked<IProfessionalsRepository> = {
 const mockStorageAdapter: jest.Mocked<IStorageAdapter> = {
   upload: jest.fn(),
   download: jest.fn(),
+  remove: jest.fn(),
 }
 
 describe('DownloadExamResultFileUseCase', () => {

@@ -388,6 +388,36 @@ describe('DashboardController (integration)', () => {
     expect(body.kpi.confirmed).toBe(1)
   })
 
+  it('completing an appointment invalidates the cached dashboard stats (regression: dashboard used to show stale data)', async () => {
+    const pastDate = daysAgo(5)
+    const scheduled = await seedAppointment({ status: AppointmentStatus.SCHEDULED, date: pastDate })
+
+    const { body: before } = await request(app.getHttpServer())
+      .get('/dashboard')
+      .set('Cookie', `access_token=${adminToken}`)
+      .query({ from: pastDate, to: today })
+      .expect(200)
+
+    expect(before.kpi.completed).toBe(0)
+    expect(before.kpi.scheduled).toBe(1)
+
+    await request(app.getHttpServer())
+      .patch(`/appointments/${scheduled.id}/complete`)
+      .set('Cookie', `access_token=${adminToken}`)
+      .expect(200)
+
+    // Same cache key (same from/to/clinic/professional filter) — this only reflects
+    // the completion if CompleteAppointmentUseCase actually invalidated `dashboard:*`.
+    const { body: after } = await request(app.getHttpServer())
+      .get('/dashboard')
+      .set('Cookie', `access_token=${adminToken}`)
+      .query({ from: pastDate, to: today })
+      .expect(200)
+
+    expect(after.kpi.completed).toBe(1)
+    expect(after.kpi.scheduled).toBe(0)
+  })
+
   it('procedures grouped by specialty; null specialty → "Sem especialidade"', async () => {
     const pastDate = daysAgo(5)
     await seedAppointment({ status: AppointmentStatus.COMPLETED, specialtyId, date: pastDate })

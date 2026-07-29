@@ -1,5 +1,5 @@
 import { Injectable, InternalServerErrorException, Logger } from '@nestjs/common'
-import { GetObjectCommand, PutObjectCommand, S3Client } from '@aws-sdk/client-s3'
+import { DeleteObjectCommand, GetObjectCommand, PutObjectCommand, S3Client } from '@aws-sdk/client-s3'
 import { getEnvConfig } from '../../config/env.config'
 import { IStorageAdapter } from './storage.adapter.interface'
 
@@ -58,6 +58,23 @@ export class StorageAdapter implements IStorageAdapter {
       return Buffer.from(bytes)
     } catch (error) {
       this.logger.error('S3 download failed', { path, error })
+      throw error
+    }
+  }
+
+  async remove(path: string): Promise<void> {
+    if (!this.bucket || !this.region) {
+      throw new InternalServerErrorException(
+        'AWS_S3_BUCKET and AWS_REGION environment variables are required to remove files',
+      )
+    }
+
+    const client = new S3Client({ region: this.region })
+
+    try {
+      await client.send(new DeleteObjectCommand({ Bucket: this.bucket, Key: path }))
+    } catch (error) {
+      this.logger.error('S3 remove failed', { path, error })
       throw error
     }
   }

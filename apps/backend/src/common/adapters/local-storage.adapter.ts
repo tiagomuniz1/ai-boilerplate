@@ -27,4 +27,10 @@ export class LocalStorageAdapter implements IStorageAdapter {
     if (!fs.existsSync(fullPath)) throw new NotFoundException('File not found')
     return fs.readFileSync(fullPath)
   }
+
+  async remove(filePath: string): Promise<void> {
+    const fullPath = path.join(this.privateUploadsDir, filePath)
+    if (!fs.existsSync(fullPath)) return
+    fs.unlinkSync(fullPath)
+  }
 }

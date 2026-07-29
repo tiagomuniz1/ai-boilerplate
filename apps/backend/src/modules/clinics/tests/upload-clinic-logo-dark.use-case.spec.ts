@@ -23,6 +23,7 @@ const mockClinicsRepository: jest.Mocked<IClinicsRepository> = {
 const mockStorageAdapter: jest.Mocked<IStorageAdapter> = {
   upload: jest.fn(),
   download: jest.fn(),
+  remove: jest.fn(),
 }
 
 const mockCacheService = {
