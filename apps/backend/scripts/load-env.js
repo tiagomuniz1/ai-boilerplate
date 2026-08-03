@@ -43,7 +43,11 @@ async function loadEnv() {
 
     const lines = parameters.map((p) => {
       const key = p.Name.replace(PARAM_PATH, '').replace(/\//g, '_').toUpperCase()
-      return `${key}=${p.Value}`
+      // Quoted: dotenv treats an unquoted "#" as a comment marker and truncates
+      // everything after it — generated secrets (e.g. the RDS master password)
+      // can contain "#", silently corrupting the value without this.
+      const escaped = String(p.Value).replace(/"/g, '\\"')
+      return `${key}="${escaped}"`
     })
 
     fs.writeFileSync(envPath, lines.join('\n'))
