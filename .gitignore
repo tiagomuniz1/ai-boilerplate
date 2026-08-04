@@ -25,9 +25,9 @@ coverage/
 coverage-integration/
 
 # Cypress artifacts
-cypress/screenshots/
-cypress/videos/
-cypress/downloads/
+**/cypress/screenshots/
+**/cypress/videos/
+**/cypress/downloads/
 
 # IDE
 .idea/
