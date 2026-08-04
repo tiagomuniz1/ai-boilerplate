@@ -3,4 +3,5 @@ export interface IApiError {
   title: string
   detail: string
   errors?: Array<{ field: string; message: string }>
+  requiresCaptcha?: boolean
 }

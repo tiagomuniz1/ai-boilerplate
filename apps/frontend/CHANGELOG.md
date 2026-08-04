@@ -10,6 +10,20 @@
 
 ### Added
 
+#### CAPTCHA no login a partir da 3ª tentativa (backoffice + clínicas)
+- `LoginForm` (compartilhado entre o login do backoffice e o de cada clínica) passa a mostrar um captcha Cloudflare Turnstile assim que o backend sinaliza `requiresCaptcha: true` (a partir da 2ª tentativa falha) — botão de login fica desabilitado até o captcha ser resolvido
+- Novo componente `TurnstileWidget` (`components/features/auth/components/turnstile-widget.tsx`) — sem lib nova, carrega o script oficial da Cloudflare via `next/script` e renderiza o widget num container
+- `IApiError` ganha `requiresCaptcha?: boolean`, repassado pelo `normalizeProblemDetails` do `api-client.ts`; `ILoginInput` ganha `captchaToken?: string`
+- `NEXT_PUBLIC_TURNSTILE_SITE_KEY` — nova env var pública (build-time), com a site-key de teste oficial da Cloudflare como padrão local (sempre aprova)
+- Novos testes E2E: `login.cy.ts` estendido e `backoffice-login.cy.ts` (novo — não existia cobertura E2E do login do backoffice antes)
+
+#### Relacionar pacientes por grau de parentesco — dependente sem CPF
+- Novo toggle "Este paciente é dependente de outro paciente (titular)" no formulário de paciente (criar e editar): ao marcar, o CPF deixa de ser obrigatório e aparecem os campos de busca do titular e grau de parentesco
+- Novo componente `TitularSearch` (`components/features/patients/components/titular-search.tsx`), adaptado do `UserSearch` já existente — autocomplete com debounce buscando pacientes elegíveis a titular (exclui dependentes e, em edição, o próprio paciente)
+- Ficha do paciente ganha duas novas seções: "Vinculado a" (quando o paciente é dependente, com nome do titular, grau de parentesco e link para a ficha dele) e "Dependentes" (quando o paciente é titular, listando cada dependente); CPF ausente agora mostra "Não informado" em vez de uma linha em branco
+- Corrigido bug no formulário de edição: o campo de CPF era exibido mas nunca era enviado no submit — agora é enviado normalmente, viabilizando adicionar o CPF depois (promoção de dependente a independente)
+- Editar um dependente permite remover o vínculo (exige CPF preenchido) ou trocar de titular/grau de parentesco
+
 #### Acervo de fotos da consulta
 - Nova aba "Fotos" na tela da consulta: upload múltiplo (JPEG/PNG/WebP, até 8MB/arquivo), grade de miniaturas ordenada por data de envio, preview ampliado e exclusão (PROFESSIONAL da própria consulta / ADMIN qualquer uma) — `components/features/consultation-photos/`
 - Nova seção "Fotos de Evolução" na página do paciente: galeria paginada agregando fotos de todas as consultas daquele paciente, sem ação de excluir; a restrição de PROFESSIONAL às próprias consultas é inteira do backend, o frontend só exibe o que a API retorna

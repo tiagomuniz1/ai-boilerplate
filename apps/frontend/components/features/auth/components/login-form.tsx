@@ -9,6 +9,7 @@ import { Input } from '@/components/ui/atoms/input/input'
 import { Button } from '@/components/ui/atoms/button/button'
 import { Alert } from '@/components/ui/molecules/alert/alert'
 import { useLogin } from '../hooks/use-login.hook'
+import { TurnstileWidget } from './turnstile-widget'
 import type { IApiError } from '@/types/api.types'
 
 const schema = z.object({
@@ -21,6 +22,11 @@ type FormValues = z.infer<typeof schema>
 export function LoginForm() {
   const { mutate, isPending } = useLogin()
   const [globalError, setGlobalError] = useState<string | null>(null)
+  // Once required (from the 3rd failed attempt onward, per the backend), the
+  // widget stays visible for the rest of this page load — the backend re-checks
+  // the real counter on every submit regardless, so this is just UX continuity.
+  const [requiresCaptcha, setRequiresCaptcha] = useState(false)
+  const [captchaToken, setCaptchaToken] = useState<string | null>(null)
   const searchParams = useSearchParams()
   const passwordSet = searchParams.get('passwordSet') === 'true'
 
@@ -35,20 +41,29 @@ export function LoginForm() {
 
   function onSubmit(data: FormValues) {
     setGlobalError(null)
-    mutate(data, {
-      onError: (error: IApiError) => {
-        if (error.status === 422 && error.errors) {
-          error.errors.forEach(({ field, message }) => {
-            setError(field as keyof FormValues, { message })
-          })
-        } else if (error.status === 401) {
-          setGlobalError('Email ou senha inválidos')
-        } else {
-          setGlobalError('Não foi possível fazer login. Tente novamente.')
-        }
+    mutate(
+      { ...data, captchaToken: captchaToken ?? undefined },
+      {
+        onError: (error: IApiError) => {
+          if (error.requiresCaptcha) {
+            setRequiresCaptcha(true)
+            setCaptchaToken(null)
+          }
+          if (error.status === 422 && error.errors) {
+            error.errors.forEach(({ field, message }) => {
+              setError(field as keyof FormValues, { message })
+            })
+          } else if (error.status === 401) {
+            setGlobalError('Email ou senha inválidos')
+          } else {
+            setGlobalError('Não foi possível fazer login. Tente novamente.')
+          }
+        },
       },
-    })
+    )
   }
+
+  const submitDisabled = isPending || (requiresCaptcha && !captchaToken)
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} data-testid="login-form" noValidate>
@@ -81,10 +96,11 @@ export function LoginForm() {
           error={errors.password?.message}
           {...register('password')}
         />
+        {requiresCaptcha && <TurnstileWidget onVerify={setCaptchaToken} />}
         <Button
           type="submit"
           isLoading={isPending}
-          disabled={isPending}
+          disabled={submitDisabled}
           data-testid="login-submit"
         >
           Entrar

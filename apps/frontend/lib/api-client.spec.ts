@@ -77,6 +77,31 @@ describe('api-client', () => {
       })
     })
 
+    it('forwards requiresCaptcha when present in the error body', async () => {
+      ;(axios.isAxiosError as jest.Mock).mockReturnValue(true)
+      const error = {
+        response: {
+          status: 401,
+          data: { status: 401, title: 'Unauthorized', detail: 'Invalid credentials', requiresCaptcha: true },
+        },
+        config: { _retry: true },
+        message: 'Unauthorized',
+      }
+
+      await expect(onRejected(error)).rejects.toMatchObject({ requiresCaptcha: true })
+    })
+
+    it('does not include requiresCaptcha when absent from the error body', async () => {
+      ;(axios.isAxiosError as jest.Mock).mockReturnValue(true)
+      const error = {
+        response: { status: 401, data: { status: 401, title: 'Unauthorized', detail: 'Invalid credentials' } },
+        config: { _retry: true },
+        message: 'Unauthorized',
+      }
+
+      await expect(onRejected(error)).rejects.not.toHaveProperty('requiresCaptcha', true)
+    })
+
     it('uses fallback values when data fields are absent', async () => {
       ;(axios.isAxiosError as jest.Mock).mockReturnValue(true)
       const error = {

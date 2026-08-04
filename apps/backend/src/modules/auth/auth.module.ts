@@ -17,6 +17,8 @@ import { RefreshTokensRepository } from './repositories/refresh-tokens.repositor
 import { JwtStrategy } from './strategies/jwt.strategy'
 import { IEmailAdapter } from './adapters/email.adapter.interface'
 import { SmtpEmailAdapter } from './adapters/smtp-email.adapter'
+import { ICaptchaAdapter } from './adapters/captcha.adapter.interface'
+import { TurnstileCaptchaAdapter } from './adapters/turnstile-captcha.adapter'
 import { LoginUseCase } from './use-cases/login.use-case'
 import { LogoutUseCase } from './use-cases/logout.use-case'
 import { MeUseCase } from './use-cases/me.use-case'
@@ -65,6 +67,7 @@ import { AUTH_ENV } from './use-cases/auth-env.token'
     { provide: IRefreshTokensRepository, useClass: RefreshTokensRepository },
     { provide: IPasswordSetTokensRepository, useClass: PasswordSetTokensRepository },
     { provide: IEmailAdapter, useClass: SmtpEmailAdapter },
+    { provide: ICaptchaAdapter, useClass: TurnstileCaptchaAdapter },
   ],
   exports: [JwtAuthGuard, SendSetPasswordEmailUseCase],
 })

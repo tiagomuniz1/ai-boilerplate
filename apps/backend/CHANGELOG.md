@@ -11,6 +11,24 @@
 
 ### Added
 
+#### CAPTCHA no login a partir da 3ª tentativa (backoffice + clínicas)
+- `POST /auth/login` passa a exigir a resolução de um captcha (Cloudflare Turnstile) a partir da 3ª tentativa de login (2 falhas já registradas) para o mesmo e-mail — cobre tanto o login do backoffice quanto o de cada clínica, já que os dois passam pelo mesmo `LoginUseCase`
+- Contador de tentativas falhas em Redis, chave `login-attempts:<backoffice|slug>:<email>` (TTL de 15 min, `CacheService.increment` novo — `INCR` + `EXPIRE ... NX`), escopado por e-mail + ambiente (backoffice e cada clínica têm contadores independentes para o mesmo e-mail); limpo automaticamente no login bem-sucedido
+- Toda falha de credencial permanece com a mesma mensagem genérica `Invalid credentials` (sem enumeração de conta); a resposta ganha `requiresCaptcha: true` (extensão RFC 9457) assim que o contador cruza o limiar — o frontend já sabe mostrar o widget antes da próxima tentativa
+- Novo `TurnstileCaptchaAdapter` (`ICaptchaAdapter`) — `axios` com timeout, `axios-retry` (só rede/5xx) e circuit breaker (`opossum`) **fail-closed**: se o Turnstile ficar indisponível, o login é negado em vez de pular a verificação (o raio de impacto fica restrito a contas que já erraram 2x)
+- `TURNSTILE_SECRET_KEY` (opcional) em `env.config.ts` — sem configurar, cai na secret-key de teste oficial da Cloudflare (sempre aprova), segura para dev local
+- `LoginDto` ganha `captchaToken` opcional
+
+#### Relacionar pacientes por grau de parentesco — dependente sem CPF
+- Um paciente pode ser cadastrado como **dependente** de outro paciente da mesma clínica (o **titular**), com um grau de parentesco (`KinshipType`: filho, cônjuge, pai, mãe, neto, tutelado, outro) — cobre recém-nascidos e menores que ainda não têm CPF emitido
+- CPF (`documentNumber`) continua obrigatório por padrão; passa a ser opcional só quando o paciente tem `responsiblePatientId` setado. Paciente independente sem CPF continua rejeitado (400)
+- Novas colunas em `patients`: `responsible_patient_id` (self-FK nullable, `ON DELETE RESTRICT`), `kinship_type`, `document_number` agora nullable; `CHECK` constraint garantindo que os dois campos do vínculo vêm sempre juntos (migration `add-kinship-to-patients`)
+- Regras de negócio nos use-cases: titular precisa existir na mesma clínica e não pode ele mesmo ser dependente (`422`); paciente não pode ser titular de si mesmo (`422`); paciente com dependentes próprios não pode virar dependente de outro (`409`); remover o vínculo exige `documentNumber` resultante preenchido (`422`); excluir um titular com dependentes ativos é bloqueado (`409`)
+- `PatientResponseDto` ganha `responsiblePatientId`, `kinshipType`, `responsiblePatient` (ref do titular, quando o paciente é dependente) e `dependents` (lista, quando o paciente é titular) — populados via batch-load no repository, sem N+1
+- Novo filtro `excludeDependents`/`excludeId` em `GET /patients`, usado pelo frontend para restringir a busca de titular a pacientes elegíveis
+- Correção de null-safety: `maskCpf`/`formatCpf` (receitas, atestados, pedidos de exame) e o endpoint público `GET /prescriptions/verify/:token` agora tratam CPF ausente sem lançar erro, mostrando "Não informado"/`***` em vez de quebrar a emissão de documentos para um dependente sem CPF
+- Nova nota em `ai/context/permissions.md` — o vínculo segue a mesma regra ADMIN-only já existente em `/patients`
+
 #### Acervo de fotos da consulta (`/consultation-photos`)
 - Novo módulo `consultation-photos`: upload (`POST /consultation-photos/appointments/:appointmentId`, multipart, `FilesInterceptor`, só imagens JPEG/PNG/WebP, até 8MB/arquivo), listagem por consulta (`GET ?appointmentId=`), download autenticado do arquivo (`GET /:id/file`, nunca URL pública) e exclusão (`DELETE /:id`)
 - Galeria agregada por paciente (`GET /consultation-photos/by-patient/:patientId`, paginada) — um PROFESSIONAL só vê fotos das **próprias** consultas, mesmo paciente/clínica; sem parâmetro de query para sobrepor esse filtro, é 100% servidor. ADMIN vê de todos os profissionais

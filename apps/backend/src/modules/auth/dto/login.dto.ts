@@ -11,4 +11,8 @@ export class LoginDto {
   @IsString()
   @IsOptional()
   slug?: string
+
+  @IsString()
+  @IsOptional()
+  captchaToken?: string
 }

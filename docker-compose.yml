@@ -51,6 +51,10 @@ services:
       - "3011:3001"
     environment:
       NODE_ENV: production
+      # database.config.ts defaults SSL to "on" whenever NODE_ENV=production
+      # (matching RDS, which enforces TLS) unless DB_SSL says otherwise — the
+      # local Postgres container doesn't speak TLS, so this must be explicit.
+      DB_SSL: "false"
       PORT: 3001
       DB_HOST: postgres
       DB_PORT: 5432
@@ -87,6 +91,8 @@ services:
       dockerfile: apps/frontend/Dockerfile
       args:
         NEXT_PUBLIC_API_URL: http://localhost:3011
+        # Cloudflare's official "always passes" test site key — safe for local dev.
+        NEXT_PUBLIC_TURNSTILE_SITE_KEY: 1x00000000000000000000AA
     container_name: app-frontend
     ports:
       - "3010:3000"

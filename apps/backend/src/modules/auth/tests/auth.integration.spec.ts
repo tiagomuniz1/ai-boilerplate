@@ -13,7 +13,13 @@ import { Clinic } from '../../clinics/entities/clinic.entity'
 import { User } from '../../users/entities/user.entity'
 import { RefreshToken } from '../entities/refresh-token.entity'
 import { JwtAuthGuard } from '../guards/jwt-auth.guard'
+import { ICaptchaAdapter } from '../adapters/captcha.adapter.interface'
+import { CAPTCHA_FAILED_ATTEMPTS_THRESHOLD } from '../constants/captcha.constants'
 import { createHash } from 'crypto'
+
+const mockCaptchaAdapter: jest.Mocked<ICaptchaAdapter> = {
+  verify: jest.fn(),
+}
 
 const SEED_CLINIC_ID = '10000000-0000-4000-8000-000000000000'
 
@@ -51,6 +57,8 @@ describe('AuthController (integration)', () => {
     })
       .overrideProvider(APP_GUARD)
       .useClass(JwtAuthGuard)
+      .overrideProvider(ICaptchaAdapter)
+      .useValue(mockCaptchaAdapter)
       .compile()
 
     app = module.createNestApplication()
@@ -258,6 +266,142 @@ describe('AuthController (integration)', () => {
         .post('/auth/login')
         .send({ email: faker.internet.email(), password: 'password123' })
         .expect(401)
+    })
+
+    describe('captcha (3rd failed attempt onward)', () => {
+      it('does not require captcha for the first failed attempt', async () => {
+        const user = await createTestUser()
+
+        const { body } = await request(app.getHttpServer())
+          .post('/auth/login')
+          .send({ email: user.email, password: 'wrongpassword', slug: 'seed-clinic' })
+          .expect(401)
+
+        expect(body.requiresCaptcha).toBeUndefined()
+      })
+
+      it('signals requiresCaptcha once the 2nd failed attempt crosses the threshold', async () => {
+        const user = await createTestUser()
+        expect(CAPTCHA_FAILED_ATTEMPTS_THRESHOLD).toBe(2)
+
+        await request(app.getHttpServer())
+          .post('/auth/login')
+          .send({ email: user.email, password: 'wrongpassword', slug: 'seed-clinic' })
+          .expect(401)
+
+        const { body } = await request(app.getHttpServer())
+          .post('/auth/login')
+          .send({ email: user.email, password: 'wrongpassword', slug: 'seed-clinic' })
+          .expect(401)
+
+        expect(body.requiresCaptcha).toBe(true)
+      })
+
+      it('rejects the 3rd attempt without a captcha token, without checking credentials', async () => {
+        const user = await createTestUser()
+
+        for (let i = 0; i < CAPTCHA_FAILED_ATTEMPTS_THRESHOLD; i++) {
+          await request(app.getHttpServer())
+            .post('/auth/login')
+            .send({ email: user.email, password: 'wrongpassword', slug: 'seed-clinic' })
+        }
+
+        // Even with the CORRECT password, no token means the captcha gate blocks first.
+        const { body } = await request(app.getHttpServer())
+          .post('/auth/login')
+          .send({ email: user.email, password: 'password123', slug: 'seed-clinic' })
+          .expect(401)
+
+        expect(body.requiresCaptcha).toBe(true)
+        expect(mockCaptchaAdapter.verify).not.toHaveBeenCalled()
+      })
+
+      it('rejects the 3rd attempt when the captcha token fails verification', async () => {
+        const user = await createTestUser()
+        mockCaptchaAdapter.verify.mockResolvedValue(false)
+
+        for (let i = 0; i < CAPTCHA_FAILED_ATTEMPTS_THRESHOLD; i++) {
+          await request(app.getHttpServer())
+            .post('/auth/login')
+            .send({ email: user.email, password: 'wrongpassword', slug: 'seed-clinic' })
+        }
+
+        const { body } = await request(app.getHttpServer())
+          .post('/auth/login')
+          .send({ email: user.email, password: 'password123', slug: 'seed-clinic', captchaToken: 'bad-token' })
+          .expect(401)
+
+        expect(body.requiresCaptcha).toBe(true)
+      })
+
+      it('succeeds on the 3rd attempt with a valid captcha token and correct credentials', async () => {
+        const user = await createTestUser()
+        mockCaptchaAdapter.verify.mockResolvedValue(true)
+
+        for (let i = 0; i < CAPTCHA_FAILED_ATTEMPTS_THRESHOLD; i++) {
+          await request(app.getHttpServer())
+            .post('/auth/login')
+            .send({ email: user.email, password: 'wrongpassword', slug: 'seed-clinic' })
+        }
+
+        const { body } = await request(app.getHttpServer())
+          .post('/auth/login')
+          .send({ email: user.email, password: 'password123', slug: 'seed-clinic', captchaToken: 'good-token' })
+          .expect(200)
+
+        expect(body.id).toBe(user.id)
+        expect(mockCaptchaAdapter.verify).toHaveBeenCalledWith('good-token')
+      })
+
+      it('clears the failed-attempt counter on successful login', async () => {
+        const user = await createTestUser()
+
+        await request(app.getHttpServer())
+          .post('/auth/login')
+          .send({ email: user.email, password: 'wrongpassword', slug: 'seed-clinic' })
+          .expect(401)
+
+        await request(app.getHttpServer())
+          .post('/auth/login')
+          .send({ email: user.email, password: 'password123', slug: 'seed-clinic' })
+          .expect(200)
+
+        // Counter reset — a fresh wrong attempt afterwards should not require captcha yet.
+        const { body } = await request(app.getHttpServer())
+          .post('/auth/login')
+          .send({ email: user.email, password: 'wrongpassword', slug: 'seed-clinic' })
+          .expect(401)
+
+        expect(body.requiresCaptcha).toBeUndefined()
+      })
+
+      it('keeps backoffice and clinic attempt counters independent for the same email', async () => {
+        const hashedPassword = await bcrypt.hash('password123', 10)
+        const platformAdmin = await userRepository.save(
+          userRepository.create({
+            fullName: faker.person.fullName(),
+            email: faker.internet.email(),
+            password: hashedPassword,
+            role: UserRole.PLATFORM_ADMIN,
+            isActive: true,
+            clinicId: null,
+          }),
+        )
+
+        for (let i = 0; i < CAPTCHA_FAILED_ATTEMPTS_THRESHOLD; i++) {
+          await request(app.getHttpServer())
+            .post('/auth/login')
+            .send({ email: platformAdmin.email, password: 'wrongpassword' })
+        }
+
+        // Same email, but a clinic login — must not inherit the backoffice counter.
+        const { body } = await request(app.getHttpServer())
+          .post('/auth/login')
+          .send({ email: platformAdmin.email, password: 'wrongpassword', slug: 'seed-clinic' })
+          .expect(401)
+
+        expect(body.requiresCaptcha).toBeUndefined()
+      })
     })
   })
 

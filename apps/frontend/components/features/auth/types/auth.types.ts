@@ -4,6 +4,7 @@ export interface ILoginInput {
   email: string
   password: string
   slug?: string
+  captchaToken?: string
 }
 
 export interface IAuthUserDto {
