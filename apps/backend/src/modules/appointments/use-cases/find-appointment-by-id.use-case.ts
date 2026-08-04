@@ -69,7 +69,7 @@ export class FindAppointmentByIdUseCase extends BaseUseCase {
       email: string
       phoneNumber: string
       birthDate: string
-      documentNumber: string
+      documentNumber: string | null
       gender: string
     }> = await this.dataSource
       .createQueryBuilder()

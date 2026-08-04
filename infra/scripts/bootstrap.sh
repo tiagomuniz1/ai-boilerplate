@@ -20,16 +20,16 @@ REGION="us-east-1"
 if [[ -z "$ENVIRONMENT" || -z "$DEVOPS_PROFILE" ]]; then
   echo "Usage: bash infra/scripts/bootstrap.sh <environment> <devops-aws-profile>"
   echo ""
-  echo "  environment      : staging | production"
+  echo "  environment      : shared | production"
   echo "  devops-aws-profile: AWS CLI profile with access to the DevOps account (${DEVOPS_ACCOUNT_ID})"
   echo ""
   echo "Example:"
-  echo "  bash infra/scripts/bootstrap.sh staging devops-profile"
+  echo "  bash infra/scripts/bootstrap.sh production devops-profile"
   exit 1
 fi
 
-if [[ "$ENVIRONMENT" != "staging" && "$ENVIRONMENT" != "production" ]]; then
-  echo "Error: environment must be 'staging' or 'production'"
+if [[ "$ENVIRONMENT" != "shared" && "$ENVIRONMENT" != "production" ]]; then
+  echo "Error: environment must be 'shared' or 'production'"
   exit 1
 fi
 

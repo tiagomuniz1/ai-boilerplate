@@ -1,10 +1,10 @@
 variable "environment" {
-  description = "Environment name (staging or production). The role is assumable only from the matching GitHub Environment."
+  description = "Environment name (production). The role is assumable only from the matching GitHub Environment."
   type        = string
 
   validation {
-    condition     = contains(["staging", "production"], var.environment)
-    error_message = "Environment must be 'staging' or 'production'."
+    condition     = contains(["production"], var.environment)
+    error_message = "Environment must be 'production'."
   }
 }
 
@@ -30,12 +30,6 @@ variable "github_repo_id" {
   description = "GitHub numeric (immutable) ID of the repository. See github_owner_id. Fetch via `gh api repos/OWNER/REPO --jq .id`."
   type        = string
   default     = "1213836286"
-}
-
-variable "create_oidc_provider" {
-  description = "Whether to create the account-wide GitHub OIDC provider. Only ONE per account: staging creates it, production references it via data source."
-  type        = bool
-  default     = true
 }
 
 variable "ecr_repository_arns" {

@@ -16,6 +16,10 @@ const mockPatient = {
   birthDate: '1990-05-15',
   documentNumber: '12345678901',
   gender: 'male',
+  responsiblePatientId: null,
+  kinshipType: null,
+  responsiblePatient: null,
+  dependents: [],
   createdAt: '2024-01-15T10:00:00.000Z',
   updatedAt: '2024-01-15T10:00:00.000Z',
 }
@@ -172,6 +176,63 @@ describe('Patients Detail', () => {
     cy.get('[data-testid="delete-patient-dialog-confirm"]').click()
     cy.wait('@deletePatient')
     expectClinicPath('/patients')
+  })
+
+  it('shows "Não informado" when the patient has no documentNumber (dependent)', () => {
+    const dependentPatient = {
+      ...mockPatient,
+      documentNumber: null,
+      responsiblePatientId: 'titular-uuid',
+      kinshipType: 'filho',
+      responsiblePatient: { id: 'titular-uuid', fullName: 'Maria Silva', documentNumber: '11122233344' },
+    }
+    cy.intercept('GET', `${Cypress.env('API_URL')}/patients/${MOCK_PATIENT_ID}`, {
+      statusCode: 200,
+      body: dependentPatient,
+    }).as('getPatient')
+
+    visitClinic(`/patients/${MOCK_PATIENT_ID}`, mockAuthUser)
+    cy.wait('@getPatient')
+    cy.get('[data-testid="patient-details-document"]').should('contain', 'Não informado')
+  })
+
+  it('shows "Vinculado a" section with a link to the titular when the patient is a dependent', () => {
+    const dependentPatient = {
+      ...mockPatient,
+      documentNumber: null,
+      responsiblePatientId: 'titular-uuid',
+      kinshipType: 'filho',
+      responsiblePatient: { id: 'titular-uuid', fullName: 'Maria Silva', documentNumber: '11122233344' },
+    }
+    cy.intercept('GET', `${Cypress.env('API_URL')}/patients/${MOCK_PATIENT_ID}`, {
+      statusCode: 200,
+      body: dependentPatient,
+    }).as('getPatient')
+
+    visitClinic(`/patients/${MOCK_PATIENT_ID}`, mockAuthUser)
+    cy.wait('@getPatient')
+    cy.get('[data-testid="patient-details-responsible"]').should('contain', 'Maria Silva')
+    cy.get('[data-testid="patient-details-responsible"]').should('contain', 'Filho(a)')
+    cy.get('[data-testid="patient-details-responsible-link"]').click()
+    expectClinicPath('/patients/titular-uuid')
+  })
+
+  it('shows "Dependentes" section listing each dependent when the patient is a titular', () => {
+    const titularPatient = {
+      ...mockPatient,
+      dependents: [{ id: 'dependent-uuid', fullName: 'Bebê Silva', kinshipType: 'filho' }],
+    }
+    cy.intercept('GET', `${Cypress.env('API_URL')}/patients/${MOCK_PATIENT_ID}`, {
+      statusCode: 200,
+      body: titularPatient,
+    }).as('getPatient')
+
+    visitClinic(`/patients/${MOCK_PATIENT_ID}`, mockAuthUser)
+    cy.wait('@getPatient')
+    cy.get('[data-testid="patient-details-dependents"]').should('contain', 'Bebê Silva')
+    cy.get('[data-testid="patient-details-dependents"]').should('contain', 'Filho(a)')
+    cy.get('[data-testid="patient-details-dependent-link"]').click()
+    expectClinicPath('/patients/dependent-uuid')
   })
 })
 

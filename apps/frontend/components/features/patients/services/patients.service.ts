@@ -13,6 +13,8 @@ export const patientsService = {
     if (params?.search) searchParams.set('search', params.search)
     if (params?.page) searchParams.set('page', String(params.page))
     if (params?.limit) searchParams.set('limit', String(params.limit))
+    if (params?.excludeDependents) searchParams.set('excludeDependents', 'true')
+    if (params?.excludeId) searchParams.set('excludeId', params.excludeId)
     const query = searchParams.toString()
     return apiClient.get<PaginatedPatientsResponseDto>(
       `/patients${query ? `?${query}` : ''}`,

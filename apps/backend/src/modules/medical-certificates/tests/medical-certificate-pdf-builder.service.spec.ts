@@ -154,6 +154,15 @@ describe('MedicalCertificatePdfBuilderService', () => {
     expect(buffer.slice(0, 4).toString('ascii')).toBe('%PDF')
   })
 
+  it('generates PDF without crashing when patient has no documentNumber (dependent without CPF)', async () => {
+    const buffer = await service.build(
+      makeSnapshot({ patient: { name: 'Bebê Santos', documentNumber: null } }),
+      null,
+    )
+
+    expect(buffer.slice(0, 4).toString('ascii')).toBe('%PDF')
+  })
+
   it('ignores non-dataURL logo and generates PDF without it', async () => {
     const buffer = await service.build(makeSnapshot(), 'https://example.com/logo.png')
     expect(buffer.slice(0, 4).toString('ascii')).toBe('%PDF')

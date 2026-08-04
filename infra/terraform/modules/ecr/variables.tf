@@ -1,10 +1,10 @@
 variable "environment" {
-  description = "Environment name (staging or production)."
+  description = "Environment name. ECR is a shared resource (module is instantiated once, from the `shared` Terraform environment)."
   type        = string
 
   validation {
-    condition     = contains(["staging", "production"], var.environment)
-    error_message = "Environment must be 'staging' or 'production'."
+    condition     = contains(["shared", "production"], var.environment)
+    error_message = "Environment must be 'shared' or 'production'."
   }
 }
 

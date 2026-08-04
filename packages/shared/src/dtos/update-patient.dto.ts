@@ -1,5 +1,6 @@
-import { IsDateString, IsEmail, IsEnum, IsOptional, IsString, Matches, MaxLength, MinLength } from 'class-validator'
+import { IsDateString, IsEmail, IsEnum, IsOptional, IsString, IsUUID, Matches, MaxLength, MinLength } from 'class-validator'
 import { PatientGender } from '../enums/patient-gender.enum'
+import { KinshipType } from '../enums/kinship-type.enum'
 import { IsPastOrPresentDate } from './create-patient.dto'
 
 export class UpdatePatientDto {
@@ -26,4 +27,17 @@ export class UpdatePatientDto {
   @IsOptional()
   @IsEnum(PatientGender)
   gender?: PatientGender
+
+  @IsOptional()
+  @IsString()
+  @Matches(/^\d{11}$/, { message: 'documentNumber must be exactly 11 digits' })
+  documentNumber?: string
+
+  @IsOptional()
+  @IsUUID()
+  responsiblePatientId?: string | null
+
+  @IsOptional()
+  @IsEnum(KinshipType)
+  kinshipType?: KinshipType | null
 }

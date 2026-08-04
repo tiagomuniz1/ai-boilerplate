@@ -1,7 +1,7 @@
-# NOTE: ACM certificates used by CloudFront MUST live in us-east-1. The staging
-# and production environments already run their default provider in us-east-1, so
-# this module uses that provider directly. If an environment ever moves to another
-# region, pass a us-east-1 aliased provider to this module for the ACM resources.
+# NOTE: ACM certificates used by CloudFront MUST live in us-east-1. Production
+# already runs its default provider in us-east-1, so this module uses that
+# provider directly. If an environment ever moves to another region, pass a
+# us-east-1 aliased provider to this module for the ACM resources.
 
 locals {
   tags = {

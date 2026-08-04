@@ -11,8 +11,12 @@ describe('maskCpf', () => {
 
   it('returns *** when CPF does not have exactly 11 digits', () => {
     expect(maskCpf('123')).toBe('***')
-    expect(maskCpf('')).toBe('***')
     expect(maskCpf('123456789012')).toBe('***')
+  })
+
+  it('returns "Não informado" when CPF is null or empty', () => {
+    expect(maskCpf(null)).toBe('Não informado')
+    expect(maskCpf('')).toBe('Não informado')
   })
 })
 

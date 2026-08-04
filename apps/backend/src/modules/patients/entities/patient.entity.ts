@@ -9,7 +9,7 @@ import {
   UpdateDateColumn,
   VersionColumn,
 } from 'typeorm'
-import { PatientGender } from '@app/shared'
+import { KinshipType, PatientGender } from '@app/shared'
 import { Clinic } from '../../clinics/entities/clinic.entity'
 import { User } from '../../users/entities/user.entity'
 
@@ -32,8 +32,8 @@ export class Patient {
   @Column({ name: 'clinic_id' })
   clinicId: string
 
-  @Column({ name: 'document_number' })
-  documentNumber: string
+  @Column({ name: 'document_number', type: 'char', length: 11, nullable: true })
+  documentNumber: string | null
 
   @Column({ name: 'phone_number' })
   phoneNumber: string
@@ -43,6 +43,16 @@ export class Patient {
 
   @Column({ type: 'varchar' })
   gender: PatientGender
+
+  @ManyToOne(() => Patient, { eager: false, nullable: true, onDelete: 'RESTRICT' })
+  @JoinColumn({ name: 'responsible_patient_id' })
+  responsiblePatient: Patient | null
+
+  @Column({ name: 'responsible_patient_id', type: 'uuid', nullable: true })
+  responsiblePatientId: string | null
+
+  @Column({ name: 'kinship_type', type: 'varchar', length: 20, nullable: true })
+  kinshipType: KinshipType | null
 
   @VersionColumn()
   version: number

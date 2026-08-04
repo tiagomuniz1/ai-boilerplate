@@ -14,7 +14,7 @@ output "iam_policy_arn" {
 }
 
 # ── ECR / EC2 ─────────────────────────────────────────────────────────────────
-# ECR repositories are shared (owned by the staging state); referenced here by name.
+# ECR repositories are shared (owned by the `shared` state); referenced here by name.
 output "ecr_registry_url" {
   description = "ECR registry host — used as ECR_REGISTRY by the deploy pipeline and compose."
   value       = local.ecr_registry

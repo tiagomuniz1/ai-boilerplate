@@ -1,4 +1,4 @@
-import { PatientGender } from '@app/shared'
+import { KinshipType, PatientGender } from '@app/shared'
 import { toUpdatePatientDto } from './to-update-patient-dto.mapper'
 
 describe('toUpdatePatientDto', () => {
@@ -34,5 +34,25 @@ describe('toUpdatePatientDto', () => {
     expect(dto.fullName).toBeUndefined()
     expect(dto.email).toBeUndefined()
     expect(dto.gender).toBeUndefined()
+  })
+
+  it('maps documentNumber when adding a CPF later', () => {
+    const dto = toUpdatePatientDto({ documentNumber: '12345678901' })
+
+    expect(dto.documentNumber).toBe('12345678901')
+  })
+
+  it('maps responsiblePatientId and kinshipType when linking to a titular', () => {
+    const dto = toUpdatePatientDto({ responsiblePatientId: 'responsible-uuid', kinshipType: KinshipType.FILHO })
+
+    expect(dto.responsiblePatientId).toBe('responsible-uuid')
+    expect(dto.kinshipType).toBe(KinshipType.FILHO)
+  })
+
+  it('maps explicit null responsiblePatientId and kinshipType when clearing the link', () => {
+    const dto = toUpdatePatientDto({ responsiblePatientId: null, kinshipType: null })
+
+    expect(dto.responsiblePatientId).toBeNull()
+    expect(dto.kinshipType).toBeNull()
   })
 })

@@ -10,6 +10,10 @@ export function toPatientModel(dto: PatientResponseDto): IPatientModel {
     birthDate: new Date(dto.birthDate),
     documentNumber: dto.documentNumber,
     gender: dto.gender,
+    responsiblePatientId: dto.responsiblePatientId,
+    kinshipType: dto.kinshipType,
+    responsiblePatient: dto.responsiblePatient,
+    dependents: dto.dependents,
     createdAt: new Date(dto.createdAt),
     updatedAt: new Date(dto.updatedAt),
   }

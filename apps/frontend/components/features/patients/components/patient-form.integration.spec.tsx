@@ -5,7 +5,7 @@ jest.mock('@/components/features/users/services/users.service')
 import { screen, waitFor, act, fireEvent } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { useRouter } from 'next/navigation'
-import { PatientGender } from '@app/shared'
+import { KinshipType, PatientGender } from '@app/shared'
 import { patientsService } from '../services/patients.service'
 import { userService } from '@/components/features/users/services/users.service'
 import { renderWithProviders } from '@/tests/utils/render-with-providers'
@@ -18,6 +18,23 @@ const mockUsers = [
   { id: 'user-1', fullName: 'Ana Costa', email: 'ana@example.com', role: 'user', isActive: true, createdAt: new Date() },
 ]
 
+const mockTitulares = [
+  {
+    id: 'titular-1',
+    user: { id: 'user-titular-1', fullName: 'Maria Silva', email: 'maria@example.com', isActive: true },
+    documentNumber: '11122233344',
+    phoneNumber: '(11) 99999-9999',
+    birthDate: '1985-03-10',
+    gender: PatientGender.FEMALE,
+    responsiblePatientId: null,
+    kinshipType: null,
+    responsiblePatient: null,
+    dependents: [],
+    createdAt: new Date(),
+    updatedAt: new Date(),
+  },
+]
+
 const existingPatient: IPatientModel = {
   id: 'uuid-1',
   fullName: 'João Silva',
@@ -26,8 +43,21 @@ const existingPatient: IPatientModel = {
   birthDate: new Date('1990-05-15'),
   documentNumber: '12345678901',
   gender: PatientGender.MALE,
+  responsiblePatientId: null,
+  kinshipType: null,
+  responsiblePatient: null,
+  dependents: [],
   createdAt: new Date('2024-01-15'),
   updatedAt: new Date('2024-01-16'),
+}
+
+const existingDependentPatient: IPatientModel = {
+  ...existingPatient,
+  id: 'uuid-2',
+  documentNumber: null,
+  responsiblePatientId: 'titular-1',
+  kinshipType: KinshipType.FILHO,
+  responsiblePatient: { id: 'titular-1', fullName: 'Maria Silva', documentNumber: '11122233344' },
 }
 
 describe('PatientForm (integration) — create mode', () => {
@@ -35,6 +65,7 @@ describe('PatientForm (integration) — create mode', () => {
     jest.clearAllMocks()
     ;(useRouter as jest.Mock).mockReturnValue({ push: mockPush })
     ;(userService.getAll as jest.Mock).mockResolvedValue({ data: mockUsers, total: 1, page: 1, limit: 100 })
+    ;(patientsService.getAll as jest.Mock).mockResolvedValue({ data: mockTitulares, total: 1, page: 1, limit: 10 })
   })
 
   it('renders user mode toggle and defaults to new user mode', () => {
@@ -307,12 +338,118 @@ describe('PatientForm (integration) — create mode', () => {
       { timeout: 2000 },
     )
   })
+
+  it('hides the CPF field and shows titular search + kinship select when marked as dependent', async () => {
+    renderWithProviders(<PatientForm mode="create" isPending={false} onSubmit={jest.fn()} />)
+
+    expect(screen.getByTestId('patient-form-document')).toBeInTheDocument()
+    expect(screen.queryByTestId('patient-form-titular-search')).not.toBeInTheDocument()
+
+    await userEvent.click(screen.getByTestId('patient-form-is-dependent'))
+
+    expect(screen.queryByTestId('patient-form-document')).not.toBeInTheDocument()
+    expect(screen.getByTestId('patient-form-titular-search')).toBeInTheDocument()
+    expect(screen.getByTestId('patient-form-kinship-type')).toBeInTheDocument()
+  })
+
+  it('creates a dependent without documentNumber when linked to a titular', async () => {
+    const onSubmit = jest.fn()
+
+    renderWithProviders(<PatientForm mode="create" isPending={false} onSubmit={onSubmit} />)
+
+    await userEvent.type(screen.getByTestId('patient-form-fullname'), 'Bebê Silva')
+    await userEvent.type(screen.getByTestId('patient-form-email'), 'bebe@example.com')
+    await userEvent.type(screen.getByTestId('patient-form-phone'), '(11) 98765-4321')
+    await userEvent.type(screen.getByTestId('patient-form-birthdate'), '2024-01-01')
+    await userEvent.selectOptions(screen.getByTestId('patient-form-gender'), PatientGender.MALE)
+    await userEvent.click(screen.getByTestId('patient-form-is-dependent'))
+
+    await userEvent.type(screen.getByTestId('patient-form-titular-search'), 'Maria')
+    await waitFor(() => expect(screen.getByTestId('patient-form-titular-option')).toBeInTheDocument(), {
+      timeout: 2000,
+    })
+    await userEvent.click(screen.getByTestId('patient-form-titular-option'))
+    await userEvent.selectOptions(screen.getByTestId('patient-form-kinship-type'), KinshipType.FILHO)
+
+    await userEvent.click(screen.getByTestId('patient-form-submit'))
+
+    await waitFor(() => {
+      expect(onSubmit).toHaveBeenCalledWith(
+        expect.objectContaining({
+          documentNumber: undefined,
+          responsiblePatientId: 'titular-1',
+          kinshipType: KinshipType.FILHO,
+        }),
+        expect.any(Function),
+      )
+    })
+  })
+
+  it('shows validation error when marked as dependent without selecting a titular', async () => {
+    renderWithProviders(<PatientForm mode="create" isPending={false} onSubmit={jest.fn()} />)
+
+    await userEvent.click(screen.getByTestId('patient-form-is-dependent'))
+    await userEvent.click(screen.getByTestId('patient-form-submit'))
+
+    await waitFor(() => {
+      expect(screen.getByText('Selecione o paciente titular')).toBeInTheDocument()
+    })
+  })
+
+  it('clears selected titular when user types in search after selecting', async () => {
+    renderWithProviders(<PatientForm mode="create" isPending={false} onSubmit={jest.fn()} />)
+
+    await userEvent.click(screen.getByTestId('patient-form-is-dependent'))
+    await userEvent.type(screen.getByTestId('patient-form-titular-search'), 'Maria')
+    await waitFor(() => expect(screen.getByTestId('patient-form-titular-option')).toBeInTheDocument(), {
+      timeout: 2000,
+    })
+    await userEvent.click(screen.getByTestId('patient-form-titular-option'))
+
+    await userEvent.type(screen.getByTestId('patient-form-titular-search'), ' Silva')
+    await userEvent.click(screen.getByTestId('patient-form-submit'))
+
+    await waitFor(() => {
+      expect(screen.getByText('Selecione o paciente titular')).toBeInTheDocument()
+    })
+  })
+
+  it('titular search onFocus with debouncedTerm >= 2 keeps dropdown open', async () => {
+    renderWithProviders(<PatientForm mode="create" isPending={false} onSubmit={jest.fn()} />)
+
+    await userEvent.click(screen.getByTestId('patient-form-is-dependent'))
+    fireEvent.change(screen.getByTestId('patient-form-titular-search'), { target: { value: 'Ma' } })
+
+    await waitFor(
+      () => expect(screen.getByTestId('patient-form-titular-search-results')).toBeInTheDocument(),
+      { timeout: 2000 },
+    )
+
+    fireEvent.focus(screen.getByTestId('patient-form-titular-search'))
+
+    expect(screen.getByTestId('patient-form-titular-search-results')).toBeInTheDocument()
+  })
+
+  it('shows "Nenhum paciente encontrado" when titular search returns no results', async () => {
+    ;(patientsService.getAll as jest.Mock).mockResolvedValue({ data: [], total: 0, page: 1, limit: 10 })
+
+    renderWithProviders(<PatientForm mode="create" isPending={false} onSubmit={jest.fn()} />)
+
+    await userEvent.click(screen.getByTestId('patient-form-is-dependent'))
+    fireEvent.change(screen.getByTestId('patient-form-titular-search'), { target: { value: 'xz' } })
+
+    await waitFor(
+      () => expect(screen.getByText('Nenhum paciente encontrado')).toBeInTheDocument(),
+      { timeout: 2000 },
+    )
+  })
 })
 
 describe('PatientForm (integration) — edit mode', () => {
   beforeEach(() => {
     jest.clearAllMocks()
     ;(useRouter as jest.Mock).mockReturnValue({ push: mockPush })
+    ;(patientsService.getAll as jest.Mock).mockResolvedValue({ data: mockTitulares, total: 1, page: 1, limit: 10 })
   })
 
   it('pre-fills form with existing patient data', async () => {
@@ -560,6 +697,119 @@ describe('PatientForm (integration) — edit mode', () => {
 
     await waitFor(() => {
       expect(screen.getByText(/Selecione um gênero válido/)).toBeInTheDocument()
+    })
+  })
+
+  it('includes documentNumber in the submitted payload (bug fix: was previously omitted)', async () => {
+    const onSubmit = jest.fn()
+
+    renderWithProviders(
+      <PatientForm mode="edit" defaultValues={existingPatient} isPending={false} onSubmit={onSubmit} />,
+    )
+
+    await waitFor(() => expect(screen.getByTestId('patient-form-document')).toHaveValue('123.456.789-01'))
+
+    fireEvent.change(screen.getByTestId('patient-form-document'), { target: { value: '98765432100' } })
+    await userEvent.click(screen.getByTestId('patient-form-submit'))
+
+    await waitFor(() => {
+      expect(onSubmit).toHaveBeenCalledWith(
+        expect.objectContaining({ documentNumber: '98765432100' }),
+        expect.any(Function),
+      )
+    })
+  })
+
+  it('submits documentNumber as undefined when the dependent has no CPF and stays a dependent', async () => {
+    const onSubmit = jest.fn()
+
+    renderWithProviders(
+      <PatientForm mode="edit" defaultValues={existingDependentPatient} isPending={false} onSubmit={onSubmit} />,
+    )
+
+    await waitFor(() => expect(screen.getByTestId('patient-form-is-dependent')).toBeChecked())
+
+    await userEvent.click(screen.getByTestId('patient-form-submit'))
+
+    await waitFor(() => {
+      expect(onSubmit).toHaveBeenCalledWith(
+        expect.objectContaining({ documentNumber: undefined, responsiblePatientId: 'titular-1' }),
+        expect.any(Function),
+      )
+    })
+  })
+
+  it('pre-fills isDependent, titular and kinship for an existing dependent patient', async () => {
+    renderWithProviders(
+      <PatientForm mode="edit" defaultValues={existingDependentPatient} isPending={false} onSubmit={jest.fn()} />,
+    )
+
+    await waitFor(() => expect(screen.getByTestId('patient-form-is-dependent')).toBeChecked())
+
+    expect(screen.getByTestId('patient-form-titular-search')).toBeInTheDocument()
+    expect(screen.getByTestId('patient-form-kinship-type')).toHaveValue(KinshipType.FILHO)
+    expect(screen.queryByTestId('patient-form-document')).toBeInTheDocument()
+  })
+
+  it('shows validation error in edit mode when marked as dependent without selecting a titular', async () => {
+    renderWithProviders(
+      <PatientForm mode="edit" defaultValues={existingPatient} isPending={false} onSubmit={jest.fn()} />,
+    )
+
+    await waitFor(() => expect(screen.getByTestId('patient-form-is-dependent')).not.toBeChecked())
+
+    await userEvent.click(screen.getByTestId('patient-form-is-dependent'))
+    await userEvent.click(screen.getByTestId('patient-form-submit'))
+
+    await waitFor(() => {
+      expect(screen.getByText('Selecione o paciente titular')).toBeInTheDocument()
+    })
+  })
+
+  it('links an existing independent patient to a titular when marked as dependent', async () => {
+    const onSubmit = jest.fn()
+
+    renderWithProviders(
+      <PatientForm mode="edit" defaultValues={existingPatient} isPending={false} onSubmit={onSubmit} />,
+    )
+
+    await waitFor(() => expect(screen.getByTestId('patient-form-is-dependent')).not.toBeChecked())
+
+    await userEvent.click(screen.getByTestId('patient-form-is-dependent'))
+    await userEvent.type(screen.getByTestId('patient-form-titular-search'), 'Maria')
+    await waitFor(() => expect(screen.getByTestId('patient-form-titular-option')).toBeInTheDocument(), {
+      timeout: 2000,
+    })
+    await userEvent.click(screen.getByTestId('patient-form-titular-option'))
+    await userEvent.selectOptions(screen.getByTestId('patient-form-kinship-type'), KinshipType.FILHO)
+    await userEvent.click(screen.getByTestId('patient-form-submit'))
+
+    await waitFor(() => {
+      expect(onSubmit).toHaveBeenCalledWith(
+        expect.objectContaining({ responsiblePatientId: 'titular-1', kinshipType: KinshipType.FILHO }),
+        expect.any(Function),
+      )
+    })
+  })
+
+  it('promotes a dependent to independent when documentNumber is set and the link is removed', async () => {
+    const onSubmit = jest.fn()
+
+    renderWithProviders(
+      <PatientForm mode="edit" defaultValues={existingDependentPatient} isPending={false} onSubmit={onSubmit} />,
+    )
+
+    await waitFor(() => expect(screen.getByTestId('patient-form-is-dependent')).toBeChecked())
+
+    fireEvent.change(screen.getByTestId('patient-form-document'), { target: { value: '98765432100' } })
+    await userEvent.click(screen.getByTestId('patient-form-is-dependent'))
+    await userEvent.click(screen.getByTestId('patient-form-submit'))
+
+    await waitFor(() => {
+      expect(onSubmit).toHaveBeenCalledWith(
+        expect.objectContaining({ documentNumber: '98765432100', responsiblePatientId: null }),
+        expect.any(Function),
+      )
     })
   })
 })

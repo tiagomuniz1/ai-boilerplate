@@ -1,6 +1,6 @@
 # Backlog — Confiabilidade e Observabilidade em Produção
 
-> **Status: não iniciado.** Levantado durante a investigação de uma falha de deploy (2026-07-27), sem execução imediata — produção ainda não vai ao ar no curto prazo, o foco agora é novas features. Retomar antes do go-live real.
+> **Status: em andamento (2026-08-03).** Levantado durante a investigação de uma falha de deploy (2026-07-27). Retomado para reduzir custo (um único ambiente na AWS) — ver plano de migração. Os dois itens P0/P1 abaixo ("Produção ainda não está de fato provisionada" e "Fluxo de branches documentado não reflete a realidade") estão sendo resolvidos por essa migração; os demais (alerting/observabilidade, alta disponibilidade) seguem pendentes, a retomar antes de tráfego real.
 
 ## Objetivo
 
@@ -19,15 +19,15 @@ Hoje, se algo quebrar em produção, o time só fica sabendo pelo usuário recla
 
 **Sugestão:** no mínimo, um alarme simples (CloudWatch Alarm + SNS, ou Sentry) para health-check down e taxa de erro 5xx antes de qualquer tráfego real.
 
-### Produção ainda não está de fato provisionada
+### ~~Produção ainda não está de fato provisionada~~ — **em execução (2026-08-03)**
 
-Durante o diagnóstico de hoje, ficou claro que o ambiente de `production` nunca tinha sido totalmente aplicado — só existe hoje a role de CI/CD (`pulso-production-ci-deploy`) com trust policy corrigida. Os módulos `rds` (banco) e `cdn` (CloudFront + Route 53 para `pulso.center`) em `infra/terraform/environments/production/main.tf` **nunca foram aplicados**. Não há histórico de produção rodando de verdade.
+Durante o diagnóstico de hoje, ficou claro que o ambiente de `production` nunca tinha sido totalmente aplicado — só existia a role de CI/CD (`pulso-production-ci-deploy`) com trust policy corrigida. Os módulos `rds` (banco) e `cdn` (CloudFront + Route 53 para `pulso.center`) em `infra/terraform/environments/production/main.tf` **nunca foram aplicados**. Não havia histórico de produção rodando de verdade.
 
-**Sugestão:** antes do go-live, rodar um `terraform apply` completo de production (com `frontend_url` e demais variáveis) como um dry-run, validando o fluxo ponta a ponta antes de haver usuários reais.
+**Resolvendo via:** migração para um único ambiente na AWS (ver `docs/DEPLOY_RUNBOOK.md` §3). ECR e o GitHub OIDC provider foram extraídos para um ambiente `shared` à parte (não são mais propriedade de staging), e o `terraform apply` completo de `production` está para ser executado como parte dessa migração — ao final, staging é destruído e produção passa a ser o único ambiente vivo.
 
 ### Arquitetura de instância única, sem alta disponibilidade
 
-Cada ambiente (`staging`/`production`) roda em **uma única instância EC2** (`infra/terraform/modules/ec2-app`), sem auto-scaling group nem multi-AZ. Se a instância cair ou precisar reiniciar, o sistema fica fora do ar até a recuperação manual/automática do EC2 — não há failover.
+Produção roda em **uma única instância EC2** (`infra/terraform/modules/ec2-app`), sem auto-scaling group nem multi-AZ. Se a instância cair ou precisar reiniciar, o sistema fica fora do ar até a recuperação manual/automática do EC2 — não há failover.
 
 **Sugestão:** avaliar se o volume esperado de uso justifica migrar para ECS/Auto Scaling Group antes do lançamento, ou aceitar o risco conscientemente por enquanto (custo vs. disponibilidade).
 
@@ -45,11 +45,11 @@ Isso mostra que uma mudança "administrativa" no GitHub (rename, transferência 
 
 **Sugestão:** documentar essa pegadinha no `ai/context/backend.md` ou num README de infra, para não ser redescoberta do zero da próxima vez que algo do tipo acontecer (ex: transferência de owner, criação de um novo ambiente).
 
-### Fluxo de branches documentado não reflete a realidade
+### ~~Fluxo de branches documentado não reflete a realidade~~ — **resolvido (2026-08-03)**
 
-O `CLAUDE.md` e `ai/context/architecture.md` descrevem o fluxo `feature/* → develop → main`, com `develop` = staging e `main` = production. Na prática, **não existe branch `develop`** no repositório — os PRs vão direto de `feature/*` para `main`, e os deploys de staging/produção são escolhidos por um input manual no workflow (`environment: staging|production`), não pela branch.
+O `CLAUDE.md` e `ai/context/architecture.md` descreviam o fluxo `feature/* → develop → main`, com `develop` = staging e `main` = production. Na prática, **nunca existiu branch `develop`** no repositório — os PRs vão direto de `feature/*` para `main`, e o deploy é escolhido por um input manual no workflow (`environment`), não pela branch.
 
-**Sugestão:** decidir entre (a) recriar o fluxo `develop` de verdade, com PR e testes em staging antes de chegar em `main`, ou (b) atualizar a documentação para refletir o fluxo real (branch única + escolha manual de ambiente no dispatch). Deixar como está gera dissonância entre o que o time acha que está seguindo e o que de fato acontece.
+**Resolvido pela opção (b):** `CLAUDE.md`, `ai/context/architecture.md`, `README.md` e `docs/DEPLOY_RUNBOOK.md` foram atualizados para refletir o fluxo real — branch única (`feature/* → main`), escolha manual de ambiente no dispatch, e ambiente único (`production`, já que staging foi descomissionado na mesma migração).
 
 ### ~~Drift de AMI na instância EC2 de staging~~ — **aconteceu de verdade e foi corrigido (2026-07-27)**
 

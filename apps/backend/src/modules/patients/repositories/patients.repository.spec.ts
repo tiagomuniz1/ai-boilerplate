@@ -269,6 +269,112 @@ describe('PatientsRepository', () => {
     })
   })
 
+  describe('findActiveDependents', () => {
+    it('delegates to findDependentsByResponsibleIds with a single id', async () => {
+      const dependent = makePatient({ id: 'dependent-uuid', responsiblePatientId: 'uuid-1' })
+      const qb = makeQueryBuilderMock({ getMany: [dependent] })
+      repo.createQueryBuilder.mockReturnValue(qb as any)
+
+      const result = await repository.findActiveDependents('uuid-1', CLINIC_ID)
+
+      expect(qb.where).toHaveBeenCalledWith('patient.responsible_patient_id IN (:...responsibleIds)', {
+        responsibleIds: ['uuid-1'],
+      })
+      expect(qb.andWhere).toHaveBeenCalledWith('patient.clinic_id = :clinicId', { clinicId: CLINIC_ID })
+      expect(result).toEqual([dependent])
+    })
+  })
+
+  describe('findResponsiblePatientsByIds', () => {
+    it('returns empty array without querying when ids is empty', async () => {
+      const result = await repository.findResponsiblePatientsByIds([], CLINIC_ID)
+
+      expect(result).toEqual([])
+      expect(repo.createQueryBuilder).not.toHaveBeenCalled()
+    })
+
+    it('queries patients by id within the clinic', async () => {
+      const patient = makePatient()
+      const qb = makeQueryBuilderMock({ getMany: [patient] })
+      repo.createQueryBuilder.mockReturnValue(qb as any)
+
+      const result = await repository.findResponsiblePatientsByIds(['uuid-1'], CLINIC_ID)
+
+      expect(qb.innerJoinAndSelect).toHaveBeenCalledWith('patient.user', 'user')
+      expect(qb.where).toHaveBeenCalledWith('patient.id IN (:...ids)', { ids: ['uuid-1'] })
+      expect(qb.andWhere).toHaveBeenCalledWith('patient.clinic_id = :clinicId', { clinicId: CLINIC_ID })
+      expect(result).toEqual([patient])
+    })
+  })
+
+  describe('findDependentsByResponsibleIds', () => {
+    it('returns empty array without querying when responsibleIds is empty', async () => {
+      const result = await repository.findDependentsByResponsibleIds([], CLINIC_ID)
+
+      expect(result).toEqual([])
+      expect(repo.createQueryBuilder).not.toHaveBeenCalled()
+    })
+
+    it('queries dependents by responsiblePatientId within the clinic', async () => {
+      const dependent = makePatient({ id: 'dependent-uuid', responsiblePatientId: 'uuid-1' })
+      const qb = makeQueryBuilderMock({ getMany: [dependent] })
+      repo.createQueryBuilder.mockReturnValue(qb as any)
+
+      const result = await repository.findDependentsByResponsibleIds(['uuid-1'], CLINIC_ID)
+
+      expect(qb.innerJoinAndSelect).toHaveBeenCalledWith('patient.user', 'user')
+      expect(qb.where).toHaveBeenCalledWith('patient.responsible_patient_id IN (:...responsibleIds)', {
+        responsibleIds: ['uuid-1'],
+      })
+      expect(qb.andWhere).toHaveBeenCalledWith('patient.clinic_id = :clinicId', { clinicId: CLINIC_ID })
+      expect(result).toEqual([dependent])
+    })
+  })
+
+  describe('findAll excludeDependents/excludeId filters', () => {
+    it('applies excludeDependents and excludeId on the no-search path', async () => {
+      const idsQb = makeQueryBuilderMock({ getMany: [] })
+      const countQb = makeQueryBuilderMock({ getCount: 0 })
+      let callCount = 0
+      repo.createQueryBuilder.mockImplementation(() => {
+        callCount++
+        return callCount === 1 ? (idsQb as any) : (countQb as any)
+      })
+
+      await repository.findAll(1, 20, CLINIC_ID, undefined, true, 'exclude-uuid')
+
+      expect(idsQb.andWhere).toHaveBeenCalledWith('patient.responsible_patient_id IS NULL')
+      expect(idsQb.andWhere).toHaveBeenCalledWith('patient.id != :excludeId', { excludeId: 'exclude-uuid' })
+      expect(countQb.andWhere).toHaveBeenCalledWith('patient.responsible_patient_id IS NULL')
+      expect(countQb.andWhere).toHaveBeenCalledWith('patient.id != :excludeId', { excludeId: 'exclude-uuid' })
+    })
+
+    it('applies excludeDependents and excludeId on the name-search path', async () => {
+      const idsQb = makeQueryBuilderMock({ getMany: [] })
+      const countQb = makeQueryBuilderMock({ getCount: 0 })
+      let callCount = 0
+      repo.createQueryBuilder.mockImplementation(() => {
+        callCount++
+        return callCount === 1 ? (idsQb as any) : (countQb as any)
+      })
+
+      await repository.findAll(1, 20, CLINIC_ID, 'alice', true, 'exclude-uuid')
+
+      expect(idsQb.andWhere).toHaveBeenCalledWith('patient.responsible_patient_id IS NULL')
+      expect(idsQb.andWhere).toHaveBeenCalledWith('patient.id != :excludeId', { excludeId: 'exclude-uuid' })
+    })
+
+    it('applies excludeDependents and excludeId on the document-search path', async () => {
+      const qb = makeQueryBuilderMock({ result: [[], 0] })
+      repo.createQueryBuilder.mockReturnValue(qb as any)
+
+      await repository.findAll(1, 20, CLINIC_ID, '12345678901', true, 'exclude-uuid')
+
+      expect(qb.andWhere).toHaveBeenCalledWith('patient.responsible_patient_id IS NULL')
+      expect(qb.andWhere).toHaveBeenCalledWith('patient.id != :excludeId', { excludeId: 'exclude-uuid' })
+    })
+  })
+
   describe('create', () => {
     it('saves patient and reloads with user relation', async () => {
       const data = {

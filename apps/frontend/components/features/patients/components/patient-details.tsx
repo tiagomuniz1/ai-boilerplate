@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import { PatientGender } from '@app/shared'
+import { KINSHIP_TYPE_LABELS, PatientGender } from '@app/shared'
 import { useBasePath } from '@/lib/slug-context'
 import { Button } from '@/components/ui/atoms/button/button'
 import { Typography } from '@/components/ui/atoms/typography/typography'
@@ -86,7 +86,7 @@ export function PatientDetails({ patient, onDeleteClick }: PatientDetailsProps) 
           <div className="bg-surface px-6 py-4">
             <DetailRow
               label="Documento (CPF)"
-              value={formatCpf(patient.documentNumber)}
+              value={patient.documentNumber ? formatCpf(patient.documentNumber) : 'Não informado'}
               testId="patient-details-document"
             />
           </div>
@@ -110,6 +110,47 @@ export function PatientDetails({ patient, onDeleteClick }: PatientDetailsProps) 
           </div>
         </div>
       </div>
+
+      {patient.responsiblePatient && patient.kinshipType && (
+        <div className="overflow-hidden rounded-xl border border-line bg-surface shadow-sm">
+          <div className="px-6 py-4">
+            <span className="text-xs font-medium uppercase tracking-wider text-text-mute">Vinculado a</span>
+            <p className="mt-1 text-sm text-text" data-testid="patient-details-responsible">
+              <Link
+                href={`${basePath}/patients/${patient.responsiblePatient.id}`}
+                className="font-medium text-accent hover:underline"
+                data-testid="patient-details-responsible-link"
+              >
+                {patient.responsiblePatient.fullName}
+              </Link>
+              {` — ${KINSHIP_TYPE_LABELS[patient.kinshipType]}`}
+            </p>
+          </div>
+        </div>
+      )}
+
+      {patient.dependents.length > 0 && (
+        <div className="overflow-hidden rounded-xl border border-line bg-surface shadow-sm">
+          <div className="px-6 py-4">
+            <span className="text-xs font-medium uppercase tracking-wider text-text-mute">Dependentes</span>
+            <ul className="mt-2 flex flex-col gap-2" data-testid="patient-details-dependents">
+              {patient.dependents.map((dependent) => (
+                <li key={dependent.id} className="text-sm text-text">
+                  <Link
+                    href={`${basePath}/patients/${dependent.id}`}
+                    className="font-medium text-accent hover:underline"
+                    data-testid="patient-details-dependent-link"
+                  >
+                    {dependent.fullName}
+                  </Link>
+                  {' — '}
+                  {KINSHIP_TYPE_LABELS[dependent.kinshipType]}
+                </li>
+              ))}
+            </ul>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

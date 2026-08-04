@@ -1,4 +1,4 @@
-import { ForbiddenException, NotFoundException } from '@nestjs/common'
+import { ConflictException, ForbiddenException, NotFoundException } from '@nestjs/common'
 import { DataSource } from 'typeorm'
 import { faker } from '@faker-js/faker'
 import { PatientGender, UserRole } from '@app/shared'
@@ -13,6 +13,9 @@ const mockPatientsRepository: jest.Mocked<IPatientsRepository> = {
   findById: jest.fn(),
   findByUserId: jest.fn(),
   findByDocumentNumber: jest.fn(),
+  findActiveDependents: jest.fn().mockResolvedValue([]),
+  findResponsiblePatientsByIds: jest.fn().mockResolvedValue([]),
+  findDependentsByResponsibleIds: jest.fn().mockResolvedValue([]),
   create: jest.fn(),
   update: jest.fn(),
   delete: jest.fn(),
@@ -123,6 +126,16 @@ describe('DeletePatientUseCase', () => {
     mockPatientsRepository.findById.mockResolvedValue(null)
 
     await expect(useCase.execute(faker.string.uuid(), adminCurrentUser)).rejects.toThrow(NotFoundException)
+    expect(mockPatientsRepository.delete).not.toHaveBeenCalled()
+    expect(mockUsersRepository.delete).not.toHaveBeenCalled()
+  })
+
+  it('throws ConflictException when patient is the responsible party for active dependents', async () => {
+    const patient = makePatient()
+    mockPatientsRepository.findById.mockResolvedValue(patient as any)
+    mockPatientsRepository.findActiveDependents.mockResolvedValueOnce([makePatient() as any])
+
+    await expect(useCase.execute(patient.id, adminCurrentUser)).rejects.toThrow(ConflictException)
     expect(mockPatientsRepository.delete).not.toHaveBeenCalled()
     expect(mockUsersRepository.delete).not.toHaveBeenCalled()
   })

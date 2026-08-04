@@ -31,15 +31,18 @@ Guia operacional para provisionar a infraestrutura e fazer deploy da aplicação
 
 ### Ambientes e domínios
 
+**Ambiente único: `production`.** Não há mais ambiente de staging na AWS —
+validação pré-deploy é local via Docker (ver `README.md` → "Infraestrutura local
+(Docker)"). ECR e o GitHub OIDC provider (account-wide) vivem num ambiente
+`shared` à parte (`infra/terraform/environments/shared/`), aplicado uma única vez
+e independente de qualquer ambiente ser criado/destruído.
+
 | Ambiente | Terraform env | Domínio servido | API | Hosted zone |
 |---|---|---|---|---|
-| Staging | `staging` | `*.staging.pulso.center` | `api.staging.pulso.center` | `pulso.center` (`Z05741901K0E017VXXPD2`) |
-| Produção | `production` | `*.pulso.center` | `api.pulso.center` | `pulso.center` |
+| Produção | `production` | `*.pulso.center` | `api.pulso.center` | `pulso.center` (`Z05741901K0E017VXXPD2`) |
 
-> **Free tier:** RDS e EC2 free tier cobrem **uma** instância cada. Hoje só o
-> ambiente **staging** está aplicado. Aplicar production cria uma 2ª instância de
-> cada (sai do free tier) e a `cdn` de production é **mutuamente exclusiva** com a
-> de staging no mesmo domínio.
+> **Free tier:** RDS e EC2 free tier cobrem **uma** instância cada — com um único
+> ambiente aplicado, o projeto permanece dentro do free tier.
 
 ---
 
@@ -57,21 +60,34 @@ Guia operacional para provisionar a infraestrutura e fazer deploy da aplicação
 
 ## 3. Setup inicial de um ambiente (uma vez)
 
-Ordem: **seed do SSM → `terraform apply` → GitHub → 1º deploy**. Exemplos com `staging`.
+Ordem: **`shared` (ECR + OIDC provider) → seed do SSM → `terraform apply` de
+`production` → GitHub → 1º deploy**.
+
+### 3.0. Aplicar o ambiente `shared`
+
+Pré-requisito único, aplicado antes de qualquer ambiente: ECR (repositórios de
+imagem) e o GitHub OIDC provider (account-wide) vivem em
+`infra/terraform/environments/shared/`, para sobreviver independente de
+`production` (ou qualquer ambiente futuro) ser recriado ou destruído.
+
+```bash
+bash infra/scripts/deploy.sh shared plan
+bash infra/scripts/deploy.sh shared apply
+```
 
 ### 3.1. Popular o SSM Parameter Store
 
-Grava a config do backend em `/pulso/staging/backend/*`. Os valores de domínio
+Grava a config do backend em `/pulso/production/backend/*`. Os valores de domínio
 (`COOKIE_DOMAIN`, `PUBLIC_API_URL`, `FRONTEND_URL`) são derivados do ambiente
-(`staging` → `staging.pulso.center`). `DB_HOST/PORT/USER/NAME/PASS` **não** são
+(`production` → `pulso.center`). `DB_HOST/PORT/USER/NAME/PASS` **não** são
 gravados aqui — o módulo RDS é a fonte de verdade deles.
 
 ```bash
 # Dry-run (imprime só os NOMES, nunca valores):
-JWT_SECRET=dummy bash infra/scripts/seed-ssm.sh staging
+JWT_SECRET=dummy bash infra/scripts/seed-ssm.sh production
 
 # Gravar de fato (guarde o JWT_SECRET com segurança — trocá-lo invalida sessões):
-JWT_SECRET="$(openssl rand -base64 48)" bash infra/scripts/seed-ssm.sh staging apply
+JWT_SECRET="$(openssl rand -base64 48)" bash infra/scripts/seed-ssm.sh production apply
 ```
 
 > Params opcionais de outros módulos (`AWS_S3_BUCKET`, `SMTP_HOST/USER/PASS`) podem
@@ -82,10 +98,10 @@ JWT_SECRET="$(openssl rand -base64 48)" bash infra/scripts/seed-ssm.sh staging a
 
 ```bash
 # Revisar o plano:
-bash infra/scripts/deploy.sh staging plan
+bash infra/scripts/deploy.sh production plan
 
-# Aplicar (cria S3/SES/RDS/ECR/EC2/CloudFront/ACM/Route53/OIDC role):
-bash infra/scripts/deploy.sh staging apply
+# Aplicar (cria S3/SES/RDS/EC2/CloudFront/ACM/Route53/role de CI):
+bash infra/scripts/deploy.sh production apply
 ```
 
 > **⚠️ DNS/cert:** o apply cria/altera records no Route 53 e o cert ACM na zona
@@ -94,20 +110,20 @@ bash infra/scripts/deploy.sh staging apply
 Depois do apply, colete os outputs:
 
 ```bash
-bash infra/scripts/deploy.sh staging output
-# github_actions_role_arn, ec2_public_ip, cloudfront_domain_name, ecr_registry_url, ...
+bash infra/scripts/deploy.sh production output
+# github_actions_role_arn, ec2_public_ip, cloudfront_domain_name, ...
 ```
 
 ### 3.3. Configurar o GitHub
 
-No repositório (`Settings → Environments`), crie o Environment **`staging`**
-(e `production`, com **required reviewers**). Em cada um, adicione as **Variables**:
+No repositório (`Settings → Environments`), crie o Environment **`production`**
+(com **required reviewers**) e adicione as **Variables**:
 
-| Variable | Staging | Produção |
-|---|---|---|
-| `AWS_DEPLOY_ROLE_ARN` | output `github_actions_role_arn` do env | idem (role de produção) |
-| `NEXT_PUBLIC_BASE_DOMAIN` | `staging.pulso.center` | `pulso.center` |
-| `NEXT_PUBLIC_API_URL` | `https://api.staging.pulso.center` | `https://api.pulso.center` |
+| Variable | Valor |
+|---|---|
+| `AWS_DEPLOY_ROLE_ARN` | output `github_actions_role_arn` |
+| `NEXT_PUBLIC_BASE_DOMAIN` | `pulso.center` |
+| `NEXT_PUBLIC_API_URL` | `https://api.pulso.center` |
 
 > Não há secret de AWS no GitHub — a autenticação é por **OIDC** (a role é assumível
 > só pelo Environment correspondente).
@@ -126,12 +142,11 @@ então o texto puro nunca passa pelo SSM. Idempotente.
 
 ```bash
 ADMIN_EMAIL=admin@pulso.center ADMIN_PASSWORD='uma-senha-forte' \
-  bash infra/scripts/seed-platform-admin.sh staging
+  bash infra/scripts/seed-platform-admin.sh production
 ```
 
-Depois, logar em `https://backoffice.staging.pulso.center` (staging) ou
-`https://backoffice.pulso.center` (produção) com esse e-mail/senha. A senha pode ser
-trocada depois pelo próprio app.
+Depois, logar em `https://backoffice.pulso.center` com esse e-mail/senha. A senha
+pode ser trocada depois pelo próprio app.
 
 ---
 
@@ -140,11 +155,12 @@ trocada depois pelo próprio app.
 Todo deploy é **manual** (`workflow_dispatch`) — nunca automático em push.
 
 1. **Actions → Deploy → Run workflow**.
-2. Escolha o `environment` (`staging` ou `production`).
-3. O workflow roda: **test** (unit) → **build & push** (imagens `pulso-backend`/`pulso-frontend` no ECR, tags `<sha>` + `latest`) → **deploy** (SSM Run Command no EC2: `docker compose pull && up -d`; o serviço `migrate` aplica as migrations antes do backend).
+2. `environment: production` (único ambiente existente).
+3. O workflow roda: **test** (unit) → **build & push** (imagens `pulso-backend`/`pulso-frontend`/`pulso-website` no ECR, tags `<sha>` + `latest`) → **deploy** (SSM Run Command no EC2: `docker compose pull && up -d`; o serviço `migrate` aplica as migrations antes do backend).
 
-Convenção de branch (aplicada pelo operador ao disparar, não por trigger):
-`develop` → `staging`, `main` → `production`.
+Disparado a partir de `main`. Validação pré-deploy é local via Docker (ver
+`README.md` → "Infraestrutura local (Docker)"), não contra um ambiente
+intermediário na AWS.
 
 ### Versionamento (ao promover para produção)
 Antes de disparar production, seguir o fluxo do `CLAUDE.md`: atualizar a `version`
@@ -157,13 +173,13 @@ atualizar o `CHANGELOG.md` do app.
 
 ```bash
 # Health do backend (via CloudFront):
-curl -i https://api.staging.pulso.center/health          # → 200
+curl -i https://api.pulso.center/health          # → 200
 
 # Frontend de uma clínica (cadeado válido, wildcard):
-curl -I https://<clinica>.staging.pulso.center           # → 200, HTML
+curl -I https://<clinica>.pulso.center           # → 200, HTML
 
 # Cache: autenticado não cacheia; estáticos cacheiam
-curl -I https://<clinica>.staging.pulso.center/_next/static/...  # X-Cache: Hit
+curl -I https://<clinica>.pulso.center/_next/static/...  # X-Cache: Hit
 ```
 
 No host (via SSM Session Manager — `aws ssm start-session --target <instance-id> --profile pulso-workload`):
@@ -200,23 +216,26 @@ docker compose --env-file deploy.env -f docker-compose.prod.yml up -d
 | `502`/`504` em `<clinica>.<dominio>` | Stack não subiu (sem imagens no ECR, ou containers down) | Rodar o workflow de deploy; conferir `docker compose ps` no host |
 | Deploy falha no job **deploy** | Instância não encontrada / SSM sem conexão | Conferir tag `Name=pulso-<env>` e `running`; SSM agent registrado (`aws ssm describe-instance-information`) |
 | `403` de CORS no browser | Origem fora da allowlist `*.<dominio>` | Conferir `main.ts` (CORS dinâmico) e o domínio buildado (`NEXT_PUBLIC_*`) |
-| Login não persiste entre `slug.*` e `api.*` | `COOKIE_DOMAIN` errado | Deve ser `.<dominio>` (ex.: `.staging.pulso.center`) no SSM; re-seedar |
+| Login não persiste entre `slug.*` e `api.*` | `COOKIE_DOMAIN` errado | Deve ser `.pulso.center` no SSM; re-seedar |
 | Slug errado nas requests | Build do frontend com `NEXT_PUBLIC_BASE_DOMAIN` errado | Conferir a Variable do Environment e rebuildar |
 | ACM não valida | Record de validação ausente na zona | Confirmar zona delegada; `aws acm describe-certificate` (status `ISSUED`) |
 | Backend não sobe: "Missing required environment variable" | SSM incompleto / role sem acesso | Conferir `/pulso/<env>/backend/*` e a policy SSM do role da instância |
 
 ---
 
-## 8. Referência rápida — staging (estado atual)
+## 8. Referência rápida — produção
 
 | Recurso | Valor |
 |---|---|
-| RDS | `pulso-staging.cuh4myyqm4zs.us-east-1.rds.amazonaws.com` |
-| EC2 | `i-0e6215a9b9839f369` — EIP `18.211.167.222` |
-| ECR | `796669927752.dkr.ecr.us-east-1.amazonaws.com/pulso-{backend,frontend}` |
-| CloudFront | `E2OS15V1PU1G31` — `d14suz9lhx7m3i.cloudfront.net` |
+| RDS | preencher com `bash infra/scripts/deploy.sh production output` após o apply |
+| EC2 | idem |
+| ECR | `796669927752.dkr.ecr.us-east-1.amazonaws.com/pulso-{backend,frontend,website}` (ambiente `shared`) |
+| CloudFront | preencher após o apply |
 | Hosted zone | `pulso.center` — `Z05741901K0E017VXXPD2` |
-| SSM prefix | `/pulso/staging/backend/` |
+| SSM prefix | `/pulso/production/backend/` |
 
-> A borda de staging migra de `pulso.center` para `staging.pulso.center` no próximo
-> `deploy.sh staging apply` (rework de ACM/CloudFront/Route 53). Ver o plano.
+> **Migração em andamento (2026-08-03):** produção está sendo provisionada pela
+> primeira vez e staging está sendo descomissionado, para manter um único
+> ambiente na AWS e reduzir custo — validação pré-deploy passa a ser local via
+> Docker. Ver `tasks/RELIABILITY_BACKLOG.md`. Preencher esta tabela com os
+> outputs reais assim que `infra/scripts/deploy.sh production apply` rodar.

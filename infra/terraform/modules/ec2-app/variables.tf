@@ -1,10 +1,10 @@
 variable "environment" {
-  description = "Environment name (staging or production)."
+  description = "Environment name (production)."
   type        = string
 
   validation {
-    condition     = contains(["staging", "production"], var.environment)
-    error_message = "Environment must be 'staging' or 'production'."
+    condition     = contains(["production"], var.environment)
+    error_message = "Environment must be 'production'."
   }
 }
 
@@ -54,9 +54,21 @@ variable "ecr_repository_arns" {
 }
 
 variable "s3_iam_policy_arn" {
-  description = "ARN of the clinic-assets S3 IAM policy (output of the s3-clinic-assets module) to attach to the instance role. Empty to skip."
+  description = "ARN of the clinic-assets S3 IAM policy (output of the s3-clinic-assets module) to attach to the instance role."
   type        = string
   default     = ""
+}
+
+variable "attach_s3_iam_policy" {
+  description = <<-EOT
+    Whether to attach s3_iam_policy_arn to the instance role. A separate flag
+    (rather than deriving this from `s3_iam_policy_arn != ""`) because that ARN
+    comes from a sibling module (s3-clinic-assets) created in the same apply —
+    on a from-scratch environment its value is unknown until apply, and `count`
+    can't be computed from an unknown value ("Invalid count argument").
+  EOT
+  type        = bool
+  default     = true
 }
 
 variable "ssm_prefix" {

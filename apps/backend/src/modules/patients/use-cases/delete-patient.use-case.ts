@@ -1,4 +1,4 @@
-import { ForbiddenException, Injectable, Logger, NotFoundException } from '@nestjs/common'
+import { ConflictException, ForbiddenException, Injectable, Logger, NotFoundException } from '@nestjs/common'
 import { DataSource, QueryRunner } from 'typeorm'
 import { BaseUseCase } from '../../../common/base.use-case'
 import { CacheService } from '../../../cache/cache.service'
@@ -27,6 +27,11 @@ export class DeletePatientUseCase extends BaseUseCase {
 
     if (patient.userId === currentUser.id) {
       throw new ForbiddenException('Cannot delete your own patient record')
+    }
+
+    const activeDependents = await this.patientsRepository.findActiveDependents(id, clinicId)
+    if (activeDependents.length > 0) {
+      throw new ConflictException('Cannot delete a patient that is the responsible party for active dependents')
     }
 
     const userId = patient.userId

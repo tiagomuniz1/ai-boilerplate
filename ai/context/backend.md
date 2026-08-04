@@ -573,7 +573,7 @@ async delete(id: string, queryRunner?: QueryRunner): Promise<void> {
 
 * Biblioteca: **`@nestjs/terminus`**
 * Endpoint: `GET /health` — sempre público, sem autenticação
-* Usado pelo ECS para verificar se a instância está saudável
+* Usado pelo EC2/nginx (via `docker compose` healthcheck) para verificar se a instância está saudável
 
 ```ts
 // health/health.controller.ts

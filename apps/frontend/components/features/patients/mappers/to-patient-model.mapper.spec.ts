@@ -1,4 +1,4 @@
-import { PatientGender } from '@app/shared'
+import { KinshipType, PatientGender } from '@app/shared'
 import { toPatientModel } from './to-patient-model.mapper'
 
 const makeDto = () => ({
@@ -8,6 +8,10 @@ const makeDto = () => ({
   birthDate: '1990-05-15',
   documentNumber: '12345678901',
   gender: PatientGender.MALE,
+  responsiblePatientId: null,
+  kinshipType: null,
+  responsiblePatient: null,
+  dependents: [],
   createdAt: '2024-01-15T10:00:00.000Z' as unknown as Date,
   updatedAt: '2024-01-16T10:00:00.000Z' as unknown as Date,
 })
@@ -53,5 +57,44 @@ describe('toPatientModel', () => {
   it('maps gender other correctly', () => {
     const model = toPatientModel({ ...makeDto(), gender: PatientGender.OTHER })
     expect(model.gender).toBe(PatientGender.OTHER)
+  })
+
+  it('maps null documentNumber and kinship fields when patient has no vinculation', () => {
+    const model = toPatientModel(makeDto())
+
+    expect(model.responsiblePatientId).toBeNull()
+    expect(model.kinshipType).toBeNull()
+    expect(model.responsiblePatient).toBeNull()
+    expect(model.dependents).toEqual([])
+  })
+
+  it('maps a dependent patient (no documentNumber, linked to a responsible patient)', () => {
+    const model = toPatientModel({
+      ...makeDto(),
+      documentNumber: null,
+      responsiblePatientId: 'responsible-uuid',
+      kinshipType: KinshipType.FILHO,
+      responsiblePatient: { id: 'responsible-uuid', fullName: 'Maria Silva', documentNumber: '98765432100' },
+    })
+
+    expect(model.documentNumber).toBeNull()
+    expect(model.responsiblePatientId).toBe('responsible-uuid')
+    expect(model.kinshipType).toBe(KinshipType.FILHO)
+    expect(model.responsiblePatient).toEqual({
+      id: 'responsible-uuid',
+      fullName: 'Maria Silva',
+      documentNumber: '98765432100',
+    })
+  })
+
+  it('maps a titular patient with dependents', () => {
+    const model = toPatientModel({
+      ...makeDto(),
+      dependents: [{ id: 'dependent-uuid', fullName: 'Bebê Silva', kinshipType: KinshipType.FILHO }],
+    })
+
+    expect(model.dependents).toEqual([
+      { id: 'dependent-uuid', fullName: 'Bebê Silva', kinshipType: KinshipType.FILHO },
+    ])
   })
 })

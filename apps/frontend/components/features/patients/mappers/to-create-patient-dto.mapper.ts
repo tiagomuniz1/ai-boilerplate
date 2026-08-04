@@ -10,5 +10,7 @@ export function toCreatePatientDto(input: ICreatePatientInput): CreatePatientDto
     birthDate: input.birthDate,
     documentNumber: input.documentNumber,
     gender: input.gender,
+    responsiblePatientId: input.responsiblePatientId,
+    kinshipType: input.kinshipType,
   }
 }

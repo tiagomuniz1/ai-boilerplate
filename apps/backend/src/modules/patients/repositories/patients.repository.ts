@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
-import { QueryRunner, Repository } from 'typeorm'
+import { QueryRunner, Repository, SelectQueryBuilder } from 'typeorm'
 import { Patient } from '../entities/patient.entity'
 import { CreatePatientData, IPatientsRepository, UpdatePatientData } from './patients.repository.interface'
 
@@ -11,17 +11,32 @@ export class PatientsRepository implements IPatientsRepository {
     private readonly repository: Repository<Patient>,
   ) {}
 
-  async findAll(page: number, limit: number, clinicId: string, search?: string): Promise<[Patient[], number]> {
+  async findAll(
+    page: number,
+    limit: number,
+    clinicId: string,
+    search?: string,
+    excludeDependents?: boolean,
+    excludeId?: string,
+  ): Promise<[Patient[], number]> {
+    const applyExtraFilters = (qb: SelectQueryBuilder<Patient>): SelectQueryBuilder<Patient> => {
+      if (excludeDependents) qb.andWhere('patient.responsible_patient_id IS NULL')
+      if (excludeId) qb.andWhere('patient.id != :excludeId', { excludeId })
+      return qb
+    }
+
     if (search) {
       const isDocumentSearch = /^\d+$/.test(search.trim())
 
       if (isDocumentSearch) {
         // CPF / document number: exact match via patients_document_number_clinic_active_unique.
-        const qb = this.repository
-          .createQueryBuilder('patient')
-          .innerJoinAndSelect('patient.user', 'user')
-          .where('patient.clinic_id = :clinicId', { clinicId })
-          .andWhere('patient.document_number = :doc', { doc: search.trim() })
+        const qb = applyExtraFilters(
+          this.repository
+            .createQueryBuilder('patient')
+            .innerJoinAndSelect('patient.user', 'user')
+            .where('patient.clinic_id = :clinicId', { clinicId })
+            .andWhere('patient.document_number = :doc', { doc: search.trim() }),
+        )
           .orderBy('patient.createdAt', 'DESC')
           .skip((page - 1) * limit)
           .take(limit)
@@ -38,19 +53,20 @@ export class PatientsRepository implements IPatientsRepository {
       const userSubSql = `patient.user_id IN (SELECT u.id FROM ${usersRef} u WHERE u.clinic_id = :clinicId AND u.full_name ILIKE :search AND u.deleted_at IS NULL)`
 
       const [ids, total] = await Promise.all([
-        this.repository
-          .createQueryBuilder('patient')
-          .select('patient.id')
-          .where(userSubSql, { clinicId, search: `%${search.trim()}%` })
+        applyExtraFilters(
+          this.repository
+            .createQueryBuilder('patient')
+            .select('patient.id')
+            .where(userSubSql, { clinicId, search: `%${search.trim()}%` }),
+        )
           .orderBy('patient.createdAt', 'DESC')
           .skip((page - 1) * limit)
           .take(limit)
           .getMany()
           .then((rows) => rows.map((p) => p.id)),
-        this.repository
-          .createQueryBuilder('patient')
-          .where(userSubSql, { clinicId, search: `%${search.trim()}%` })
-          .getCount(),
+        applyExtraFilters(
+          this.repository.createQueryBuilder('patient').where(userSubSql, { clinicId, search: `%${search.trim()}%` }),
+        ).getCount(),
       ])
 
       if (ids.length === 0) return [[], total]
@@ -68,19 +84,17 @@ export class PatientsRepository implements IPatientsRepository {
     // Split query: paginate IDs using IDX_patients_clinic_created_at (no join, instant),
     // then load the 20 full entities with their user relation.
     const [ids, total] = await Promise.all([
-      this.repository
-        .createQueryBuilder('patient')
-        .select('patient.id')
-        .where('patient.clinic_id = :clinicId', { clinicId })
+      applyExtraFilters(
+        this.repository.createQueryBuilder('patient').select('patient.id').where('patient.clinic_id = :clinicId', { clinicId }),
+      )
         .orderBy('patient.createdAt', 'DESC')
         .skip((page - 1) * limit)
         .take(limit)
         .getMany()
         .then((rows) => rows.map((p) => p.id)),
-      this.repository
-        .createQueryBuilder('patient')
-        .where('patient.clinic_id = :clinicId', { clinicId })
-        .getCount(),
+      applyExtraFilters(
+        this.repository.createQueryBuilder('patient').where('patient.clinic_id = :clinicId', { clinicId }),
+      ).getCount(),
     ])
 
     if (ids.length === 0) return [[], total]
@@ -110,6 +124,30 @@ export class PatientsRepository implements IPatientsRepository {
 
   async findByDocumentNumber(documentNumber: string, clinicId: string): Promise<Patient | null> {
     return this.repository.findOneBy({ documentNumber, clinicId })
+  }
+
+  async findActiveDependents(responsiblePatientId: string, clinicId: string): Promise<Patient[]> {
+    return this.findDependentsByResponsibleIds([responsiblePatientId], clinicId)
+  }
+
+  async findResponsiblePatientsByIds(ids: string[], clinicId: string): Promise<Patient[]> {
+    if (ids.length === 0) return []
+    return this.repository
+      .createQueryBuilder('patient')
+      .innerJoinAndSelect('patient.user', 'user')
+      .where('patient.id IN (:...ids)', { ids })
+      .andWhere('patient.clinic_id = :clinicId', { clinicId })
+      .getMany()
+  }
+
+  async findDependentsByResponsibleIds(responsibleIds: string[], clinicId: string): Promise<Patient[]> {
+    if (responsibleIds.length === 0) return []
+    return this.repository
+      .createQueryBuilder('patient')
+      .innerJoinAndSelect('patient.user', 'user')
+      .where('patient.responsible_patient_id IN (:...responsibleIds)', { responsibleIds })
+      .andWhere('patient.clinic_id = :clinicId', { clinicId })
+      .getMany()
   }
 
   async create(data: CreatePatientData, queryRunner?: QueryRunner): Promise<Patient> {

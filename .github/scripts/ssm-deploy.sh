@@ -5,7 +5,7 @@
 # service applies migrations before the backend starts (compose depends_on).
 #
 # Called by .github/workflows/deploy.yml with:
-#   ENVIRONMENT = staging | production
+#   ENVIRONMENT = production
 #   IMAGE_TAG   = git sha (the tag pushed to ECR)
 #   AWS_REGION  = us-east-1 (from the workflow env)
 set -euo pipefail

@@ -12,17 +12,16 @@ set -euo pipefail
 # Usage:
 #   bash infra/scripts/deploy.sh <environment> [action]
 #
-#   environment : staging | production
+#   environment : shared | production
 #   action      : plan (default) | apply | destroy | init | output
 #
 # Examples:
-#   bash infra/scripts/deploy.sh staging              # plan staging
-#   bash infra/scripts/deploy.sh staging apply        # apply staging
+#   bash infra/scripts/deploy.sh shared apply         # apply shared (ECR + OIDC provider)
 #   bash infra/scripts/deploy.sh production plan
 #   bash infra/scripts/deploy.sh production apply
 #
 # Override the default profiles with environment variables when needed:
-#   DEVOPS_PROFILE=other WORKLOAD_PROFILE=other bash infra/scripts/deploy.sh staging apply
+#   DEVOPS_PROFILE=other WORKLOAD_PROFILE=other bash infra/scripts/deploy.sh production apply
 
 ENVIRONMENT="${1:-}"
 ACTION="${2:-plan}"
@@ -39,16 +38,16 @@ ENV_DIR="$SCRIPT_DIR/../terraform/environments/$ENVIRONMENT"
 usage() {
   echo "Usage: bash infra/scripts/deploy.sh <environment> [action]"
   echo ""
-  echo "  environment : staging | production"
+  echo "  environment : shared | production"
   echo "  action      : plan (default) | apply | destroy | init | output"
   echo ""
   echo "Examples:"
-  echo "  bash infra/scripts/deploy.sh staging"
-  echo "  bash infra/scripts/deploy.sh staging apply"
+  echo "  bash infra/scripts/deploy.sh shared apply"
+  echo "  bash infra/scripts/deploy.sh production plan"
   echo "  bash infra/scripts/deploy.sh production apply"
   echo ""
   echo "Override profiles with env vars (defaults: pulso-devops / pulso-workload):"
-  echo "  DEVOPS_PROFILE=... WORKLOAD_PROFILE=... bash infra/scripts/deploy.sh staging apply"
+  echo "  DEVOPS_PROFILE=... WORKLOAD_PROFILE=... bash infra/scripts/deploy.sh production apply"
 }
 
 if [[ -z "$ENVIRONMENT" ]]; then
@@ -56,8 +55,8 @@ if [[ -z "$ENVIRONMENT" ]]; then
   exit 1
 fi
 
-if [[ "$ENVIRONMENT" != "staging" && "$ENVIRONMENT" != "production" ]]; then
-  echo "Error: environment must be 'staging' or 'production'."
+if [[ "$ENVIRONMENT" != "shared" && "$ENVIRONMENT" != "production" ]]; then
+  echo "Error: environment must be 'shared' or 'production'."
   echo ""
   usage
   exit 1

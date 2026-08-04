@@ -1,8 +1,8 @@
 import { API_URL, NAV_LINKS } from './constants'
 
 describe('constants', () => {
-  it('exposes an API URL (falls back to staging without env override)', () => {
-    expect(API_URL).toBe('https://api.staging.pulso.center')
+  it('exposes an API URL (falls back to production without env override)', () => {
+    expect(API_URL).toBe('https://api.pulso.center')
   })
 
   it('lists the four navbar anchor links', () => {

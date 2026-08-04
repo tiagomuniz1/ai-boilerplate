@@ -176,7 +176,7 @@ resource "aws_iam_role_policy_attachment" "ssm_core" {
 
 # Clinic-assets S3 write policy (exported by the s3-clinic-assets module), optional.
 resource "aws_iam_role_policy_attachment" "s3_clinic_assets" {
-  count      = var.s3_iam_policy_arn != "" ? 1 : 0
+  count      = var.attach_s3_iam_policy ? 1 : 0
   role       = aws_iam_role.ec2.name
   policy_arn = var.s3_iam_policy_arn
 }

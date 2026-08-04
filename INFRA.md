@@ -1,7 +1,15 @@
 # Infraestrutura (Terraform)
 
-A infraestrutura do projeto vive em `infra/terraform/` e é provisionada com Terraform.
-Recursos atuais: bucket **S3** para assets das clínicas e identidade **SES** para envio de e-mail.
+A infraestrutura do projeto vive em `infra/terraform/` e é provisionada com Terraform,
+em três ambientes (`infra/terraform/environments/`):
+
+| Ambiente | O quê |
+|---|---|
+| `shared` | ECR (imagens Docker) + o GitHub OIDC provider (account-wide) — sobrevive independente de qualquer ambiente ser criado/destruído |
+| `production` | EC2, RDS, S3 (assets de clínica), SES, CloudFront/ACM/Route 53 — o único ambiente vivo na AWS |
+
+Não há mais ambiente de `staging` na AWS — validação pré-deploy é local via Docker
+(ver `README.md` → "Infraestrutura local (Docker)").
 
 ## Contas AWS
 
@@ -32,11 +40,10 @@ O profile Workload autentica o provider AWS (via `-var="aws_profile=..."`).
 Cada comando já vem com o ambiente e a ação fixados:
 
 ```bash
-# Staging
-yarn infra:staging:plan       # mostra o diff, não altera nada
-yarn infra:staging:apply      # aplica as mudanças
-yarn infra:staging:output     # exibe os outputs
-yarn infra:staging:destroy    # destrói os recursos
+# Shared (ECR + GitHub OIDC provider — aplicar antes de production)
+yarn infra:shared:plan
+yarn infra:shared:apply
+yarn infra:shared:output
 
 # Production
 yarn infra:production:plan
@@ -52,7 +59,7 @@ Os atalhos acima chamam `infra/scripts/deploy.sh`, que pode ser usado direto:
 ```bash
 bash infra/scripts/deploy.sh <environment> [action]
 
-#   environment : staging | production
+#   environment : shared | production
 #   action      : plan (padrão) | apply | destroy | init | output
 ```
 
@@ -69,7 +76,7 @@ Os profiles padrão são `pulso-devops` (DevOps) e `pulso-workload` (Workload).
 Para usar outros sem editar o script:
 
 ```bash
-DEVOPS_PROFILE=outro WORKLOAD_PROFILE=outro yarn infra:staging:apply
+DEVOPS_PROFILE=outro WORKLOAD_PROFILE=outro yarn infra:production:apply
 ```
 
 ## Bootstrap (primeira vez)
@@ -79,7 +86,7 @@ por `infra/scripts/bootstrap.sh`:
 
 ```bash
 bash infra/scripts/bootstrap.sh <environment> <devops-aws-profile>
-# ex: bash infra/scripts/bootstrap.sh staging pulso-devops
+# ex: bash infra/scripts/bootstrap.sh production pulso-devops
 ```
 
 ## CI/CD

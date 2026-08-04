@@ -32,7 +32,7 @@ data "aws_subnets" "default" {
   }
 }
 
-# The ECR repositories are shared and owned by the staging environment (same
+# The ECR repositories are shared and owned by the `shared` environment (same
 # account/region). Production references them by their well-known names, built
 # from account + region so there is no cross-state ordering dependency.
 data "aws_caller_identity" "current" {}
@@ -91,13 +91,12 @@ module "cdn" {
   origin_domain_name = module.ec2_app.public_dns
 }
 
-# CI/CD deploy role for GitHub Actions. The account-wide OIDC provider is created
-# by staging; production references it.
+# CI/CD deploy role for GitHub Actions. The account-wide OIDC provider is owned
+# by the `shared` environment; this module looks it up by URL.
 module "github_oidc" {
   source = "../../modules/github-oidc"
 
   environment              = "production"
-  create_oidc_provider     = false
   ecr_repository_arns      = local.ecr_repository_arns
   ssm_target_instance_arns = [module.ec2_app.instance_arn]
 }
