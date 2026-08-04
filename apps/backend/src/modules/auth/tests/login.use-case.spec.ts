@@ -10,6 +10,9 @@ import { IAuthEnv } from '../use-cases/auth-env.token'
 import { FindClinicBySlugUseCase } from '../../clinics/use-cases/find-clinic-by-slug.use-case'
 import { User } from '../../users/entities/user.entity'
 import { UserRole } from '@app/shared'
+import { CacheService } from '../../../cache/cache.service'
+import { ICaptchaAdapter } from '../adapters/captcha.adapter.interface'
+import { CAPTCHA_FAILED_ATTEMPTS_THRESHOLD } from '../constants/captcha.constants'
 
 jest.mock('bcrypt', () => ({ compare: jest.fn() }))
 
@@ -46,6 +49,20 @@ const mockFindClinicBySlugUseCase = {
   execute: jest.fn(),
 } as unknown as jest.Mocked<FindClinicBySlugUseCase>
 
+const mockCacheService = {
+  get: jest.fn(),
+  set: jest.fn(),
+  del: jest.fn(),
+  setIfNotExists: jest.fn(),
+  delByPattern: jest.fn(),
+  delByPrefix: jest.fn(),
+  increment: jest.fn(),
+} as unknown as jest.Mocked<CacheService>
+
+const mockCaptchaAdapter: jest.Mocked<ICaptchaAdapter> = {
+  verify: jest.fn(),
+}
+
 function makeUser(overrides: Partial<User> = {}): User {
   return {
     id: faker.string.uuid(),
@@ -68,6 +85,8 @@ describe('LoginUseCase', () => {
 
   beforeEach(() => {
     jest.clearAllMocks()
+    mockCacheService.get.mockResolvedValue(null)
+    mockCacheService.increment.mockResolvedValue(1)
     useCase = new LoginUseCase(
       mockDataSource,
       mockUsersRepository,
@@ -75,6 +94,8 @@ describe('LoginUseCase', () => {
       mockJwtService,
       mockAuthEnv,
       mockFindClinicBySlugUseCase,
+      mockCacheService,
+      mockCaptchaAdapter,
     )
   })
 
@@ -350,6 +371,136 @@ describe('LoginUseCase', () => {
 
       expect(mockFindClinicBySlugUseCase.execute).not.toHaveBeenCalled()
       expect(mockUsersRepository.findByEmail).toHaveBeenCalledWith(user.email, null)
+    })
+  })
+
+  describe('captcha gating (3rd failed attempt onward)', () => {
+    it('does not require captcha before the threshold is reached', async () => {
+      mockCacheService.get.mockResolvedValue(CAPTCHA_FAILED_ATTEMPTS_THRESHOLD - 1)
+      const user = makeUser()
+      mockUsersRepository.findByEmail.mockResolvedValue(user)
+      ;(bcrypt.compare as jest.Mock).mockResolvedValue(true)
+      mockJwtService.signAsync.mockResolvedValue('token')
+      mockRefreshTokensRepository.create.mockResolvedValue({} as any)
+
+      await useCase.execute({ email: user.email, password: 'password123' })
+
+      expect(mockCaptchaAdapter.verify).not.toHaveBeenCalled()
+    })
+
+    it('throws with requiresCaptcha when threshold reached and no token is provided', async () => {
+      mockCacheService.get.mockResolvedValue(CAPTCHA_FAILED_ATTEMPTS_THRESHOLD)
+
+      const error = await useCase
+        .execute({ email: faker.internet.email(), password: 'password123' })
+        .catch((e) => e)
+
+      expect(error).toBeInstanceOf(UnauthorizedException)
+      expect(error.getResponse()).toMatchObject({ requiresCaptcha: true })
+      expect(mockUsersRepository.findByEmail).not.toHaveBeenCalled()
+      expect(mockCaptchaAdapter.verify).not.toHaveBeenCalled()
+    })
+
+    it('throws with requiresCaptcha when the provided token fails verification', async () => {
+      mockCacheService.get.mockResolvedValue(CAPTCHA_FAILED_ATTEMPTS_THRESHOLD)
+      mockCaptchaAdapter.verify.mockResolvedValue(false)
+
+      const error = await useCase
+        .execute({ email: faker.internet.email(), password: 'password123', captchaToken: 'bad-token' })
+        .catch((e) => e)
+
+      expect(error).toBeInstanceOf(UnauthorizedException)
+      expect(error.getResponse()).toMatchObject({ requiresCaptcha: true })
+      expect(mockUsersRepository.findByEmail).not.toHaveBeenCalled()
+      expect(mockCacheService.increment).not.toHaveBeenCalled()
+    })
+
+    it('proceeds to credential validation when the token verifies successfully', async () => {
+      mockCacheService.get.mockResolvedValue(CAPTCHA_FAILED_ATTEMPTS_THRESHOLD)
+      mockCaptchaAdapter.verify.mockResolvedValue(true)
+      const user = makeUser()
+      mockUsersRepository.findByEmail.mockResolvedValue(user)
+      ;(bcrypt.compare as jest.Mock).mockResolvedValue(true)
+      mockJwtService.signAsync.mockResolvedValue('token')
+      mockRefreshTokensRepository.create.mockResolvedValue({} as any)
+
+      const result = await useCase.execute({
+        email: user.email,
+        password: 'password123',
+        captchaToken: 'good-token',
+      })
+
+      expect(mockCaptchaAdapter.verify).toHaveBeenCalledWith('good-token')
+      expect(result.user.id).toBe(user.id)
+    })
+
+    it('includes requiresCaptcha in the error once a credential failure crosses the threshold', async () => {
+      mockCacheService.get.mockResolvedValue(0)
+      mockCacheService.increment.mockResolvedValue(CAPTCHA_FAILED_ATTEMPTS_THRESHOLD)
+      mockUsersRepository.findByEmail.mockResolvedValue(null)
+
+      const error = await useCase
+        .execute({ email: faker.internet.email(), password: 'password123' })
+        .catch((e) => e)
+
+      expect(error).toBeInstanceOf(UnauthorizedException)
+      expect(error.getResponse()).toMatchObject({ requiresCaptcha: true, message: 'Invalid credentials' })
+    })
+
+    it('does not include requiresCaptcha when the failure count stays below the threshold', async () => {
+      mockCacheService.get.mockResolvedValue(0)
+      mockCacheService.increment.mockResolvedValue(CAPTCHA_FAILED_ATTEMPTS_THRESHOLD - 1)
+      mockUsersRepository.findByEmail.mockResolvedValue(null)
+
+      const error = await useCase
+        .execute({ email: faker.internet.email(), password: 'password123' })
+        .catch((e) => e)
+
+      expect(error.getResponse()).not.toMatchObject({ requiresCaptcha: true })
+    })
+
+    it('increments the attempt counter on credential failure', async () => {
+      mockFindClinicBySlugUseCase.execute.mockResolvedValue({ id: faker.string.uuid() } as any)
+      mockUsersRepository.findByEmail.mockResolvedValue(null)
+
+      await useCase
+        .execute({ email: 'someone@example.com', password: 'password123', slug: 'minha-clinica' })
+        .catch(() => {})
+
+      expect(mockCacheService.increment).toHaveBeenCalledWith(
+        'login-attempts:minha-clinica:someone@example.com',
+        expect.any(Number),
+      )
+    })
+
+    it('does not increment the counter when a non-UnauthorizedException is thrown', async () => {
+      const user = makeUser()
+      mockUsersRepository.findByEmail.mockResolvedValue(user)
+      ;(bcrypt.compare as jest.Mock).mockResolvedValue(true)
+      mockJwtService.signAsync.mockResolvedValue('token')
+      mockRefreshTokensRepository.create.mockRejectedValue(new Error('DB error'))
+
+      await useCase.execute({ email: user.email, password: 'password123' }).catch(() => {})
+
+      expect(mockCacheService.increment).not.toHaveBeenCalled()
+    })
+
+    it('clears the attempt counter on successful login', async () => {
+      const user = makeUser()
+      mockUsersRepository.findByEmail.mockResolvedValue(user)
+      ;(bcrypt.compare as jest.Mock).mockResolvedValue(true)
+      mockJwtService.signAsync.mockResolvedValue('token')
+      mockRefreshTokensRepository.create.mockResolvedValue({} as any)
+
+      await useCase.execute({ email: user.email, password: 'password123' })
+
+      expect(mockCacheService.del).toHaveBeenCalledWith(`login-attempts:backoffice:${user.email.toLowerCase()}`)
+    })
+
+    it('scopes the attempt key by backoffice when slug is absent', async () => {
+      await useCase.execute({ email: 'Someone@Example.com', password: 'wrong' }).catch(() => {})
+
+      expect(mockCacheService.get).toHaveBeenCalledWith('login-attempts:backoffice:someone@example.com')
     })
   })
 })

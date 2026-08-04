@@ -65,6 +65,26 @@ describe('CacheService', () => {
     })
   })
 
+  describe('increment', () => {
+    it('increments the key and sets TTL only on creation (EXPIRE NX)', async () => {
+      const mockPipeline = {
+        incr: jest.fn(),
+        expire: jest.fn(),
+        exec: jest.fn().mockResolvedValue([
+          [null, 3],
+          [null, 1],
+        ]),
+      }
+      mockRedisInstance.pipeline.mockReturnValue(mockPipeline)
+
+      const result = await service.increment('login-attempts:backoffice:a@b.com', 900)
+
+      expect(mockPipeline.incr).toHaveBeenCalledWith('login-attempts:backoffice:a@b.com')
+      expect(mockPipeline.expire).toHaveBeenCalledWith('login-attempts:backoffice:a@b.com', 900, 'NX')
+      expect(result).toBe(3)
+    })
+  })
+
   describe('delByPattern', () => {
     it('deletes all keys matching the pattern', async () => {
       mockRedisInstance.keys.mockResolvedValue(['users:list:1:20', 'users:list:2:20'])

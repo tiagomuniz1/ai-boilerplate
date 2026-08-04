@@ -23,6 +23,7 @@ export interface IEnvConfig {
   SMTP_PASS: string | undefined
   SMTP_FROM: string
   ACCESS_REQUEST_TO_EMAIL: string
+  TURNSTILE_SECRET_KEY: string | undefined
 }
 
 export function getEnvConfig(): IEnvConfig {
@@ -68,6 +69,10 @@ export function getEnvConfig(): IEnvConfig {
     // Inbox that receives every "solicitar acesso" submission from the institutional
     // website — whoever owns it decides whether to grant the requester a clinic.
     ACCESS_REQUEST_TO_EMAIL: process.env.ACCESS_REQUEST_TO_EMAIL ?? 'contato@pulso.center',
+    // Cloudflare Turnstile secret key, used to verify the captcha token required
+    // from the 3rd failed login attempt onward. Undefined in local dev falls back
+    // to Turnstile's official always-pass test secret in the adapter.
+    TURNSTILE_SECRET_KEY: process.env.TURNSTILE_SECRET_KEY,
   }
 }
 

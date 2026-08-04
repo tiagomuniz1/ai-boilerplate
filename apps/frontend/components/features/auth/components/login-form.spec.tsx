@@ -1,5 +1,12 @@
 jest.mock('../hooks/use-login.hook')
 jest.mock('next/navigation', () => ({ useSearchParams: jest.fn() }))
+jest.mock('./turnstile-widget', () => ({
+  TurnstileWidget: ({ onVerify }: { onVerify: (token: string) => void }) => (
+    <button type="button" data-testid="login-captcha" onClick={() => onVerify('mock-captcha-token')}>
+      Resolver captcha
+    </button>
+  ),
+}))
 
 import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
@@ -148,6 +155,74 @@ describe('LoginForm', () => {
     await userEvent.click(screen.getByTestId('login-submit'))
     await waitFor(() => {
       expect(screen.queryByTestId('login-error')).not.toBeInTheDocument()
+    })
+  })
+
+  describe('captcha (3rd failed attempt onward)', () => {
+    it('does not render the captcha widget initially', () => {
+      render(<LoginForm />)
+      expect(screen.queryByTestId('login-captcha')).not.toBeInTheDocument()
+    })
+
+    it('renders the captcha widget when the backend signals requiresCaptcha', async () => {
+      mockUseLogin.mockReturnValue({
+        mutate: (_data: unknown, callbacks: { onError: (e: object) => void }) => {
+          callbacks.onError({ status: 401, detail: 'Invalid credentials', requiresCaptcha: true })
+        },
+        isPending: false,
+      })
+      render(<LoginForm />)
+      await userEvent.type(screen.getByTestId('login-email'), 'user@example.com')
+      await userEvent.type(screen.getByTestId('login-password'), 'password123')
+      await userEvent.click(screen.getByTestId('login-submit'))
+      await waitFor(() => {
+        expect(screen.getByTestId('login-captcha')).toBeInTheDocument()
+      })
+    })
+
+    it('disables submit until the captcha is solved once required', async () => {
+      mockUseLogin.mockReturnValue({
+        mutate: (_data: unknown, callbacks: { onError: (e: object) => void }) => {
+          callbacks.onError({ status: 401, detail: 'Invalid credentials', requiresCaptcha: true })
+        },
+        isPending: false,
+      })
+      render(<LoginForm />)
+      await userEvent.type(screen.getByTestId('login-email'), 'user@example.com')
+      await userEvent.type(screen.getByTestId('login-password'), 'password123')
+      await userEvent.click(screen.getByTestId('login-submit'))
+      await waitFor(() => {
+        expect(screen.getByTestId('login-submit')).toBeDisabled()
+      })
+
+      await userEvent.click(screen.getByTestId('login-captcha'))
+      await waitFor(() => {
+        expect(screen.getByTestId('login-submit')).not.toBeDisabled()
+      })
+    })
+
+    it('includes the solved captchaToken in the next submit payload', async () => {
+      const trackedMutate = jest.fn(
+        (_data: unknown, callbacks: { onError: (e: object) => void }) => {
+          callbacks.onError({ status: 401, detail: 'Invalid credentials', requiresCaptcha: true })
+        },
+      )
+      mockUseLogin.mockReturnValue({ mutate: trackedMutate, isPending: false })
+      render(<LoginForm />)
+      await userEvent.type(screen.getByTestId('login-email'), 'user@example.com')
+      await userEvent.type(screen.getByTestId('login-password'), 'password123')
+      await userEvent.click(screen.getByTestId('login-submit'))
+
+      await waitFor(() => expect(screen.getByTestId('login-captcha')).toBeInTheDocument())
+      await userEvent.click(screen.getByTestId('login-captcha'))
+      await userEvent.click(screen.getByTestId('login-submit'))
+
+      await waitFor(() => {
+        expect(trackedMutate).toHaveBeenLastCalledWith(
+          { email: 'user@example.com', password: 'password123', captchaToken: 'mock-captcha-token' },
+          expect.objectContaining({ onError: expect.any(Function) }),
+        )
+      })
     })
   })
 })

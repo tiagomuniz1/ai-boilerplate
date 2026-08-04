@@ -18,9 +18,11 @@ COPY --from=deps /app/.yarnrc.yml ./.yarnrc.yml
 COPY . .
 ARG NEXT_PUBLIC_API_URL
 ARG NEXT_PUBLIC_BASE_DOMAIN
+ARG NEXT_PUBLIC_TURNSTILE_SITE_KEY
 ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
 # Empty in dev (path-mode); `pulso.center` in prod (subdomain-mode). Build-time only.
 ENV NEXT_PUBLIC_BASE_DOMAIN=$NEXT_PUBLIC_BASE_DOMAIN
+ENV NEXT_PUBLIC_TURNSTILE_SITE_KEY=$NEXT_PUBLIC_TURNSTILE_SITE_KEY
 ENV NEXT_TELEMETRY_DISABLED=1
 RUN corepack prepare --activate && yarn workspace @app/frontend build
 

@@ -2,8 +2,7 @@ name: Deploy
 
 # Manual only (project rule: never auto-deploy on push). The environment input
 # selects the GitHub Environment, which carries the per-env variables and the
-# OIDC role. develop→staging / main→production is a convention enforced by the
-# operator when dispatching, not by branch triggers.
+# OIDC role. Single environment (production) — there is no staging in AWS.
 on:
   workflow_dispatch:
     inputs:
@@ -12,7 +11,6 @@ on:
         required: true
         type: choice
         options:
-          - staging
           - production
 
 permissions:
@@ -76,14 +74,16 @@ jobs:
           TAG: ${{ github.sha }}
           NEXT_PUBLIC_BASE_DOMAIN: ${{ vars.NEXT_PUBLIC_BASE_DOMAIN }}
           NEXT_PUBLIC_API_URL: ${{ vars.NEXT_PUBLIC_API_URL }}
+          NEXT_PUBLIC_TURNSTILE_SITE_KEY: ${{ vars.NEXT_PUBLIC_TURNSTILE_SITE_KEY }}
         run: |
-          if [ -z "$NEXT_PUBLIC_BASE_DOMAIN" ] || [ -z "$NEXT_PUBLIC_API_URL" ]; then
-            echo "::error::NEXT_PUBLIC_BASE_DOMAIN and NEXT_PUBLIC_API_URL must be set as variables of the '${{ inputs.environment }}' GitHub Environment (they are baked into the frontend build)."
+          if [ -z "$NEXT_PUBLIC_BASE_DOMAIN" ] || [ -z "$NEXT_PUBLIC_API_URL" ] || [ -z "$NEXT_PUBLIC_TURNSTILE_SITE_KEY" ]; then
+            echo "::error::NEXT_PUBLIC_BASE_DOMAIN, NEXT_PUBLIC_API_URL and NEXT_PUBLIC_TURNSTILE_SITE_KEY must be set as variables of the '${{ inputs.environment }}' GitHub Environment (they are baked into the frontend build)."
             exit 1
           fi
           docker build -f apps/frontend/Dockerfile \
             --build-arg NEXT_PUBLIC_BASE_DOMAIN="$NEXT_PUBLIC_BASE_DOMAIN" \
             --build-arg NEXT_PUBLIC_API_URL="$NEXT_PUBLIC_API_URL" \
+            --build-arg NEXT_PUBLIC_TURNSTILE_SITE_KEY="$NEXT_PUBLIC_TURNSTILE_SITE_KEY" \
             -t "$REGISTRY/pulso-frontend:$TAG" \
             -t "$REGISTRY/pulso-frontend:latest" .
           docker push "$REGISTRY/pulso-frontend:$TAG"

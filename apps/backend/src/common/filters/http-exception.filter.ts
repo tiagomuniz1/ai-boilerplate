@@ -56,6 +56,14 @@ export class HttpExceptionFilter implements ExceptionFilter {
           ? exception.message
           : 'An unexpected error occurred'
 
+    // Extension member (RFC 9457 allows problem details to carry extra fields):
+    // tells the frontend a captcha must be solved before the next login attempt.
+    // Same hardcoded-branch approach as `errors` above — not a generic passthrough.
+    const requiresCaptcha =
+      exceptionResponse &&
+      typeof exceptionResponse === 'object' &&
+      (exceptionResponse as Record<string, unknown>).requiresCaptcha === true
+
     response.status(status).json({
       type: `https://httpstatuses.com/${status}`,
       title: HttpStatus[status] ?? 'Error',
@@ -64,6 +72,7 @@ export class HttpExceptionFilter implements ExceptionFilter {
       instance: request.url,
       requestId: request.requestId,
       ...(errors ? { errors } : {}),
+      ...(requiresCaptcha ? { requiresCaptcha: true } : {}),
     })
   }
 }

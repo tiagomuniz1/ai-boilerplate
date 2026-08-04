@@ -86,6 +86,33 @@ describe('HttpExceptionFilter', () => {
     expect(body.errors).toBeUndefined()
   })
 
+  it('includes requiresCaptcha when the exception response sets it true', () => {
+    const host = makeHost()
+    filter.catch(
+      new HttpException({ message: 'Invalid credentials', requiresCaptcha: true }, 401),
+      host,
+    )
+    const { body } = getResponse(host)
+    expect(body.requiresCaptcha).toBe(true)
+  })
+
+  it('does not include requiresCaptcha when absent from the exception response', () => {
+    const host = makeHost()
+    filter.catch(new HttpException('Invalid credentials', 401), host)
+    const { body } = getResponse(host)
+    expect(body.requiresCaptcha).toBeUndefined()
+  })
+
+  it('does not include requiresCaptcha when it is not exactly true', () => {
+    const host = makeHost()
+    filter.catch(
+      new HttpException({ message: 'Invalid credentials', requiresCaptcha: 'yes' }, 401),
+      host,
+    )
+    const { body } = getResponse(host)
+    expect(body.requiresCaptcha).toBeUndefined()
+  })
+
   it('logs error for 5xx exceptions', () => {
     const host = makeHost()
     filter.catch(new HttpException('Internal error', 500), host)

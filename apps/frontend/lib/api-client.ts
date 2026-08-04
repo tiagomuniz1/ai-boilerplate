@@ -38,6 +38,7 @@ function normalizeProblemDetails(error: unknown): IApiError {
       title: data.title ?? 'Error',
       detail: data.detail ?? error.message,
       errors: data.errors,
+      requiresCaptcha: data.requiresCaptcha,
     }
   }
   return {
