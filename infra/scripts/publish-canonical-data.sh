@@ -10,7 +10,7 @@ set -euo pipefail
 #
 # Usage:
 #   bash infra/scripts/publish-canonical-data.sh <environment> [dataset]
-#     environment : staging | production
+#     environment : production
 #     dataset     : all (default) | themes | canonical-fields | medications
 
 ENVIRONMENT="${1:-}"
@@ -18,8 +18,8 @@ DATASET="${2:-all}"
 WORKLOAD_PROFILE="${WORKLOAD_PROFILE:-pulso-workload}"
 AWS_REGION="${AWS_REGION:-us-east-1}"
 
-if [[ "$ENVIRONMENT" != "staging" && "$ENVIRONMENT" != "production" ]]; then
-  echo "Usage: bash infra/scripts/publish-canonical-data.sh <staging|production> [all|themes|canonical-fields|medications]" >&2
+if [[ "$ENVIRONMENT" != "production" ]]; then
+  echo "Usage: bash infra/scripts/publish-canonical-data.sh production [all|themes|canonical-fields|medications]" >&2
   exit 1
 fi
 

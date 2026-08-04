@@ -22,7 +22,7 @@ export interface PrescriptionSnapshot {
     registryNumber: string | null
     specialtyName: string | null
   }
-  patient: { name: string; documentNumber: string }
+  patient: { name: string; documentNumber: string | null }
   items: Array<{
     medicationId: string | null
     name: string

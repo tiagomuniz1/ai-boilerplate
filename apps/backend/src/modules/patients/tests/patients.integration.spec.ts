@@ -363,14 +363,16 @@ describe('PatientsController (integration)', () => {
         .expect(404)
     })
 
-    it('returns 400 when trying to update documentNumber', async () => {
+    it('returns 200 when updating documentNumber to a new value', async () => {
       const { body: created } = await createPatient().expect(201)
 
-      await request(app.getHttpServer())
+      const { body } = await request(app.getHttpServer())
         .patch(`/patients/${created.id}`)
         .set('Authorization', `Bearer ${accessToken}`)
         .send({ documentNumber: '99999999999' })
-        .expect(400)
+        .expect(200)
+
+      expect(body.documentNumber).toBe('99999999999')
     })
 
     it('returns 409 when new email is already in use by another account', async () => {
@@ -589,6 +591,229 @@ describe('PatientsController (integration)', () => {
 
       const ids = usersPage.data.map((u: { id: string }) => u.id)
       expect(ids).not.toContain(userId)
+    })
+  })
+
+  describe('kinship (dependentes)', () => {
+    it('creates a dependent without documentNumber when linked to a valid responsible patient', async () => {
+      const { body: titular } = await createPatient({ documentNumber: '11100011100' }).expect(201)
+
+      const { body } = await request(app.getHttpServer())
+        .post('/patients')
+        .set('Authorization', `Bearer ${accessToken}`)
+        .send({
+          fullName: faker.person.fullName(),
+          email: faker.internet.email(),
+          phoneNumber: '(11) 99999-9999',
+          birthDate: '2020-01-01',
+          gender: PatientGender.MALE,
+          responsiblePatientId: titular.id,
+          kinshipType: 'filho',
+        })
+        .expect(201)
+
+      expect(body.documentNumber).toBeNull()
+      expect(body.responsiblePatientId).toBe(titular.id)
+      expect(body.responsiblePatient).toEqual({
+        id: titular.id,
+        fullName: titular.user.fullName,
+        documentNumber: titular.documentNumber,
+      })
+      expect(body.dependents).toEqual([])
+    })
+
+    it('returns 400 when creating an independent patient without documentNumber', async () => {
+      await request(app.getHttpServer())
+        .post('/patients')
+        .set('Authorization', `Bearer ${accessToken}`)
+        .send({
+          fullName: faker.person.fullName(),
+          email: faker.internet.email(),
+          phoneNumber: '(11) 99999-9999',
+          birthDate: '1990-05-15',
+          gender: PatientGender.MALE,
+        })
+        .expect(400)
+    })
+
+    it('returns 404 when responsiblePatientId does not exist', async () => {
+      await request(app.getHttpServer())
+        .post('/patients')
+        .set('Authorization', `Bearer ${accessToken}`)
+        .send({
+          fullName: faker.person.fullName(),
+          email: faker.internet.email(),
+          phoneNumber: '(11) 99999-9999',
+          birthDate: '2020-01-01',
+          gender: PatientGender.MALE,
+          responsiblePatientId: faker.string.uuid(),
+          kinshipType: 'filho',
+        })
+        .expect(404)
+    })
+
+    it('returns 422 when the responsible patient is itself a dependent', async () => {
+      const { body: titular } = await createPatient({ documentNumber: '22200022200' }).expect(201)
+      const { body: dependent } = await request(app.getHttpServer())
+        .post('/patients')
+        .set('Authorization', `Bearer ${accessToken}`)
+        .send({
+          fullName: faker.person.fullName(),
+          email: faker.internet.email(),
+          phoneNumber: '(11) 99999-9999',
+          birthDate: '2020-01-01',
+          gender: PatientGender.MALE,
+          responsiblePatientId: titular.id,
+          kinshipType: 'filho',
+        })
+        .expect(201)
+
+      await request(app.getHttpServer())
+        .post('/patients')
+        .set('Authorization', `Bearer ${accessToken}`)
+        .send({
+          fullName: faker.person.fullName(),
+          email: faker.internet.email(),
+          phoneNumber: '(11) 99999-9999',
+          birthDate: '2020-01-01',
+          gender: PatientGender.MALE,
+          responsiblePatientId: dependent.id,
+          kinshipType: 'filho',
+        })
+        .expect(422)
+    })
+
+    it('promotes a dependent to independent when documentNumber is set and responsiblePatientId is cleared', async () => {
+      const { body: titular } = await createPatient({ documentNumber: '33300033300' }).expect(201)
+      const { body: dependent } = await request(app.getHttpServer())
+        .post('/patients')
+        .set('Authorization', `Bearer ${accessToken}`)
+        .send({
+          fullName: faker.person.fullName(),
+          email: faker.internet.email(),
+          phoneNumber: '(11) 99999-9999',
+          birthDate: '2020-01-01',
+          gender: PatientGender.MALE,
+          responsiblePatientId: titular.id,
+          kinshipType: 'filho',
+        })
+        .expect(201)
+
+      const { body: promoted } = await request(app.getHttpServer())
+        .patch(`/patients/${dependent.id}`)
+        .set('Authorization', `Bearer ${accessToken}`)
+        .send({ documentNumber: '44400044400', responsiblePatientId: null })
+        .expect(200)
+
+      expect(promoted.documentNumber).toBe('44400044400')
+      expect(promoted.responsiblePatientId).toBeNull()
+      expect(promoted.kinshipType).toBeNull()
+      expect(promoted.responsiblePatient).toBeNull()
+    })
+
+    it('returns 422 when clearing responsiblePatientId without a resulting documentNumber', async () => {
+      const { body: titular } = await createPatient({ documentNumber: '55500055500' }).expect(201)
+      const { body: dependent } = await request(app.getHttpServer())
+        .post('/patients')
+        .set('Authorization', `Bearer ${accessToken}`)
+        .send({
+          fullName: faker.person.fullName(),
+          email: faker.internet.email(),
+          phoneNumber: '(11) 99999-9999',
+          birthDate: '2020-01-01',
+          gender: PatientGender.MALE,
+          responsiblePatientId: titular.id,
+          kinshipType: 'filho',
+        })
+        .expect(201)
+
+      await request(app.getHttpServer())
+        .patch(`/patients/${dependent.id}`)
+        .set('Authorization', `Bearer ${accessToken}`)
+        .send({ responsiblePatientId: null })
+        .expect(422)
+    })
+
+    it('returns 422 when linking a patient to itself', async () => {
+      const { body: created } = await createPatient({ documentNumber: '66600066600' }).expect(201)
+
+      await request(app.getHttpServer())
+        .patch(`/patients/${created.id}`)
+        .set('Authorization', `Bearer ${accessToken}`)
+        .send({ responsiblePatientId: created.id, kinshipType: 'filho' })
+        .expect(422)
+    })
+
+    it('returns 409 when linking a patient that already has its own dependents as someone else\'s dependent', async () => {
+      const { body: titularA } = await createPatient({ documentNumber: '77700077700' }).expect(201)
+      const { body: titularB } = await createPatient({ documentNumber: '88800088800', email: faker.internet.email() }).expect(201)
+      await request(app.getHttpServer())
+        .post('/patients')
+        .set('Authorization', `Bearer ${accessToken}`)
+        .send({
+          fullName: faker.person.fullName(),
+          email: faker.internet.email(),
+          phoneNumber: '(11) 99999-9999',
+          birthDate: '2020-01-01',
+          gender: PatientGender.MALE,
+          responsiblePatientId: titularA.id,
+          kinshipType: 'filho',
+        })
+        .expect(201)
+
+      await request(app.getHttpServer())
+        .patch(`/patients/${titularA.id}`)
+        .set('Authorization', `Bearer ${accessToken}`)
+        .send({ responsiblePatientId: titularB.id, kinshipType: 'conjuge' })
+        .expect(409)
+    })
+
+    it('returns 409 when deleting a titular with active dependents', async () => {
+      const { body: titular } = await createPatient({ documentNumber: '99900099900' }).expect(201)
+      await request(app.getHttpServer())
+        .post('/patients')
+        .set('Authorization', `Bearer ${accessToken}`)
+        .send({
+          fullName: faker.person.fullName(),
+          email: faker.internet.email(),
+          phoneNumber: '(11) 99999-9999',
+          birthDate: '2020-01-01',
+          gender: PatientGender.MALE,
+          responsiblePatientId: titular.id,
+          kinshipType: 'filho',
+        })
+        .expect(201)
+
+      await request(app.getHttpServer())
+        .delete(`/patients/${titular.id}`)
+        .set('Authorization', `Bearer ${accessToken}`)
+        .expect(409)
+    })
+
+    it('shows the dependents list on the titular detail page', async () => {
+      const { body: titular } = await createPatient({ documentNumber: '10100010100' }).expect(201)
+      const { body: dependent } = await request(app.getHttpServer())
+        .post('/patients')
+        .set('Authorization', `Bearer ${accessToken}`)
+        .send({
+          fullName: faker.person.fullName(),
+          email: faker.internet.email(),
+          phoneNumber: '(11) 99999-9999',
+          birthDate: '2020-01-01',
+          gender: PatientGender.MALE,
+          responsiblePatientId: titular.id,
+          kinshipType: 'filho',
+        })
+        .expect(201)
+
+      const { body } = await request(app.getHttpServer())
+        .get(`/patients/${titular.id}`)
+        .set('Authorization', `Bearer ${accessToken}`)
+        .expect(200)
+
+      expect(body.dependents).toEqual([
+        { id: dependent.id, fullName: dependent.user.fullName, kinshipType: 'filho' },
+      ])
     })
   })
 })

@@ -21,6 +21,9 @@ const mockPatientsRepository: jest.Mocked<IPatientsRepository> = {
   findById: jest.fn(),
   findByUserId: jest.fn(),
   findByDocumentNumber: jest.fn(),
+  findActiveDependents: jest.fn(),
+  findResponsiblePatientsByIds: jest.fn(),
+  findDependentsByResponsibleIds: jest.fn(),
   create: jest.fn(),
   update: jest.fn(),
   delete: jest.fn(),
@@ -97,6 +100,8 @@ const makePatient = (user = makeUser(), overrides = {}) => ({
   phoneNumber: '(11) 99999-9999',
   birthDate: '1990-05-15',
   gender: PatientGender.MALE,
+  responsiblePatientId: null,
+  kinshipType: null,
   version: 1,
   createdAt: new Date(),
   updatedAt: new Date(),
@@ -303,6 +308,67 @@ describe('CreatePatientUseCase', () => {
       mockPatientsRepository.create.mockRejectedValue(new Error('DB failure'))
 
       await expect(useCase.execute(dto, adminCurrentUser)).rejects.toThrow('DB failure')
+    })
+  })
+
+  describe('dependent patient', () => {
+    it('creates a dependent without documentNumber when linked to a valid responsible patient', async () => {
+      const responsibleUser = makeUser()
+      const responsiblePatient = makePatient(responsibleUser)
+      const dto = {
+        fullName: faker.person.fullName(),
+        email: faker.internet.email(),
+        phoneNumber: '(11) 99999-9999',
+        birthDate: '1990-05-15',
+        gender: PatientGender.MALE,
+        responsiblePatientId: responsiblePatient.id,
+        kinshipType: 'filho' as any,
+      }
+      const user = makeUser({ fullName: dto.fullName, email: dto.email })
+      const dependent = makePatient(user, {
+        documentNumber: null,
+        responsiblePatientId: responsiblePatient.id,
+        kinshipType: 'filho',
+      })
+
+      mockPatientsRepository.findById.mockResolvedValue(responsiblePatient as any)
+      mockUsersRepository.findByEmail.mockResolvedValue(null)
+      mockUsersRepository.create.mockResolvedValue(user as any)
+      mockPatientsRepository.create.mockResolvedValue(dependent as any)
+      mockCacheService.delByPattern.mockResolvedValue(undefined)
+
+      const result = await useCase.execute(dto as any, adminCurrentUser)
+
+      expect(result.documentNumber).toBeNull()
+      expect(result.responsiblePatientId).toBe(responsiblePatient.id)
+      expect(result.responsiblePatient).toEqual({
+        id: responsiblePatient.id,
+        fullName: responsibleUser.fullName,
+        documentNumber: responsiblePatient.documentNumber,
+      })
+      expect(result.dependents).toEqual([])
+      expect(mockPatientsRepository.findByDocumentNumber).not.toHaveBeenCalled()
+    })
+
+    it('throws NotFoundException when responsiblePatientId does not exist', async () => {
+      const dto = { ...makeDto(), responsiblePatientId: faker.string.uuid(), kinshipType: 'filho' as any }
+      mockPatientsRepository.findById.mockResolvedValue(null)
+
+      await expect(useCase.execute(dto as any, adminCurrentUser)).rejects.toThrow(NotFoundException)
+      expect(mockPatientsRepository.create).not.toHaveBeenCalled()
+    })
+
+    it('throws UnprocessableEntityException when the responsible patient is itself a dependent', async () => {
+      const grandResponsible = makePatient()
+      const responsiblePatient = makePatient(makeUser(), {
+        responsiblePatientId: grandResponsible.id,
+        kinshipType: 'filho',
+      })
+      const dto = { ...makeDto(), responsiblePatientId: responsiblePatient.id, kinshipType: 'filho' as any }
+      mockPatientsRepository.findById.mockResolvedValue(responsiblePatient as any)
+
+      await expect(useCase.execute(dto as any, adminCurrentUser)).rejects.toThrow(UnprocessableEntityException)
+      expect(mockPatientsRepository.create).not.toHaveBeenCalled()
     })
   })
 })

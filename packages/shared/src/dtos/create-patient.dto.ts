@@ -15,6 +15,7 @@ import {
   ValidatorConstraintInterface,
 } from 'class-validator'
 import { PatientGender } from '../enums/patient-gender.enum'
+import { KinshipType } from '../enums/kinship-type.enum'
 
 @ValidatorConstraint({ name: 'isPastOrPresentDate', async: false })
 export class IsPastOrPresentDateConstraint implements ValidatorConstraintInterface {
@@ -55,9 +56,10 @@ export class CreatePatientDto {
   @IsEmail()
   email?: string
 
+  @ValidateIf(o => !o.responsiblePatientId)
   @IsString()
   @Matches(/^\d{11}$/, { message: 'documentNumber must be exactly 11 digits' })
-  documentNumber!: string
+  documentNumber?: string
 
   @IsString()
   @Matches(/^\(\d{2}\) \d{4,5}-\d{4}$/, { message: 'phoneNumber must be in format (XX) XXXXX-XXXX' })
@@ -69,4 +71,12 @@ export class CreatePatientDto {
 
   @IsEnum(PatientGender)
   gender!: PatientGender
+
+  @IsOptional()
+  @IsUUID()
+  responsiblePatientId?: string
+
+  @ValidateIf(o => !!o.responsiblePatientId)
+  @IsEnum(KinshipType)
+  kinshipType?: KinshipType
 }

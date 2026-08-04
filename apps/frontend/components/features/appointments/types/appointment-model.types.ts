@@ -5,7 +5,7 @@ export interface IAppointmentPatientModel {
   email: string
   phoneNumber: string
   birthDate: Date
-  documentNumber: string
+  documentNumber: string | null
   gender: PatientGender
 }
 

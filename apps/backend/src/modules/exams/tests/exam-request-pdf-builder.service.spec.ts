@@ -140,6 +140,15 @@ describe('ExamRequestPdfBuilderService', () => {
     expect(buffer.slice(0, 4).toString('ascii')).toBe('%PDF')
   })
 
+  it('generates PDF without crashing when patient has no documentNumber (dependent without CPF)', async () => {
+    const buffer = await service.build(
+      makeSnapshot({ patient: { name: 'Bebê Santos', documentNumber: null } }),
+      null,
+    )
+
+    expect(buffer.slice(0, 4).toString('ascii')).toBe('%PDF')
+  })
+
   it('generates PDF with empty items list (skips items section)', async () => {
     const buffer = await service.build(makeSnapshot({ items: [] }), null)
 

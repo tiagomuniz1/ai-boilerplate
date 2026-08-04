@@ -1,0 +1,61 @@
+# Full-stack override — adds the nginx proxy + the `website` app and switches
+# frontend/backend to subdomain-mode (matching production topology), so local
+# Docker can validate what previously only staging exercised: nginx Host-based
+# routing, COOKIE_DOMAIN scoping, cross-subdomain CORS, and the institutional
+# `website` app at the apex domain.
+#
+# Usage (in addition to the base file, never standalone — it only overrides/adds):
+#   docker compose -f docker-compose.yml -f docker-compose.full.yml up -d --build
+#
+# Then visit http://<slug>.pulso.localhost (any clinic slug seeded in dev),
+# http://backoffice.pulso.localhost, http://pulso.localhost (website), and
+# http://api.pulso.localhost/health — modern browsers/OS resolve any
+# `*.pulso.localhost` hostname to 127.0.0.1 natively, no /etc/hosts edit needed.
+#
+# The default `docker compose up -d` (without this file) is untouched — daily
+# dev keeps using path-mode against http://localhost:3000/3001 exactly as before.
+
+services:
+  backend:
+    environment:
+      FRONTEND_URL: http://pulso.localhost
+      PUBLIC_API_URL: http://api.pulso.localhost
+      COOKIE_DOMAIN: .pulso.localhost
+
+  frontend:
+    build:
+      args:
+        NEXT_PUBLIC_API_URL: http://api.pulso.localhost
+        NEXT_PUBLIC_BASE_DOMAIN: pulso.localhost
+    # Server-side (SSR) fetches run inside this container and need to resolve
+    # api.pulso.localhost too — the OS/browser's "*.localhost -> 127.0.0.1" trick
+    # only applies to the host machine, not to a container's own network
+    # namespace. host-gateway routes back to the host, where `proxy` (below)
+    # already publishes :80 and does the same Host-based dispatch a browser gets.
+    extra_hosts:
+      - "api.pulso.localhost:host-gateway"
+
+  website:
+    build:
+      context: .
+      dockerfile: apps/website/Dockerfile
+      args:
+        NEXT_PUBLIC_API_URL: http://api.pulso.localhost
+    container_name: app-website
+    extra_hosts:
+      - "api.pulso.localhost:host-gateway"
+    depends_on:
+      backend:
+        condition: service_healthy
+
+  proxy:
+    image: nginx:1.27-alpine
+    container_name: app-proxy
+    ports:
+      - "80:80"
+    volumes:
+      - ./infra/proxy/nginx.local.conf:/etc/nginx/conf.d/default.conf:ro
+    depends_on:
+      - frontend
+      - backend
+      - website

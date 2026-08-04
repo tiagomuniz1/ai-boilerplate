@@ -14,6 +14,10 @@ const mockPatient = {
   birthDate: '1990-05-15',
   documentNumber: '12345678901',
   gender: 'male',
+  responsiblePatientId: null,
+  kinshipType: null,
+  responsiblePatient: null,
+  dependents: [],
   createdAt: '2024-01-15T10:00:00.000Z',
   updatedAt: '2024-01-15T10:00:00.000Z',
 }
@@ -157,6 +161,38 @@ describe('Patients List', () => {
 
     cy.get(`[data-testid="patient-view-link-${mockPatient.id}"]`).should('exist')
     cy.get(`[data-testid="patient-edit-link-${mockPatient.id}"]`).should('exist')
+  })
+
+  it('renders the list without breaking when it has a mix of patients with and without documentNumber', () => {
+    const dependentPatient = {
+      id: 'aaaaaaaa-1111-1111-1111-000000000002',
+      user: { id: 'user-uuid-2', fullName: 'Bebê Silva', email: 'bebe@test.com', isActive: false },
+      phoneNumber: '11988887777',
+      birthDate: '2024-01-01',
+      documentNumber: null,
+      gender: 'male',
+      responsiblePatientId: 'aaaaaaaa-1111-1111-1111-000000000001',
+      kinshipType: 'filho',
+      responsiblePatient: {
+        id: 'aaaaaaaa-1111-1111-1111-000000000001',
+        fullName: 'João Silva',
+        documentNumber: '12345678901',
+      },
+      dependents: [],
+      createdAt: '2024-01-15T10:00:00.000Z',
+      updatedAt: '2024-01-15T10:00:00.000Z',
+    }
+    cy.intercept('GET', `${Cypress.env('API_URL')}/patients*`, {
+      statusCode: 200,
+      body: { data: [mockPatient, dependentPatient], total: 2, page: 1, limit: 20 },
+    }).as('getPatients')
+
+    visitClinic('/patients', mockAuthUser)
+    cy.wait('@getPatients')
+
+    cy.get('[data-testid="patient-list-table"]').should('be.visible')
+    cy.get(`[data-testid="patient-name-${mockPatient.id}"]`).should('contain', 'João Silva')
+    cy.get(`[data-testid="patient-name-${dependentPatient.id}"]`).should('contain', 'Bebê Silva')
   })
 })
 

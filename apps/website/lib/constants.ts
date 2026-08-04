@@ -1,5 +1,5 @@
 /** Base URL of the Pulso API — used to submit "solicitar acesso" requests. */
-export const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://api.staging.pulso.center'
+export const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://api.pulso.center'
 
 export interface INavLink {
   href: string

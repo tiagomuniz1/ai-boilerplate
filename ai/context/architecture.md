@@ -47,15 +47,14 @@ packages/shared/src/
 | Branch | Finalidade |
 |---|---|
 | `main` | Produção — sempre estável |
-| `develop` | Integração contínua — base para features |
 | `feature/*` | Nova funcionalidade |
 | `fix/*` | Correção de bug |
 | `hotfix/*` | Correção urgente em produção |
 
 * Sempre em kebab-case: `feature/user-authentication`
-* Nunca commitar diretamente em `main` ou `develop`
-* Fluxo: `feature/* → develop → main`
-* `hotfix/*` parte de `main` e vai para `main` + cherry-pick em `develop`
+* Nunca commitar diretamente em `main`
+* Fluxo: `feature/* → main` via PR — não existe branch `develop` nem ambiente de staging na AWS (ambiente único: `production`). Validação pré-deploy é local via Docker (ver `CLAUDE.md` → Testes E2E), não contra um ambiente intermediário na nuvem
+* `hotfix/*` parte de `main` e vai para `main`
 
 ---
 

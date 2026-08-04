@@ -1,4 +1,4 @@
-import { ConflictException, NotFoundException } from '@nestjs/common'
+import { ConflictException, NotFoundException, UnprocessableEntityException } from '@nestjs/common'
 import { DataSource, OptimisticLockVersionMismatchError, QueryFailedError } from 'typeorm'
 import { faker } from '@faker-js/faker'
 import { PatientGender, UserRole } from '@app/shared'
@@ -21,6 +21,9 @@ const mockPatientsRepository: jest.Mocked<IPatientsRepository> = {
   findById: jest.fn(),
   findByUserId: jest.fn(),
   findByDocumentNumber: jest.fn(),
+  findActiveDependents: jest.fn().mockResolvedValue([]),
+  findResponsiblePatientsByIds: jest.fn().mockResolvedValue([]),
+  findDependentsByResponsibleIds: jest.fn().mockResolvedValue([]),
   create: jest.fn(),
   update: jest.fn(),
   delete: jest.fn(),
@@ -79,6 +82,8 @@ const makePatient = (overrides = {}) => {
     phoneNumber: '(11) 99999-9999',
     birthDate: '1990-05-15',
     gender: PatientGender.MALE,
+    responsiblePatientId: null,
+    kinshipType: null,
     version: 1,
     createdAt: new Date(),
     updatedAt: new Date(),
@@ -341,5 +346,181 @@ describe('UpdatePatientUseCase', () => {
     const result = await useCase.execute(patient.id, { phoneNumber: '(11) 99999-9999' }, adminCurrentUser)
 
     expect(result.id).toBe(patient.id)
+  })
+
+  describe('kinship link', () => {
+    it('promotes a dependent to independent when documentNumber is set and responsiblePatientId is cleared', async () => {
+      const responsible = makePatient()
+      const patient = makePatient({ documentNumber: null, responsiblePatientId: responsible.id, kinshipType: 'filho' })
+      const updated = { ...patient, documentNumber: '98765432100', responsiblePatientId: null, kinshipType: null }
+
+      mockPatientsRepository.findById.mockResolvedValueOnce(patient as any).mockResolvedValueOnce(updated as any)
+      mockPatientsRepository.findByDocumentNumber.mockResolvedValue(null)
+      mockPatientsRepository.update.mockResolvedValue(updated as any)
+      mockPatientsRepository.findActiveDependents.mockResolvedValue([])
+      mockCacheService.del.mockResolvedValue(undefined)
+      mockCacheService.delByPattern.mockResolvedValue(undefined)
+
+      const result = await useCase.execute(
+        patient.id,
+        { documentNumber: '98765432100', responsiblePatientId: null },
+        adminCurrentUser,
+      )
+
+      expect(mockPatientsRepository.update).toHaveBeenCalledWith(
+        patient.id,
+        expect.objectContaining({ documentNumber: '98765432100', responsiblePatientId: null, kinshipType: null }),
+      )
+      expect(result.documentNumber).toBe('98765432100')
+      expect(result.responsiblePatientId).toBeNull()
+      expect(mockCacheService.del).toHaveBeenCalledWith(`patient:${CLINIC_ID}:${responsible.id}`)
+    })
+
+    it('throws UnprocessableEntityException when clearing responsiblePatientId without a resulting documentNumber', async () => {
+      const patient = makePatient({ documentNumber: null, responsiblePatientId: faker.string.uuid(), kinshipType: 'filho' })
+      mockPatientsRepository.findById.mockResolvedValue(patient as any)
+
+      await expect(
+        useCase.execute(patient.id, { responsiblePatientId: null }, adminCurrentUser),
+      ).rejects.toThrow(UnprocessableEntityException)
+      expect(mockPatientsRepository.update).not.toHaveBeenCalled()
+    })
+
+    it('throws UnprocessableEntityException when linking a patient to itself', async () => {
+      const patient = makePatient()
+      mockPatientsRepository.findById.mockResolvedValue(patient as any)
+
+      await expect(
+        useCase.execute(patient.id, { responsiblePatientId: patient.id, kinshipType: 'filho' as any }, adminCurrentUser),
+      ).rejects.toThrow(UnprocessableEntityException)
+      expect(mockPatientsRepository.update).not.toHaveBeenCalled()
+    })
+
+    it('throws NotFoundException when the new responsible patient does not exist', async () => {
+      const patient = makePatient()
+      mockPatientsRepository.findById.mockResolvedValueOnce(patient as any).mockResolvedValueOnce(null)
+
+      await expect(
+        useCase.execute(
+          patient.id,
+          { responsiblePatientId: faker.string.uuid(), kinshipType: 'filho' as any },
+          adminCurrentUser,
+        ),
+      ).rejects.toThrow(NotFoundException)
+      expect(mockPatientsRepository.update).not.toHaveBeenCalled()
+    })
+
+    it('throws UnprocessableEntityException when the new responsible patient is itself a dependent', async () => {
+      const patient = makePatient()
+      const otherDependentsResponsible = makePatient({ responsiblePatientId: faker.string.uuid(), kinshipType: 'filho' })
+      mockPatientsRepository.findById
+        .mockResolvedValueOnce(patient as any)
+        .mockResolvedValueOnce(otherDependentsResponsible as any)
+
+      await expect(
+        useCase.execute(
+          patient.id,
+          { responsiblePatientId: otherDependentsResponsible.id, kinshipType: 'filho' as any },
+          adminCurrentUser,
+        ),
+      ).rejects.toThrow(UnprocessableEntityException)
+      expect(mockPatientsRepository.update).not.toHaveBeenCalled()
+    })
+
+    it('throws UnprocessableEntityException when kinshipType is missing while setting responsiblePatientId', async () => {
+      const patient = makePatient()
+      const responsible = makePatient()
+      mockPatientsRepository.findById.mockResolvedValueOnce(patient as any).mockResolvedValueOnce(responsible as any)
+
+      await expect(
+        useCase.execute(patient.id, { responsiblePatientId: responsible.id }, adminCurrentUser),
+      ).rejects.toThrow(UnprocessableEntityException)
+      expect(mockPatientsRepository.update).not.toHaveBeenCalled()
+    })
+
+    it('throws ConflictException when linking a patient that already has its own dependents', async () => {
+      const patient = makePatient()
+      const responsible = makePatient()
+      mockPatientsRepository.findById.mockResolvedValueOnce(patient as any).mockResolvedValueOnce(responsible as any)
+      mockPatientsRepository.findActiveDependents.mockResolvedValue([makePatient() as any])
+
+      await expect(
+        useCase.execute(
+          patient.id,
+          { responsiblePatientId: responsible.id, kinshipType: 'filho' as any },
+          adminCurrentUser,
+        ),
+      ).rejects.toThrow(ConflictException)
+      expect(mockPatientsRepository.update).not.toHaveBeenCalled()
+    })
+
+    it('throws ConflictException when the new documentNumber is already in use by another patient', async () => {
+      const patient = makePatient({ documentNumber: null })
+      mockPatientsRepository.findById.mockResolvedValue(patient as any)
+      mockPatientsRepository.findByDocumentNumber.mockResolvedValue(makePatient() as any)
+
+      await expect(
+        useCase.execute(patient.id, { documentNumber: '11122233344' }, adminCurrentUser),
+      ).rejects.toThrow(ConflictException)
+      expect(mockPatientsRepository.update).not.toHaveBeenCalled()
+    })
+
+    it('throws ConflictException when DB document_number unique constraint fires (race condition)', async () => {
+      const patient = makePatient({ documentNumber: null })
+      mockPatientsRepository.findById.mockResolvedValue(patient as any)
+      mockPatientsRepository.findByDocumentNumber.mockResolvedValue(null)
+      mockPatientsRepository.update.mockRejectedValue(makeUniqueViolation(DB_UNIQUE_CONSTRAINTS.PATIENTS_DOCUMENT))
+
+      await expect(
+        useCase.execute(patient.id, { documentNumber: '11122233344' }, adminCurrentUser),
+      ).rejects.toThrow(ConflictException)
+    })
+
+    it('successfully links a patient to a new responsible patient and populates the response', async () => {
+      const patient = makePatient()
+      const responsible = makePatient()
+      const updated = { ...patient, responsiblePatientId: responsible.id, kinshipType: 'filho' }
+
+      mockPatientsRepository.findById
+        .mockResolvedValueOnce(patient as any)
+        .mockResolvedValueOnce(responsible as any)
+        .mockResolvedValueOnce(updated as any)
+        .mockResolvedValueOnce(responsible as any)
+      mockPatientsRepository.findActiveDependents.mockResolvedValue([])
+      mockPatientsRepository.update.mockResolvedValue(updated as any)
+      mockCacheService.del.mockResolvedValue(undefined)
+      mockCacheService.delByPattern.mockResolvedValue(undefined)
+
+      const result = await useCase.execute(
+        patient.id,
+        { responsiblePatientId: responsible.id, kinshipType: 'filho' as any },
+        adminCurrentUser,
+      )
+
+      expect(result.responsiblePatientId).toBe(responsible.id)
+      expect(result.responsiblePatient).toEqual({
+        id: responsible.id,
+        fullName: responsible.user.fullName,
+        documentNumber: responsible.documentNumber,
+      })
+      expect(mockCacheService.del).toHaveBeenCalledWith(`patient:${CLINIC_ID}:${responsible.id}`)
+    })
+
+    it('populates dependents in the response when the patient already has active dependents', async () => {
+      const patient = makePatient()
+      const dependent = makePatient({ responsiblePatientId: patient.id, kinshipType: 'filho' })
+
+      mockPatientsRepository.findById.mockResolvedValue(patient as any)
+      mockPatientsRepository.update.mockResolvedValue(patient as any)
+      mockPatientsRepository.findActiveDependents.mockResolvedValue([dependent as any])
+      mockCacheService.del.mockResolvedValue(undefined)
+      mockCacheService.delByPattern.mockResolvedValue(undefined)
+
+      const result = await useCase.execute(patient.id, { phoneNumber: '(11) 91111-1111' }, adminCurrentUser)
+
+      expect(result.dependents).toEqual([
+        { id: dependent.id, fullName: dependent.user.fullName, kinshipType: 'filho' },
+      ])
+    })
   })
 })

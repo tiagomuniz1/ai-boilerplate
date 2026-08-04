@@ -19,6 +19,10 @@ const mockCreatedPatient = {
   birthDate: '1990-05-15',
   documentNumber: '12345678901',
   gender: 'male',
+  responsiblePatientId: null,
+  kinshipType: null,
+  responsiblePatient: null,
+  dependents: [],
   createdAt: '2024-01-15T10:00:00.000Z',
   updatedAt: '2024-01-15T10:00:00.000Z',
 }

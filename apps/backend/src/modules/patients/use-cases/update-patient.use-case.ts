@@ -1,4 +1,10 @@
-import { ConflictException, Injectable, Logger, NotFoundException } from '@nestjs/common'
+import {
+  ConflictException,
+  Injectable,
+  Logger,
+  NotFoundException,
+  UnprocessableEntityException,
+} from '@nestjs/common'
 import { DataSource, OptimisticLockVersionMismatchError } from 'typeorm'
 import { PatientResponseDto, UpdatePatientDto } from '@app/shared'
 import { BaseUseCase } from '../../../common/base.use-case'
@@ -37,6 +43,42 @@ export class UpdatePatientUseCase extends BaseUseCase {
       if (existing) throw new ConflictException('Email already in use')
     }
 
+    if (dto.documentNumber !== undefined) {
+      const existingDocument = await this.patientsRepository.findByDocumentNumber(dto.documentNumber, clinicId)
+      if (existingDocument && existingDocument.id !== id) {
+        throw new ConflictException('Patient with this document number already exists')
+      }
+    }
+
+    const responsiblePatientId = dto.responsiblePatientId
+    if (responsiblePatientId !== undefined) {
+      if (responsiblePatientId === null) {
+        const resultingDocumentNumber = dto.documentNumber ?? patient.documentNumber
+        if (!resultingDocumentNumber) {
+          throw new UnprocessableEntityException('documentNumber is required to remove the responsible patient link')
+        }
+        patientFields.kinshipType = null
+      } else {
+        if (responsiblePatientId === id) {
+          throw new UnprocessableEntityException('A patient cannot be their own responsible patient')
+        }
+        const responsible = await this.patientsRepository.findById(responsiblePatientId, clinicId)
+        if (!responsible) throw new NotFoundException('Responsible patient not found')
+        if (responsible.responsiblePatientId) {
+          throw new UnprocessableEntityException('The responsible patient cannot itself be a dependent')
+        }
+        if (!dto.kinshipType) {
+          throw new UnprocessableEntityException('kinshipType is required when setting responsiblePatientId')
+        }
+        const ownDependents = await this.patientsRepository.findActiveDependents(id, clinicId)
+        if (ownDependents.length > 0) {
+          throw new ConflictException(
+            "Cannot link a patient that already has its own dependents as someone else's dependent",
+          )
+        }
+      }
+    }
+
     try {
       if (hasUserUpdate && hasPatientUpdate) {
         await this.runInTransaction(async (queryRunner) => {
@@ -55,10 +97,19 @@ export class UpdatePatientUseCase extends BaseUseCase {
       if (isUniqueConstraintViolation(error, DB_UNIQUE_CONSTRAINTS.USERS_EMAIL_CLINIC)) {
         throw new ConflictException('Email already in use')
       }
+      if (isUniqueConstraintViolation(error, DB_UNIQUE_CONSTRAINTS.PATIENTS_DOCUMENT)) {
+        throw new ConflictException('Patient with this document number already exists')
+      }
       throw error
     }
 
     const updated = (await this.patientsRepository.findById(id, clinicId))!
+
+    let responsiblePatientRef: Patient | null = null
+    if (updated.responsiblePatientId) {
+      responsiblePatientRef = await this.patientsRepository.findById(updated.responsiblePatientId, clinicId)
+    }
+    const dependents = await this.patientsRepository.findActiveDependents(id, clinicId)
 
     try {
       await this.cacheService.del(`patient:${clinicId}:${id}`)
@@ -67,14 +118,20 @@ export class UpdatePatientUseCase extends BaseUseCase {
         await this.cacheService.del(`user:${clinicId}:${patient.userId}`)
         await this.cacheService.delByPattern(`users:list:${clinicId}*`)
       }
+      if (patient.responsiblePatientId) {
+        await this.cacheService.del(`patient:${clinicId}:${patient.responsiblePatientId}`)
+      }
+      if (dto.responsiblePatientId) {
+        await this.cacheService.del(`patient:${clinicId}:${dto.responsiblePatientId}`)
+      }
     } catch {
       this.logger.warn('Cache invalidation failed', { context: UpdatePatientUseCase.name })
     }
 
-    return this.toResponse(updated)
+    return this.toResponse(updated, responsiblePatientRef, dependents)
   }
 
-  private toResponse(patient: Patient): PatientResponseDto {
+  private toResponse(patient: Patient, responsiblePatient: Patient | null, dependents: Patient[]): PatientResponseDto {
     return {
       id: patient.id,
       user: {
@@ -87,6 +144,16 @@ export class UpdatePatientUseCase extends BaseUseCase {
       phoneNumber: patient.phoneNumber,
       birthDate: patient.birthDate,
       gender: patient.gender,
+      responsiblePatientId: patient.responsiblePatientId,
+      kinshipType: patient.kinshipType,
+      responsiblePatient: responsiblePatient
+        ? {
+            id: responsiblePatient.id,
+            fullName: responsiblePatient.user.fullName,
+            documentNumber: responsiblePatient.documentNumber,
+          }
+        : null,
+      dependents: dependents.map((d) => ({ id: d.id, fullName: d.user.fullName, kinshipType: d.kinshipType! })),
       createdAt: patient.createdAt,
       updatedAt: patient.updatedAt,
     }

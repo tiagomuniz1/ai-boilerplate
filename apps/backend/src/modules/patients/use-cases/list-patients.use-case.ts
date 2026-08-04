@@ -21,9 +21,9 @@ export class ListPatientsUseCase extends BaseUseCase {
   }
 
   async execute(query: ListPatientsQueryDto, currentUser: ICurrentUser): Promise<PaginatedPatientsResponseDto> {
-    const { page, limit, search } = query
+    const { page, limit, search, excludeDependents, excludeId } = query
     const clinicId = currentUser.clinicId!
-    const cacheKey = `patients:list:${clinicId}:${page}:${limit}:${search ?? 'all'}`
+    const cacheKey = `patients:list:${clinicId}:${page}:${limit}:${search ?? 'all'}:${excludeDependents ?? false}:${excludeId ?? 'none'}`
 
     try {
       const cached = await this.cacheService.get<PaginatedPatientsResponseDto>(cacheKey)
@@ -32,9 +32,39 @@ export class ListPatientsUseCase extends BaseUseCase {
       this.logger.warn('Cache read failed', { context: ListPatientsUseCase.name })
     }
 
-    const [patients, total] = await this.patientsRepository.findAll(page, limit, clinicId, search)
+    const [patients, total] = await this.patientsRepository.findAll(
+      page,
+      limit,
+      clinicId,
+      search,
+      excludeDependents,
+      excludeId,
+    )
+
+    const responsibleIds = [...new Set(patients.map((p) => p.responsiblePatientId).filter((id): id is string => !!id))]
+    const pageIds = patients.map((p) => p.id)
+
+    const [responsibleRefs, dependentRefs] = await Promise.all([
+      this.patientsRepository.findResponsiblePatientsByIds(responsibleIds, clinicId),
+      this.patientsRepository.findDependentsByResponsibleIds(pageIds, clinicId),
+    ])
+
+    const responsibleById = new Map(responsibleRefs.map((r) => [r.id, r]))
+    const dependentsByResponsibleId = new Map<string, Patient[]>()
+    for (const dependent of dependentRefs) {
+      const list = dependentsByResponsibleId.get(dependent.responsiblePatientId!) ?? []
+      list.push(dependent)
+      dependentsByResponsibleId.set(dependent.responsiblePatientId!, list)
+    }
+
     const result: PaginatedPatientsResponseDto = {
-      data: patients.map((p) => this.toResponse(p)),
+      data: patients.map((p) =>
+        this.toResponse(
+          p,
+          p.responsiblePatientId ? (responsibleById.get(p.responsiblePatientId) ?? null) : null,
+          dependentsByResponsibleId.get(p.id) ?? [],
+        ),
+      ),
       total,
       page,
       limit,
@@ -49,7 +79,7 @@ export class ListPatientsUseCase extends BaseUseCase {
     return result
   }
 
-  private toResponse(patient: Patient): PatientResponseDto {
+  private toResponse(patient: Patient, responsiblePatient: Patient | null, dependents: Patient[]): PatientResponseDto {
     return {
       id: patient.id,
       user: {
@@ -62,6 +92,16 @@ export class ListPatientsUseCase extends BaseUseCase {
       phoneNumber: patient.phoneNumber,
       birthDate: patient.birthDate,
       gender: patient.gender,
+      responsiblePatientId: patient.responsiblePatientId,
+      kinshipType: patient.kinshipType,
+      responsiblePatient: responsiblePatient
+        ? {
+            id: responsiblePatient.id,
+            fullName: responsiblePatient.user.fullName,
+            documentNumber: responsiblePatient.documentNumber,
+          }
+        : null,
+      dependents: dependents.map((d) => ({ id: d.id, fullName: d.user.fullName, kinshipType: d.kinshipType! })),
       createdAt: patient.createdAt,
       updatedAt: patient.updatedAt,
     }

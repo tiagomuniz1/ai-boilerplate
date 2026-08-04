@@ -49,6 +49,15 @@ describe('patientsService', () => {
     expect(mockApiClient.get).toHaveBeenCalledWith('/patients?page=2&limit=10')
   })
 
+  it('getAll calls GET /patients with excludeDependents and excludeId params', async () => {
+    const response = { data: [], total: 0, page: 1, limit: 20 }
+    mockApiClient.get.mockResolvedValue(response)
+
+    await patientsService.getAll({ excludeDependents: true, excludeId: 'uuid-1' })
+
+    expect(mockApiClient.get).toHaveBeenCalledWith('/patients?excludeDependents=true&excludeId=uuid-1')
+  })
+
   it('getById calls GET /patients/:id and returns result', async () => {
     const dto = makeDto()
     mockApiClient.get.mockResolvedValue(dto)

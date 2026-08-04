@@ -133,6 +133,25 @@ describe('VerifyPrescriptionUseCase', () => {
     expect(result.patientDocumentMasked).toBe('***')
   })
 
+  it('returns "Não informado" when patient has no documentNumber (dependent without CPF)', async () => {
+    mockPrescriptionsRepository.findByVerificationToken.mockResolvedValue(
+      makePrescription({
+        snapshot: {
+          issuedAt: '2026-01-05T10:00:00.000Z',
+          clinic: { name: 'Clínica', address: null, logoUrl: null },
+          professional: { name: 'Dr. X', councilType: CouncilType.CRM, registrationNumber: '1/SP', registryNumber: null, specialtyName: null },
+          patient: { name: 'Bebê Santos', documentNumber: null },
+          items: [],
+          notes: null,
+        },
+      }) as any,
+    )
+
+    const result = await useCase.execute('a'.repeat(64))
+
+    expect(result.patientDocumentMasked).toBe('Não informado')
+  })
+
   it('masks a single-word patient name as "First."', async () => {
     mockPrescriptionsRepository.findByVerificationToken.mockResolvedValue(
       makePrescription({

@@ -2,7 +2,8 @@
 // Objetivo: permitir que a farmácia confira o paciente contra o documento físico
 // sem expor PII completo numa página acessível sem autenticação.
 
-export function maskCpf(cpf: string): string {
+export function maskCpf(cpf: string | null): string {
+  if (!cpf) return 'Não informado'
   const digits = cpf.replace(/\D/g, '')
   if (digits.length !== 11) return '***'
   return `***.***.${digits.slice(6, 9)}-**`

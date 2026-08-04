@@ -18,30 +18,16 @@ locals {
   # "repo:${var.github_owner}@${var.github_owner_id}/${var.github_repo}@${var.github_repo_id}".
   subject = "repo:${var.github_owner}@${var.github_owner_id}/${var.github_repo}@${var.github_repo_id}:environment:${var.environment}"
 
-  oidc_provider_arn = var.create_oidc_provider ? aws_iam_openid_connect_provider.github[0].arn : data.aws_iam_openid_connect_provider.github[0].arn
+  oidc_provider_arn = data.aws_iam_openid_connect_provider.github.arn
 
   run_shell_document_arn = "arn:aws:ssm:${data.aws_region.current.name}::document/AWS-RunShellScript"
 }
 
-# ── GitHub OIDC provider (account-wide, created once by staging) ───────────────
-resource "aws_iam_openid_connect_provider" "github" {
-  count = var.create_oidc_provider ? 1 : 0
-
-  url            = "https://token.actions.githubusercontent.com"
-  client_id_list = ["sts.amazonaws.com"]
-  # GitHub's OIDC thumbprints. AWS validates the token against its own trust store
-  # for this provider, but the field is required by the API.
-  thumbprint_list = [
-    "6938fd4d98bab03faadb97b34396831e3780aea1",
-    "1c58a3a8518e8759bf075b76b750d4f2df264fcd",
-  ]
-
-  tags = local.tags
-}
-
+# ── GitHub OIDC provider (account-wide) ─────────────────────────────────────────
+# Owned by the `shared` Terraform environment (module "oidc-provider") — looked
+# up here by URL so this module never needs to know which state created it.
 data "aws_iam_openid_connect_provider" "github" {
-  count = var.create_oidc_provider ? 0 : 1
-  url   = "https://token.actions.githubusercontent.com"
+  url = "https://token.actions.githubusercontent.com"
 }
 
 # ── CI deploy role ────────────────────────────────────────────────────────────

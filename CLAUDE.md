@@ -79,14 +79,10 @@ yarn workspace @app/frontend cypress:run   # headless (CI/CD)
 
 ## Deploy
 
-* Via **GitHub Actions** com **acionamento manual** pelo console do GitHub
-* Artefatos enviados para **AWS ECS**
+* Via **GitHub Actions** com **acionamento manual** (`workflow_dispatch`, nunca por push)
+* Artefatos enviados para **ECR** e implantados numa instância **EC2** (via SSM Run Command rodando `docker compose`) — ver `docs/DEPLOY_RUNBOOK.md`
 * Deploy nunca deve ser feito diretamente na máquina local
-
-| Branch | Ambiente |
-|---|---|
-| `develop` | staging |
-| `main` | production |
+* **Ambiente único: `production`.** Não existe branch `develop` nem ambiente de staging na AWS — tudo que antes era validado em staging agora é validado localmente via Docker (ver "Infraestrutura local (Docker)" e "Testes E2E" abaixo) antes do deploy manual para produção a partir de `main`
 
 ---
 
@@ -113,12 +109,11 @@ git tag backend/v2.0.1  && git push origin backend/v2.0.1
 
 ```
 1. Desenvolver na branch feature/*
-2. Abrir PR para develop
-3. Testar em staging (deploy manual via GitHub Actions → develop)
-4. Abrir PR de develop para main
-5. Atualizar version no package.json do app correspondente
-6. Criar tag git com o formato correto
-7. Acionar deploy manual via GitHub Actions → main
+2. Testar localmente via Docker (stack completa — ver "Infraestrutura local")
+3. Abrir PR para main
+4. Atualizar version no package.json do app correspondente
+5. Criar tag git com o formato correto
+6. Acionar deploy manual via GitHub Actions → production
 ```
 
 * Nunca fazer deploy sem criar a tag correspondente
@@ -162,7 +157,7 @@ packages/shared/src/
 
 * Biblioteca: **Cypress**
 * Simulam fluxos reais do usuário — sem mockar comportamento crítico
-* Rodam contra o ambiente de staging antes de cada deploy para produção
+* Rodam localmente antes de cada deploy para produção — não existe mais ambiente de staging na AWS. Fluxo diário: `docker compose up -d` (modo path, `localhost:3010/3011`). Antes de promover para produção: `docker compose -f docker-compose.yml -f docker-compose.full.yml up -d --build`, que sobe a stack completa (nginx + `website` + roteamento por subdomínio `*.pulso.localhost`), reproduzindo o que só staging validava antes (CORS entre subdomínios, `COOKIE_DOMAIN`, roteamento por `Host`)
 
 ```ts
 Cypress.Commands.add('login', (email: string, password: string) => {

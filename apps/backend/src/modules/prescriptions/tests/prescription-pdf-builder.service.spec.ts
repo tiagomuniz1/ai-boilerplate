@@ -207,4 +207,12 @@ describe('PrescriptionPdfBuilderService', () => {
 
     expect(buffer.slice(0, 4).toString('ascii')).toBe('%PDF')
   })
+
+  it('generates PDF without crashing when patient has no documentNumber (dependent without CPF)', async () => {
+    const snapshot = makeSnapshot({ patient: { name: 'Bebê Santos', documentNumber: null } })
+
+    const buffer = await service.build(snapshot, null, VERIFY_URL)
+
+    expect(buffer.slice(0, 4).toString('ascii')).toBe('%PDF')
+  })
 })

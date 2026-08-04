@@ -76,6 +76,8 @@ O sistema possui quatro perfis de usuário (`UserRole`). Cada perfil reflete um 
 
 > PROFESSIONAL tem leitura em `/patients` para selecionar o paciente ao agendar o próprio atendimento — sem acesso a criar, editar ou excluir.
 
+> Um paciente pode ser vinculado como **dependente** de outro paciente (o **titular**) da mesma clínica, com um grau de parentesco (`KinshipType`). Nesse caso o CPF (`documentNumber`) deixa de ser obrigatório — cobre recém-nascidos e menores sem documento ainda emitido. Criar, alterar ou remover esse vínculo segue a mesma regra de acesso acima: exclusivo de ADMIN, dentro de criar/editar paciente — nenhuma permissão nova foi introduzida.
+
 ---
 
 ## Agendas (`/schedules`)

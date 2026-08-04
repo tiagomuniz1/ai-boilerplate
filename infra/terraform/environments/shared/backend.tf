@@ -19,7 +19,7 @@ terraform {
   # as GitHub Actions secrets and omit the profile.
   backend "s3" {
     bucket       = "terraform-state-500905575906"
-    key          = "staging/clinic-assets/terraform.tfstate"
+    key          = "shared/clinic-assets/terraform.tfstate"
     region       = "us-east-1"
     use_lockfile = true
   }

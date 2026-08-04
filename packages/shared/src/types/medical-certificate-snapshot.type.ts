@@ -24,7 +24,7 @@ export interface MedicalCertificateSnapshot {
     registryNumber: string | null
     specialtyName: string | null
   }
-  patient: { name: string; documentNumber: string }
+  patient: { name: string; documentNumber: string | null }
   daysOff: number | null
   startDate: string | null
   cidCode: string | null

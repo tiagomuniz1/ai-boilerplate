@@ -22,7 +22,7 @@ export interface ExamRequestSnapshot {
     registryNumber: string | null
     specialtyName: string | null
   }
-  patient: { name: string; documentNumber: string }
+  patient: { name: string; documentNumber: string | null }
   items: Array<{ name: string; observations: string | null }>
   notes: string | null
 }

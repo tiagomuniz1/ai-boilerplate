@@ -4,7 +4,7 @@ jest.mock('../services/patients.service')
 import { screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { useRouter } from 'next/navigation'
-import { PatientGender } from '@app/shared'
+import { KinshipType, PatientGender } from '@app/shared'
 import { renderWithProviders } from '@/tests/utils/render-with-providers'
 import { PatientDetails } from './patient-details'
 import type { IPatientModel } from '../types/patient-model.types'
@@ -19,6 +19,10 @@ const patient: IPatientModel = {
   birthDate: new Date('1990-05-15'),
   documentNumber: '12345678901',
   gender: PatientGender.MALE,
+  responsiblePatientId: null,
+  kinshipType: null,
+  responsiblePatient: null,
+  dependents: [],
   createdAt: new Date('2024-01-15'),
   updatedAt: new Date('2024-01-16'),
 }
@@ -71,5 +75,62 @@ describe('PatientDetails (integration)', () => {
     )
 
     expect(screen.getByTestId('patient-details-gender')).toHaveTextContent('Feminino')
+  })
+
+  it('shows "Não informado" when documentNumber is null', () => {
+    renderWithProviders(
+      <PatientDetails patient={{ ...patient, documentNumber: null }} onDeleteClick={jest.fn()} />,
+    )
+
+    expect(screen.getByTestId('patient-details-document')).toHaveTextContent('Não informado')
+  })
+
+  it('does not render "Vinculado a" or "Dependentes" sections for a standalone patient', () => {
+    renderWithProviders(<PatientDetails patient={patient} onDeleteClick={jest.fn()} />)
+
+    expect(screen.queryByTestId('patient-details-responsible')).not.toBeInTheDocument()
+    expect(screen.queryByTestId('patient-details-dependents')).not.toBeInTheDocument()
+  })
+
+  it('renders "Vinculado a" section with titular name, kinship and link for a dependent patient', () => {
+    const dependent: IPatientModel = {
+      ...patient,
+      documentNumber: null,
+      responsiblePatientId: 'titular-uuid',
+      kinshipType: KinshipType.FILHO,
+      responsiblePatient: { id: 'titular-uuid', fullName: 'Maria Silva', documentNumber: '11122233344' },
+    }
+
+    renderWithProviders(<PatientDetails patient={dependent} onDeleteClick={jest.fn()} />)
+
+    expect(screen.getByTestId('patient-details-responsible')).toHaveTextContent('Maria Silva')
+    expect(screen.getByTestId('patient-details-responsible')).toHaveTextContent('Filho(a)')
+    expect(screen.getByTestId('patient-details-responsible-link')).toHaveAttribute(
+      'href',
+      expect.stringContaining('/patients/titular-uuid'),
+    )
+  })
+
+  it('renders "Dependentes" section listing each dependent with kinship and link for a titular patient', () => {
+    const titular: IPatientModel = {
+      ...patient,
+      dependents: [
+        { id: 'dependent-1', fullName: 'Bebê Silva', kinshipType: KinshipType.FILHO },
+        { id: 'dependent-2', fullName: 'Ana Silva', kinshipType: KinshipType.CONJUGE },
+      ],
+    }
+
+    renderWithProviders(<PatientDetails patient={titular} onDeleteClick={jest.fn()} />)
+
+    const section = screen.getByTestId('patient-details-dependents')
+    expect(section).toHaveTextContent('Bebê Silva')
+    expect(section).toHaveTextContent('Filho(a)')
+    expect(section).toHaveTextContent('Ana Silva')
+    expect(section).toHaveTextContent('Cônjuge')
+
+    const links = screen.getAllByTestId('patient-details-dependent-link')
+    expect(links).toHaveLength(2)
+    expect(links[0]).toHaveAttribute('href', expect.stringContaining('/patients/dependent-1'))
+    expect(links[1]).toHaveAttribute('href', expect.stringContaining('/patients/dependent-2'))
   })
 })

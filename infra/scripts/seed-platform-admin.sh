@@ -14,7 +14,7 @@ set -euo pipefail
 #   ADMIN_EMAIL=admin@pulso.center ADMIN_PASSWORD='a-strong-password' \
 #     [ADMIN_NAME='Platform Admin'] bash infra/scripts/seed-platform-admin.sh <environment>
 #
-#   environment : staging | production
+#   environment : production
 
 ENVIRONMENT="${1:-}"
 WORKLOAD_PROFILE="${WORKLOAD_PROFILE:-pulso-workload}"
@@ -24,8 +24,8 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 BACKEND_DIR="$SCRIPT_DIR/../../apps/backend"
 SEED_JS="$BACKEND_DIR/scripts/seed-platform-admin.js"
 
-if [[ "$ENVIRONMENT" != "staging" && "$ENVIRONMENT" != "production" ]]; then
-  echo "Usage: ADMIN_EMAIL=.. ADMIN_PASSWORD=.. bash infra/scripts/seed-platform-admin.sh <staging|production>" >&2
+if [[ "$ENVIRONMENT" != "production" ]]; then
+  echo "Usage: ADMIN_EMAIL=.. ADMIN_PASSWORD=.. bash infra/scripts/seed-platform-admin.sh production" >&2
   exit 1
 fi
 : "${ADMIN_EMAIL:?ADMIN_EMAIL is required}"
@@ -106,5 +106,4 @@ if [[ "$STATUS" != "Success" ]]; then
     --profile "$WORKLOAD_PROFILE" --region "$AWS_REGION" --query 'StandardErrorContent' --output text >&2 || true
   exit 1
 fi
-BASE_DOMAIN=$([[ "$ENVIRONMENT" == "staging" ]] && echo "staging.pulso.center" || echo "pulso.center")
-echo "Done. Log in at https://backoffice.${BASE_DOMAIN} with ${ADMIN_EMAIL}."
+echo "Done. Log in at https://backoffice.pulso.center with ${ADMIN_EMAIL}."

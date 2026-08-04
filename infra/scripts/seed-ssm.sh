@@ -19,12 +19,12 @@ set -euo pipefail
 #   JWT_SECRET=... [SMTP_PASS=...] [AWS_S3_BUCKET=...] [SMTP_HOST=...] [SMTP_USER=...] \
 #     bash infra/scripts/seed-ssm.sh <environment> [apply]
 #
-#   environment : staging | production | development
+#   environment : production | development
 #   apply       : without it, runs in dry-run (prints the put-parameter calls)
 #
 # Examples:
-#   JWT_SECRET=$(openssl rand -base64 48) bash infra/scripts/seed-ssm.sh staging       # dry-run
-#   JWT_SECRET=$(openssl rand -base64 48) bash infra/scripts/seed-ssm.sh staging apply  # write
+#   JWT_SECRET=$(openssl rand -base64 48) bash infra/scripts/seed-ssm.sh production       # dry-run
+#   JWT_SECRET=$(openssl rand -base64 48) bash infra/scripts/seed-ssm.sh production apply  # write
 
 ENVIRONMENT="${1:-}"
 ACTION="${2:-dry-run}"
@@ -32,8 +32,8 @@ ACTION="${2:-dry-run}"
 WORKLOAD_PROFILE="${WORKLOAD_PROFILE:-pulso-workload}"
 AWS_REGION="${AWS_REGION:-us-east-1}"
 
-if [[ "$ENVIRONMENT" != "staging" && "$ENVIRONMENT" != "production" && "$ENVIRONMENT" != "development" ]]; then
-  echo "ERROR: environment must be one of: staging | production | development" >&2
+if [[ "$ENVIRONMENT" != "production" && "$ENVIRONMENT" != "development" ]]; then
+  echo "ERROR: environment must be one of: production | development" >&2
   echo "Usage: bash infra/scripts/seed-ssm.sh <environment> [apply]" >&2
   exit 1
 fi
@@ -50,13 +50,8 @@ REDIS_PORT="${REDIS_PORT:-6379}"
 JWT_EXPIRATION="${JWT_EXPIRATION:-900s}"
 JWT_REFRESH_EXPIRATION="${JWT_REFRESH_EXPIRATION:-7d}"
 
-# Domain-derived values. Staging runs under staging.pulso.center; production and
-# other envs under pulso.center. Override BASE_DOMAIN to change all three at once.
-if [[ "$ENVIRONMENT" == "staging" ]]; then
-  BASE_DOMAIN="${BASE_DOMAIN:-staging.pulso.center}"
-else
-  BASE_DOMAIN="${BASE_DOMAIN:-pulso.center}"
-fi
+# Domain-derived values. Override BASE_DOMAIN to change all three at once.
+BASE_DOMAIN="${BASE_DOMAIN:-pulso.center}"
 COOKIE_DOMAIN="${COOKIE_DOMAIN:-.${BASE_DOMAIN}}"
 PUBLIC_API_URL="${PUBLIC_API_URL:-https://api.${BASE_DOMAIN}}"
 FRONTEND_URL="${FRONTEND_URL:-https://backoffice.${BASE_DOMAIN}}"

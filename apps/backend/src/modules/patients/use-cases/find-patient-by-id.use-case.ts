@@ -33,7 +33,13 @@ export class FindPatientByIdUseCase extends BaseUseCase {
     const patient = await this.patientsRepository.findById(id, clinicId)
     if (!patient) throw new NotFoundException('Patient not found')
 
-    const response = this.toResponse(patient)
+    let responsiblePatient: Patient | null = null
+    if (patient.responsiblePatientId) {
+      responsiblePatient = await this.patientsRepository.findById(patient.responsiblePatientId, clinicId)
+    }
+    const dependents = await this.patientsRepository.findActiveDependents(id, clinicId)
+
+    const response = this.toResponse(patient, responsiblePatient, dependents)
 
     try {
       await this.cacheService.set(cacheKey, response, 300)
@@ -44,7 +50,7 @@ export class FindPatientByIdUseCase extends BaseUseCase {
     return response
   }
 
-  private toResponse(patient: Patient): PatientResponseDto {
+  private toResponse(patient: Patient, responsiblePatient: Patient | null, dependents: Patient[]): PatientResponseDto {
     return {
       id: patient.id,
       user: {
@@ -57,6 +63,16 @@ export class FindPatientByIdUseCase extends BaseUseCase {
       phoneNumber: patient.phoneNumber,
       birthDate: patient.birthDate,
       gender: patient.gender,
+      responsiblePatientId: patient.responsiblePatientId,
+      kinshipType: patient.kinshipType,
+      responsiblePatient: responsiblePatient
+        ? {
+            id: responsiblePatient.id,
+            fullName: responsiblePatient.user.fullName,
+            documentNumber: responsiblePatient.documentNumber,
+          }
+        : null,
+      dependents: dependents.map((d) => ({ id: d.id, fullName: d.user.fullName, kinshipType: d.kinshipType! })),
       createdAt: patient.createdAt,
       updatedAt: patient.updatedAt,
     }

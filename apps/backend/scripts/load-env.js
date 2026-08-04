@@ -7,7 +7,7 @@ async function loadEnv() {
   // container, cwd is /app — both stay consistent between writer and reader.
   const envPath = path.resolve(process.cwd(), '.env.local')
   const NODE_ENV = process.env.NODE_ENV ?? 'development'
-  // The SSM path segment is the DEPLOY environment (staging | production), which
+  // The SSM path segment is the DEPLOY environment (production), which
   // is distinct from NODE_ENV (always 'production' in optimized prod builds).
   // Falls back to NODE_ENV for local dev.
   const PARAMETER_STORE_ENV = process.env.PARAMETER_STORE_ENV ?? NODE_ENV

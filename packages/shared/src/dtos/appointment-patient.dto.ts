@@ -5,6 +5,6 @@ export class AppointmentPatientDto {
   email: string
   phoneNumber: string
   birthDate: string
-  documentNumber: string
+  documentNumber: string | null
   gender: PatientGender
 }

@@ -1,4 +1,4 @@
-import { PatientGender } from '@app/shared'
+import { KinshipType, PatientGender } from '@app/shared'
 import { toCreatePatientDto } from './to-create-patient-dto.mapper'
 
 describe('toCreatePatientDto', () => {
@@ -32,5 +32,21 @@ describe('toCreatePatientDto', () => {
     })
 
     expect(dto.userId).toBe('user-uuid-1')
+  })
+
+  it('maps responsiblePatientId and kinshipType for a dependent without documentNumber', () => {
+    const dto = toCreatePatientDto({
+      fullName: 'Bebê Silva',
+      email: 'bebe@example.com',
+      phoneNumber: input.phoneNumber,
+      birthDate: '2024-01-01',
+      gender: input.gender,
+      responsiblePatientId: 'responsible-uuid',
+      kinshipType: KinshipType.FILHO,
+    })
+
+    expect(dto.documentNumber).toBeUndefined()
+    expect(dto.responsiblePatientId).toBe('responsible-uuid')
+    expect(dto.kinshipType).toBe(KinshipType.FILHO)
   })
 })

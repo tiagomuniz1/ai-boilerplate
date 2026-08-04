@@ -43,6 +43,22 @@ docker compose down
 docker compose down -v  # reset completo do banco
 ```
 
+### Stack completa (proxy + website + roteamento por subdomínio)
+
+O comando acima sobe só Postgres/Redis/Mailpit/backend/frontend em modo "path"
+(`localhost:3010/3011`, o mesmo do dia a dia). Para validar o que antes só
+staging cobria — roteamento por `Host` no nginx, `COOKIE_DOMAIN`, CORS entre
+subdomínios, o app `website` — suba a stack completa:
+
+```bash
+docker compose -f docker-compose.yml -f docker-compose.full.yml up -d --build
+```
+
+Depois acesse `http://<slug>.pulso.localhost`, `http://backoffice.pulso.localhost`,
+`http://pulso.localhost` (website) e `http://api.pulso.localhost/health` — o
+navegador resolve qualquer `*.pulso.localhost` para `127.0.0.1` nativamente, sem
+precisar editar `/etc/hosts`.
+
 ## Banco de dados
 
 ```bash
@@ -78,12 +94,11 @@ yarn workspace @app/frontend cypress:run  # e2e headless
 
 ## Deploy
 
-Via GitHub Actions com acionamento manual. Artefatos enviados para AWS ECS.
+Via GitHub Actions com acionamento manual (`workflow_dispatch`). Artefatos enviados
+para ECR e implantados numa instância EC2 via SSM Run Command. Ver `docs/DEPLOY_RUNBOOK.md`.
 
-| Branch | Ambiente |
-|---|---|
-| `develop` | staging |
-| `main` | production |
+Ambiente único: `production` (branch `main`). Não existe branch `develop` nem
+ambiente de staging na AWS — validação pré-deploy é local via Docker.
 
 Deploy nunca deve ser feito diretamente na máquina local.
 

@@ -12,6 +12,9 @@ const mockPatientsRepository: jest.Mocked<IPatientsRepository> = {
   findById: jest.fn(),
   findByUserId: jest.fn(),
   findByDocumentNumber: jest.fn(),
+  findActiveDependents: jest.fn().mockResolvedValue([]),
+  findResponsiblePatientsByIds: jest.fn().mockResolvedValue([]),
+  findDependentsByResponsibleIds: jest.fn().mockResolvedValue([]),
   create: jest.fn(),
   update: jest.fn(),
   delete: jest.fn(),
@@ -49,6 +52,8 @@ const makePatient = (overrides = {}) => {
     phoneNumber: '(11) 99999-9999',
     birthDate: '1990-05-15',
     gender: PatientGender.MALE,
+    responsiblePatientId: null,
+    kinshipType: null,
     version: 1,
     createdAt: new Date(),
     updatedAt: new Date(),
@@ -129,5 +134,36 @@ describe('FindPatientByIdUseCase', () => {
     const result = await useCase.execute(patient.id, adminCurrentUser)
 
     expect(result.id).toBe(patient.id)
+  })
+
+  it('populates responsiblePatient when the patient is a dependent', async () => {
+    const responsible = makePatient()
+    const patient = makePatient({ documentNumber: null, responsiblePatientId: responsible.id, kinshipType: 'filho' })
+    mockCacheService.get.mockResolvedValue(null)
+    mockPatientsRepository.findById
+      .mockResolvedValueOnce(patient as any)
+      .mockResolvedValueOnce(responsible as any)
+    mockCacheService.set.mockResolvedValue(undefined)
+
+    const result = await useCase.execute(patient.id, adminCurrentUser)
+
+    expect(result.responsiblePatient).toEqual({
+      id: responsible.id,
+      fullName: responsible.user.fullName,
+      documentNumber: responsible.documentNumber,
+    })
+  })
+
+  it('populates dependents when the patient is a titular', async () => {
+    const patient = makePatient()
+    const dependent = makePatient({ responsiblePatientId: patient.id, kinshipType: 'filho' })
+    mockCacheService.get.mockResolvedValue(null)
+    mockPatientsRepository.findById.mockResolvedValue(patient as any)
+    mockPatientsRepository.findActiveDependents.mockResolvedValue([dependent as any])
+    mockCacheService.set.mockResolvedValue(undefined)
+
+    const result = await useCase.execute(patient.id, adminCurrentUser)
+
+    expect(result.dependents).toEqual([{ id: dependent.id, fullName: dependent.user.fullName, kinshipType: 'filho' }])
   })
 })

@@ -32,15 +32,28 @@ export class CreatePatientUseCase extends BaseUseCase {
       throw new UnprocessableEntityException('Either userId or fullName and email are required')
     }
 
-    const existingDocument = await this.patientsRepository.findByDocumentNumber(dto.documentNumber, clinicId)
+    const existingDocument = dto.documentNumber
+      ? await this.patientsRepository.findByDocumentNumber(dto.documentNumber, clinicId)
+      : null
     if (existingDocument) throw new ConflictException('Patient with this document number already exists')
+
+    let responsiblePatient: Patient | null = null
+    if (dto.responsiblePatientId) {
+      responsiblePatient = await this.patientsRepository.findById(dto.responsiblePatientId, clinicId)
+      if (!responsiblePatient) throw new NotFoundException('Responsible patient not found')
+      if (responsiblePatient.responsiblePatientId) {
+        throw new UnprocessableEntityException('The responsible patient cannot itself be a dependent')
+      }
+    }
 
     const patientData = {
       clinicId,
-      documentNumber: dto.documentNumber,
+      documentNumber: dto.documentNumber ?? null,
       phoneNumber: dto.phoneNumber,
       birthDate: dto.birthDate,
       gender: dto.gender,
+      responsiblePatientId: dto.responsiblePatientId ?? null,
+      kinshipType: dto.kinshipType ?? null,
     }
 
     let patient: Patient
@@ -93,10 +106,10 @@ export class CreatePatientUseCase extends BaseUseCase {
       this.logger.warn('Cache invalidation failed', { context: CreatePatientUseCase.name })
     }
 
-    return this.toResponse(patient)
+    return this.toResponse(patient, responsiblePatient)
   }
 
-  private toResponse(patient: Patient): PatientResponseDto {
+  private toResponse(patient: Patient, responsiblePatient: Patient | null): PatientResponseDto {
     return {
       id: patient.id,
       user: {
@@ -109,6 +122,16 @@ export class CreatePatientUseCase extends BaseUseCase {
       phoneNumber: patient.phoneNumber,
       birthDate: patient.birthDate,
       gender: patient.gender,
+      responsiblePatientId: patient.responsiblePatientId,
+      kinshipType: patient.kinshipType,
+      responsiblePatient: responsiblePatient
+        ? {
+            id: responsiblePatient.id,
+            fullName: responsiblePatient.user.fullName,
+            documentNumber: responsiblePatient.documentNumber,
+          }
+        : null,
+      dependents: [],
       createdAt: patient.createdAt,
       updatedAt: patient.updatedAt,
     }

@@ -5,7 +5,7 @@ import { useForm, Controller, useController, Control } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { useQuery } from '@tanstack/react-query'
-import { PatientGender } from '@app/shared'
+import { KinshipType, KINSHIP_TYPE_LABELS, PatientGender } from '@app/shared'
 import { Input } from '@/components/ui/atoms/input/input'
 import { Button } from '@/components/ui/atoms/button/button'
 import { Alert } from '@/components/ui/molecules/alert/alert'
@@ -13,11 +13,36 @@ import { cn } from '@/lib/cn'
 import { applyPhoneMask, formatPhone } from '@/lib/format-phone'
 import { applyCpfMask, formatCpf } from '@/lib/format-cpf'
 import { userService } from '@/components/features/users/services/users.service'
+import { TitularSearch } from './titular-search'
 import type { ICreatePatientInput, IUpdatePatientInput } from '../types/patient-input.types'
 import type { IPatientModel } from '../types/patient-model.types'
 
+const KINSHIP_TYPES = Object.values(KinshipType)
+
 const phoneRegex = /^\(\d{2}\) \d{4,5}-\d{4}$/
 const documentNumberRegex = /^\d{3}\.\d{3}\.\d{3}-\d{2}$/
+
+const dependentFields = {
+  isDependent: z.boolean(),
+  responsiblePatientId: z.string().optional(),
+  kinshipType: z.string().optional(),
+}
+
+function validateDependentFields(
+  data: { isDependent: boolean; documentNumber?: string; responsiblePatientId?: string; kinshipType?: string },
+  ctx: z.RefinementCtx,
+) {
+  if (data.isDependent) {
+    if (!data.responsiblePatientId) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['responsiblePatientId'], message: 'Selecione o paciente titular' })
+    }
+    if (!data.kinshipType || !(Object.values(KinshipType) as string[]).includes(data.kinshipType)) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['kinshipType'], message: 'Selecione o grau de parentesco' })
+    }
+  } else if (!data.documentNumber || !documentNumberRegex.test(data.documentNumber)) {
+    ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['documentNumber'], message: 'Documento deve ter 11 dígitos numéricos' })
+  }
+}
 
 const patientRequiredFields = {
   phoneNumber: z.string().regex(phoneRegex, 'Telefone inválido. Ex: (11) 99999-9999'),
@@ -31,12 +56,13 @@ const patientRequiredFields = {
       },
       { message: 'Data de nascimento não pode ser futura' },
     ),
-  documentNumber: z.string().regex(documentNumberRegex, 'Documento deve ter 11 dígitos numéricos'),
+  documentNumber: z.string().optional(),
   // z.nativeEnum aborts fatally when invalid, preventing superRefine from running; use z.string().refine
   gender: z.string().refine(
     (val) => (Object.values(PatientGender) as string[]).includes(val),
     { message: 'Selecione um gênero válido' },
   ),
+  ...dependentFields,
 }
 
 const baseFields = {
@@ -48,28 +74,33 @@ const baseFields = {
   }),
 }
 
-const createSchema = z.discriminatedUnion('userMode', [
-  z.object({
-    userMode: z.literal('new'),
-    fullName: z.string().min(3, 'Nome deve ter no mínimo 3 caracteres'),
-    email: z.string().email('E-mail inválido'),
-    ...patientRequiredFields,
-  }),
-  z.object({
-    userMode: z.literal('existing'),
-    userId: z.string({ required_error: 'Selecione um usuário' }).min(1, 'Selecione um usuário'),
-    ...patientRequiredFields,
-  }),
-])
+const createSchema = z
+  .discriminatedUnion('userMode', [
+    z.object({
+      userMode: z.literal('new'),
+      fullName: z.string().min(3, 'Nome deve ter no mínimo 3 caracteres'),
+      email: z.string().email('E-mail inválido'),
+      ...patientRequiredFields,
+    }),
+    z.object({
+      userMode: z.literal('existing'),
+      userId: z.string({ required_error: 'Selecione um usuário' }).min(1, 'Selecione um usuário'),
+      ...patientRequiredFields,
+    }),
+  ])
+  .superRefine(validateDependentFields)
 
-const updateSchema = z.object({
-  fullName: baseFields.fullName.optional().or(z.literal('')),
-  email: baseFields.email.optional().or(z.literal('')),
-  phoneNumber: baseFields.phoneNumber.optional().or(z.literal('')),
-  birthDate: baseFields.birthDate.optional().or(z.literal('')),
-  documentNumber: baseFields.documentNumber.optional().or(z.literal('')),
-  gender: baseFields.gender.optional(),
-})
+const updateSchema = z
+  .object({
+    fullName: baseFields.fullName.optional().or(z.literal('')),
+    email: baseFields.email.optional().or(z.literal('')),
+    phoneNumber: baseFields.phoneNumber.optional().or(z.literal('')),
+    birthDate: baseFields.birthDate.optional().or(z.literal('')),
+    documentNumber: z.string().optional(),
+    gender: baseFields.gender.optional(),
+    ...dependentFields,
+  })
+  .superRefine(validateDependentFields)
 
 type CreateFormValues = {
   userMode: 'existing' | 'new'
@@ -78,8 +109,11 @@ type CreateFormValues = {
   email?: string
   phoneNumber: string
   birthDate: string
-  documentNumber: string
+  documentNumber?: string
   gender: string
+  isDependent: boolean
+  responsiblePatientId?: string
+  kinshipType?: string
 }
 type UpdateFormValues = z.infer<typeof updateSchema>
 
@@ -123,30 +157,36 @@ function PatientFormCreate({ isPending, globalError, onSubmit }: PatientFormCrea
     formState: { errors },
   } = useForm<CreateFormValues>({
     resolver: zodResolver(createSchema),
-    defaultValues: { userMode: 'new' },
+    defaultValues: {
+      userMode: 'new',
+      userId: '',
+      fullName: '',
+      email: '',
+      phoneNumber: '',
+      birthDate: '',
+      gender: '',
+      isDependent: false,
+    },
   })
 
   const { field: userModeField } = useController({ name: 'userMode', control })
+  const { field: isDependentField } = useController({ name: 'isDependent', control })
   const userMode = watch('userMode', 'new')
+  const isDependent = watch('isDependent', false)
 
   function handleFormSubmit(data: CreateFormValues) {
+    const shared = {
+      documentNumber: data.isDependent ? undefined : data.documentNumber?.replace(/\D/g, ''),
+      phoneNumber: data.phoneNumber,
+      birthDate: data.birthDate,
+      gender: data.gender as PatientGender,
+      responsiblePatientId: data.isDependent ? data.responsiblePatientId : undefined,
+      kinshipType: data.isDependent ? (data.kinshipType as KinshipType) : undefined,
+    }
     const input: ICreatePatientInput =
       data.userMode === 'existing'
-        ? {
-            userId: data.userId,
-            documentNumber: data.documentNumber.replace(/\D/g, ''),
-            phoneNumber: data.phoneNumber,
-            birthDate: data.birthDate,
-            gender: data.gender as PatientGender,
-          }
-        : {
-            fullName: data.fullName,
-            email: data.email,
-            documentNumber: data.documentNumber.replace(/\D/g, ''),
-            phoneNumber: data.phoneNumber,
-            birthDate: data.birthDate,
-            gender: data.gender as PatientGender,
-          }
+        ? { userId: data.userId, ...shared }
+        : { fullName: data.fullName, email: data.email, ...shared }
 
     onSubmit(input, setError as (field: keyof ICreatePatientInput, error: { message: string }) => void)
   }
@@ -211,7 +251,7 @@ function PatientFormCreate({ isPending, globalError, onSubmit }: PatientFormCrea
           render={({ field }) => (
             <Input
               {...field}
-              value={applyPhoneMask(field.value ?? '')}
+              value={applyPhoneMask(field.value)}
               onChange={(e) => field.onChange(applyPhoneMask(e.target.value))}
               label="Telefone"
               id="phoneNumber"
@@ -230,22 +270,41 @@ function PatientFormCreate({ isPending, globalError, onSubmit }: PatientFormCrea
           error={errors.birthDate?.message}
           {...register('birthDate')}
         />
-        <Controller
-          name="documentNumber"
-          control={control}
-          render={({ field }) => (
-            <Input
-              {...field}
-              value={applyCpfMask(field.value ?? '')}
-              onChange={(e) => field.onChange(applyCpfMask(e.target.value))}
-              label="Número do documento (CPF)"
-              id="documentNumber"
-              placeholder="000.000.000-00"
-              data-testid="patient-form-document"
-              error={errors.documentNumber?.message}
-            />
-          )}
-        />
+
+        <label className="flex items-center gap-2 cursor-pointer">
+          <input
+            type="checkbox"
+            checked={isDependentField.value}
+            onChange={(e) => isDependentField.onChange(e.target.checked)}
+            data-testid="patient-form-is-dependent"
+          />
+          <span className="text-sm">Este paciente é dependente de outro paciente (titular)</span>
+        </label>
+
+        {isDependent ? (
+          <>
+            <TitularSearch control={control} name="responsiblePatientId" error={errors.responsiblePatientId?.message} />
+            <KinshipSelect registerProps={register('kinshipType')} error={errors.kinshipType?.message} />
+          </>
+        ) : (
+          <Controller
+            name="documentNumber"
+            control={control}
+            render={({ field }) => (
+              <Input
+                {...field}
+                value={applyCpfMask(field.value ?? '')}
+                onChange={(e) => field.onChange(applyCpfMask(e.target.value))}
+                label="Número do documento (CPF)"
+                id="documentNumber"
+                placeholder="000.000.000-00"
+                data-testid="patient-form-document"
+                error={errors.documentNumber?.message}
+              />
+            )}
+          />
+        )}
+
         <GenderSelect registerProps={register('gender')} error={errors.gender?.message} />
         <Button
           type="submit"
@@ -369,10 +428,14 @@ function PatientFormEdit({ defaultValues, isPending, globalError, onSubmit }: Pa
     handleSubmit,
     setError,
     reset,
+    watch,
     formState: { errors },
   } = useForm<UpdateFormValues>({
     resolver: zodResolver(updateSchema),
   })
+
+  const { field: isDependentField } = useController({ name: 'isDependent', control })
+  const isDependent = watch('isDependent', false)
 
   useEffect(() => {
     reset({
@@ -382,6 +445,9 @@ function PatientFormEdit({ defaultValues, isPending, globalError, onSubmit }: Pa
       birthDate: defaultValues.birthDate.toISOString().split('T')[0],
       documentNumber: formatCpf(defaultValues.documentNumber),
       gender: defaultValues.gender,
+      isDependent: !!defaultValues.responsiblePatientId,
+      responsiblePatientId: defaultValues.responsiblePatientId ?? undefined,
+      kinshipType: defaultValues.kinshipType ?? undefined,
     })
   }, [defaultValues, reset])
 
@@ -392,7 +458,16 @@ function PatientFormEdit({ defaultValues, isPending, globalError, onSubmit }: Pa
       phoneNumber: data.phoneNumber || undefined,
       birthDate: data.birthDate || undefined,
       gender: data.gender,
+      documentNumber: data.documentNumber ? data.documentNumber.replace(/\D/g, '') : undefined,
     }
+
+    if (data.isDependent) {
+      input.responsiblePatientId = data.responsiblePatientId
+      input.kinshipType = data.kinshipType as KinshipType
+    } else if (defaultValues.responsiblePatientId) {
+      input.responsiblePatientId = null
+    }
+
     onSubmit(input, setError as (field: keyof IUpdatePatientInput, error: { message: string }) => void)
   }
 
@@ -444,6 +519,34 @@ function PatientFormEdit({ defaultValues, isPending, globalError, onSubmit }: Pa
           error={errors.birthDate?.message}
           {...register('birthDate')}
         />
+
+        <label className="flex items-center gap-2 cursor-pointer">
+          <input
+            type="checkbox"
+            checked={isDependentField.value}
+            onChange={(e) => isDependentField.onChange(e.target.checked)}
+            data-testid="patient-form-is-dependent"
+          />
+          <span className="text-sm">Este paciente é dependente de outro paciente (titular)</span>
+        </label>
+
+        {isDependent && (
+          <>
+            <TitularSearch
+              control={control}
+              name="responsiblePatientId"
+              currentPatientId={defaultValues.id}
+              initialLabel={
+                defaultValues.responsiblePatient
+                  ? `${defaultValues.responsiblePatient.fullName} (${formatCpf(defaultValues.responsiblePatient.documentNumber)})`
+                  : undefined
+              }
+              error={errors.responsiblePatientId?.message}
+            />
+            <KinshipSelect registerProps={register('kinshipType')} error={errors.kinshipType?.message} />
+          </>
+        )}
+
         <Controller
           name="documentNumber"
           control={control}
@@ -506,6 +609,50 @@ function GenderSelect({
         <option value={PatientGender.MALE}>Masculino</option>
         <option value={PatientGender.FEMALE}>Feminino</option>
         <option value={PatientGender.OTHER}>Outro</option>
+      </select>
+      {error && (
+        <span id={`${selectId}-error`} role="alert" className="text-xs text-danger">
+          {error}
+        </span>
+      )}
+    </div>
+  )
+}
+
+function KinshipSelect({
+  registerProps,
+  error,
+}: {
+  registerProps: React.SelectHTMLAttributes<HTMLSelectElement> & { name: string }
+  error?: string
+}) {
+  const selectId = 'kinshipType'
+  return (
+    <div className="flex flex-col gap-1.5">
+      <label htmlFor={selectId} className="text-sm font-medium text-text">
+        Grau de parentesco
+      </label>
+      <select
+        id={selectId}
+        aria-invalid={!!error}
+        aria-describedby={error ? `${selectId}-error` : undefined}
+        className={cn(
+          'h-10 w-full rounded-md px-3 text-base',
+          'bg-surface border border-line',
+          'text-text',
+          'transition-colors duration-150',
+          'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-bg',
+          error && 'border-danger focus-visible:ring-danger',
+        )}
+        data-testid="patient-form-kinship-type"
+        {...registerProps}
+      >
+        <option value="">Selecione...</option>
+        {KINSHIP_TYPES.map((kinshipType) => (
+          <option key={kinshipType} value={kinshipType}>
+            {KINSHIP_TYPE_LABELS[kinshipType]}
+          </option>
+        ))}
       </select>
       {error && (
         <span id={`${selectId}-error`} role="alert" className="text-xs text-danger">

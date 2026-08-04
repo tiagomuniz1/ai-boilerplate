@@ -31,14 +31,13 @@ services:
     environment:
       NODE_ENV: production
       AWS_REGION: ${AWS_REGION:-us-east-1}
-      PARAMETER_STORE_ENV: ${PARAMETER_STORE_ENV:-production} # deploy env for the SSM path (staging|production)
+      PARAMETER_STORE_ENV: ${PARAMETER_STORE_ENV:-production} # deploy env for the SSM path
     depends_on:
       backend:
         condition: service_healthy
     restart: unless-stopped
 
-  # Institutional landing served on the base domain (staging.pulso.center /
-  # pulso.center). Fully static — no SSM/secrets; NEXT_PUBLIC_REGISTER_URL is baked
+  # Institutional landing served on the base domain (pulso.center). Fully static — no SSM/secrets; NEXT_PUBLIC_REGISTER_URL is baked
   # into the image at build time by the pipeline.
   website:
     image: ${ECR_REGISTRY}/pulso-website:${IMAGE_TAG:-latest}
@@ -54,7 +53,7 @@ services:
       NODE_ENV: production
       PORT: 3001
       AWS_REGION: ${AWS_REGION:-us-east-1} # lets load-env.js find /pulso/<env>/backend/
-      PARAMETER_STORE_ENV: ${PARAMETER_STORE_ENV:-production} # deploy env for the SSM path (staging|production)
+      PARAMETER_STORE_ENV: ${PARAMETER_STORE_ENV:-production} # deploy env for the SSM path
     depends_on:
       migrate:
         condition: service_completed_successfully
@@ -76,7 +75,7 @@ services:
     environment:
       NODE_ENV: production
       AWS_REGION: ${AWS_REGION:-us-east-1}
-      PARAMETER_STORE_ENV: ${PARAMETER_STORE_ENV:-production} # deploy env for the SSM path (staging|production)
+      PARAMETER_STORE_ENV: ${PARAMETER_STORE_ENV:-production} # deploy env for the SSM path
     restart: "no"
 
   redis:

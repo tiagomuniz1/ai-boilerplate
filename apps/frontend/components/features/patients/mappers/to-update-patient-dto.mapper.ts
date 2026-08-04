@@ -8,5 +8,8 @@ export function toUpdatePatientDto(input: IUpdatePatientInput): UpdatePatientDto
     phoneNumber: input.phoneNumber,
     birthDate: input.birthDate,
     gender: input.gender,
+    documentNumber: input.documentNumber,
+    responsiblePatientId: input.responsiblePatientId,
+    kinshipType: input.kinshipType,
   }
 }
