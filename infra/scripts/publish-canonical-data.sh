@@ -5,13 +5,14 @@ set -euo pipefail
 # backend container on the EC2 host (SSM Run Command — no SSH):
 #   themes           — the platform theme catalogue (fast)
 #   canonical-fields — the medical-record canonical field catalogue (fast)
+#   specialties      — the CRM specialty catalogue (fast)
 #   medications      — the ANVISA open-data base (~36k rows, downloaded on the host)
 # All imports are idempotent (upsert), so it is safe to re-run.
 #
 # Usage:
 #   bash infra/scripts/publish-canonical-data.sh <environment> [dataset]
 #     environment : production
-#     dataset     : all (default) | themes | canonical-fields | medications
+#     dataset     : all (default) | themes | canonical-fields | specialties | medications
 
 ENVIRONMENT="${1:-}"
 DATASET="${2:-all}"
@@ -19,21 +20,23 @@ WORKLOAD_PROFILE="${WORKLOAD_PROFILE:-pulso-workload}"
 AWS_REGION="${AWS_REGION:-us-east-1}"
 
 if [[ "$ENVIRONMENT" != "production" ]]; then
-  echo "Usage: bash infra/scripts/publish-canonical-data.sh production [all|themes|canonical-fields|medications]" >&2
+  echo "Usage: bash infra/scripts/publish-canonical-data.sh production [all|themes|canonical-fields|specialties|medications]" >&2
   exit 1
 fi
 
 case "$DATASET" in
   all)
-    SEED_STEPS='node apps/backend/dist/database/seeds/run-import-themes.js && node apps/backend/dist/database/seeds/run-import-canonical-fields.js && node apps/backend/dist/database/seeds/run-import-medications.js' ;;
+    SEED_STEPS='node apps/backend/dist/database/seeds/run-import-themes.js && node apps/backend/dist/database/seeds/run-import-canonical-fields.js && node apps/backend/dist/database/seeds/run-import-specialties.js && node apps/backend/dist/database/seeds/run-import-medications.js' ;;
   themes)
     SEED_STEPS='node apps/backend/dist/database/seeds/run-import-themes.js' ;;
   canonical-fields)
     SEED_STEPS='node apps/backend/dist/database/seeds/run-import-canonical-fields.js' ;;
+  specialties)
+    SEED_STEPS='node apps/backend/dist/database/seeds/run-import-specialties.js' ;;
   medications)
     SEED_STEPS='node apps/backend/dist/database/seeds/run-import-medications.js' ;;
   *)
-    echo "Unknown dataset '$DATASET'. Use: all | themes | canonical-fields | medications" >&2
+    echo "Unknown dataset '$DATASET'. Use: all | themes | canonical-fields | specialties | medications" >&2
     exit 1 ;;
 esac
 

@@ -11,6 +11,12 @@
 
 ### Added
 
+#### Catálogo canônico de especialidades (CRM)
+- Novo importador `run-import-specialties.ts` (mesmo padrão de `run-import-themes.ts`/`run-import-medications.ts`) — publica o catálogo canônico de especialidades médicas (CRM) definido em `canonical-specialties.ts`, idempotente por `name` (case-insensitive)
+- Lista inicial curada com foco em atendimento de consultório: Cardiologia, Clínica Médica, Dermatologia, Endocrinologia e Metabologia, Geriatria, Ginecologia e Obstetrícia, Hematologia e Hemoterapia, Mastologia, Nutrologia, Oftalmologia, Oncologia Clínica, Ortopedia e Traumatologia, Otorrinolaringologia, Pediatria, Psiquiatria, Reumatologia, Urologia
+- `Specialty` é um conceito exclusivo de CRM neste sistema (demais conselhos usam `councilType` direto, sem especialidade) — lista não inclui especialidades hospitalares/laboratoriais sem fluxo de consultório (Anestesiologia, Patologia, Radiologia, etc.)
+- Novo dataset `specialties` em `infra/scripts/publish-canonical-data.sh`
+
 #### CAPTCHA no login a partir da 3ª tentativa (backoffice + clínicas)
 - `POST /auth/login` passa a exigir a resolução de um captcha (Cloudflare Turnstile) a partir da 3ª tentativa de login (2 falhas já registradas) para o mesmo e-mail — cobre tanto o login do backoffice quanto o de cada clínica, já que os dois passam pelo mesmo `LoginUseCase`
 - Contador de tentativas falhas em Redis, chave `login-attempts:<backoffice|slug>:<email>` (TTL de 15 min, `CacheService.increment` novo — `INCR` + `EXPIRE ... NX`), escopado por e-mail + ambiente (backoffice e cada clínica têm contadores independentes para o mesmo e-mail); limpo automaticamente no login bem-sucedido
