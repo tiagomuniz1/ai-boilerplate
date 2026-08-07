@@ -7,6 +7,7 @@ import {
   UpdateDateColumn,
   VersionColumn,
 } from 'typeorm'
+import { SubscriptionPlan } from '@app/shared'
 
 @Entity('clinics')
 export class Clinic {
@@ -21,6 +22,9 @@ export class Clinic {
 
   @Column({ name: 'is_active', default: true })
   isActive: boolean
+
+  @Column({ type: 'varchar', length: 20, default: SubscriptionPlan.FREE })
+  plan: SubscriptionPlan
 
   @Column({ name: 'address_street', type: 'varchar', length: 255, nullable: true })
   addressStreet: string | null

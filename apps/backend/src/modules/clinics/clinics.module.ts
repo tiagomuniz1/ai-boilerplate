@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common'
+import { forwardRef, Module } from '@nestjs/common'
 import { TypeOrmModule } from '@nestjs/typeorm'
 import { CacheModule } from '../../cache/cache.module'
 import { IStorageAdapter } from '../../common/adapters/storage.adapter.interface'
@@ -6,6 +6,7 @@ import { StorageAdapter } from '../../common/adapters/storage.adapter'
 import { LocalStorageAdapter } from '../../common/adapters/local-storage.adapter'
 import { ClinicAssetUrlService } from '../../common/services/clinic-asset-url.service'
 import { UsersModule } from '../users/users.module'
+import { ProfessionalsModule } from '../professionals/professionals.module'
 import { Clinic } from './entities/clinic.entity'
 import { ClinicsController } from './controllers/clinics.controller'
 import { ClinicResponseMapper } from './mappers/clinic-response.mapper'
@@ -22,7 +23,9 @@ import { IClinicsRepository } from './repositories/clinics.repository.interface'
 import { ClinicsRepository } from './repositories/clinics.repository'
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Clinic]), CacheModule, UsersModule],
+  // Circular by business rule: plan-cap enforcement needs the professional count
+  // (update-clinic, find-by-id) while create-professional needs the clinic's plan.
+  imports: [TypeOrmModule.forFeature([Clinic]), CacheModule, UsersModule, forwardRef(() => ProfessionalsModule)],
   controllers: [ClinicsController],
   providers: [
     CreateClinicUseCase,
@@ -45,6 +48,6 @@ import { ClinicsRepository } from './repositories/clinics.repository'
           : new LocalStorageAdapter(),
     },
   ],
-  exports: [FindClinicByIdUseCase, FindClinicBySlugUseCase],
+  exports: [FindClinicByIdUseCase, FindClinicBySlugUseCase, IClinicsRepository],
 })
 export class ClinicsModule {}

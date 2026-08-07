@@ -5,7 +5,7 @@ import { faker } from '@faker-js/faker'
 import * as bcrypt from 'bcrypt'
 import * as request from 'supertest'
 import { Repository } from 'typeorm'
-import { CouncilType, UserRole } from '@app/shared'
+import { CouncilType, SubscriptionPlan, UserRole } from '@app/shared'
 import { AppModule } from '../../../app.module'
 import { Clinic } from '../../clinics/entities/clinic.entity'
 import { User } from '../../users/entities/user.entity'
@@ -849,6 +849,37 @@ describe('ProfessionalsController (integration)', () => {
 
       const ids = usersPage.data.map((u: { id: string }) => u.id)
       expect(ids).not.toContain(doctorRoleUser.id)
+    })
+  })
+
+  describe('subscription plan cap (POST /professionals)', () => {
+    // The seed already registers one professional in SEED_CLINIC_ID, so the clinic
+    // starts with 1. On Solo (cap 1) it is therefore already full.
+    it('blocks creating a professional beyond the plan cap (Solo = 1)', async () => {
+      await clinicRepository.update(SEED_CLINIC_ID, { plan: SubscriptionPlan.SOLO })
+      const target = await createTargetUser()
+
+      const { body } = await createProfessional(target.id, { crmNumber: '22222/SP' }).expect(422)
+      expect(body.detail).toContain('Solo')
+    })
+
+    it('allows additional professionals on the Free plan (default, unlimited)', async () => {
+      const u1 = await createTargetUser()
+      const u2 = await createTargetUser()
+
+      await createProfessional(u1.id, { crmNumber: '33333/SP' }).expect(201)
+      await createProfessional(u2.id, { crmNumber: '44444/SP' }).expect(201)
+    })
+
+    it('allows creation right up to the cap (Clínica = 5)', async () => {
+      await clinicRepository.update(SEED_CLINIC_ID, { plan: SubscriptionPlan.CLINICA })
+      // Clinic already has 1 seeded professional; add 4 more to reach the cap of 5.
+      for (let i = 0; i < 4; i++) {
+        const u = await createTargetUser()
+        await createProfessional(u.id, { crmNumber: `5000${i}/SP` }).expect(201)
+      }
+      const overflow = await createTargetUser()
+      await createProfessional(overflow.id, { crmNumber: '50009/SP' }).expect(422)
     })
   })
 })

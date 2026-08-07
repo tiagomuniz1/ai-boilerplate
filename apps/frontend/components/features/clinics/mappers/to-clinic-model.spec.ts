@@ -1,3 +1,4 @@
+import { SubscriptionPlan } from '@app/shared'
 import { toClinicModel } from './to-clinic-model'
 
 const makeAddress = () => ({
@@ -16,6 +17,7 @@ const makeDto = (overrides: object = {}) => ({
   name: 'Clínica do Coração',
   slug: 'clinica-do-coracao',
   isActive: true,
+  plan: SubscriptionPlan.FREE,
   logoUrl: null as string | null,
   faviconUrl: null as string | null,
   address: makeAddress(),
@@ -118,5 +120,16 @@ describe('toClinicModel', () => {
     const model = toClinicModel(makeDto({ faviconUrl: null }))
 
     expect(model.faviconUrl).toBeNull()
+  })
+
+  it('maps the plan through', () => {
+    const model = toClinicModel(makeDto({ plan: SubscriptionPlan.CLINICA }))
+
+    expect(model.plan).toBe(SubscriptionPlan.CLINICA)
+  })
+
+  it('maps professionalCount when present and leaves it undefined when absent', () => {
+    expect(toClinicModel(makeDto({ professionalCount: 3 })).professionalCount).toBe(3)
+    expect(toClinicModel(makeDto()).professionalCount).toBeUndefined()
   })
 })

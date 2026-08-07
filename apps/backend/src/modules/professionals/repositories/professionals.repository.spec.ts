@@ -43,6 +43,7 @@ function makeRepo(): jest.Mocked<Repository<Professional>> {
     findOneBy: jest.fn(),
     softDelete: jest.fn(),
     findOne: jest.fn(),
+    count: jest.fn(),
     createQueryBuilder: jest.fn(),
     manager,
   } as unknown as jest.Mocked<Repository<Professional>>
@@ -201,6 +202,17 @@ describe('ProfessionalsRepository', () => {
       repo.createQueryBuilder.mockReturnValue(qb)
 
       expect(await repository.findByRegistration(CouncilType.CRN, '99999', 'RJ', CLINIC_ID)).toBeNull()
+    })
+  })
+
+  describe('countByClinic', () => {
+    it('counts professionals scoped to the clinic', async () => {
+      ;(repo.count as jest.Mock).mockResolvedValue(3)
+
+      const result = await repository.countByClinic(CLINIC_ID)
+
+      expect(repo.count).toHaveBeenCalledWith({ where: { clinicId: CLINIC_ID } })
+      expect(result).toBe(3)
     })
   })
 

@@ -11,6 +11,7 @@ import { Tabs } from '@/components/ui/atoms/tabs/tabs'
 import { useAppointment } from '@/components/features/appointments/hooks/use-appointment.hook'
 import { useCompleteAppointment } from '@/components/features/appointments/hooks/use-complete-appointment.hook'
 import { useCancelAppointment } from '@/components/features/appointments/hooks/use-cancel-appointment.hook'
+import { useReassignAppointment } from '@/components/features/appointments/hooks/use-reassign-appointment.hook'
 import { useProfessionals } from '@/components/features/professionals/hooks/use-professionals.hook'
 import { usePrescriptions } from '@/components/features/prescriptions/hooks/use-prescriptions.hook'
 import { useAtestados } from '@/components/features/atestados/hooks/use-atestados.hook'
@@ -26,6 +27,7 @@ import { ExameSection } from '@/components/features/exames/components/exame-sect
 import { PhotoSection } from '@/components/features/consultation-photos/components/photo-section'
 import { CancelAppointmentDialog } from '@/components/features/appointments/components/cancel-appointment-dialog'
 import { CompleteAppointmentDialog } from '@/components/features/appointments/components/complete-appointment-dialog'
+import { ReassignProfessionalDialog } from '@/components/features/appointments/components/reassign-professional-dialog'
 import type { IApiError } from '@/types/api.types'
 
 type TabId = 'resumo' | 'prontuario' | 'receitas' | 'atestados' | 'exames' | 'fotos'
@@ -44,14 +46,19 @@ export default function AppointmentDetailPage() {
 
   const { mutate: complete, isPending: isCompleting, error: completeError } = useCompleteAppointment()
   const { mutate: cancel, isPending: isCancelling } = useCancelAppointment()
+  const { mutate: reassign, isPending: isReassigning, error: reassignError, reset: resetReassign } =
+    useReassignAppointment()
 
   const [activeTab, setActiveTab] = useState<TabId>('resumo')
   const [showCancelDialog, setShowCancelDialog] = useState(false)
   const [showCompleteDialog, setShowCompleteDialog] = useState(false)
+  const [showReassignDialog, setShowReassignDialog] = useState(false)
 
   const canManage =
     role === UserRole.ADMIN ||
     (role === UserRole.PROFESSIONAL && appointment?.professionalId === currentDoctorId)
+
+  const canReassign = role === UserRole.ADMIN && appointment?.status === AppointmentStatus.SCHEDULED
 
   const canSeeMedicalRecord =
     role === UserRole.ADMIN ||
@@ -85,6 +92,30 @@ export default function AppointmentDetailPage() {
       { id, data: { cancellationReason } },
       {
         onSuccess: () => setShowCancelDialog(false),
+      },
+    )
+  }
+
+  const reassignApiError = reassignError as IApiError | null
+  const reassignErrorMessage =
+    reassignApiError?.status === 422
+      ? 'Este profissional não está disponível para esta consulta. Escolha outro.'
+      : reassignApiError?.status === 409
+        ? 'O horário deste profissional acabou de ser preenchido. Escolha outro.'
+        : reassignApiError
+          ? 'Ocorreu um erro ao trocar o profissional. Tente novamente.'
+          : null
+
+  function handleOpenReassign() {
+    resetReassign()
+    setShowReassignDialog(true)
+  }
+
+  function handleReassignConfirm(professionalId: string) {
+    reassign(
+      { id, professionalId },
+      {
+        onSuccess: () => setShowReassignDialog(false),
       },
     )
   }
@@ -140,11 +171,13 @@ export default function AppointmentDetailPage() {
               appointment={appointment}
               canManage={canManage}
               canAct={!!canAct}
+              canReassign={canReassign}
               hasRecord={!!record}
               onBack={() => router.back()}
               onFillRecord={() => setActiveTab('prontuario')}
               onCancel={() => setShowCancelDialog(true)}
               onComplete={() => setShowCompleteDialog(true)}
+              onReassign={handleOpenReassign}
               isPendingComplete={isCompleting}
               isPendingCancel={isCancelling}
             />
@@ -225,6 +258,18 @@ export default function AppointmentDetailPage() {
         {/* Mobile sticky action bar */}
         {appointment && canAct && (
           <div className="fixed bottom-0 inset-x-0 flex gap-3 bg-surface border-t border-border p-4 sm:hidden">
+            {canReassign && (
+              <Button
+                type="button"
+                variant="ghost"
+                disabled={isCancelling || isCompleting || isReassigning}
+                onClick={handleOpenReassign}
+                className="flex-1"
+                data-testid="appointment-detail-reassign-button-mobile"
+              >
+                Trocar
+              </Button>
+            )}
             <Button
               type="button"
               variant="ghost"
@@ -265,6 +310,17 @@ export default function AppointmentDetailPage() {
           isPending={isCompleting}
           onClose={() => setShowCompleteDialog(false)}
           onConfirm={handleCompleteConfirm}
+        />
+      )}
+
+      {appointment && canReassign && (
+        <ReassignProfessionalDialog
+          isOpen={showReassignDialog}
+          appointmentId={id}
+          isPending={isReassigning}
+          errorMessage={reassignErrorMessage}
+          onClose={() => setShowReassignDialog(false)}
+          onConfirm={handleReassignConfirm}
         />
       )}
     </>

@@ -13,6 +13,7 @@ const mockCreatedClinic = {
   name: 'Clínica Teste E2E',
   slug: 'clinica-teste-e2e',
   isActive: true,
+  plan: 'free',
   createdAt: '2024-01-15T10:00:00.000Z',
   updatedAt: '2024-01-15T10:00:00.000Z',
 }
@@ -146,6 +147,23 @@ describe('Clinics Create', () => {
         country: 'BR',
       },
     })
+  })
+
+  it('defaults the plan select to Grátis and submits the selected plan', () => {
+    cy.intercept('POST', `${Cypress.env('API_URL')}/clinics`, {
+      statusCode: 201,
+      body: mockCreatedClinic,
+    }).as('createClinic')
+    cy.intercept('GET', `${Cypress.env('API_URL')}/clinics*`, { statusCode: 200, body: emptyListResponse })
+
+    visitBackoffice('/clinics/new', mockPlatformAdmin)
+
+    cy.get('[data-testid="clinic-form-plan"]').should('have.value', 'free')
+    cy.get('[data-testid="clinic-form-plan"]').select('clinica')
+    fillClinicForm()
+    cy.get('[data-testid="clinic-form-submit"]').click()
+
+    cy.wait('@createClinic').its('request.body').should('include', { plan: 'clinica' })
   })
 
   it('shows a loading state while the theme list is being fetched', () => {

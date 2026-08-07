@@ -5,6 +5,7 @@ jest.mock('@/components/features/themes/hooks/use-themes.hook')
 import { screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { useRouter } from 'next/navigation'
+import { SubscriptionPlan } from '@app/shared'
 import { useThemes } from '@/components/features/themes/hooks/use-themes.hook'
 import { renderWithProviders } from '@/tests/utils/render-with-providers'
 import { ClinicForm } from './clinic-form'
@@ -51,6 +52,7 @@ const existingClinic: IClinicModel = {
   name: 'Clínica do Coração',
   slug: 'clinica-do-coracao',
   isActive: true,
+  plan: SubscriptionPlan.CLINICA,
   themeId: null,
   logoUrl: null,
   logoDarkUrl: null,
@@ -170,6 +172,53 @@ describe('ClinicForm (integration) — create mode', () => {
     await waitFor(() => {
       expect(onSubmit).toHaveBeenCalledWith(
         expect.objectContaining({ name: 'Clínica Nova', slug: 'clinica-nova' }),
+        expect.any(Function),
+      )
+    })
+  })
+
+  it('renders the plan select with all plan options and defaults to Grátis', () => {
+    renderWithProviders(<ClinicForm mode="create" isPending={false} onSubmit={jest.fn()} />)
+
+    const select = screen.getByTestId('clinic-form-plan') as HTMLSelectElement
+    expect(select.value).toBe(SubscriptionPlan.FREE)
+    expect(screen.getByRole('option', { name: 'Grátis' })).toBeInTheDocument()
+    expect(screen.getByRole('option', { name: 'Solo' })).toBeInTheDocument()
+    expect(screen.getByRole('option', { name: 'Clínica' })).toBeInTheDocument()
+    expect(screen.getByRole('option', { name: 'Grupo' })).toBeInTheDocument()
+    expect(screen.getByRole('option', { name: 'Rede' })).toBeInTheDocument()
+  })
+
+  it('submits the default Free plan when not changed', async () => {
+    const onSubmit = jest.fn()
+
+    renderWithProviders(<ClinicForm mode="create" isPending={false} onSubmit={onSubmit} />)
+
+    await userEvent.type(screen.getByTestId('clinic-form-name'), 'Clínica Nova')
+    await fillAddressFields()
+    await userEvent.click(screen.getByTestId('clinic-form-submit'))
+
+    await waitFor(() => {
+      expect(onSubmit).toHaveBeenCalledWith(
+        expect.objectContaining({ plan: SubscriptionPlan.FREE }),
+        expect.any(Function),
+      )
+    })
+  })
+
+  it('submits the selected plan', async () => {
+    const onSubmit = jest.fn()
+
+    renderWithProviders(<ClinicForm mode="create" isPending={false} onSubmit={onSubmit} />)
+
+    await userEvent.type(screen.getByTestId('clinic-form-name'), 'Clínica Nova')
+    await userEvent.selectOptions(screen.getByTestId('clinic-form-plan'), SubscriptionPlan.GRUPO)
+    await fillAddressFields()
+    await userEvent.click(screen.getByTestId('clinic-form-submit'))
+
+    await waitFor(() => {
+      expect(onSubmit).toHaveBeenCalledWith(
+        expect.objectContaining({ plan: SubscriptionPlan.GRUPO }),
         expect.any(Function),
       )
     })
@@ -413,6 +462,28 @@ describe('ClinicForm (integration) — edit mode', () => {
     )
 
     expect(screen.queryByTestId('clinic-form-slug-preview')).not.toBeInTheDocument()
+  })
+
+  it('pre-fills the plan from defaultValues and submits it (including a change)', async () => {
+    const onSubmit = jest.fn()
+
+    renderWithProviders(
+      <ClinicForm mode="edit" defaultValues={existingClinic} isPending={false} onSubmit={onSubmit} />,
+    )
+
+    await waitFor(() => {
+      expect(screen.getByTestId('clinic-form-plan')).toHaveValue(SubscriptionPlan.CLINICA)
+    })
+
+    await userEvent.selectOptions(screen.getByTestId('clinic-form-plan'), SubscriptionPlan.SOLO)
+    await userEvent.click(screen.getByTestId('clinic-form-submit'))
+
+    await waitFor(() => {
+      expect(onSubmit).toHaveBeenCalledWith(
+        expect.objectContaining({ plan: SubscriptionPlan.SOLO }),
+        expect.any(Function),
+      )
+    })
   })
 
   it('shows global error in edit mode when provided', () => {

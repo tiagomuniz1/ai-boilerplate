@@ -1,4 +1,5 @@
-import { IsBoolean, IsOptional, IsString, IsUUID, Matches, MaxLength, MinLength, ValidateNested } from 'class-validator'
+import { IsBoolean, IsEnum, IsOptional, IsString, IsUUID, Matches, MaxLength, MinLength, ValidateNested } from 'class-validator'
+import { SubscriptionPlan } from '../enums/subscription-plan.enum'
 import { AddressDto } from './address.dto'
 
 export class UpdateClinicDto {
@@ -14,6 +15,10 @@ export class UpdateClinicDto {
   @MaxLength(80)
   @Matches(/^[a-z0-9]+(?:-[a-z0-9]+)*$/, { message: 'slug must be kebab-case (e.g., clinica-do-coracao)' })
   slug?: string
+
+  @IsOptional()
+  @IsEnum(SubscriptionPlan)
+  plan?: SubscriptionPlan
 
   @IsOptional()
   @IsBoolean()

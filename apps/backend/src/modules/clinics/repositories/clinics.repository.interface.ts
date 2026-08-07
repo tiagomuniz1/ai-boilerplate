@@ -1,10 +1,11 @@
 import { QueryRunner } from 'typeorm'
-import { UpdateClinicDto } from '@app/shared'
+import { SubscriptionPlan, UpdateClinicDto } from '@app/shared'
 import { Clinic } from '../entities/clinic.entity'
 
 export interface IClinicCreateData {
   name: string
   slug: string
+  plan: SubscriptionPlan
   themeId?: string | null
   address?: {
     street: string

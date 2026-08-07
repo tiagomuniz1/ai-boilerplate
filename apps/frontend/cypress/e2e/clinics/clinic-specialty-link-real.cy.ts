@@ -79,6 +79,7 @@ describe('Clinic specialty link — real', () => {
         name: 'Clínica Mock',
         slug: 'clinica-mock',
         isActive: true,
+        plan: 'free',
         theme: null,
         address: null,
         createdAt: new Date().toISOString(),

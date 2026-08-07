@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/atoms/button/button'
 import { Input } from '@/components/ui/atoms/input/input'
 import { MobileListCard } from '@/components/ui/molecules/mobile-list-card/mobile-list-card'
 import { useThemes } from '@/components/features/themes/hooks/use-themes.hook'
+import { SUBSCRIPTION_PLANS } from '@app/shared'
 import { buildClinicSystemUrl } from '@/lib/subdomain'
 import { useBasePath } from '@/lib/slug-context'
 import { useClinics } from '../hooks/use-clinics.hook'
@@ -95,6 +96,9 @@ export function ClinicList() {
                   <th className="px-6 py-3 text-xs font-medium uppercase tracking-wider text-text-mute">
                     Status
                   </th>
+                  <th className="px-6 py-3 text-xs font-medium uppercase tracking-wider text-text-mute">
+                    Plano
+                  </th>
                   <th className="hidden px-6 py-3 text-xs font-medium uppercase tracking-wider text-text-mute lg:table-cell">
                     Tema
                   </th>
@@ -139,6 +143,11 @@ export function ClinicList() {
                             Inativa
                           </span>
                         )}
+                      </td>
+                      <td className="px-6 py-4" data-testid={`clinic-plan-${clinic.id}`}>
+                        <span className="inline-flex items-center rounded-full bg-accent-soft px-2 py-0.5 text-xs font-medium text-accent">
+                          {SUBSCRIPTION_PLANS[clinic.plan].label}
+                        </span>
                       </td>
                       <td className="hidden px-6 py-4 lg:table-cell" data-testid={`clinic-theme-${clinic.id}`}>
                         {theme ? (
@@ -234,6 +243,17 @@ export function ClinicList() {
                           data-testid={`clinic-card-inactive-badge-${clinic.id}`}
                         >
                           Inativa
+                        </span>
+                      ),
+                    },
+                    {
+                      label: 'Plano',
+                      value: (
+                        <span
+                          data-testid={`clinic-card-plan-${clinic.id}`}
+                          className="inline-flex items-center rounded-full bg-accent-soft px-2 py-0.5 text-xs font-medium text-accent"
+                        >
+                          {SUBSCRIPTION_PLANS[clinic.plan].label}
                         </span>
                       ),
                     },

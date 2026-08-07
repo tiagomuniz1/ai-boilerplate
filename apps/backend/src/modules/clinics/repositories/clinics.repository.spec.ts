@@ -1,4 +1,5 @@
 import { ILike, Repository } from 'typeorm'
+import { SubscriptionPlan } from '@app/shared'
 import { ClinicsRepository } from './clinics.repository'
 import { Clinic } from '../entities/clinic.entity'
 
@@ -40,6 +41,7 @@ function makeClinic(overrides = {}): Clinic {
     name: 'Clínica do Coração',
     slug: 'clinica-do-coracao',
     isActive: true,
+    plan: SubscriptionPlan.FREE,
     version: 1,
     createdAt: new Date(),
     updatedAt: new Date(),
@@ -152,7 +154,7 @@ describe('ClinicsRepository', () => {
 
   describe('create', () => {
     it('creates and saves using the repository when no queryRunner', async () => {
-      const data = { name: 'Clínica do Coração', slug: 'clinica-do-coracao' }
+      const data = { name: 'Clínica do Coração', slug: 'clinica-do-coracao', plan: SubscriptionPlan.FREE }
       const entity = makeClinic()
       repo.create.mockReturnValue(entity)
       repo.save.mockResolvedValue(entity)
@@ -168,6 +170,7 @@ describe('ClinicsRepository', () => {
       const data = {
         name: 'Clínica Test',
         slug: 'clinica-test',
+        plan: SubscriptionPlan.FREE,
         address: {
           street: 'Rua das Flores',
           number: '123',
@@ -195,6 +198,7 @@ describe('ClinicsRepository', () => {
       const data = {
         name: 'Clínica Test',
         slug: 'clinica-test',
+        plan: SubscriptionPlan.FREE,
         address: {
           street: 'Rua das Flores',
           number: '123',
@@ -216,7 +220,7 @@ describe('ClinicsRepository', () => {
     })
 
     it('uses queryRunner manager repo when provided', async () => {
-      const data = { name: 'Clínica Test', slug: 'clinica-test' }
+      const data = { name: 'Clínica Test', slug: 'clinica-test', plan: SubscriptionPlan.FREE }
       const entity = makeClinic()
       const qrRepo = {
         create: jest.fn().mockReturnValue(entity),

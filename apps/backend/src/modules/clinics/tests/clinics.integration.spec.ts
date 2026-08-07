@@ -5,7 +5,7 @@ import { faker } from '@faker-js/faker'
 import * as bcrypt from 'bcrypt'
 import * as request from 'supertest'
 import { Repository } from 'typeorm'
-import { UserRole } from '@app/shared'
+import { SubscriptionPlan, UserRole } from '@app/shared'
 import { AppModule } from '../../../app.module'
 import { User } from '../../users/entities/user.entity'
 import { Clinic } from '../entities/clinic.entity'
@@ -173,6 +173,23 @@ describe('ClinicsController (integration)', () => {
       expect(body.address.country).toBe('BR')
       expect(body.createdAt).toBeDefined()
       expect(body.updatedAt).toBeDefined()
+    })
+
+    it('defaults the plan to Free when not provided', async () => {
+      const { body } = await createClinic(platformAdminToken, validCreatePayload()).expect(201)
+      expect(body.plan).toBe(SubscriptionPlan.FREE)
+    })
+
+    it('stores the plan when provided', async () => {
+      const { body } = await createClinic(
+        platformAdminToken,
+        validCreatePayload({ plan: SubscriptionPlan.CLINICA }),
+      ).expect(201)
+      expect(body.plan).toBe(SubscriptionPlan.CLINICA)
+    })
+
+    it('returns 400 for an invalid plan value', async () => {
+      await createClinic(platformAdminToken, validCreatePayload({ plan: 'ouro' })).expect(400)
     })
 
     it('returns 400 when address is missing', async () => {
@@ -416,6 +433,8 @@ describe('ClinicsController (integration)', () => {
       expect(body.id).toBe(created.id)
       expect(body.name).toBe('Clinica Test')
       expect(body.slug).toBe('clinica-test')
+      expect(body.plan).toBe(SubscriptionPlan.FREE)
+      expect(body.professionalCount).toBe(0)
       expect(body.address.street).toBe(address.street)
       expect(body.address.zipCode).toBe(address.zipCode)
       expect(body.version).toBeUndefined()
@@ -473,6 +492,21 @@ describe('ClinicsController (integration)', () => {
 
       expect(body.id).toBe(created.id)
       expect(body.name).toBe('Clinica Nova')
+    })
+
+    it('changes the plan when the clinic has no professionals over the new cap', async () => {
+      const { body: created } = await createClinic(
+        platformAdminToken,
+        validCreatePayload({ plan: SubscriptionPlan.FREE }),
+      ).expect(201)
+
+      const { body } = await request(app.getHttpServer())
+        .patch(`/clinics/${created.id}`)
+        .set('Authorization', `Bearer ${platformAdminToken}`)
+        .send({ plan: SubscriptionPlan.CLINICA })
+        .expect(200)
+
+      expect(body.plan).toBe(SubscriptionPlan.CLINICA)
     })
 
     it('updates only address when address is sent', async () => {

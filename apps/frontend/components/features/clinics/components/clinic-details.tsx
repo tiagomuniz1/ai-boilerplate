@@ -1,6 +1,7 @@
 'use client'
 
 import Link from 'next/link'
+import { SUBSCRIPTION_PLANS } from '@app/shared'
 import { Button } from '@/components/ui/atoms/button/button'
 import { Typography } from '@/components/ui/atoms/typography/typography'
 import { useTheme } from '@/components/features/themes/hooks/use-theme.hook'
@@ -11,6 +12,22 @@ import type { IClinicModel } from '../types/clinic.types'
 
 interface ClinicDetailsProps {
   clinic: IClinicModel
+}
+
+// Formats a plan's price from the shared config: "Grátis" | "Sob consulta" |
+// "R$ 99/mês" | "R$ 79/profissional/mês".
+function formatPlanPrice(plan: IClinicModel['plan']): string {
+  const { monthlyPriceInCents, pricePerProfessional } = SUBSCRIPTION_PLANS[plan]
+  if (monthlyPriceInCents === null) return 'Sob consulta'
+  if (monthlyPriceInCents === 0) return 'Grátis'
+  const reais = (monthlyPriceInCents / 100).toLocaleString('pt-BR', { minimumFractionDigits: 0 })
+  return pricePerProfessional ? `R$ ${reais}/profissional/mês` : `R$ ${reais}/mês`
+}
+
+function formatPlanUsage(clinic: IClinicModel): string | null {
+  if (clinic.professionalCount === undefined) return null
+  const { maxProfessionals } = SUBSCRIPTION_PLANS[clinic.plan]
+  return `${clinic.professionalCount} / ${maxProfessionals ?? 'ilimitado'} profissionais`
 }
 
 function DetailRow({ label, value, testId }: { label: string; value: string; testId: string }) {
@@ -78,6 +95,22 @@ export function ClinicDetails({ clinic }: ClinicDetailsProps) {
           </div>
           <div className="bg-surface px-6 py-4">
             <DetailRow label="Slug" value={clinic.slug} testId="clinic-details-slug-field" />
+          </div>
+          <div className="bg-surface px-6 py-4">
+            <div className="flex flex-col gap-0.5">
+              <span className="text-xs font-medium uppercase tracking-wider text-text-mute">Plano</span>
+              <span className="flex flex-wrap items-center gap-2" data-testid="clinic-details-plan">
+                <span className="inline-flex items-center rounded-full bg-accent-soft px-2 py-0.5 text-xs font-medium text-accent">
+                  {SUBSCRIPTION_PLANS[clinic.plan].label}
+                </span>
+                <span className="text-sm text-text-dim">{formatPlanPrice(clinic.plan)}</span>
+              </span>
+              {formatPlanUsage(clinic) && (
+                <span className="mt-0.5 text-xs text-text-mute" data-testid="clinic-details-plan-usage">
+                  {formatPlanUsage(clinic)}
+                </span>
+              )}
+            </div>
           </div>
           <div className="bg-surface px-6 py-4">
             <DetailRow

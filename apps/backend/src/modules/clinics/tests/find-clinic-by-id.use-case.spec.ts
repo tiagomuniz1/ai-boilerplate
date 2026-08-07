@@ -1,9 +1,11 @@
 import { NotFoundException } from '@nestjs/common'
 import { DataSource } from 'typeorm'
 import { faker } from '@faker-js/faker'
+import { SubscriptionPlan } from '@app/shared'
 import { CacheService } from '../../../cache/cache.service'
 import { ClinicAssetUrlService } from '../../../common/services/clinic-asset-url.service'
 import { IClinicsRepository } from '../repositories/clinics.repository.interface'
+import { IProfessionalsRepository } from '../../professionals/repositories/professionals.repository.interface'
 import { ClinicResponseMapper } from '../mappers/clinic-response.mapper'
 import { FindClinicByIdUseCase } from '../use-cases/find-clinic-by-id.use-case'
 
@@ -18,6 +20,10 @@ const mockClinicsRepository: jest.Mocked<IClinicsRepository> = {
   updateFavicon: jest.fn(),
 }
 
+const mockProfessionalsRepository = {
+  countByClinic: jest.fn(),
+} as unknown as jest.Mocked<IProfessionalsRepository>
+
 const mockCacheService = {
   get: jest.fn(),
   set: jest.fn(),
@@ -31,6 +37,7 @@ const makeClinic = (overrides = {}) => ({
   name: 'Clínica do Coração',
   slug: 'clinica-do-coracao',
   isActive: true,
+  plan: SubscriptionPlan.FREE,
   version: 1,
   addressStreet: 'Rua das Flores',
   addressNumber: '123',
@@ -55,11 +62,24 @@ describe('FindClinicByIdUseCase', () => {
     useCase = new FindClinicByIdUseCase(
       {} as DataSource,
       mockClinicsRepository,
+      mockProfessionalsRepository,
       mockCacheService,
       new ClinicResponseMapper(assetUrlService),
     )
     mockCacheService.get.mockResolvedValue(null)
     mockCacheService.set.mockResolvedValue(undefined)
+    mockProfessionalsRepository.countByClinic.mockResolvedValue(0)
+  })
+
+  it('populates professionalCount from the professionals repository', async () => {
+    const clinic = makeClinic()
+    mockClinicsRepository.findById.mockResolvedValue(clinic as any)
+    mockProfessionalsRepository.countByClinic.mockResolvedValue(3)
+
+    const result = await useCase.execute(clinic.id)
+
+    expect(mockProfessionalsRepository.countByClinic).toHaveBeenCalledWith(clinic.id)
+    expect(result.professionalCount).toBe(3)
   })
 
   it('returns clinic from repository on cache miss', async () => {

@@ -1,6 +1,7 @@
 import { ConflictException } from '@nestjs/common'
 import { DataSource } from 'typeorm'
 import { faker } from '@faker-js/faker'
+import { SubscriptionPlan } from '@app/shared'
 import { CacheService } from '../../../cache/cache.service'
 import { ClinicAssetUrlService } from '../../../common/services/clinic-asset-url.service'
 import { IClinicsRepository } from '../repositories/clinics.repository.interface'
@@ -43,6 +44,7 @@ const makeClinic = (overrides = {}) => ({
   name: 'Clínica do Coração',
   slug: 'clinica-do-coracao',
   isActive: true,
+  plan: SubscriptionPlan.FREE,
   version: 1,
   addressStreet: 'Rua das Flores',
   addressNumber: '123',
@@ -85,6 +87,7 @@ describe('CreateClinicUseCase', () => {
     expect(mockClinicsRepository.create).toHaveBeenCalledWith({
       name: 'Clínica do Coração',
       slug: 'clnica-do-corao',
+      plan: SubscriptionPlan.FREE,
       themeId: null,
       address: dto.address,
     })
@@ -104,9 +107,25 @@ describe('CreateClinicUseCase', () => {
     expect(mockClinicsRepository.create).toHaveBeenCalledWith({
       name: 'Clínica do Coração',
       slug: 'clinica-do-coracao',
+      plan: SubscriptionPlan.FREE,
       themeId: null,
       address: dto.address,
     })
+  })
+
+  it('defaults plan to Free when omitted and passes an explicit plan through', async () => {
+    mockClinicsRepository.findBySlug.mockResolvedValue(null)
+    mockClinicsRepository.create.mockResolvedValue(makeClinic() as any)
+
+    await useCase.execute({ name: 'Clínica', slug: 'clinica-x', address: makeAddress() })
+    expect(mockClinicsRepository.create).toHaveBeenLastCalledWith(
+      expect.objectContaining({ plan: SubscriptionPlan.FREE }),
+    )
+
+    await useCase.execute({ name: 'Clínica', slug: 'clinica-y', plan: SubscriptionPlan.CLINICA, address: makeAddress() })
+    expect(mockClinicsRepository.create).toHaveBeenLastCalledWith(
+      expect.objectContaining({ plan: SubscriptionPlan.CLINICA }),
+    )
   })
 
   it('returns ClinicResponseDto with address fields', async () => {

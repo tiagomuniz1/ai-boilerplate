@@ -4,6 +4,7 @@ import { useEffect } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
+import { SUBSCRIPTION_PLANS, SubscriptionPlan } from '@app/shared'
 import { Input } from '@/components/ui/atoms/input/input'
 import { Button } from '@/components/ui/atoms/button/button'
 import { Alert } from '@/components/ui/molecules/alert/alert'
@@ -12,6 +13,7 @@ import type { ICreateClinicInput, IUpdateClinicInput, IClinicModel } from '../ty
 
 const slugRegex = /^[a-z0-9]+(?:-[a-z0-9]+)*$/
 const zipCodeRegex = /^\d{5}-\d{3}$/
+const PLAN_OPTIONS = Object.values(SubscriptionPlan)
 
 function generateSlug(name: string): string {
   return name
@@ -46,6 +48,7 @@ const slugField = z
 const createSchema = z.object({
   name: nameField,
   slug: slugField.optional().or(z.literal('')),
+  plan: z.nativeEnum(SubscriptionPlan),
   themeId: z.string().uuid().nullish(),
   address: addressSchema,
 })
@@ -53,6 +56,7 @@ const createSchema = z.object({
 const updateSchema = z.object({
   name: nameField.optional().or(z.literal('')),
   slug: slugField.optional().or(z.literal('')),
+  plan: z.nativeEnum(SubscriptionPlan),
   isActive: z.boolean(),
   themeId: z.string().uuid().nullish(),
   address: addressSchema.optional(),
@@ -104,6 +108,7 @@ function ClinicFormCreate({ isPending, globalError, onSubmit }: ClinicFormCreate
     defaultValues: {
       name: '',
       slug: '',
+      plan: SubscriptionPlan.FREE,
       themeId: null,
       address: { street: '', number: '', complement: '', neighborhood: '', city: '', state: '', zipCode: '', country: 'BR' },
     },
@@ -119,6 +124,7 @@ function ClinicFormCreate({ isPending, globalError, onSubmit }: ClinicFormCreate
       {
         name: data.name,
         slug: data.slug || undefined,
+        plan: data.plan,
         themeId: data.themeId ?? null,
         address: {
           street: data.address.street,
@@ -169,6 +175,8 @@ function ClinicFormCreate({ isPending, globalError, onSubmit }: ClinicFormCreate
           )}
         </div>
 
+        <PlanSelect register={register('plan')} />
+
         <ThemeSelector
           value={themeId}
           onChange={(id) => setValue('themeId', id)}
@@ -203,6 +211,7 @@ function ClinicFormEdit({ defaultValues, isPending, globalError, onSubmit }: Cli
     defaultValues: {
       name: defaultValues.name,
       slug: defaultValues.slug,
+      plan: defaultValues.plan,
       isActive: defaultValues.isActive,
       themeId: defaultValues.themeId,
       address: defaultValues.address
@@ -224,6 +233,7 @@ function ClinicFormEdit({ defaultValues, isPending, globalError, onSubmit }: Cli
     reset({
       name: defaultValues.name,
       slug: defaultValues.slug,
+      plan: defaultValues.plan,
       isActive: defaultValues.isActive,
       themeId: defaultValues.themeId,
       address: defaultValues.address
@@ -259,7 +269,7 @@ function ClinicFormEdit({ defaultValues, isPending, globalError, onSubmit }: Cli
       }
     }
     onSubmit(
-      { name: data.name || undefined, slug: data.slug || undefined, isActive: data.isActive, themeId: data.themeId ?? null, address },
+      { name: data.name || undefined, slug: data.slug || undefined, plan: data.plan, isActive: data.isActive, themeId: data.themeId ?? null, address },
       setError as (field: keyof IUpdateClinicInput, error: { message: string }) => void,
     )
   }
@@ -291,6 +301,8 @@ function ClinicFormEdit({ defaultValues, isPending, globalError, onSubmit }: Cli
           {...register('slug')}
         />
 
+        <PlanSelect register={register('plan')} />
+
         <label className="flex cursor-pointer items-center gap-3">
           <input
             type="checkbox"
@@ -318,6 +330,35 @@ function ClinicFormEdit({ defaultValues, isPending, globalError, onSubmit }: Cli
         </Button>
       </div>
     </form>
+  )
+}
+
+interface PlanSelectProps {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  register: any
+}
+
+// No error UI: the field is a native <select> over z.nativeEnum(SubscriptionPlan),
+// so it always holds a valid value and can never produce a validation error.
+function PlanSelect({ register }: PlanSelectProps) {
+  return (
+    <div className="flex flex-col gap-1.5">
+      <label htmlFor="plan" className="text-sm font-medium text-text">
+        Plano
+      </label>
+      <select
+        id="plan"
+        data-testid="clinic-form-plan"
+        className="h-10 rounded-md border border-line bg-surface px-2 text-sm text-text"
+        {...register}
+      >
+        {PLAN_OPTIONS.map((plan) => (
+          <option key={plan} value={plan}>
+            {SUBSCRIPTION_PLANS[plan].label}
+          </option>
+        ))}
+      </select>
+    </div>
   )
 }
 

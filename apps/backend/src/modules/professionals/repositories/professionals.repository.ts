@@ -78,6 +78,13 @@ export class ProfessionalsRepository implements IProfessionalsRepository {
       .getOne()
   }
 
+  // Counts currently-registered professionals in the clinic — used to enforce the
+  // subscription plan's professional cap. TypeORM's count() excludes soft-deleted
+  // rows automatically, so this reflects live professionals only.
+  async countByClinic(clinicId: string): Promise<number> {
+    return this.repository.count({ where: { clinicId } })
+  }
+
   async create(
     data: CreateProfessionalData,
     clinicId: string,

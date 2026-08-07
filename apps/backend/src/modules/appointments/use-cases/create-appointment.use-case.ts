@@ -14,37 +14,9 @@ import { ICurrentUser } from '../../auth/types/current-user.type'
 import { IProfessionalsRepository } from '../../professionals/repositories/professionals.repository.interface'
 import { IPatientsRepository } from '../../patients/repositories/patients.repository.interface'
 import { GetActiveSchedulesForProfessionalUseCase } from '../../schedules/use-cases/get-active-schedules-for-professional.use-case'
-import { Schedule } from '../../schedules/entities/schedule.entity'
 import { Appointment } from '../entities/appointment.entity'
 import { IAppointmentsRepository } from '../repositories/appointments.repository.interface'
-
-function timeToMinutes(time: string): number {
-  const [h, m] = time.split(':').map(Number)
-  return h * 60 + m
-}
-
-function minutesToTime(minutes: number): string {
-  const h = Math.floor(minutes / 60).toString().padStart(2, '0')
-  const m = (minutes % 60).toString().padStart(2, '0')
-  return `${h}:${m}`
-}
-
-function generateSlots(schedule: Schedule): Array<{ startTime: string; endTime: string; scheduleId: string; slotDurationInMinutes: number }> {
-  const slots: Array<{ startTime: string; endTime: string; scheduleId: string; slotDurationInMinutes: number }> = []
-  const start = timeToMinutes(schedule.startTime)
-  const end = timeToMinutes(schedule.endTime)
-  const duration = schedule.slotDurationInMinutes
-
-  for (let t = start; t + duration <= end; t += duration) {
-    slots.push({
-      startTime: minutesToTime(t),
-      endTime: minutesToTime(t + duration),
-      scheduleId: schedule.id,
-      slotDurationInMinutes: duration,
-    })
-  }
-  return slots
-}
+import { generateSlots } from '../utils/slot.util'
 
 @Injectable()
 export class CreateAppointmentUseCase extends BaseUseCase {

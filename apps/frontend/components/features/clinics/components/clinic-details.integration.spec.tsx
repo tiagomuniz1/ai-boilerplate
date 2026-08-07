@@ -6,6 +6,7 @@ jest.mock('@/components/features/clinic-specialties/components/clinic-specialty-
 }))
 
 import { screen } from '@testing-library/react'
+import { SubscriptionPlan } from '@app/shared'
 import { useRouter } from 'next/navigation'
 import { useTheme } from '@/components/features/themes/hooks/use-theme.hook'
 import { renderWithProviders } from '@/tests/utils/render-with-providers'
@@ -33,6 +34,7 @@ const activeClinic: IClinicModel = {
   name: 'Clínica do Coração',
   slug: 'clinica-do-coracao',
   isActive: true,
+  plan: SubscriptionPlan.FREE,
   themeId: null,
   logoUrl: null,
   logoDarkUrl: null,
@@ -202,5 +204,51 @@ describe('ClinicDetails (integration)', () => {
     expect(screen.getByTestId('clinic-upload-section')).toBeInTheDocument()
     expect(screen.getByTestId('logo-upload-button')).toBeInTheDocument()
     expect(screen.getByTestId('favicon-upload-button')).toBeInTheDocument()
+  })
+
+  it('shows the plan label and "Grátis" price for the Free plan', () => {
+    renderWithProviders(<ClinicDetails clinic={activeClinic} />)
+
+    expect(screen.getByTestId('clinic-details-plan')).toHaveTextContent('Grátis')
+  })
+
+  it('formats a flat monthly price (Solo)', () => {
+    renderWithProviders(<ClinicDetails clinic={{ ...activeClinic, plan: SubscriptionPlan.SOLO }} />)
+
+    expect(screen.getByTestId('clinic-details-plan')).toHaveTextContent('R$ 99/mês')
+  })
+
+  it('formats a per-professional price (Clínica)', () => {
+    renderWithProviders(<ClinicDetails clinic={{ ...activeClinic, plan: SubscriptionPlan.CLINICA }} />)
+
+    expect(screen.getByTestId('clinic-details-plan')).toHaveTextContent('R$ 79/profissional/mês')
+  })
+
+  it('shows "Sob consulta" for the Rede plan', () => {
+    renderWithProviders(<ClinicDetails clinic={{ ...activeClinic, plan: SubscriptionPlan.REDE }} />)
+
+    expect(screen.getByTestId('clinic-details-plan')).toHaveTextContent('Sob consulta')
+  })
+
+  it('shows the usage indicator when professionalCount is present (capped plan)', () => {
+    renderWithProviders(
+      <ClinicDetails clinic={{ ...activeClinic, plan: SubscriptionPlan.CLINICA, professionalCount: 3 }} />,
+    )
+
+    expect(screen.getByTestId('clinic-details-plan-usage')).toHaveTextContent('3 / 5 profissionais')
+  })
+
+  it('shows "ilimitado" usage for an unlimited plan', () => {
+    renderWithProviders(
+      <ClinicDetails clinic={{ ...activeClinic, plan: SubscriptionPlan.FREE, professionalCount: 7 }} />,
+    )
+
+    expect(screen.getByTestId('clinic-details-plan-usage')).toHaveTextContent('7 / ilimitado profissionais')
+  })
+
+  it('omits the usage indicator when professionalCount is absent', () => {
+    renderWithProviders(<ClinicDetails clinic={activeClinic} />)
+
+    expect(screen.queryByTestId('clinic-details-plan-usage')).not.toBeInTheDocument()
   })
 })

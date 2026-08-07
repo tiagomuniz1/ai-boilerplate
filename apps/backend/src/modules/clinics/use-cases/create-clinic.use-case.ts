@@ -1,6 +1,6 @@
 import { ConflictException, Injectable, Logger } from '@nestjs/common'
 import { DataSource } from 'typeorm'
-import { ClinicResponseDto, CreateClinicDto } from '@app/shared'
+import { ClinicResponseDto, CreateClinicDto, SubscriptionPlan } from '@app/shared'
 import { BaseUseCase } from '../../../common/base.use-case'
 import { CacheService } from '../../../cache/cache.service'
 import { IClinicsRepository } from '../repositories/clinics.repository.interface'
@@ -31,6 +31,7 @@ export class CreateClinicUseCase extends BaseUseCase {
     const clinic = await this.clinicsRepository.create({
       name: dto.name,
       slug,
+      plan: dto.plan ?? SubscriptionPlan.FREE,
       themeId: dto.themeId ?? null,
       address: dto.address,
     })

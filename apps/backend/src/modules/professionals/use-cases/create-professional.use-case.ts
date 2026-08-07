@@ -7,6 +7,7 @@ import {
   ProfessionalRegistrationInputDto,
   ProfessionalResponseDto,
   ProfessionalSpecialtyInputDto,
+  SUBSCRIPTION_PLANS,
   UserRole,
 } from '@app/shared'
 import { BaseUseCase } from '../../../common/base.use-case'
@@ -16,6 +17,7 @@ import { ICurrentUser } from '../../auth/types/current-user.type'
 import { SendSetPasswordEmailUseCase } from '../../auth/use-cases/send-set-password-email.use-case'
 import { IUsersRepository } from '../../users/repositories/users.repository.interface'
 import { ISpecialtiesRepository } from '../../specialties/repositories/specialties.repository.interface'
+import { IClinicsRepository } from '../../clinics/repositories/clinics.repository.interface'
 import { IProfessionalsRepository, ProfessionalSpecialtyAssignment } from '../repositories/professionals.repository.interface'
 import { Professional } from '../entities/professional.entity'
 
@@ -28,6 +30,7 @@ export class CreateProfessionalUseCase extends BaseUseCase {
     private readonly professionalsRepository: IProfessionalsRepository,
     private readonly usersRepository: IUsersRepository,
     private readonly specialtiesRepository: ISpecialtiesRepository,
+    private readonly clinicsRepository: IClinicsRepository,
     private readonly cacheService: CacheService,
     private readonly sendSetPasswordEmailUseCase: SendSetPasswordEmailUseCase,
   ) {
@@ -37,6 +40,8 @@ export class CreateProfessionalUseCase extends BaseUseCase {
   async execute(dto: CreateProfessionalDto, currentUser: ICurrentUser): Promise<ProfessionalResponseDto> {
     const clinicId = currentUser.clinicId!
     const isNewUser = !dto.userId
+
+    await this.assertPlanAllowsAnotherProfessional(clinicId)
 
     if (isNewUser && (!dto.fullName || !dto.email)) {
       throw new UnprocessableEntityException('Either userId or fullName and email are required')
@@ -173,6 +178,25 @@ export class CreateProfessionalUseCase extends BaseUseCase {
       bio: professional.bio,
       createdAt: professional.createdAt,
       updatedAt: professional.updatedAt,
+    }
+  }
+
+  // Enforces the clinic's subscription plan cap on number of professionals.
+  // Free/Rede have no cap (maxProfessionals null). Pre-check (not atomic with the
+  // create) — matches the file's existing non-locking uniqueness checks; a rare
+  // over-by-one under concurrency is acceptable for this low-frequency admin action.
+  private async assertPlanAllowsAnotherProfessional(clinicId: string): Promise<void> {
+    const clinic = await this.clinicsRepository.findById(clinicId)
+    if (!clinic) throw new NotFoundException('Clinic not found')
+
+    const { label, maxProfessionals } = SUBSCRIPTION_PLANS[clinic.plan]
+    if (maxProfessionals === null) return
+
+    const current = await this.professionalsRepository.countByClinic(clinicId)
+    if (current >= maxProfessionals) {
+      throw new UnprocessableEntityException(
+        `O plano ${label} permite no máximo ${maxProfessionals} profissional(is). Faça upgrade do plano para adicionar mais.`,
+      )
     }
   }
 

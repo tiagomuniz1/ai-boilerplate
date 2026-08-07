@@ -6,6 +6,7 @@ import type {
   CreateAppointmentDto,
   CancelAppointmentDto,
   AvailabilityResponseDto,
+  ReassignCandidateDto,
 } from '@app/shared'
 import type { IAppointmentListParams, IAvailabilityParams } from '../types/appointment-input.types'
 
@@ -36,4 +37,8 @@ export const appointmentsService = {
     apiClient.patch<AppointmentResponseDto>(`/appointments/${id}/cancel`, data),
   complete: (id: string): Promise<AppointmentResponseDto> =>
     apiClient.patch<AppointmentResponseDto>(`/appointments/${id}/complete`, {}),
+  getReassignCandidates: (id: string): Promise<ReassignCandidateDto[]> =>
+    apiClient.get<ReassignCandidateDto[]>(`/appointments/${id}/reassign-candidates`),
+  reassign: (id: string, professionalId: string): Promise<AppointmentResponseDto> =>
+    apiClient.patch<AppointmentResponseDto>(`/appointments/${id}/reassign`, { professionalId }),
 }
