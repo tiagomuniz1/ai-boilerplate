@@ -1,9 +1,11 @@
-import { ConflictException, NotFoundException } from '@nestjs/common'
+import { ConflictException, NotFoundException, UnprocessableEntityException } from '@nestjs/common'
 import { DataSource, OptimisticLockVersionMismatchError } from 'typeorm'
 import { faker } from '@faker-js/faker'
+import { SubscriptionPlan } from '@app/shared'
 import { CacheService } from '../../../cache/cache.service'
 import { ClinicAssetUrlService } from '../../../common/services/clinic-asset-url.service'
 import { IClinicsRepository } from '../repositories/clinics.repository.interface'
+import { IProfessionalsRepository } from '../../professionals/repositories/professionals.repository.interface'
 import { ClinicResponseMapper } from '../mappers/clinic-response.mapper'
 import { UpdateClinicUseCase } from '../use-cases/update-clinic.use-case'
 
@@ -17,6 +19,10 @@ const mockClinicsRepository: jest.Mocked<IClinicsRepository> = {
   updateLogoDark: jest.fn(),
   updateFavicon: jest.fn(),
 }
+
+const mockProfessionalsRepository = {
+  countByClinic: jest.fn(),
+} as unknown as jest.Mocked<IProfessionalsRepository>
 
 const mockCacheService = {
   get: jest.fn(),
@@ -43,6 +49,7 @@ const makeClinic = (overrides = {}) => ({
   name: 'Clínica do Coração',
   slug: 'clinica-do-coracao',
   isActive: true,
+  plan: SubscriptionPlan.FREE,
   version: 1,
   addressStreet: 'Rua das Flores',
   addressNumber: '123',
@@ -67,6 +74,7 @@ describe('UpdateClinicUseCase', () => {
     useCase = new UpdateClinicUseCase(
       {} as DataSource,
       mockClinicsRepository,
+      mockProfessionalsRepository,
       mockCacheService,
       new ClinicResponseMapper(assetUrlService),
     )
@@ -268,5 +276,53 @@ describe('UpdateClinicUseCase', () => {
     await useCase.execute(clinic.id, { themeId: 'theme-uuid-1' } as any)
 
     expect(mockCacheService.del).toHaveBeenCalledWith(`theme:clinic:${clinic.id}`)
+  })
+
+  describe('plan downgrade guard', () => {
+    it('blocks downgrading to a plan whose cap is below the current professional count', async () => {
+      const clinic = makeClinic({ plan: SubscriptionPlan.CLINICA })
+      mockClinicsRepository.findById.mockResolvedValue(clinic as any)
+      mockProfessionalsRepository.countByClinic.mockResolvedValue(4) // Solo cap = 1
+
+      await expect(useCase.execute(clinic.id, { plan: SubscriptionPlan.SOLO })).rejects.toBeInstanceOf(
+        UnprocessableEntityException,
+      )
+      expect(mockClinicsRepository.update).not.toHaveBeenCalled()
+    })
+
+    it('allows the plan change when the current count fits within the new cap', async () => {
+      const clinic = makeClinic({ plan: SubscriptionPlan.GRUPO })
+      const updated = makeClinic({ id: clinic.id, plan: SubscriptionPlan.CLINICA })
+      mockClinicsRepository.findById.mockResolvedValue(clinic as any)
+      mockProfessionalsRepository.countByClinic.mockResolvedValue(3) // Clínica cap = 5
+      mockClinicsRepository.update.mockResolvedValue(updated as any)
+
+      const result = await useCase.execute(clinic.id, { plan: SubscriptionPlan.CLINICA })
+
+      expect(result.plan).toBe(SubscriptionPlan.CLINICA)
+      expect(mockClinicsRepository.update).toHaveBeenCalled()
+    })
+
+    it('never checks the count when upgrading to an unlimited plan (Rede)', async () => {
+      const clinic = makeClinic({ plan: SubscriptionPlan.SOLO })
+      const updated = makeClinic({ id: clinic.id, plan: SubscriptionPlan.REDE })
+      mockClinicsRepository.findById.mockResolvedValue(clinic as any)
+      mockClinicsRepository.update.mockResolvedValue(updated as any)
+
+      await useCase.execute(clinic.id, { plan: SubscriptionPlan.REDE })
+
+      expect(mockProfessionalsRepository.countByClinic).not.toHaveBeenCalled()
+    })
+
+    it('skips the check when the plan is unchanged', async () => {
+      const clinic = makeClinic({ plan: SubscriptionPlan.SOLO })
+      const updated = makeClinic({ id: clinic.id, plan: SubscriptionPlan.SOLO })
+      mockClinicsRepository.findById.mockResolvedValue(clinic as any)
+      mockClinicsRepository.update.mockResolvedValue(updated as any)
+
+      await useCase.execute(clinic.id, { plan: SubscriptionPlan.SOLO })
+
+      expect(mockProfessionalsRepository.countByClinic).not.toHaveBeenCalled()
+    })
   })
 })

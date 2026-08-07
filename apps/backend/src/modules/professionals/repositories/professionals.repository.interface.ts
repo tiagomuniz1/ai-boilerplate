@@ -13,6 +13,7 @@ export abstract class IProfessionalsRepository {
   abstract findById(id: string, clinicId: string): Promise<Professional | null>
   abstract findByUserId(userId: string, clinicId: string): Promise<Professional | null>
   abstract findByRegistration(councilType: CouncilType, number: string, state: string, clinicId: string): Promise<Professional | null>
+  abstract countByClinic(clinicId: string): Promise<number>
   abstract create(
     data: CreateProfessionalData,
     clinicId: string,

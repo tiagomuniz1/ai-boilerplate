@@ -1,10 +1,11 @@
-import { ForbiddenException, Injectable, Logger, NotFoundException } from '@nestjs/common'
+import { ConflictException, ForbiddenException, Injectable, Logger, NotFoundException } from '@nestjs/common'
 import { DataSource, QueryRunner } from 'typeorm'
 import { UserRole } from '@app/shared'
 import { BaseUseCase } from '../../../common/base.use-case'
 import { CacheService } from '../../../cache/cache.service'
 import { ICurrentUser } from '../../auth/types/current-user.type'
 import { IUsersRepository } from '../../users/repositories/users.repository.interface'
+import { IAppointmentsRepository } from '../../appointments/repositories/appointments.repository.interface'
 import { DeleteScheduleUseCase } from '../../schedules/use-cases/delete-schedule.use-case'
 import { IProfessionalsRepository } from '../repositories/professionals.repository.interface'
 
@@ -16,6 +17,7 @@ export class DeleteProfessionalUseCase extends BaseUseCase {
     dataSource: DataSource,
     private readonly professionalsRepository: IProfessionalsRepository,
     private readonly usersRepository: IUsersRepository,
+    private readonly appointmentsRepository: IAppointmentsRepository,
     private readonly cacheService: CacheService,
     private readonly deleteScheduleUseCase: DeleteScheduleUseCase,
   ) {
@@ -30,6 +32,16 @@ export class DeleteProfessionalUseCase extends BaseUseCase {
 
     if (professional.userId === currentUser.id) {
       throw new ForbiddenException('Cannot delete your own professional profile')
+    }
+
+    // Block deletion while the professional still has scheduled future consultations
+    // — there is no reassign/reschedule flow, so deleting would orphan them. The
+    // admin must cancel those appointments first (deliberate, patient-facing action).
+    const hasFutureAppointments = await this.appointmentsRepository.hasFutureByProfessionalId(id, clinicId)
+    if (hasFutureAppointments) {
+      throw new ConflictException(
+        'Este profissional tem consultas futuras agendadas. Cancele essas consultas antes de excluí-lo.',
+      )
     }
 
     const userId = professional.userId

@@ -1,3 +1,5 @@
+import type { SubscriptionPlan } from '@app/shared'
+
 export interface IAddressModel {
   street: string
   number: string
@@ -25,6 +27,9 @@ export interface IClinicModel {
   name: string
   slug: string
   isActive: boolean
+  plan: SubscriptionPlan
+  // Present only when fetched by id (backoffice detail "X / Y professionals").
+  professionalCount?: number
   themeId: string | null
   logoUrl: string | null
   logoDarkUrl: string | null
@@ -37,6 +42,7 @@ export interface IClinicModel {
 export interface ICreateClinicInput {
   name: string
   slug?: string
+  plan?: SubscriptionPlan
   themeId?: string | null
   address: IAddressInput
 }
@@ -44,6 +50,7 @@ export interface ICreateClinicInput {
 export interface IUpdateClinicInput {
   name?: string
   slug?: string
+  plan?: SubscriptionPlan
   isActive?: boolean
   themeId?: string | null
   address?: IAddressInput

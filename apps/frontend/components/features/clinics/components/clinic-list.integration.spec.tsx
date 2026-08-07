@@ -6,7 +6,7 @@ jest.mock('@/components/features/themes/hooks/use-themes.hook')
 import { screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { useRouter } from 'next/navigation'
-import { UserRole } from '@app/shared'
+import { SubscriptionPlan, UserRole } from '@app/shared'
 import { clinicsService } from '../services/clinics.service'
 import { useAuthStore } from '@/stores/auth.store'
 import { useThemes } from '@/components/features/themes/hooks/use-themes.hook'
@@ -53,6 +53,7 @@ const makeDto = (overrides = {}) => ({
   name: 'Clínica do Coração',
   slug: 'clinica-do-coracao',
   isActive: true,
+  plan: SubscriptionPlan.FREE,
   themeId: null,
   createdAt: '2024-01-15T10:00:00.000Z',
   updatedAt: '2024-01-16T10:00:00.000Z',
@@ -106,6 +107,18 @@ describe('ClinicList (integration)', () => {
 
     expect(screen.getByTestId('clinic-status-uuid-1')).toHaveTextContent('Ativa')
     expect(screen.queryByTestId('clinic-inactive-badge-uuid-1')).not.toBeInTheDocument()
+  })
+
+  it('renders the plan badge with the plan label', async () => {
+    ;(clinicsService.getAll as jest.Mock).mockResolvedValue(makePaginated([makeDto({ plan: SubscriptionPlan.GRUPO })]))
+
+    renderWithProviders(<ClinicList />)
+
+    await waitFor(() => {
+      expect(screen.getByTestId('clinic-list-table')).toBeInTheDocument()
+    })
+
+    expect(screen.getByTestId('clinic-plan-uuid-1')).toHaveTextContent('Grupo')
   })
 
   it('renders inactive badge for inactive clinic', async () => {

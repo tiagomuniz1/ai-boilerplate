@@ -1,10 +1,11 @@
-import { ForbiddenException, NotFoundException } from '@nestjs/common'
+import { ConflictException, ForbiddenException, NotFoundException } from '@nestjs/common'
 import { DataSource, QueryRunner } from 'typeorm'
 import { faker } from '@faker-js/faker'
 import { CouncilType, UserRole } from '@app/shared'
 import { CacheService } from '../../../cache/cache.service'
 import { ICurrentUser } from '../../auth/types/current-user.type'
 import { IUsersRepository } from '../../users/repositories/users.repository.interface'
+import { IAppointmentsRepository } from '../../appointments/repositories/appointments.repository.interface'
 import { DeleteScheduleUseCase } from '../../schedules/use-cases/delete-schedule.use-case'
 import { IProfessionalsRepository } from '../repositories/professionals.repository.interface'
 import { DeleteProfessionalUseCase } from '../use-cases/delete-professional.use-case'
@@ -39,6 +40,7 @@ const mockProfessionalsRepository: jest.Mocked<IProfessionalsRepository> = {
   findById: jest.fn(),
   findByUserId: jest.fn(),
   findByRegistration: jest.fn(),
+  countByClinic: jest.fn(),
   create: jest.fn(),
   update: jest.fn(),
   delete: jest.fn(),
@@ -65,6 +67,10 @@ const mockUsersRepository: jest.Mocked<IUsersRepository> = {
 const mockDeleteScheduleUseCase = {
   deleteByProfessionalId: jest.fn(),
 } as unknown as jest.Mocked<DeleteScheduleUseCase>
+
+const mockAppointmentsRepository = {
+  hasFutureByProfessionalId: jest.fn(),
+} as unknown as jest.Mocked<IAppointmentsRepository>
 
 const makeProfessional = (role = UserRole.PROFESSIONAL) => ({
   id: faker.string.uuid(),
@@ -93,9 +99,11 @@ describe('DeleteProfessionalUseCase', () => {
       mockDataSource,
       mockProfessionalsRepository,
       mockUsersRepository,
+      mockAppointmentsRepository,
       mockCacheService,
       mockDeleteScheduleUseCase,
     )
+    mockAppointmentsRepository.hasFutureByProfessionalId.mockResolvedValue(false)
     mockDeleteScheduleUseCase.deleteByProfessionalId.mockResolvedValue(undefined)
     mockProfessionalsRepository.delete.mockResolvedValue(undefined)
     mockUsersRepository.delete.mockResolvedValue(undefined)
@@ -154,6 +162,28 @@ describe('DeleteProfessionalUseCase', () => {
     await expect(useCase.execute(professional.id, adminCurrentUser)).rejects.toThrow('DB error')
     expect(mockQueryRunner.rollbackTransaction).toHaveBeenCalled()
     expect(mockQueryRunner.commitTransaction).not.toHaveBeenCalled()
+  })
+
+  it('blocks deletion (ConflictException) when the professional has future scheduled appointments', async () => {
+    const professional = makeProfessional()
+    mockProfessionalsRepository.findById.mockResolvedValue(professional as any)
+    mockAppointmentsRepository.hasFutureByProfessionalId.mockResolvedValue(true)
+
+    await expect(useCase.execute(professional.id, adminCurrentUser)).rejects.toBeInstanceOf(ConflictException)
+    expect(mockAppointmentsRepository.hasFutureByProfessionalId).toHaveBeenCalledWith(professional.id, CLINIC_ID)
+    expect(mockProfessionalsRepository.delete).not.toHaveBeenCalled()
+    expect(mockDeleteScheduleUseCase.deleteByProfessionalId).not.toHaveBeenCalled()
+  })
+
+  it('proceeds with deletion when there are no future scheduled appointments', async () => {
+    const professional = makeProfessional()
+    mockProfessionalsRepository.findById.mockResolvedValue(professional as any)
+    ;(mockDataSource.createQueryBuilder as jest.Mock).mockReturnValue(makePatientCheckQb(false))
+    mockAppointmentsRepository.hasFutureByProfessionalId.mockResolvedValue(false)
+
+    await useCase.execute(professional.id, adminCurrentUser)
+
+    expect(mockProfessionalsRepository.delete).toHaveBeenCalled()
   })
 
   it('invalidates professional and user caches after deletion of DOCTOR-role user', async () => {

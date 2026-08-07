@@ -235,6 +235,28 @@ describe('AppointmentsRepository', () => {
     })
   })
 
+  describe('hasFutureByProfessionalId', () => {
+    it('returns true when a future scheduled appointment exists for the professional', async () => {
+      const professionalId = faker.string.uuid()
+      const qb = makeQueryBuilder()
+      qb.getCount.mockResolvedValue(1)
+      mockRepository.createQueryBuilder.mockReturnValue(qb)
+
+      const result = await repository.hasFutureByProfessionalId(professionalId, CLINIC_ID)
+
+      expect(result).toBe(true)
+      expect(qb.where).toHaveBeenCalledWith('appointment.professional_id = :professionalId', { professionalId })
+    })
+
+    it('returns false when there are no future scheduled appointments', async () => {
+      const qb = makeQueryBuilder()
+      qb.getCount.mockResolvedValue(0)
+      mockRepository.createQueryBuilder.mockReturnValue(qb)
+
+      expect(await repository.hasFutureByProfessionalId(faker.string.uuid(), CLINIC_ID)).toBe(false)
+    })
+  })
+
   describe('create', () => {
     it('creates and saves appointment without queryRunner', async () => {
       const appointment = makeAppointment()
@@ -330,6 +352,23 @@ describe('AppointmentsRepository', () => {
       expect(queryRunner.manager.getRepository).toHaveBeenCalledWith(Appointment)
       expect(qrRepo.findOneByOrFail).toHaveBeenCalledWith({ id: appointment.id })
       expect(result.status).toBe(AppointmentStatus.COMPLETED)
+    })
+
+    it('reassigns professionalId, scheduleId and endTime', async () => {
+      const appointment = makeAppointment()
+      const saved = { ...appointment }
+      mockRepository.findOneByOrFail.mockResolvedValue(saved)
+      mockRepository.save.mockImplementation(async (entity) => entity as any)
+
+      const result = await repository.update(appointment.id, {
+        professionalId: 'new-professional',
+        scheduleId: 'new-schedule',
+        endTime: '09:30',
+      })
+
+      expect(result.professionalId).toBe('new-professional')
+      expect(result.scheduleId).toBe('new-schedule')
+      expect(result.endTime).toBe('09:30')
     })
   })
 })

@@ -39,11 +39,13 @@ const defaultProps = {
   appointment: makeAppointment(),
   canManage: true,
   canAct: true,
+  canReassign: false,
   hasRecord: false,
   onBack: jest.fn(),
   onFillRecord: jest.fn(),
   onCancel: jest.fn(),
   onComplete: jest.fn(),
+  onReassign: jest.fn(),
   isPendingComplete: false,
   isPendingCancel: false,
 }
@@ -111,6 +113,20 @@ describe('AppointmentHeaderCard', () => {
     renderWithProviders(<AppointmentHeaderCard {...defaultProps} canAct={false} hasRecord={false} onFillRecord={onFillRecord} />)
     await userEvent.click(screen.getByTestId('header-fill-record-button'))
     expect(onFillRecord).toHaveBeenCalled()
+  })
+
+  it('renders the reassign button only when canReassign is true', () => {
+    const { rerender } = renderWithProviders(<AppointmentHeaderCard {...defaultProps} />)
+    expect(screen.queryByTestId('appointment-detail-reassign-button')).not.toBeInTheDocument()
+    rerender(<AppointmentHeaderCard {...defaultProps} canReassign={true} />)
+    expect(screen.getByTestId('appointment-detail-reassign-button')).toBeInTheDocument()
+  })
+
+  it('calls onReassign when the reassign button is clicked', async () => {
+    const onReassign = jest.fn()
+    renderWithProviders(<AppointmentHeaderCard {...defaultProps} canReassign={true} onReassign={onReassign} />)
+    await userEvent.click(screen.getByTestId('appointment-detail-reassign-button'))
+    expect(onReassign).toHaveBeenCalled()
   })
 
   it('does not render cancellation reason when null', () => {

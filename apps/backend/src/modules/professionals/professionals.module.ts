@@ -5,6 +5,8 @@ import { AuthModule } from '../auth/auth.module'
 import { UsersModule } from '../users/users.module'
 import { SpecialtiesModule } from '../specialties/specialties.module'
 import { SchedulesModule } from '../schedules/schedules.module'
+import { ClinicsModule } from '../clinics/clinics.module'
+import { AppointmentsModule } from '../appointments/appointments.module'
 import { Professional } from './entities/professional.entity'
 import { ProfessionalRegistration } from './entities/professional-registration.entity'
 import { ProfessionalSpecialty } from './entities/professional-specialty.entity'
@@ -24,6 +26,8 @@ import { ProfessionalsRepository } from './repositories/professionals.repository
     forwardRef(() => AuthModule),
     forwardRef(() => UsersModule),
     forwardRef(() => SchedulesModule),
+    forwardRef(() => ClinicsModule),
+    forwardRef(() => AppointmentsModule),
     SpecialtiesModule,
   ],
   controllers: [ProfessionalsController],

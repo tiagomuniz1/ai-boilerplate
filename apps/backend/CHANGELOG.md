@@ -11,6 +11,26 @@
 
 ### Added
 
+#### Trocar o profissional de uma consulta (reassign)
+- Novo `PATCH /appointments/:id/reassign` (**somente ADMIN**) troca o profissional de uma consulta **agendada** mantendo a mesma data/horário — não é uma troca crua de `professional_id`: revalida que o profissional-alvo tem o slot válido na própria agenda (dentro do expediente, na grade, sem exceção de agenda e livre de outra consulta) e atualiza `professional_id`/`schedule_id`/`end_time` de acordo com a grade do alvo (`specialty_id`/data/horário inalterados)
+- Elegibilidade: mesma **especialidade** (consultas com `specialtyId`) ou mesma **profissão/`councilType`** (consultas generalistas) — mantém coerente o template de prontuário e a identidade de assinatura de documentos, que derivam do profissional atual + `specialtyId` no momento da criação
+- Novo `GET /appointments/:id/reassign-candidates` (ADMIN) devolve só os profissionais elegíveis **e** disponíveis naquele slot — a UI só mostra opções que funcionam; o `PATCH` só falha por indisponibilidade numa corrida de concorrência (`409`)
+- Novos use-cases `ResolveProfessionalSlotUseCase` (composição reutilizável de agenda + exceções + colisão), `ReassignAppointmentUseCase` (lock distribuído + transação, mesmo padrão do create) e `GetReassignCandidatesUseCase`; lógica de slot duplicada em create/availability extraída para `utils/slot.util.ts`
+- Erros: `422` (consulta não agendada / alvo inelegível / alvo indisponível / no passado), `404` (consulta ou profissional inexistente), `409` (corrida de slot ou optimistic lock). Cache de disponibilidade invalidado para os **dois** profissionais (origem e destino). Sem migration — as colunas já existiam
+
+#### Planos de assinatura por clínica (cobrança por nº de profissionais)
+- Nova coluna `plan` em `clinics` (migration `add-plan-to-clinics`, default `'free'` mantido no banco — clínica nova/seed/raw nasce Grátis). Enum `SubscriptionPlan` (`free`, `solo`, `clinica`, `grupo`, `rede`) e config `SUBSCRIPTION_PLANS` no `@app/shared` — **fonte única de rótulo, teto de profissionais e preço** (editar um plano é uma linha nessa config)
+- Planos: Grátis (ilimitado, R$ 0), Solo (1, R$ 99/mês), Clínica (5, R$ 79/prof/mês), Grupo (15, R$ 59/prof/mês), Rede (ilimitado, sob consulta)
+- `CreateProfessionalUseCase` bloqueia o cadastro de profissional quando a clínica atinge o teto do plano (`422`); Grátis/Rede (teto nulo) nunca bloqueiam
+- `UpdateClinicUseCase` bloqueia rebaixar o plano quando a clínica já tem mais profissionais que o novo teto permite (`422`, mensagem com a contagem atual)
+- `plan` em `CreateClinicDto`/`UpdateClinicDto`/`ClinicResponseDto` (só PLATFORM_ADMIN cria/edita, via `POST`/`PATCH /clinics` já existentes); `GET /clinics/:id` passa a trazer `professionalCount` (para o indicador "X / Y" do backoffice)
+- Novo `countByClinic` no repositório de profissionais; `forwardRef` entre `ClinicsModule` e `ProfessionalsModule` (acoplamento inevitável: profissional precisa do plano da clínica, clínica precisa da contagem de profissionais)
+- Escopo: só atribuição de plano + enforcement do teto + exibição no backoffice. **Não** inclui pagamento/cobrança/fatura — os preços são informativos (prontos para uma futura integração de billing)
+
+#### Excluir profissional com consultas futuras é bloqueado
+- `DeleteProfessionalUseCase` passa a bloquear (`409 Conflict`) a exclusão de um profissional que ainda tem **consultas futuras agendadas** (status agendado, data ≥ hoje) — antes as consultas ficavam órfãs (sem cancelar, apontando para um profissional soft-deleted, com o nome exibido em branco). O admin precisa cancelar essas consultas antes de excluir (não há fluxo de remarcar/reatribuir consulta a outro profissional)
+- Novo `hasFutureByProfessionalId` no repositório de consultas (espelha o `hasFutureByScheduleId` existente); `forwardRef` entre `ProfessionalsModule` e `AppointmentsModule`
+
 #### Catálogo canônico de especialidades (CRM)
 - Novo importador `run-import-specialties.ts` (mesmo padrão de `run-import-themes.ts`/`run-import-medications.ts`) — publica o catálogo canônico de especialidades médicas (CRM) definido em `canonical-specialties.ts`, idempotente por `name` (case-insensitive)
 - Lista inicial curada com foco em atendimento de consultório: Cardiologia, Clínica Médica, Dermatologia, Endocrinologia e Metabologia, Geriatria, Ginecologia e Obstetrícia, Hematologia e Hemoterapia, Mastologia, Nutrologia, Oftalmologia, Oncologia Clínica, Ortopedia e Traumatologia, Otorrinolaringologia, Pediatria, Psiquiatria, Reumatologia, Urologia

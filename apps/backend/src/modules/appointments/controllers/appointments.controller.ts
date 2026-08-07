@@ -5,6 +5,8 @@ import {
   CancelAppointmentDto,
   CreateAppointmentDto,
   PaginatedAppointmentsResponseDto,
+  ReassignAppointmentDto,
+  ReassignCandidateDto,
   UserRole,
 } from '@app/shared'
 import { CurrentUser } from '../../auth/decorators/current-user.decorator'
@@ -18,6 +20,8 @@ import { ConfirmAppointmentUseCase } from '../use-cases/confirm-appointment.use-
 import { CreateAppointmentUseCase } from '../use-cases/create-appointment.use-case'
 import { FindAppointmentByIdUseCase } from '../use-cases/find-appointment-by-id.use-case'
 import { GetAvailabilityUseCase } from '../use-cases/get-availability.use-case'
+import { GetReassignCandidatesUseCase } from '../use-cases/get-reassign-candidates.use-case'
+import { ReassignAppointmentUseCase } from '../use-cases/reassign-appointment.use-case'
 import { ListAppointmentsUseCase } from '../use-cases/list-appointments.use-case'
 import { MarkAppointmentNoShowUseCase } from '../use-cases/mark-appointment-no-show.use-case'
 
@@ -32,6 +36,8 @@ export class AppointmentsController {
     private readonly findAppointmentByIdUseCase: FindAppointmentByIdUseCase,
     private readonly listAppointmentsUseCase: ListAppointmentsUseCase,
     private readonly getAvailabilityUseCase: GetAvailabilityUseCase,
+    private readonly getReassignCandidatesUseCase: GetReassignCandidatesUseCase,
+    private readonly reassignAppointmentUseCase: ReassignAppointmentUseCase,
   ) {}
 
   @Post()
@@ -71,6 +77,15 @@ export class AppointmentsController {
     return this.findAppointmentByIdUseCase.execute(id, currentUser)
   }
 
+  @Get(':id/reassign-candidates')
+  @Roles(UserRole.ADMIN)
+  reassignCandidates(
+    @Param('id') id: string,
+    @CurrentUser() currentUser: ICurrentUser,
+  ): Promise<ReassignCandidateDto[]> {
+    return this.getReassignCandidatesUseCase.execute(id, currentUser)
+  }
+
   @Patch(':id/confirm')
   @Roles(UserRole.ADMIN, UserRole.PROFESSIONAL)
   confirm(
@@ -106,5 +121,15 @@ export class AppointmentsController {
     @CurrentUser() currentUser: ICurrentUser,
   ): Promise<AppointmentResponseDto> {
     return this.completeAppointmentUseCase.execute(id, currentUser)
+  }
+
+  @Patch(':id/reassign')
+  @Roles(UserRole.ADMIN)
+  reassign(
+    @Param('id') id: string,
+    @Body() dto: ReassignAppointmentDto,
+    @CurrentUser() currentUser: ICurrentUser,
+  ): Promise<AppointmentResponseDto> {
+    return this.reassignAppointmentUseCase.execute(id, dto, currentUser)
   }
 }

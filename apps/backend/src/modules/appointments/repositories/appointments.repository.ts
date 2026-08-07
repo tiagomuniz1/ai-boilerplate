@@ -82,6 +82,23 @@ export class AppointmentsRepository implements IAppointmentsRepository {
     return result > 0
   }
 
+  // Any still-scheduled appointment dated today or later for this professional —
+  // used to block deleting a professional who would otherwise leave orphaned
+  // future consultations behind (there is no reassign/reschedule flow).
+  async hasFutureByProfessionalId(professionalId: string, clinicId: string): Promise<boolean> {
+    const today = new Date().toISOString().split('T')[0]
+    const result = await this.repository
+      .createQueryBuilder('appointment')
+      .where('appointment.professional_id = :professionalId', { professionalId })
+      .andWhere('appointment.clinic_id = :clinicId', { clinicId })
+      .andWhere('appointment.status = :status', { status: AppointmentStatus.SCHEDULED })
+      .andWhere('appointment.date >= :today', { today })
+      .andWhere('appointment.deleted_at IS NULL')
+      .getCount()
+
+    return result > 0
+  }
+
   async create(data: CreateAppointmentData, queryRunner?: QueryRunner): Promise<Appointment> {
     const repo = queryRunner ? queryRunner.manager.getRepository(Appointment) : this.repository
     return repo.save(
@@ -107,6 +124,9 @@ export class AppointmentsRepository implements IAppointmentsRepository {
 
     if (data.status !== undefined) appointment.status = data.status
     if (data.cancellationReason !== undefined) appointment.cancellationReason = data.cancellationReason
+    if (data.professionalId !== undefined) appointment.professionalId = data.professionalId
+    if (data.scheduleId !== undefined) appointment.scheduleId = data.scheduleId
+    if (data.endTime !== undefined) appointment.endTime = data.endTime
 
     return repo.save(appointment)
   }

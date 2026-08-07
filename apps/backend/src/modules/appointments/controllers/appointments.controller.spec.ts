@@ -9,6 +9,8 @@ import { ConfirmAppointmentUseCase } from '../use-cases/confirm-appointment.use-
 import { CreateAppointmentUseCase } from '../use-cases/create-appointment.use-case'
 import { FindAppointmentByIdUseCase } from '../use-cases/find-appointment-by-id.use-case'
 import { GetAvailabilityUseCase } from '../use-cases/get-availability.use-case'
+import { GetReassignCandidatesUseCase } from '../use-cases/get-reassign-candidates.use-case'
+import { ReassignAppointmentUseCase } from '../use-cases/reassign-appointment.use-case'
 import { ListAppointmentsUseCase } from '../use-cases/list-appointments.use-case'
 import { MarkAppointmentNoShowUseCase } from '../use-cases/mark-appointment-no-show.use-case'
 
@@ -20,6 +22,8 @@ const mockNoShow = { execute: jest.fn() } as unknown as jest.Mocked<MarkAppointm
 const mockFindById = { execute: jest.fn() } as unknown as jest.Mocked<FindAppointmentByIdUseCase>
 const mockList = { execute: jest.fn() } as unknown as jest.Mocked<ListAppointmentsUseCase>
 const mockGetAvailability = { execute: jest.fn() } as unknown as jest.Mocked<GetAvailabilityUseCase>
+const mockGetReassignCandidates = { execute: jest.fn() } as unknown as jest.Mocked<GetReassignCandidatesUseCase>
+const mockReassign = { execute: jest.fn() } as unknown as jest.Mocked<ReassignAppointmentUseCase>
 
 const CLINIC_ID = 'clinic-uuid'
 
@@ -58,6 +62,8 @@ describe('AppointmentsController', () => {
       mockFindById,
       mockList,
       mockGetAvailability,
+      mockGetReassignCandidates,
+      mockReassign,
     )
   })
 
@@ -158,6 +164,31 @@ describe('AppointmentsController', () => {
     const result = await controller.noShow(id, adminUser)
 
     expect(mockNoShow.execute).toHaveBeenCalledWith(id, adminUser)
+    expect(result).toBe(response)
+  })
+
+  it('reassignCandidates delegates to GetReassignCandidatesUseCase', async () => {
+    const id = faker.string.uuid()
+    const response = [
+      { professionalId: faker.string.uuid(), professionalName: 'Dr. Other', specialtyName: 'Cardiologia' },
+    ]
+    mockGetReassignCandidates.execute.mockResolvedValue(response as any)
+
+    const result = await controller.reassignCandidates(id, adminUser)
+
+    expect(mockGetReassignCandidates.execute).toHaveBeenCalledWith(id, adminUser)
+    expect(result).toBe(response)
+  })
+
+  it('reassign delegates to ReassignAppointmentUseCase', async () => {
+    const id = faker.string.uuid()
+    const dto = { professionalId: faker.string.uuid() } as any
+    const response = makeAppointmentResponse({ id })
+    mockReassign.execute.mockResolvedValue(response as any)
+
+    const result = await controller.reassign(id, dto, adminUser)
+
+    expect(mockReassign.execute).toHaveBeenCalledWith(id, dto, adminUser)
     expect(result).toBe(response)
   })
 })

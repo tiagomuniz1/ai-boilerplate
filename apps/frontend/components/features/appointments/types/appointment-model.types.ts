@@ -32,6 +32,12 @@ export interface IAppointmentModel {
   updatedAt: Date
 }
 
+export interface IReassignCandidateModel {
+  professionalId: string
+  professionalName: string
+  specialtyName: string | null
+}
+
 export interface IAvailableSlotModel {
   startTime: string
   endTime: string

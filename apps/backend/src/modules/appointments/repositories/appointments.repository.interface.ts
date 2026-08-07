@@ -19,6 +19,9 @@ export interface CreateAppointmentData {
 export interface UpdateAppointmentData {
   status?: AppointmentStatus
   cancellationReason?: string | null
+  professionalId?: string
+  scheduleId?: string
+  endTime?: string
 }
 
 export abstract class IAppointmentsRepository {
@@ -27,6 +30,7 @@ export abstract class IAppointmentsRepository {
   abstract findActiveByProfessionalAndDate(professionalId: string, date: string, clinicId: string): Promise<Appointment[]>
   abstract findActiveBySlot(professionalId: string, date: string, startTime: string, clinicId: string, queryRunner?: QueryRunner): Promise<Appointment | null>
   abstract hasFutureByScheduleId(scheduleId: string, clinicId: string): Promise<boolean>
+  abstract hasFutureByProfessionalId(professionalId: string, clinicId: string): Promise<boolean>
   abstract create(data: CreateAppointmentData, queryRunner?: QueryRunner): Promise<Appointment>
   abstract update(id: string, data: UpdateAppointmentData, queryRunner?: QueryRunner): Promise<Appointment>
 }

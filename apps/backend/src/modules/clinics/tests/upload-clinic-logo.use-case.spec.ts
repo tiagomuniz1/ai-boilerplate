@@ -7,6 +7,7 @@ import { IStorageAdapter } from '../../../common/adapters/storage.adapter.interf
 import { CacheService } from '../../../cache/cache.service'
 import { ClinicAssetUrlService } from '../../../common/services/clinic-asset-url.service'
 import { ClinicResponseMapper } from '../mappers/clinic-response.mapper'
+import { SubscriptionPlan } from '@app/shared'
 import { Clinic } from '../entities/clinic.entity'
 
 const mockClinicsRepository: jest.Mocked<IClinicsRepository> = {
@@ -37,6 +38,7 @@ function makeClinic(overrides: Partial<Clinic> = {}): Clinic {
     name: faker.company.name(),
     slug: faker.lorem.slug(),
     isActive: true,
+    plan: SubscriptionPlan.FREE,
     themeId: null,
     logoPath: null,
     logoDarkPath: null,

@@ -13,6 +13,7 @@ const mockProfessionalsRepository: jest.Mocked<IProfessionalsRepository> = {
   findById: jest.fn(),
   findByUserId: jest.fn(),
   findByRegistration: jest.fn(),
+  countByClinic: jest.fn(),
   create: jest.fn(),
   update: jest.fn(),
   delete: jest.fn(),

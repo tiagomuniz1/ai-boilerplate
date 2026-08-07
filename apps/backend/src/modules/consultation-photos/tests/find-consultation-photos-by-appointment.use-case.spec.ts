@@ -45,6 +45,7 @@ const mockAppointmentsRepository: jest.Mocked<IAppointmentsRepository> = {
   findActiveByProfessionalAndDate: jest.fn(),
   findActiveBySlot: jest.fn(),
   hasFutureByScheduleId: jest.fn(),
+  hasFutureByProfessionalId: jest.fn(),
   create: jest.fn(),
   update: jest.fn(),
 }
@@ -54,6 +55,7 @@ const mockProfessionalsRepository: jest.Mocked<IProfessionalsRepository> = {
   findById: jest.fn(),
   findByUserId: jest.fn(),
   findByRegistration: jest.fn(),
+  countByClinic: jest.fn(),
   create: jest.fn(),
   update: jest.fn(),
   delete: jest.fn(),

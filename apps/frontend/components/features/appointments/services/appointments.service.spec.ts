@@ -82,4 +82,18 @@ describe('appointmentsService', () => {
     appointmentsService.complete('apt-uuid')
     expect(mockApiClient.patch).toHaveBeenCalledWith('/appointments/apt-uuid/complete', {})
   })
+
+  it('getReassignCandidates calls GET /appointments/:id/reassign-candidates', () => {
+    mockApiClient.get.mockResolvedValue([] as any)
+    appointmentsService.getReassignCandidates('apt-uuid')
+    expect(mockApiClient.get).toHaveBeenCalledWith('/appointments/apt-uuid/reassign-candidates')
+  })
+
+  it('reassign calls PATCH /appointments/:id/reassign with professionalId', () => {
+    mockApiClient.patch.mockResolvedValue({} as any)
+    appointmentsService.reassign('apt-uuid', 'doc-uuid')
+    expect(mockApiClient.patch).toHaveBeenCalledWith('/appointments/apt-uuid/reassign', {
+      professionalId: 'doc-uuid',
+    })
+  })
 })

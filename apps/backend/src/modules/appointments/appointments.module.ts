@@ -15,6 +15,9 @@ import { MarkAppointmentNoShowUseCase } from './use-cases/mark-appointment-no-sh
 import { FindAppointmentByIdUseCase } from './use-cases/find-appointment-by-id.use-case'
 import { ListAppointmentsUseCase } from './use-cases/list-appointments.use-case'
 import { GetAvailabilityUseCase } from './use-cases/get-availability.use-case'
+import { ResolveProfessionalSlotUseCase } from './use-cases/resolve-professional-slot.use-case'
+import { ReassignAppointmentUseCase } from './use-cases/reassign-appointment.use-case'
+import { GetReassignCandidatesUseCase } from './use-cases/get-reassign-candidates.use-case'
 import { HasFutureAppointmentsByScheduleUseCase } from './use-cases/has-future-appointments-by-schedule.use-case'
 import { FindScheduledAppointmentsInWindowUseCase } from './use-cases/find-scheduled-appointments-in-window.use-case'
 import { IAppointmentsRepository } from './repositories/appointments.repository.interface'
@@ -39,6 +42,9 @@ import { AppointmentsRepository } from './repositories/appointments.repository'
     FindAppointmentByIdUseCase,
     ListAppointmentsUseCase,
     GetAvailabilityUseCase,
+    ResolveProfessionalSlotUseCase,
+    ReassignAppointmentUseCase,
+    GetReassignCandidatesUseCase,
     HasFutureAppointmentsByScheduleUseCase,
     FindScheduledAppointmentsInWindowUseCase,
     { provide: IAppointmentsRepository, useClass: AppointmentsRepository },

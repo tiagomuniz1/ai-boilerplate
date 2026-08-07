@@ -13,6 +13,7 @@ const mockClinic = {
   name: 'Clínica do Coração',
   slug: 'clinica-do-coracao',
   isActive: true,
+  plan: 'grupo',
   createdAt: '2024-01-15T10:00:00.000Z',
   updatedAt: '2024-01-16T10:00:00.000Z',
 }
@@ -79,6 +80,7 @@ describe('Clinics List', () => {
     cy.get(`[data-testid="clinic-name-${mockClinic.id}"]`).should('contain', mockClinic.name)
     cy.get(`[data-testid="clinic-slug-${mockClinic.id}"]`).should('contain', mockClinic.slug)
     cy.get(`[data-testid="clinic-status-${mockClinic.id}"]`).should('contain', 'Ativa')
+    cy.get(`[data-testid="clinic-plan-${mockClinic.id}"]`).should('contain', 'Grupo')
   })
 
   it('shows "+ Usuário" shortcut link for each clinic', () => {

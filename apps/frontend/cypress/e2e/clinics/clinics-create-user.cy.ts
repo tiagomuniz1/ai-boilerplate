@@ -16,6 +16,7 @@ const mockCreatedUser = {
   email: 'admin.clinica@test.com',
   role: 'admin',
   isActive: true,
+  plan: 'free',
   isProfessional: false,
   isPatient: false,
   createdAt: '2024-01-15T10:00:00.000Z',
@@ -48,7 +49,7 @@ describe('Clinics Create User', () => {
   it('back button returns to /clinics/:id', () => {
     cy.intercept('GET', `${Cypress.env('API_URL')}/clinics/${CLINIC_ID}`, {
       statusCode: 200,
-      body: { id: CLINIC_ID, name: 'Clínica Test', slug: 'clinica-test', isActive: true, createdAt: new Date(), updatedAt: new Date() },
+      body: { id: CLINIC_ID, name: 'Clínica Test', slug: 'clinica-test', isActive: true, plan: 'free', createdAt: new Date(), updatedAt: new Date() },
     })
 
     visitBackoffice(`/clinics/${CLINIC_ID}/users/new`, mockPlatformAdmin)
@@ -77,7 +78,7 @@ describe('Clinics Create User', () => {
     }).as('createUser')
     cy.intercept('GET', `${Cypress.env('API_URL')}/clinics/${CLINIC_ID}`, {
       statusCode: 200,
-      body: { id: CLINIC_ID, name: 'Clínica Test', slug: 'clinica-test', isActive: true, createdAt: new Date(), updatedAt: new Date() },
+      body: { id: CLINIC_ID, name: 'Clínica Test', slug: 'clinica-test', isActive: true, plan: 'free', createdAt: new Date(), updatedAt: new Date() },
     })
 
     visitBackoffice(`/clinics/${CLINIC_ID}/users/new`, mockPlatformAdmin)
@@ -96,7 +97,7 @@ describe('Clinics Create User', () => {
     }).as('createUser')
     cy.intercept('GET', `${Cypress.env('API_URL')}/clinics/${CLINIC_ID}`, {
       statusCode: 200,
-      body: { id: CLINIC_ID, name: 'Clínica Test', slug: 'clinica-test', isActive: true, createdAt: new Date(), updatedAt: new Date() },
+      body: { id: CLINIC_ID, name: 'Clínica Test', slug: 'clinica-test', isActive: true, plan: 'free', createdAt: new Date(), updatedAt: new Date() },
     })
 
     visitBackoffice(`/clinics/${CLINIC_ID}/users/new`, mockPlatformAdmin)

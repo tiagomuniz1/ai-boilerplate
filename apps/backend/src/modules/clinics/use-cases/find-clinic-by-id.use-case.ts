@@ -4,6 +4,7 @@ import { ClinicResponseDto } from '@app/shared'
 import { BaseUseCase } from '../../../common/base.use-case'
 import { CacheService } from '../../../cache/cache.service'
 import { IClinicsRepository } from '../repositories/clinics.repository.interface'
+import { IProfessionalsRepository } from '../../professionals/repositories/professionals.repository.interface'
 import { ClinicResponseMapper } from '../mappers/clinic-response.mapper'
 
 @Injectable()
@@ -13,6 +14,7 @@ export class FindClinicByIdUseCase extends BaseUseCase {
   constructor(
     dataSource: DataSource,
     private readonly clinicsRepository: IClinicsRepository,
+    private readonly professionalsRepository: IProfessionalsRepository,
     private readonly cacheService: CacheService,
     private readonly clinicResponseMapper: ClinicResponseMapper,
   ) {
@@ -32,7 +34,8 @@ export class FindClinicByIdUseCase extends BaseUseCase {
     const clinic = await this.clinicsRepository.findById(id)
     if (!clinic) throw new NotFoundException('Clinic not found')
 
-    const response = this.clinicResponseMapper.toResponse(clinic)
+    const professionalCount = await this.professionalsRepository.countByClinic(id)
+    const response = this.clinicResponseMapper.toResponse(clinic, professionalCount)
 
     try {
       await this.cacheService.set(cacheKey, response, 300)

@@ -9,6 +9,7 @@ const mockAppointmentsRepository: jest.Mocked<IAppointmentsRepository> = {
   findActiveByProfessionalAndDate: jest.fn(),
   findActiveBySlot: jest.fn(),
   hasFutureByScheduleId: jest.fn(),
+  hasFutureByProfessionalId: jest.fn(),
   create: jest.fn(),
   update: jest.fn(),
 }

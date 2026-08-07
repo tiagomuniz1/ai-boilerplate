@@ -7,12 +7,16 @@ import { Clinic } from '../entities/clinic.entity'
 export class ClinicResponseMapper {
   constructor(private readonly assetUrlService: ClinicAssetUrlService) {}
 
-  toResponse(clinic: Clinic): ClinicResponseDto {
+  // professionalCount is passed in (not on the Clinic entity) — only find-by-id
+  // supplies it, for the backoffice "X / Y professionals" usage indicator.
+  toResponse(clinic: Clinic, professionalCount?: number): ClinicResponseDto {
     return {
       id: clinic.id,
       name: clinic.name,
       slug: clinic.slug,
       isActive: clinic.isActive,
+      plan: clinic.plan,
+      professionalCount,
       themeId: clinic.themeId ?? null,
       logoUrl: clinic.logoPath ? this.assetUrlService.build(clinic.slug, 'logo', clinic.updatedAt) : null,
       logoDarkUrl: clinic.logoDarkPath

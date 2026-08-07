@@ -7,37 +7,9 @@ import { ICurrentUser } from '../../auth/types/current-user.type'
 import { IProfessionalsRepository } from '../../professionals/repositories/professionals.repository.interface'
 import { GetActiveSchedulesForProfessionalUseCase } from '../../schedules/use-cases/get-active-schedules-for-professional.use-case'
 import { GetActiveExceptionsForProfessionalUseCase } from '../../schedule-exceptions/use-cases/get-active-exceptions-for-professional.use-case'
-import { Schedule } from '../../schedules/entities/schedule.entity'
 import { AvailabilityQueryDto } from '../dto/availability-query.dto'
 import { IAppointmentsRepository } from '../repositories/appointments.repository.interface'
-
-function timeToMinutes(time: string): number {
-  const [h, m] = time.split(':').map(Number)
-  return h * 60 + m
-}
-
-function minutesToTime(minutes: number): string {
-  const h = Math.floor(minutes / 60).toString().padStart(2, '0')
-  const m = (minutes % 60).toString().padStart(2, '0')
-  return `${h}:${m}`
-}
-
-function generateSlots(schedule: Schedule): AvailableSlotDto[] {
-  const slots: AvailableSlotDto[] = []
-  const start = timeToMinutes(schedule.startTime)
-  const end = timeToMinutes(schedule.endTime)
-  const duration = schedule.slotDurationInMinutes
-
-  for (let t = start; t + duration <= end; t += duration) {
-    slots.push({
-      startTime: minutesToTime(t),
-      endTime: minutesToTime(t + duration),
-      scheduleId: schedule.id,
-      slotDurationInMinutes: duration,
-    })
-  }
-  return slots
-}
+import { generateSlots, isSlotBlockedByExceptions } from '../utils/slot.util'
 
 @Injectable()
 export class GetAvailabilityUseCase extends BaseUseCase {
@@ -93,16 +65,7 @@ export class GetAvailabilityUseCase extends BaseUseCase {
 
     const freeSlots = allSlots
       .filter((slot) => !bookedStartTimes.has(slot.startTime))
-      .filter((slot) => {
-        if (exceptions.length === 0) return true
-        const slotStart = timeToMinutes(slot.startTime)
-        const slotEnd = timeToMinutes(slot.endTime)
-        return !exceptions.some((ex) => {
-          const blockStart = ex.startTime ? timeToMinutes(ex.startTime) : 0
-          const blockEnd = ex.endTime ? timeToMinutes(ex.endTime) : 24 * 60
-          return slotStart < blockEnd && slotEnd > blockStart
-        })
-      })
+      .filter((slot) => !isSlotBlockedByExceptions(slot, exceptions))
       .sort((a, b) => a.startTime.localeCompare(b.startTime))
 
     const result: AvailabilityResponseDto = {

@@ -1058,4 +1058,175 @@ describe('AppointmentsController (integration)', () => {
       expect(body.data.every((a: any) => a.status === AppointmentStatus.CONFIRMED)).toBe(true)
     })
   })
+
+  describe('reassign professional', () => {
+    let appointmentId: string
+
+    const giveOtherDoctorASchedule = async () => {
+      await scheduleRepository.save(
+        scheduleRepository.create({
+          professionalId: otherDoctorId,
+          clinicId: SEED_CLINIC_ID,
+          dayOfWeek: DayOfWeek.FRIDAY,
+          startTime: '08:00',
+          endTime: '10:00',
+          slotDurationInMinutes: 30,
+          validFrom: null,
+          validUntil: null,
+        }),
+      )
+    }
+
+    beforeEach(async () => {
+      const { body: created } = await request(app.getHttpServer())
+        .post('/appointments')
+        .set('Cookie', `access_token=${doctorToken}`)
+        .send({ patientId, date: futureDate, startTime: '08:00' })
+        .expect(201)
+      appointmentId = created.id
+    })
+
+    it('PATCH /:id/reassign → 200 moves the appointment to a same-specialty available professional and frees the old slot', async () => {
+      await giveOtherDoctorASchedule()
+
+      const { body } = await request(app.getHttpServer())
+        .patch(`/appointments/${appointmentId}/reassign`)
+        .set('Cookie', `access_token=${adminToken}`)
+        .send({ professionalId: otherDoctorId })
+        .expect(200)
+
+      expect(body.professionalId).toBe(otherDoctorId)
+      expect(body.specialtyId).toBe(specialtyId)
+      expect(body.startTime).toBe('08:00')
+
+      // Old professional's 08:00 slot is free again — a fresh booking succeeds.
+      await request(app.getHttpServer())
+        .post('/appointments')
+        .set('Cookie', `access_token=${doctorToken}`)
+        .send({ patientId, date: futureDate, startTime: '08:00' })
+        .expect(201)
+    })
+
+    it('PATCH /:id/reassign → 422 when the appointment is not scheduled', async () => {
+      await giveOtherDoctorASchedule()
+      await request(app.getHttpServer())
+        .patch(`/appointments/${appointmentId}/cancel`)
+        .set('Cookie', `access_token=${adminToken}`)
+        .send({})
+        .expect(200)
+
+      await request(app.getHttpServer())
+        .patch(`/appointments/${appointmentId}/reassign`)
+        .set('Cookie', `access_token=${adminToken}`)
+        .send({ professionalId: otherDoctorId })
+        .expect(422)
+    })
+
+    it('PATCH /:id/reassign → 422 when the target professional is not available at the slot', async () => {
+      // otherDoctor has no schedule on that day → not available.
+      await request(app.getHttpServer())
+        .patch(`/appointments/${appointmentId}/reassign`)
+        .set('Cookie', `access_token=${adminToken}`)
+        .send({ professionalId: otherDoctorId })
+        .expect(422)
+    })
+
+    it('PATCH /:id/reassign → 422 when the target professional has a different specialty', async () => {
+      const dermUser = await userRepository.save(
+        userRepository.create({
+          fullName: 'Derm Doctor',
+          email: 'derm@appointments.test',
+          password: 'x',
+          role: UserRole.PROFESSIONAL,
+          clinicId: SEED_CLINIC_ID,
+        }),
+      )
+      const dermEntity = doctorRepository.create({ userId: dermUser.id, clinicId: SEED_CLINIC_ID })
+      dermEntity.registrations = [
+        { clinicId: SEED_CLINIC_ID, councilType: CouncilType.CRM, number: '77777', state: 'SP', isPrimary: true },
+      ] as any
+      dermEntity.professionalSpecialties = [{ specialtyId: otherSpecialtyId, registryNumber: null }] as any
+      const derm = await doctorRepository.save(dermEntity)
+      await scheduleRepository.save(
+        scheduleRepository.create({
+          professionalId: derm.id,
+          clinicId: SEED_CLINIC_ID,
+          dayOfWeek: DayOfWeek.FRIDAY,
+          startTime: '08:00',
+          endTime: '10:00',
+          slotDurationInMinutes: 30,
+          validFrom: null,
+          validUntil: null,
+        }),
+      )
+
+      await request(app.getHttpServer())
+        .patch(`/appointments/${appointmentId}/reassign`)
+        .set('Cookie', `access_token=${adminToken}`)
+        .send({ professionalId: derm.id })
+        .expect(422)
+    })
+
+    it('PATCH /:id/reassign → 422 when the target slot is already booked', async () => {
+      await giveOtherDoctorASchedule()
+      // Book the target professional's 08:00 slot first — the availability pre-check
+      // rejects the reassign (the in-lock 409 guard only fires on a concurrent race).
+      await request(app.getHttpServer())
+        .post('/appointments')
+        .set('Cookie', `access_token=${adminToken}`)
+        .send({ patientId, date: futureDate, startTime: '08:00', professionalId: otherDoctorId })
+        .expect(201)
+
+      await request(app.getHttpServer())
+        .patch(`/appointments/${appointmentId}/reassign`)
+        .set('Cookie', `access_token=${adminToken}`)
+        .send({ professionalId: otherDoctorId })
+        .expect(422)
+    })
+
+    it('PATCH /:id/reassign → 403 for PROFESSIONAL and USER roles', async () => {
+      await giveOtherDoctorASchedule()
+      await request(app.getHttpServer())
+        .patch(`/appointments/${appointmentId}/reassign`)
+        .set('Cookie', `access_token=${doctorToken}`)
+        .send({ professionalId: otherDoctorId })
+        .expect(403)
+
+      await request(app.getHttpServer())
+        .patch(`/appointments/${appointmentId}/reassign`)
+        .set('Cookie', `access_token=${userToken}`)
+        .send({ professionalId: otherDoctorId })
+        .expect(403)
+    })
+
+    it('GET /:id/reassign-candidates → 200 returns only eligible, available professionals', async () => {
+      await giveOtherDoctorASchedule()
+
+      const { body } = await request(app.getHttpServer())
+        .get(`/appointments/${appointmentId}/reassign-candidates`)
+        .set('Cookie', `access_token=${adminToken}`)
+        .expect(200)
+
+      expect(body).toHaveLength(1)
+      expect(body[0].professionalId).toBe(otherDoctorId)
+      expect(body[0].specialtyName).toBe('Clínica Geral')
+    })
+
+    it('GET /:id/reassign-candidates → 200 excludes professionals without a free slot', async () => {
+      // otherDoctor has no schedule → not available → not a candidate.
+      const { body } = await request(app.getHttpServer())
+        .get(`/appointments/${appointmentId}/reassign-candidates`)
+        .set('Cookie', `access_token=${adminToken}`)
+        .expect(200)
+
+      expect(body).toHaveLength(0)
+    })
+
+    it('GET /:id/reassign-candidates → 403 for USER role', async () => {
+      await request(app.getHttpServer())
+        .get(`/appointments/${appointmentId}/reassign-candidates`)
+        .set('Cookie', `access_token=${userToken}`)
+        .expect(403)
+    })
+  })
 })

@@ -43,6 +43,7 @@ export class ClinicsRepository implements IClinicsRepository {
     const entity = repo.create({
       name: data.name,
       slug: data.slug,
+      plan: data.plan,
       themeId: data.themeId ?? null,
       ...(data.address && {
         addressStreet: data.address.street,

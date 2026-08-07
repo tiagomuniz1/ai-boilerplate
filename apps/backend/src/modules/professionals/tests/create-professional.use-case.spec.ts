@@ -1,13 +1,14 @@
 import { ConflictException, NotFoundException, UnprocessableEntityException } from '@nestjs/common'
 import { DataSource, QueryFailedError } from 'typeorm'
 import { faker } from '@faker-js/faker'
-import { CouncilType, UserRole } from '@app/shared'
+import { CouncilType, SubscriptionPlan, UserRole } from '@app/shared'
 import { DB_UNIQUE_CONSTRAINTS } from '../../../common/utils/db-constraint.utils'
 import { CacheService } from '../../../cache/cache.service'
 import { ICurrentUser } from '../../auth/types/current-user.type'
 import { SendSetPasswordEmailUseCase } from '../../auth/use-cases/send-set-password-email.use-case'
 import { IUsersRepository } from '../../users/repositories/users.repository.interface'
 import { ISpecialtiesRepository } from '../../specialties/repositories/specialties.repository.interface'
+import { IClinicsRepository } from '../../clinics/repositories/clinics.repository.interface'
 import { IProfessionalsRepository } from '../repositories/professionals.repository.interface'
 import { CreateProfessionalUseCase } from '../use-cases/create-professional.use-case'
 
@@ -36,10 +37,22 @@ const mockProfessionalsRepository: jest.Mocked<IProfessionalsRepository> = {
   findById: jest.fn(),
   findByUserId: jest.fn(),
   findByRegistration: jest.fn(),
+  countByClinic: jest.fn(),
   create: jest.fn(),
   update: jest.fn(),
   delete: jest.fn(),
 }
+
+const mockClinicsRepository = {
+  findById: jest.fn(),
+  findAll: jest.fn(),
+  findBySlug: jest.fn(),
+  create: jest.fn(),
+  update: jest.fn(),
+  updateLogo: jest.fn(),
+  updateLogoDark: jest.fn(),
+  updateFavicon: jest.fn(),
+} as unknown as jest.Mocked<IClinicsRepository>
 
 const mockUsersRepository: jest.Mocked<IUsersRepository> = {
   findAll: jest.fn(),
@@ -156,11 +169,16 @@ describe('CreateProfessionalUseCase', () => {
 
   beforeEach(() => {
     jest.clearAllMocks()
+    // Default: clinic on the Free plan (unlimited professionals) so the cap check
+    // is a no-op for the pre-existing tests below. Cap-specific tests override this.
+    mockClinicsRepository.findById.mockResolvedValue({ id: CLINIC_ID, plan: SubscriptionPlan.FREE } as any)
+    mockProfessionalsRepository.countByClinic.mockResolvedValue(0)
     useCase = new CreateProfessionalUseCase(
       mockDataSource,
       mockProfessionalsRepository,
       mockUsersRepository,
       mockSpecialtiesRepository,
+      mockClinicsRepository,
       mockCacheService,
       mockSendSetPasswordEmailUseCase,
     )
@@ -657,6 +675,75 @@ describe('CreateProfessionalUseCase', () => {
       await useCase.execute(dto, adminCurrentUser)
 
       expect(mockSendSetPasswordEmailUseCase.execute).not.toHaveBeenCalled()
+    })
+  })
+
+  it('maps a professional whose registrations/specialties relations are absent (defensive fallback)', async () => {
+    const user = makeUser()
+    const dto = makeDto(user.id, [])
+    // Relations not eager-loaded → repository returns them as undefined.
+    const created = { ...makeProfessional({ userId: user.id, user }), registrations: undefined, professionalSpecialties: undefined }
+    mockUsersRepository.findById.mockResolvedValue(user)
+    mockProfessionalsRepository.findByUserId.mockResolvedValue(null)
+    mockProfessionalsRepository.findByRegistration.mockResolvedValue(null)
+    mockSpecialtiesRepository.findByIds.mockResolvedValue([] as any)
+    mockProfessionalsRepository.create.mockResolvedValue(created as any)
+
+    const result = await useCase.execute(dto, adminCurrentUser)
+
+    expect(result.registrations).toEqual([])
+    expect(result.specialties).toEqual([])
+  })
+
+  describe('subscription plan cap', () => {
+    it('throws NotFoundException when the clinic does not exist', async () => {
+      mockClinicsRepository.findById.mockResolvedValue(null)
+
+      await expect(useCase.execute(makeDto(), adminCurrentUser)).rejects.toThrow(
+        new NotFoundException('Clinic not found'),
+      )
+      expect(mockProfessionalsRepository.create).not.toHaveBeenCalled()
+    })
+
+    it('allows creation when the current count is below the plan cap', async () => {
+      mockClinicsRepository.findById.mockResolvedValue({ id: CLINIC_ID, plan: SubscriptionPlan.CLINICA } as any)
+      mockProfessionalsRepository.countByClinic.mockResolvedValue(4) // Clínica cap = 5
+      const user = makeUser()
+      const dto = makeDto(user.id, [])
+      const created = makeProfessional({ userId: user.id, user, specialties: [] })
+      mockUsersRepository.findById.mockResolvedValue(user)
+      mockProfessionalsRepository.findByUserId.mockResolvedValue(null)
+      mockProfessionalsRepository.findByRegistration.mockResolvedValue(null)
+      mockSpecialtiesRepository.findByIds.mockResolvedValue([] as any)
+      mockProfessionalsRepository.create.mockResolvedValue(created as any)
+
+      await expect(useCase.execute(dto, adminCurrentUser)).resolves.toBeDefined()
+    })
+
+    it('throws UnprocessableEntityException when the plan cap is reached', async () => {
+      mockClinicsRepository.findById.mockResolvedValue({ id: CLINIC_ID, plan: SubscriptionPlan.SOLO } as any)
+      mockProfessionalsRepository.countByClinic.mockResolvedValue(1) // Solo cap = 1
+
+      await expect(useCase.execute(makeDto(), adminCurrentUser)).rejects.toBeInstanceOf(
+        UnprocessableEntityException,
+      )
+      expect(mockProfessionalsRepository.create).not.toHaveBeenCalled()
+    })
+
+    it('never blocks on the Free plan (unlimited) — count is not even queried', async () => {
+      mockClinicsRepository.findById.mockResolvedValue({ id: CLINIC_ID, plan: SubscriptionPlan.FREE } as any)
+      const user = makeUser()
+      const dto = makeDto(user.id, [])
+      const created = makeProfessional({ userId: user.id, user, specialties: [] })
+      mockUsersRepository.findById.mockResolvedValue(user)
+      mockProfessionalsRepository.findByUserId.mockResolvedValue(null)
+      mockProfessionalsRepository.findByRegistration.mockResolvedValue(null)
+      mockSpecialtiesRepository.findByIds.mockResolvedValue([] as any)
+      mockProfessionalsRepository.create.mockResolvedValue(created as any)
+
+      await useCase.execute(dto, adminCurrentUser)
+
+      expect(mockProfessionalsRepository.countByClinic).not.toHaveBeenCalled()
     })
   })
 })

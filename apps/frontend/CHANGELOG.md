@@ -10,6 +10,18 @@
 
 ### Added
 
+#### Trocar o profissional de uma consulta
+- Página de detalhe da consulta ganha o botão **"Trocar profissional"** (só ADMIN, só em consulta agendada) no header e na barra de ação mobile
+- Novo `ReassignProfessionalDialog` — busca só os profissionais elegíveis e disponíveis naquele horário (mesma especialidade/profissão, slot livre), com estados de carregando/erro/vazio ("Nenhum profissional disponível para este horário") e mensagens amigáveis para `422`/`409`; mantém data e horário da consulta
+- Novos service (`getReassignCandidates`/`reassign`), use-cases, hooks (`useReassignCandidates`, `useReassignAppointment`), mapper e tipos (`IReassignCandidateModel`); `onSuccess` invalida `['appointments']`/`['availability']`/`['dashboard']`
+- Novo teste E2E `appointments-reassign.cy.ts` cobrindo abrir o diálogo, listar candidatos, trocar, estado vazio e a visibilidade só-ADMIN do botão
+
+#### Planos de assinatura no backoffice de clínicas
+- Formulário de clínica (criar e editar) ganha um seletor de **Plano** (Grátis, Solo, Clínica, Grupo, Rede) — nova clínica nasce no Grátis; rótulos vêm de `SUBSCRIPTION_PLANS` do `@app/shared`
+- Listagem de clínicas ganha uma coluna/badge de **Plano** (desktop e card mobile)
+- Ficha da clínica mostra o plano com o preço formatado ("Grátis" | "R$ 99/mês" | "R$ 79/profissional/mês" | "Sob consulta") e o uso "**X / Y profissionais**" (Y = teto do plano ou "ilimitado")
+- Tipos (`IClinicModel`, `ICreate/UpdateClinicInput`) e o mapper `toClinicModel` passam `plan` e `professionalCount` adiante
+
 #### CAPTCHA no login a partir da 3ª tentativa (backoffice + clínicas)
 - `LoginForm` (compartilhado entre o login do backoffice e o de cada clínica) passa a mostrar um captcha Cloudflare Turnstile assim que o backend sinaliza `requiresCaptcha: true` (a partir da 2ª tentativa falha) — botão de login fica desabilitado até o captcha ser resolvido
 - Novo componente `TurnstileWidget` (`components/features/auth/components/turnstile-widget.tsx`) — sem lib nova, carrega o script oficial da Cloudflare via `next/script` e renderiza o widget num container

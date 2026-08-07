@@ -66,11 +66,13 @@ interface AppointmentHeaderCardProps {
   appointment: IAppointmentDetailModel
   canManage: boolean
   canAct: boolean
+  canReassign: boolean
   hasRecord: boolean
   onBack: () => void
   onFillRecord: () => void
   onCancel: () => void
   onComplete: () => void
+  onReassign: () => void
   isPendingComplete: boolean
   isPendingCancel: boolean
 }
@@ -79,11 +81,13 @@ export function AppointmentHeaderCard({
   appointment,
   canManage,
   canAct,
+  canReassign,
   hasRecord,
   onBack,
   onFillRecord,
   onCancel,
   onComplete,
+  onReassign,
   isPendingComplete,
   isPendingCancel,
 }: AppointmentHeaderCardProps) {
@@ -174,6 +178,18 @@ export function AppointmentHeaderCard({
               data-testid="header-fill-record-button"
             >
               Preencher prontuário
+            </Button>
+          )}
+          {canReassign && (
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              disabled={isPendingCancel || isPendingComplete}
+              onClick={onReassign}
+              data-testid="appointment-detail-reassign-button"
+            >
+              Trocar profissional
             </Button>
           )}
           {canAct && (
