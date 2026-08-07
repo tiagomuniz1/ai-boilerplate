@@ -20,6 +20,21 @@ module "ses_email" {
   domain        = var.ses_domain
 }
 
+# AWS End User Messaging (Pinpoint SMS Voice v2) — appointment reminders via SMS.
+# The configuration set + opt-out list are provisioned here; the ORIGINATION IDENTITY
+# (Brazil sender ID / phone number) requires a separate AWS registration/onboarding
+# (with lead time) and is fed to the backend via the SSM param AWS_SMS_ORIGINATION_IDENTITY
+# once approved. Until then the SMS adapter skips sending. The EC2 role's send
+# permission lives in modules/ec2-app (aws_iam_role_policy.sms_send).
+resource "aws_pinpointsmsvoicev2_opt_out_list" "reminders" {
+  name = "pulso-production-reminders"
+}
+
+resource "aws_pinpointsmsvoicev2_configuration_set" "reminders" {
+  name              = "pulso-production-reminders"
+  default_sender_id = "PULSO"
+}
+
 # EC2 and RDS share the default VPC of the Workload account.
 data "aws_vpc" "default" {
   default = true

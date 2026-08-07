@@ -64,6 +64,13 @@ AWS_S3_BUCKET="${AWS_S3_BUCKET:-}"
 SMTP_HOST="${SMTP_HOST:-}"
 SMTP_USER="${SMTP_USER:-}"
 
+# Appointment reminders (SMS). REMINDERS_ENABLED gates the cron; the origination
+# identity is empty until the Brazil sender registration is approved (adapter skips
+# until then). Config set name matches the Terraform aws_pinpointsmsvoicev2_configuration_set.
+REMINDERS_ENABLED="${REMINDERS_ENABLED:-false}"
+AWS_SMS_ORIGINATION_IDENTITY="${AWS_SMS_ORIGINATION_IDENTITY:-}"
+AWS_SMS_CONFIG_SET="${AWS_SMS_CONFIG_SET:-pulso-production-reminders}"
+
 # ── Secrets (SecureString) — must come from the environment. ─────────────────
 JWT_SECRET="${JWT_SECRET:-}"
 SMTP_PASS="${SMTP_PASS:-}"
@@ -120,6 +127,9 @@ put SMTP_FROM              "$SMTP_FROM"              String
 put AWS_S3_BUCKET          "$AWS_S3_BUCKET"          String
 put SMTP_HOST              "$SMTP_HOST"              String
 put SMTP_USER              "$SMTP_USER"              String
+put REMINDERS_ENABLED             "$REMINDERS_ENABLED"             String
+put AWS_SMS_ORIGINATION_IDENTITY  "$AWS_SMS_ORIGINATION_IDENTITY"  String
+put AWS_SMS_CONFIG_SET             "$AWS_SMS_CONFIG_SET"            String
 
 # SecureString
 put JWT_SECRET             "$JWT_SECRET"             SecureString

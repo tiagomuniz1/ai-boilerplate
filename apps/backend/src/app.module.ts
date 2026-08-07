@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common'
+import { ScheduleModule } from '@nestjs/schedule'
 import { APP_FILTER, APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core'
 import { ThrottlerModule } from '@nestjs/throttler'
 import { DatabaseModule } from './database/database.module'
@@ -26,6 +27,7 @@ import { ExamsModule } from './modules/exams/exams.module'
 import { DashboardModule } from './modules/dashboard/dashboard.module'
 import { AccessRequestsModule } from './modules/access-requests/access-requests.module'
 import { ConsultationPhotosModule } from './modules/consultation-photos/consultation-photos.module'
+import { RemindersModule } from './modules/reminders/reminders.module'
 import { HttpExceptionFilter } from './common/filters/http-exception.filter'
 import { RequestIdInterceptor } from './common/interceptors/request-id.interceptor'
 import { JwtAuthGuard } from './modules/auth/guards/jwt-auth.guard'
@@ -36,6 +38,7 @@ import { RolesGuard } from './modules/auth/guards/roles.guard'
     ThrottlerModule.forRoot([
       { name: 'default', ttl: 60000, limit: 300 },
     ]),
+    ScheduleModule.forRoot(),
     DatabaseModule,
     CacheModule,
     HealthModule,
@@ -61,6 +64,7 @@ import { RolesGuard } from './modules/auth/guards/roles.guard'
     DashboardModule,
     AccessRequestsModule,
     ConsultationPhotosModule,
+    RemindersModule,
   ],
   providers: [
     { provide: APP_FILTER, useClass: HttpExceptionFilter },
