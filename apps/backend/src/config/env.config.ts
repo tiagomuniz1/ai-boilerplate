@@ -24,6 +24,10 @@ export interface IEnvConfig {
   SMTP_FROM: string
   ACCESS_REQUEST_TO_EMAIL: string
   TURNSTILE_SECRET_KEY: string | undefined
+  REMINDERS_ENABLED: boolean
+  AWS_SMS_ORIGINATION_IDENTITY: string | undefined
+  AWS_SMS_CONFIG_SET: string | undefined
+  REMINDER_OFFSETS_HOURS: string | undefined
 }
 
 export function getEnvConfig(): IEnvConfig {
@@ -73,6 +77,19 @@ export function getEnvConfig(): IEnvConfig {
     // from the 3rd failed login attempt onward. Undefined in local dev falls back
     // to Turnstile's official always-pass test secret in the adapter.
     TURNSTILE_SECRET_KEY: process.env.TURNSTILE_SECRET_KEY,
+    // Appointment-reminder cron master switch. Off by default so dev/test never
+    // send; production turns it on via Parameter Store.
+    REMINDERS_ENABLED: process.env.REMINDERS_ENABLED === 'true',
+    // AWS End User Messaging SMS (Pinpoint SMS Voice v2) origination identity —
+    // the registered sender ID / phone-number id / pool ARN messages are sent from.
+    // When unset the SMS adapter skips sending (lets us deploy before the Brazil
+    // sender registration is approved).
+    AWS_SMS_ORIGINATION_IDENTITY: process.env.AWS_SMS_ORIGINATION_IDENTITY,
+    // Optional SMS configuration set (event destinations / opt-out list).
+    AWS_SMS_CONFIG_SET: process.env.AWS_SMS_CONFIG_SET,
+    // Optional override for how many hours before the appointment reminders fire,
+    // comma-separated (e.g. "24,3"). Falls back to the module default when unset.
+    REMINDER_OFFSETS_HOURS: process.env.REMINDER_OFFSETS_HOURS,
   }
 }
 

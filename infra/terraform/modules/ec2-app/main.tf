@@ -168,6 +168,26 @@ resource "aws_iam_role_policy" "ses_send" {
   })
 }
 
+# Send SMS via AWS End User Messaging (Pinpoint SMS Voice v2) — appointment reminders.
+# WhatsApp (End User Messaging Social) sends will add "social-messaging:SendWhatsAppMessage"
+# here in phase 2.
+resource "aws_iam_role_policy" "sms_send" {
+  name = "sms-send"
+  role = aws_iam_role.ec2.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Sid      = "AllowSmsVoiceV2Send"
+        Effect   = "Allow"
+        Action   = ["sms-voice:SendTextMessage"]
+        Resource = "*"
+      }
+    ]
+  })
+}
+
 # Managed core policy for SSM Session Manager + Run Command (used by the deploy pipeline).
 resource "aws_iam_role_policy_attachment" "ssm_core" {
   role       = aws_iam_role.ec2.name
