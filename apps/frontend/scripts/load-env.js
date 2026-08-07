@@ -11,6 +11,16 @@ async function loadEnv() {
   const AWS_REGION = process.env.AWS_REGION ?? 'us-east-1'
   const PARAM_PATH = `/pulso/${PARAMETER_STORE_ENV}/frontend/`
 
+  // Local development never pulls frontend env from Parameter Store. There is no
+  // `development` deploy environment in AWS (validation is local via Docker — see
+  // CLAUDE.md), and a remote NEXT_PUBLIC_API_URL silently breaks local Cypress E2E
+  // (the app answers on the wrong API and every /:slug route 404s). Keep whatever
+  // `.env.local` already has (defaults to http://localhost:3001).
+  if (PARAMETER_STORE_ENV === 'development') {
+    console.log('↳ Local development — skipping Parameter Store; using .env.local as-is.')
+    return
+  }
+
   try {
     const { SSMClient, GetParametersByPathCommand } = require('@aws-sdk/client-ssm')
     const client = new SSMClient({ region: AWS_REGION })
