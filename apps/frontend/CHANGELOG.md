@@ -4,6 +4,10 @@
 
 ### Fixed
 
+#### Cypress local sempre roda contra o dev correto (guard-rails de E2E)
+- `load-env.js` **nunca** puxa env do Parameter Store em desenvolvimento local (`PARAMETER_STORE_ENV=development`) — não existe ambiente `development` na AWS (validação é local via Docker), e um `NEXT_PUBLIC_API_URL` remoto silenciosamente quebrava o Cypress (o app respondia na API errada e toda rota `/:slug` dava 404). Mantém o `.env.local` como está (default `http://localhost:3001`). Produção (`PARAMETER_STORE_ENV=production`) segue igual
+- Novo `scripts/check-e2e-env.js` rodado no início do `cypress:run` — falha rápido com mensagem acionável em vez do 404 críptico quando (1) o backend do Pulso não está no ar / o banco de dev não foi seedado com a clínica `pulso`, ou (2) o app que responde na `baseUrl` não é o Pulso (porta tomada por outro projeto, ou frontend fora do ar). Portas espelham `cypress.config.ts` (3000/3001), com override via `E2E_BASE_URL`/`E2E_API_URL`
+
 #### Dashboard não atualizava após concluir/cancelar/criar consulta
 - `useCompleteAppointment`, `useCancelAppointment` e `useBookAppointment` não invalidavam a query `['dashboard']` no `onSuccess` — mesmo depois do backend atualizar, quem navegava de volta ao dashboard dentro do `staleTime` (60s) via SPA continuava vendo os números antigos
 - Os 3 hooks agora também invalidam `['dashboard']` junto com `['appointments']`/`['availability']`
