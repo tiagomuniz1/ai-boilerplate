@@ -71,16 +71,16 @@ describe('AppointmentRemindersRepository (integration)', () => {
     })
   })
 
-  describe('mark*', () => {
-    it('finalizes a claimed reminder as sent / failed / skipped', async () => {
+  describe('mark* / release', () => {
+    it('finalizes a claimed reminder as sent / failed, and release deletes the row', async () => {
       const clinicId = faker.string.uuid()
       const sent = await repository.claim(faker.string.uuid(), clinicId, '24h', 'sms', 'pending')
       const failed = await repository.claim(faker.string.uuid(), clinicId, '24h', 'sms', 'pending')
-      const skipped = await repository.claim(faker.string.uuid(), clinicId, '24h', 'sms', 'pending')
+      const released = await repository.claim(faker.string.uuid(), clinicId, '24h', 'sms', 'pending')
 
       await repository.markSent(sent!.id, 'provider-msg-1')
       await repository.markFailed(failed!.id, 'boom')
-      await repository.markSkipped(skipped!.id)
+      await repository.release(released!.id)
 
       const rows = await dataSource.getRepository(AppointmentReminder).find()
       const byId = Object.fromEntries(rows.map((r) => [r.id, r]))
@@ -88,7 +88,18 @@ describe('AppointmentRemindersRepository (integration)', () => {
       expect(byId[sent!.id].providerMessageId).toBe('provider-msg-1')
       expect(byId[failed!.id].status).toBe('failed')
       expect(byId[failed!.id].error).toBe('boom')
-      expect(byId[skipped!.id].status).toBe('skipped')
+      expect(byId[released!.id]).toBeUndefined() // row deleted → can be re-claimed
+    })
+
+    it('a released claim can be claimed again for the same (appointment, offset)', async () => {
+      const appointmentId = faker.string.uuid()
+      const clinicId = faker.string.uuid()
+
+      const first = await repository.claim(appointmentId, clinicId, '3h', 'sms', 'pending')
+      await repository.release(first!.id)
+      const second = await repository.claim(appointmentId, clinicId, '3h', 'sms', 'pending')
+
+      expect(second).not.toBeNull()
     })
   })
 

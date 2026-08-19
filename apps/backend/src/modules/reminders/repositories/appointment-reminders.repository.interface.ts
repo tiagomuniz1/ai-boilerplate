@@ -41,5 +41,11 @@ export abstract class IAppointmentRemindersRepository {
 
   abstract markFailed(id: string, error: string): Promise<void>
 
-  abstract markSkipped(id: string): Promise<void>
+  /**
+   * Releases a provisional claim (deletes the row) so the (appointment, offset)
+   * can be re-attempted on a later tick. Used when the send was skipped for a
+   * transient/config reason (e.g. the SMS origination isn't configured yet) —
+   * unlike a permanent skip (invalid phone), which stays recorded.
+   */
+  abstract release(id: string): Promise<void>
 }

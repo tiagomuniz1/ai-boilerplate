@@ -18,6 +18,7 @@ function makeRepo(): jest.Mocked<Repository<AppointmentReminder>> {
   return {
     create: jest.fn().mockImplementation((v) => v),
     update: jest.fn(),
+    delete: jest.fn(),
     createQueryBuilder: jest.fn(),
     manager: { query: jest.fn(), connection: { options: { schema: 'test' } } },
   } as unknown as jest.Mocked<Repository<AppointmentReminder>>
@@ -110,9 +111,9 @@ describe('AppointmentRemindersRepository', () => {
       expect(repo.update).toHaveBeenCalledWith('r1', { status: 'failed', error: 'x'.repeat(500) })
     })
 
-    it('markSkipped sets status skipped', async () => {
-      await repository.markSkipped('r1')
-      expect(repo.update).toHaveBeenCalledWith('r1', { status: 'skipped' })
+    it('release deletes the provisional claim row', async () => {
+      await repository.release('r1')
+      expect(repo.delete).toHaveBeenCalledWith('r1')
     })
   })
 })

@@ -33,7 +33,7 @@ const mockRepo: jest.Mocked<IAppointmentRemindersRepository> = {
   claim: jest.fn(),
   markSent: jest.fn(),
   markFailed: jest.fn(),
-  markSkipped: jest.fn(),
+  release: jest.fn(),
 }
 
 const mockSmsAdapter: jest.Mocked<ISmsAdapter> = {
@@ -136,10 +136,10 @@ describe('SendAppointmentRemindersUseCase', () => {
     expect(mockRepo.markFailed).toHaveBeenCalledWith('reminder-1', 'weird')
   })
 
-  it('marks skipped when the adapter reports it skipped (origination not configured)', async () => {
+  it('releases the claim (so it retries) when the adapter skips (origination not configured)', async () => {
     mockSmsAdapter.sendSms.mockResolvedValue({ status: 'skipped', providerMessageId: null })
     await useCase.execute(dueNow(24))
-    expect(mockRepo.markSkipped).toHaveBeenCalledWith('reminder-1')
+    expect(mockRepo.release).toHaveBeenCalledWith('reminder-1')
     expect(mockRepo.markSent).not.toHaveBeenCalled()
   })
 
