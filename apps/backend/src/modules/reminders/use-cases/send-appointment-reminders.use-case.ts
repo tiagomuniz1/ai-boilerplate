@@ -98,7 +98,10 @@ export class SendAppointmentRemindersUseCase extends BaseUseCase {
     try {
       const result = await this.smsAdapter.sendSms({ toE164, body })
       if (result.status === 'skipped') {
-        await this.remindersRepository.markSkipped(claimed.id)
+        // Transient/config skip (e.g. SMS origination not configured yet) — release
+        // the claim so it retries on a later tick once sending is possible, instead
+        // of permanently marking this appointment as skipped.
+        await this.remindersRepository.release(claimed.id)
       } else {
         await this.remindersRepository.markSent(claimed.id, result.providerMessageId)
       }

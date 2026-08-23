@@ -31,8 +31,9 @@ resource "aws_pinpointsmsvoicev2_opt_out_list" "reminders" {
 }
 
 resource "aws_pinpointsmsvoicev2_configuration_set" "reminders" {
-  name              = "pulso-production-reminders"
-  default_sender_id = "PULSO"
+  name = "pulso-production-reminders"
+  # No default_sender_id: the app passes OriginationIdentity per message, and
+  # AWS won't persist a sender id that isn't registered yet (perpetual drift).
 }
 
 # EC2 and RDS share the default VPC of the Workload account.
@@ -69,6 +70,12 @@ module "ec2_app" {
   vpc_id           = data.aws_vpc.default.id
   subnet_id        = data.aws_subnets.default.ids[0]
   operator_ip_cidr = var.operator_ip_cidr
+
+  # Pin the AMI to the currently-running image. Without this, `data.aws_ami`
+  # resolves the *latest* Amazon Linux 2023 and any `terraform apply` would
+  # recreate the EC2 instance (downtime). Bump this deliberately to roll the base
+  # image — followed by a deploy to bring the app back up.
+  ami_id = "ami-02b3d83d84b07786d"
 
   ecr_registry        = local.ecr_registry
   ecr_repository_arns = local.ecr_repository_arns

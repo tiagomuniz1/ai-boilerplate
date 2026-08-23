@@ -85,7 +85,7 @@ export class AppointmentRemindersRepository implements IAppointmentRemindersRepo
     await this.repository.update(id, { status: 'failed', error: error.slice(0, 500) })
   }
 
-  async markSkipped(id: string): Promise<void> {
-    await this.repository.update(id, { status: 'skipped' })
+  async release(id: string): Promise<void> {
+    await this.repository.delete(id)
   }
 }
