@@ -4,7 +4,7 @@ import { ConflictException } from '@nestjs/common'
 import { DataSource } from 'typeorm'
 import { getEnvConfig } from '../../../config/env.config'
 import { DistributedLockService } from '../../../cache/distributed-lock.service'
-import { ISmsAdapter } from '../adapters/sms.adapter.interface'
+import { IWhatsAppReminderAdapter } from '../adapters/whatsapp-reminder.adapter.interface'
 import { IAppointmentRemindersRepository } from '../repositories/appointment-reminders.repository.interface'
 import { SendAppointmentRemindersUseCase } from './send-appointment-reminders.use-case'
 
@@ -36,8 +36,8 @@ const mockRepo: jest.Mocked<IAppointmentRemindersRepository> = {
   release: jest.fn(),
 }
 
-const mockSmsAdapter: jest.Mocked<ISmsAdapter> = {
-  sendSms: jest.fn(),
+const mockWhatsAppAdapter: jest.Mocked<IWhatsAppReminderAdapter> = {
+  sendReminder: jest.fn(),
 }
 
 const mockLock = {
@@ -49,11 +49,11 @@ describe('SendAppointmentRemindersUseCase', () => {
 
   beforeEach(() => {
     jest.clearAllMocks()
-    useCase = new SendAppointmentRemindersUseCase({} as DataSource, mockRepo, mockSmsAdapter, mockLock)
+    useCase = new SendAppointmentRemindersUseCase({} as DataSource, mockRepo, mockWhatsAppAdapter, mockLock)
     mockGetEnvConfig.mockReturnValue({ REMINDER_OFFSETS_HOURS: undefined })
     mockRepo.findDueCandidates.mockResolvedValue([makeCandidate()])
     mockRepo.claim.mockResolvedValue({ id: 'reminder-1' } as any)
-    mockSmsAdapter.sendSms.mockResolvedValue({ status: 'sent', providerMessageId: 'provider-msg-1' })
+    mockWhatsAppAdapter.sendReminder.mockResolvedValue({ status: 'sent', providerMessageId: 'provider-msg-1' })
     mockLock.runWithLock.mockImplementation((_k: any, _t: any, op: any) => op())
   })
 
@@ -79,31 +79,33 @@ describe('SendAppointmentRemindersUseCase', () => {
     expect(mockRepo.findDueCandidates).toHaveBeenCalled()
   })
 
-  it('sends the 24h reminder: claims pending, sends SMS, marks sent', async () => {
+  it('sends the 24h reminder: claims pending, sends WhatsApp template, marks sent', async () => {
     await useCase.execute(dueNow(24))
 
-    expect(mockRepo.claim).toHaveBeenCalledWith('appt-1', 'clinic-1', '24h', 'sms', 'pending')
-    expect(mockSmsAdapter.sendSms).toHaveBeenCalledTimes(1)
-    const arg = mockSmsAdapter.sendSms.mock.calls[0][0]
+    expect(mockRepo.claim).toHaveBeenCalledWith('appt-1', 'clinic-1', '24h', 'whatsapp', 'pending')
+    expect(mockWhatsAppAdapter.sendReminder).toHaveBeenCalledTimes(1)
+    const arg = mockWhatsAppAdapter.sendReminder.mock.calls[0][0]
     expect(arg.toE164).toBe('+5511998877665')
-    expect(arg.body).toContain('Maria')
-    expect(arg.body).toContain('Dr. Ana')
-    expect(arg.body).toContain('Clínica X')
-    expect(arg.body).toContain('20/08')
-    expect(arg.body).toContain('14:00')
+    expect(arg.variables).toEqual({
+      '1': 'Maria',
+      '2': 'Dr. Ana',
+      '3': 'Clínica X',
+      '4': '20/08',
+      '5': '14:00',
+    })
     expect(mockRepo.markSent).toHaveBeenCalledWith('reminder-1', 'provider-msg-1')
   })
 
   it('sends the 3h reminder in its own window', async () => {
     await useCase.execute(dueNow(3))
-    expect(mockRepo.claim).toHaveBeenCalledWith('appt-1', 'clinic-1', '3h', 'sms', 'pending')
-    expect(mockSmsAdapter.sendSms).toHaveBeenCalledTimes(1)
+    expect(mockRepo.claim).toHaveBeenCalledWith('appt-1', 'clinic-1', '3h', 'whatsapp', 'pending')
+    expect(mockWhatsAppAdapter.sendReminder).toHaveBeenCalledTimes(1)
   })
 
   it('does not send when now is outside every offset window', async () => {
     await useCase.execute(new Date(appointmentAt.getTime() - 12 * HOUR))
     expect(mockRepo.claim).not.toHaveBeenCalled()
-    expect(mockSmsAdapter.sendSms).not.toHaveBeenCalled()
+    expect(mockWhatsAppAdapter.sendReminder).not.toHaveBeenCalled()
   })
 
   it('does not send for an appointment already in the past', async () => {
@@ -114,30 +116,30 @@ describe('SendAppointmentRemindersUseCase', () => {
   it('does not send when the slot was already claimed (claim returns null)', async () => {
     mockRepo.claim.mockResolvedValue(null)
     await useCase.execute(dueNow(24))
-    expect(mockSmsAdapter.sendSms).not.toHaveBeenCalled()
+    expect(mockWhatsAppAdapter.sendReminder).not.toHaveBeenCalled()
   })
 
   it('skips (records skipped) when the patient phone is invalid', async () => {
     mockRepo.findDueCandidates.mockResolvedValue([makeCandidate({ patientPhone: 'not-a-phone' })])
     await useCase.execute(dueNow(24))
-    expect(mockRepo.claim).toHaveBeenCalledWith('appt-1', 'clinic-1', '24h', 'sms', 'skipped')
-    expect(mockSmsAdapter.sendSms).not.toHaveBeenCalled()
+    expect(mockRepo.claim).toHaveBeenCalledWith('appt-1', 'clinic-1', '24h', 'whatsapp', 'skipped')
+    expect(mockWhatsAppAdapter.sendReminder).not.toHaveBeenCalled()
   })
 
-  it('marks failed (and does not crash) when the SMS adapter throws', async () => {
-    mockSmsAdapter.sendSms.mockRejectedValue(new Error('throttled'))
+  it('marks failed (and does not crash) when the WhatsApp adapter throws', async () => {
+    mockWhatsAppAdapter.sendReminder.mockRejectedValue(new Error('twilio 500'))
     await expect(useCase.execute(dueNow(24))).resolves.toBeUndefined()
-    expect(mockRepo.markFailed).toHaveBeenCalledWith('reminder-1', 'throttled')
+    expect(mockRepo.markFailed).toHaveBeenCalledWith('reminder-1', 'twilio 500')
   })
 
   it('marks failed with a stringified non-Error rejection', async () => {
-    mockSmsAdapter.sendSms.mockRejectedValue('weird')
+    mockWhatsAppAdapter.sendReminder.mockRejectedValue('weird')
     await useCase.execute(dueNow(24))
     expect(mockRepo.markFailed).toHaveBeenCalledWith('reminder-1', 'weird')
   })
 
-  it('releases the claim (so it retries) when the adapter skips (origination not configured)', async () => {
-    mockSmsAdapter.sendSms.mockResolvedValue({ status: 'skipped', providerMessageId: null })
+  it('releases the claim (so it retries) when the adapter skips (not configured)', async () => {
+    mockWhatsAppAdapter.sendReminder.mockResolvedValue({ status: 'skipped', providerMessageId: null })
     await useCase.execute(dueNow(24))
     expect(mockRepo.release).toHaveBeenCalledWith('reminder-1')
     expect(mockRepo.markSent).not.toHaveBeenCalled()
@@ -146,12 +148,12 @@ describe('SendAppointmentRemindersUseCase', () => {
   it('honors REMINDER_OFFSETS_HOURS override', async () => {
     mockGetEnvConfig.mockReturnValue({ REMINDER_OFFSETS_HOURS: '48' })
     await useCase.execute(dueNow(48))
-    expect(mockRepo.claim).toHaveBeenCalledWith('appt-1', 'clinic-1', '48h', 'sms', 'pending')
+    expect(mockRepo.claim).toHaveBeenCalledWith('appt-1', 'clinic-1', '48h', 'whatsapp', 'pending')
   })
 
   it('falls back to default offsets when the override is blank/invalid', async () => {
     mockGetEnvConfig.mockReturnValue({ REMINDER_OFFSETS_HOURS: ' , abc ' })
     await useCase.execute(dueNow(24))
-    expect(mockRepo.claim).toHaveBeenCalledWith('appt-1', 'clinic-1', '24h', 'sms', 'pending')
+    expect(mockRepo.claim).toHaveBeenCalledWith('appt-1', 'clinic-1', '24h', 'whatsapp', 'pending')
   })
 })

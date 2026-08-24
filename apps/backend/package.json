@@ -25,7 +25,6 @@
     "dev:carga": "node scripts/load-env.js && yarn workspace @app/shared build && AWS_PROFILE=pulso-workload DB_SCHEMA=carga nest start --watch"
   },
   "dependencies": {
-    "@aws-sdk/client-pinpoint-sms-voice-v2": "^3.700.0",
     "@aws-sdk/client-s3": "^3.1068.0",
     "@aws-sdk/client-ssm": "^3.600.0",
     "@nestjs/common": "^10.3.10",
@@ -59,6 +58,7 @@
     "reflect-metadata": "^0.2.2",
     "rxjs": "^7.8.1",
     "sharp": "^0.35.2",
+    "twilio": "^6.1.0",
     "typeorm": "^0.3.20",
     "uuid": "^10.0.0",
     "winston": "^3.13.0"
