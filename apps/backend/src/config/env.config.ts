@@ -25,9 +25,11 @@ export interface IEnvConfig {
   ACCESS_REQUEST_TO_EMAIL: string
   TURNSTILE_SECRET_KEY: string | undefined
   REMINDERS_ENABLED: boolean
-  AWS_SMS_ORIGINATION_IDENTITY: string | undefined
-  AWS_SMS_CONFIG_SET: string | undefined
   REMINDER_OFFSETS_HOURS: string | undefined
+  TWILIO_ACCOUNT_SID: string | undefined
+  TWILIO_AUTH_TOKEN: string | undefined
+  TWILIO_WHATSAPP_FROM: string | undefined
+  TWILIO_REMINDER_CONTENT_SID: string | undefined
 }
 
 export function getEnvConfig(): IEnvConfig {
@@ -80,16 +82,19 @@ export function getEnvConfig(): IEnvConfig {
     // Appointment-reminder cron master switch. Off by default so dev/test never
     // send; production turns it on via Parameter Store.
     REMINDERS_ENABLED: process.env.REMINDERS_ENABLED === 'true',
-    // AWS End User Messaging SMS (Pinpoint SMS Voice v2) origination identity —
-    // the registered sender ID / phone-number id / pool ARN messages are sent from.
-    // When unset the SMS adapter skips sending (lets us deploy before the Brazil
-    // sender registration is approved).
-    AWS_SMS_ORIGINATION_IDENTITY: process.env.AWS_SMS_ORIGINATION_IDENTITY,
-    // Optional SMS configuration set (event destinations / opt-out list).
-    AWS_SMS_CONFIG_SET: process.env.AWS_SMS_CONFIG_SET,
     // Optional override for how many hours before the appointment reminders fire,
     // comma-separated (e.g. "24,3"). Falls back to the module default when unset.
     REMINDER_OFFSETS_HOURS: process.env.REMINDER_OFFSETS_HOURS,
+    // Twilio WhatsApp — appointment reminders are sent as WhatsApp template
+    // messages. When any of these is unset the adapter skips sending (lets us
+    // deploy before the Twilio/Meta onboarding + template approval is done).
+    TWILIO_ACCOUNT_SID: process.env.TWILIO_ACCOUNT_SID,
+    TWILIO_AUTH_TOKEN: process.env.TWILIO_AUTH_TOKEN,
+    // WhatsApp sender in Twilio format, e.g. "whatsapp:+5511999999999"
+    // (or the shared sandbox number "whatsapp:+14155238886").
+    TWILIO_WHATSAPP_FROM: process.env.TWILIO_WHATSAPP_FROM,
+    // Approved Twilio Content template SID (HX...) for the appointment reminder.
+    TWILIO_REMINDER_CONTENT_SID: process.env.TWILIO_REMINDER_CONTENT_SID,
   }
 }
 

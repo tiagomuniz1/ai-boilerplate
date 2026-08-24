@@ -64,16 +64,18 @@ AWS_S3_BUCKET="${AWS_S3_BUCKET:-}"
 SMTP_HOST="${SMTP_HOST:-}"
 SMTP_USER="${SMTP_USER:-}"
 
-# Appointment reminders (SMS). REMINDERS_ENABLED gates the cron; the origination
-# identity is empty until the Brazil sender registration is approved (adapter skips
-# until then). Config set name matches the Terraform aws_pinpointsmsvoicev2_configuration_set.
+# Appointment reminders (Twilio WhatsApp). REMINDERS_ENABLED gates the cron; the
+# Twilio values stay empty until the WhatsApp sender + content template are approved
+# (the adapter skips sending until then). TWILIO_AUTH_TOKEN is a secret (below).
 REMINDERS_ENABLED="${REMINDERS_ENABLED:-false}"
-AWS_SMS_ORIGINATION_IDENTITY="${AWS_SMS_ORIGINATION_IDENTITY:-}"
-AWS_SMS_CONFIG_SET="${AWS_SMS_CONFIG_SET:-pulso-production-reminders}"
+TWILIO_ACCOUNT_SID="${TWILIO_ACCOUNT_SID:-}"
+TWILIO_WHATSAPP_FROM="${TWILIO_WHATSAPP_FROM:-}"
+TWILIO_REMINDER_CONTENT_SID="${TWILIO_REMINDER_CONTENT_SID:-}"
 
 # ── Secrets (SecureString) — must come from the environment. ─────────────────
 JWT_SECRET="${JWT_SECRET:-}"
 SMTP_PASS="${SMTP_PASS:-}"
+TWILIO_AUTH_TOKEN="${TWILIO_AUTH_TOKEN:-}"
 
 if [[ -z "$JWT_SECRET" ]]; then
   echo "ERROR: JWT_SECRET is required (export it before running)." >&2
@@ -128,12 +130,14 @@ put AWS_S3_BUCKET          "$AWS_S3_BUCKET"          String
 put SMTP_HOST              "$SMTP_HOST"              String
 put SMTP_USER              "$SMTP_USER"              String
 put REMINDERS_ENABLED             "$REMINDERS_ENABLED"             String
-put AWS_SMS_ORIGINATION_IDENTITY  "$AWS_SMS_ORIGINATION_IDENTITY"  String
-put AWS_SMS_CONFIG_SET             "$AWS_SMS_CONFIG_SET"            String
+put TWILIO_ACCOUNT_SID            "$TWILIO_ACCOUNT_SID"            String
+put TWILIO_WHATSAPP_FROM          "$TWILIO_WHATSAPP_FROM"          String
+put TWILIO_REMINDER_CONTENT_SID   "$TWILIO_REMINDER_CONTENT_SID"   String
 
 # SecureString
 put JWT_SECRET             "$JWT_SECRET"             SecureString
 put SMTP_PASS              "$SMTP_PASS"              SecureString
+put TWILIO_AUTH_TOKEN      "$TWILIO_AUTH_TOKEN"      SecureString
 
 echo ""
 if [[ "$ACTION" == "apply" ]]; then

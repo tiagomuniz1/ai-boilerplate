@@ -3,7 +3,7 @@ import { DataSource } from 'typeorm'
 import { BaseUseCase } from '../../../common/base.use-case'
 import { getEnvConfig } from '../../../config/env.config'
 import { DistributedLockService } from '../../../cache/distributed-lock.service'
-import { ISmsAdapter } from '../adapters/sms.adapter.interface'
+import { IWhatsAppReminderAdapter } from '../adapters/whatsapp-reminder.adapter.interface'
 import { ReminderCandidate } from '../repositories/appointment-reminders.repository.interface'
 import { IAppointmentRemindersRepository } from '../repositories/appointment-reminders.repository.interface'
 import { toE164BrazilPhone } from '../utils/to-e164.util'
@@ -22,7 +22,7 @@ const DEFAULT_OFFSETS: ReminderOffset[] = [
 // that to just after the target so each offset fires once and the 24h reminder
 // never overlaps the 3h one. Must be >= the cron interval so a tick always lands.
 const WINDOW_MS = 15 * 60 * 1000
-const CHANNEL = 'sms' as const
+const CHANNEL = 'whatsapp' as const
 // Brazil is UTC-3 (DST abolished in 2019); appointment date/time are clinic-local
 // strings, matching how create-appointment parses them.
 const BRAZIL_UTC_OFFSET = '-03:00'
@@ -34,7 +34,7 @@ export class SendAppointmentRemindersUseCase extends BaseUseCase {
   constructor(
     dataSource: DataSource,
     private readonly remindersRepository: IAppointmentRemindersRepository,
-    private readonly smsAdapter: ISmsAdapter,
+    private readonly whatsAppAdapter: IWhatsAppReminderAdapter,
     private readonly distributedLockService: DistributedLockService,
   ) {
     super(dataSource)
@@ -94,9 +94,9 @@ export class SendAppointmentRemindersUseCase extends BaseUseCase {
     )
     if (!claimed) return // already sent/attempted for this (appointment, offset)
 
-    const body = this.buildSmsBody(candidate, appointmentAt)
+    const variables = this.buildTemplateVariables(candidate, appointmentAt)
     try {
-      const result = await this.smsAdapter.sendSms({ toE164, body })
+      const result = await this.whatsAppAdapter.sendReminder({ toE164, variables })
       if (result.status === 'skipped') {
         // Transient/config skip (e.g. SMS origination not configured yet) — release
         // the claim so it retries on a later tick once sending is possible, instead
@@ -116,10 +116,17 @@ export class SendAppointmentRemindersUseCase extends BaseUseCase {
     }
   }
 
-  private buildSmsBody(candidate: ReminderCandidate, appointmentAt: Date): string {
+  // Positional variables for the approved WhatsApp content template, e.g.:
+  // "Olá, {{1}}! Lembrete da sua consulta com {{2}} na {{3}} em {{4}} às {{5}}."
+  private buildTemplateVariables(candidate: ReminderCandidate, appointmentAt: Date): Record<string, string> {
     const firstName = candidate.patientName.trim().split(/\s+/)[0]
-    const dayMonth = this.formatDayMonth(appointmentAt)
-    return `Olá, ${firstName}! Lembrete: consulta com ${candidate.professionalName} na ${candidate.clinicName} em ${dayMonth} às ${candidate.startTime}. Dúvidas? Fale com a clínica.`
+    return {
+      '1': firstName,
+      '2': candidate.professionalName,
+      '3': candidate.clinicName,
+      '4': this.formatDayMonth(appointmentAt),
+      '5': candidate.startTime,
+    }
   }
 
   private formatDayMonth(date: Date): string {
