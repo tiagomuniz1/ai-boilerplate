@@ -3,6 +3,7 @@
 import { cn } from '@/lib/cn'
 import { AppointmentStatus } from '@app/shared'
 import { APPOINTMENT_STATUS_LABELS } from '../types/appointment-model.types'
+import { RecurrenceBadge } from './recurrence-badge'
 import type { IAgendaSlot } from '../types/appointment-model.types'
 
 interface AppointmentSlotCellProps {
@@ -71,6 +72,14 @@ export function AppointmentSlotCell({
         aria-label={`Consulta ${apt.patientName} às ${slot.startTime}`}
       >
         <span className="font-mono text-xs w-12 shrink-0">{slot.startTime}</span>
+        {apt.seriesId && apt.seriesSequence !== null && apt.seriesTotalOccurrences !== null && (
+          <RecurrenceBadge
+            sequence={apt.seriesSequence}
+            total={apt.seriesTotalOccurrences}
+            compact
+            data-testid="agenda-slot-recurring"
+          />
+        )}
         <span className="font-medium truncate">{apt.patientName}</span>
         <span className="ml-auto text-xs shrink-0">{APPOINTMENT_STATUS_LABELS[apt.status]}</span>
       </button>

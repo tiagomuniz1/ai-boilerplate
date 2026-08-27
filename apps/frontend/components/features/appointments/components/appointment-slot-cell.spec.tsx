@@ -18,6 +18,29 @@ const makeBookedSlot = (appointment: IAgendaSlot['appointment']): IAgendaSlot =>
   appointment,
 })
 
+const makeAppointment = (overrides = {}): NonNullable<IAgendaSlot['appointment']> => ({
+  id: 'appt-1',
+  professionalId: 'doc-1',
+  professionalName: 'Dr. A',
+  patientId: 'pat-1',
+  patientName: 'Patient One',
+  specialtyId: null,
+  specialtyName: null,
+  scheduleId: 'sched-1',
+  date: '2025-06-10',
+  startTime: '10:00',
+  endTime: '10:30',
+  status: AppointmentStatus.SCHEDULED,
+  reason: null,
+  cancellationReason: null,
+  seriesId: null,
+  seriesSequence: null,
+  seriesTotalOccurrences: null,
+  createdAt: new Date(),
+  updatedAt: new Date(),
+  ...overrides,
+})
+
 describe('AppointmentSlotCell', () => {
   it('renders free bookable slot when canManage and not past', () => {
     render(
@@ -121,5 +144,39 @@ describe('AppointmentSlotCell', () => {
       />,
     )
     expect(container.firstChild).toBeNull()
+  })
+  it('marks a booked slot that belongs to a recurring series', () => {
+    const slot = makeBookedSlot(
+      makeAppointment({ seriesId: 'series-1', seriesSequence: 3, seriesTotalOccurrences: 10 }),
+    )
+
+    render(
+      <AppointmentSlotCell
+        slot={slot}
+        canManage={true}
+        isPast={false}
+        onBookClick={jest.fn()}
+        onDetailsClick={jest.fn()}
+      />,
+    )
+
+    expect(screen.getByTestId('agenda-slot-recurring')).toHaveAttribute(
+      'aria-label',
+      'Sessão 3 de 10',
+    )
+  })
+
+  it('does not mark a standalone booked slot', () => {
+    render(
+      <AppointmentSlotCell
+        slot={makeBookedSlot(makeAppointment())}
+        canManage={true}
+        isPast={false}
+        onBookClick={jest.fn()}
+        onDetailsClick={jest.fn()}
+      />,
+    )
+
+    expect(screen.queryByTestId('agenda-slot-recurring')).not.toBeInTheDocument()
   })
 })

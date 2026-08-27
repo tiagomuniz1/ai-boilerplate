@@ -15,6 +15,7 @@ import { Professional } from '../../professionals/entities/professional.entity'
 import { Patient } from '../../patients/entities/patient.entity'
 import { Schedule } from '../../schedules/entities/schedule.entity'
 import { Specialty } from '../../specialties/entities/specialty.entity'
+import { AppointmentSeries } from './appointment-series.entity'
 
 @Entity('appointments')
 export class Appointment {
@@ -76,6 +77,21 @@ export class Appointment {
 
   @Column({ name: 'cancellation_reason', type: 'text', nullable: true })
   cancellationReason: string | null
+
+  @ManyToOne(() => AppointmentSeries, { eager: false })
+  @JoinColumn({ name: 'series_id' })
+  series: AppointmentSeries | null
+
+  @Column({ name: 'series_id', type: 'uuid', nullable: true })
+  seriesId: string | null
+
+  /**
+   * Position 1..N among the occurrences actually created for the series, and
+   * immutable: cancelling #3 does not renumber the rest, so "session 5 of 10"
+   * stays 5 of 10.
+   */
+  @Column({ name: 'series_sequence', type: 'int', nullable: true })
+  seriesSequence: number | null
 
   @VersionColumn()
   version: number

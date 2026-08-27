@@ -6,7 +6,16 @@ import * as bcrypt from 'bcrypt'
 import * as cookieParser from 'cookie-parser'
 import * as request from 'supertest'
 import { Repository } from 'typeorm'
-import { AppointmentStatus, CouncilType, DayOfWeek, PatientGender, UserRole } from '@app/shared'
+import { randomUUID } from 'crypto'
+import {
+  AppointmentCancellationScope,
+  AppointmentStatus,
+  CouncilType,
+  DayOfWeek,
+  PatientGender,
+  RecurrenceInterval,
+  UserRole,
+} from '@app/shared'
 import { AppModule } from '../../../app.module'
 import { Clinic } from '../../clinics/entities/clinic.entity'
 import { User } from '../../users/entities/user.entity'
@@ -60,6 +69,14 @@ describe('AppointmentsController (integration)', () => {
     return d.toISOString().split('T')[0]
   })()
 
+  // Weekly repetitions of futureDate — same FRIDAY schedule, always in the future.
+  const recurringDates = (count: number, intervalInWeeks = 1): string[] =>
+    Array.from({ length: count }, (_, index) => {
+      const d = new Date(`${futureDate}T00:00:00Z`)
+      d.setUTCDate(d.getUTCDate() + index * 7 * intervalInWeeks)
+      return d.toISOString().split('T')[0]
+    })
+
   beforeAll(async () => {
     const module = await Test.createTestingModule({
       imports: [AppModule],
@@ -83,6 +100,8 @@ describe('AppointmentsController (integration)', () => {
 
   beforeEach(async () => {
     await appointmentRepository.query('DELETE FROM test.appointments')
+    // After appointments (FK) and before professionals/patients (FK targets).
+    await appointmentRepository.query('DELETE FROM test.appointment_series')
     await scheduleRepository.query('DELETE FROM test.schedule_exceptions')
     await scheduleRepository.query('DELETE FROM test.schedules')
     await patientRepository.query('DELETE FROM test.patients')
@@ -224,6 +243,7 @@ describe('AppointmentsController (integration)', () => {
 
   afterAll(async () => {
     await appointmentRepository.query('DELETE FROM test.appointments')
+    await appointmentRepository.query('DELETE FROM test.appointment_series')
     await scheduleRepository.query('DELETE FROM test.schedule_exceptions')
     await scheduleRepository.query('DELETE FROM test.schedules')
     await patientRepository.query('DELETE FROM test.patients')
@@ -1226,6 +1246,457 @@ describe('AppointmentsController (integration)', () => {
       await request(app.getHttpServer())
         .get(`/appointments/${appointmentId}/reassign-candidates`)
         .set('Cookie', `access_token=${userToken}`)
+        .expect(403)
+    })
+  })
+  describe('GET /appointments/recurring/preview', () => {
+    it('returns every occurrence as available on an open schedule', async () => {
+      const { body } = await request(app.getHttpServer())
+        .get('/appointments/recurring/preview')
+        .set('Cookie', `access_token=${adminToken}`)
+        .query({
+          professionalId,
+          patientId,
+          date: futureDate,
+          startTime: '08:00',
+          recurrenceInterval: RecurrenceInterval.EVERY_WEEK,
+          occurrenceCount: 3,
+        })
+        .expect(200)
+
+      expect(body.occurrences.map((o: any) => o.date)).toEqual(recurringDates(3))
+      expect(body.occurrences.every((o: any) => o.selectable)).toBe(true)
+      expect(body.availableOccurrenceCount).toBe(3)
+      expect(body.dayOfWeek).toBe(DayOfWeek.FRIDAY)
+    })
+
+    it('spaces fortnightly occurrences two weeks apart', async () => {
+      const { body } = await request(app.getHttpServer())
+        .get('/appointments/recurring/preview')
+        .set('Cookie', `access_token=${adminToken}`)
+        .query({
+          professionalId,
+          patientId,
+          date: futureDate,
+          startTime: '08:00',
+          recurrenceInterval: RecurrenceInterval.EVERY_TWO_WEEKS,
+          occurrenceCount: 3,
+        })
+        .expect(200)
+
+      expect(body.occurrences.map((o: any) => o.date)).toEqual(recurringDates(3, 2))
+    })
+
+    it('flags an occurrence that is already booked', async () => {
+      const [, second] = recurringDates(3)
+      await appointmentRepository.save(
+        appointmentRepository.create({
+          clinicId: SEED_CLINIC_ID,
+          professionalId,
+          patientId,
+          specialtyId,
+          scheduleId,
+          date: second,
+          startTime: '08:00',
+          endTime: '08:30',
+          status: AppointmentStatus.SCHEDULED,
+        }),
+      )
+
+      const { body } = await request(app.getHttpServer())
+        .get('/appointments/recurring/preview')
+        .set('Cookie', `access_token=${adminToken}`)
+        .query({
+          professionalId,
+          patientId,
+          date: futureDate,
+          startTime: '08:00',
+          recurrenceInterval: RecurrenceInterval.EVERY_WEEK,
+          occurrenceCount: 3,
+        })
+        .expect(200)
+
+      expect(body.occurrences[1].availability).toBe('already_booked')
+      expect(body.occurrences[1].selectable).toBe(false)
+      expect(body.availableOccurrenceCount).toBe(2)
+      expect(body.unavailableOccurrenceCount).toBe(1)
+    })
+
+    it('flags an occurrence blocked by a schedule exception', async () => {
+      const [, second] = recurringDates(3)
+      await scheduleRepository.query(
+        `INSERT INTO test.schedule_exceptions (clinic_id, professional_id, date, start_time, end_time, reason)
+         VALUES ($1, $2, $3, NULL, NULL, $4)`,
+        [SEED_CLINIC_ID, professionalId, second, 'Congresso'],
+      )
+
+      const { body } = await request(app.getHttpServer())
+        .get('/appointments/recurring/preview')
+        .set('Cookie', `access_token=${adminToken}`)
+        .query({
+          professionalId,
+          patientId,
+          date: futureDate,
+          startTime: '08:00',
+          recurrenceInterval: RecurrenceInterval.EVERY_WEEK,
+          occurrenceCount: 3,
+        })
+        .expect(200)
+
+      expect(body.occurrences[1].availability).toBe('blocked_by_exception')
+    })
+
+    it('flags occurrences past the schedule validUntil as outside_schedule', async () => {
+      const [first] = recurringDates(3)
+      await scheduleRepository.update(scheduleId, { validUntil: first })
+
+      const { body } = await request(app.getHttpServer())
+        .get('/appointments/recurring/preview')
+        .set('Cookie', `access_token=${adminToken}`)
+        .query({
+          professionalId,
+          patientId,
+          date: futureDate,
+          startTime: '08:00',
+          recurrenceInterval: RecurrenceInterval.EVERY_WEEK,
+          occurrenceCount: 3,
+        })
+        .expect(200)
+
+      expect(body.occurrences.map((o: any) => o.availability)).toEqual([
+        'available',
+        'outside_schedule',
+        'outside_schedule',
+      ])
+    })
+
+    it('→ 400 when neither occurrenceCount nor untilDate is provided', async () => {
+      await request(app.getHttpServer())
+        .get('/appointments/recurring/preview')
+        .set('Cookie', `access_token=${adminToken}`)
+        .query({
+          professionalId,
+          patientId,
+          date: futureDate,
+          startTime: '08:00',
+          recurrenceInterval: RecurrenceInterval.EVERY_WEEK,
+        })
+        .expect(400)
+    })
+
+    it('→ 400 for an unknown recurrence interval', async () => {
+      await request(app.getHttpServer())
+        .get('/appointments/recurring/preview')
+        .set('Cookie', `access_token=${adminToken}`)
+        .query({
+          professionalId,
+          patientId,
+          date: futureDate,
+          startTime: '08:00',
+          recurrenceInterval: 'every_three_weeks',
+          occurrenceCount: 3,
+        })
+        .expect(400)
+    })
+
+    it('→ 403 for USER role', async () => {
+      await request(app.getHttpServer())
+        .get('/appointments/recurring/preview')
+        .set('Cookie', `access_token=${userToken}`)
+        .query({
+          professionalId,
+          patientId,
+          date: futureDate,
+          startTime: '08:00',
+          recurrenceInterval: RecurrenceInterval.EVERY_WEEK,
+          occurrenceCount: 3,
+        })
+        .expect(403)
+    })
+
+    it('→ 401 without a token', async () => {
+      await request(app.getHttpServer()).get('/appointments/recurring/preview').expect(401)
+    })
+  })
+
+  describe('POST /appointments/recurring', () => {
+    const recurringPayload = (overrides = {}) => ({
+      professionalId,
+      patientId,
+      startTime: '08:00',
+      recurrenceInterval: RecurrenceInterval.EVERY_WEEK,
+      dates: recurringDates(3),
+      occurrenceCount: 3,
+      ...overrides,
+    })
+
+    it('→ 201 creating every occurrence under one series', async () => {
+      const { body } = await request(app.getHttpServer())
+        .post('/appointments/recurring')
+        .set('Cookie', `access_token=${adminToken}`)
+        .send(recurringPayload())
+        .expect(201)
+
+      expect(body.createdOccurrenceCount).toBe(3)
+      expect(body.appointments).toHaveLength(3)
+      expect(body.appointments.map((a: any) => a.seriesSequence)).toEqual([1, 2, 3])
+      expect(body.appointments.map((a: any) => a.date)).toEqual(recurringDates(3))
+      expect(new Set(body.appointments.map((a: any) => a.seriesId)).size).toBe(1)
+      expect(body.appointments[0].seriesId).toBe(body.seriesId)
+      expect(body.appointments[0].seriesTotalOccurrences).toBe(3)
+
+      const [series] = await appointmentRepository.query(
+        'SELECT * FROM test.appointment_series WHERE id = $1',
+        [body.seriesId],
+      )
+      expect(series.created_occurrence_count).toBe(3)
+      expect(series.day_of_week).toBe(DayOfWeek.FRIDAY)
+      expect(series.recurrence_interval).toBe(RecurrenceInterval.EVERY_WEEK)
+    })
+
+    it('does not duplicate the series when the same Idempotency-Key is replayed', async () => {
+      const payload = recurringPayload()
+      const idempotencyKey = randomUUID()
+
+      const first = await request(app.getHttpServer())
+        .post('/appointments/recurring')
+        .set('Cookie', `access_token=${adminToken}`)
+        .set('Idempotency-Key', idempotencyKey)
+        .send(payload)
+        .expect(201)
+
+      const second = await request(app.getHttpServer())
+        .post('/appointments/recurring')
+        .set('Cookie', `access_token=${adminToken}`)
+        .set('Idempotency-Key', idempotencyKey)
+        .send(payload)
+        .expect(201)
+
+      expect(second.body.seriesId).toBe(first.body.seriesId)
+      expect(await appointmentRepository.count()).toBe(3)
+    })
+
+    it('→ 409 with the conflicting dates, creating nothing, when a slot is taken', async () => {
+      const [, second] = recurringDates(3)
+      await appointmentRepository.save(
+        appointmentRepository.create({
+          clinicId: SEED_CLINIC_ID,
+          professionalId,
+          patientId,
+          specialtyId,
+          scheduleId,
+          date: second,
+          startTime: '08:00',
+          endTime: '08:30',
+          status: AppointmentStatus.SCHEDULED,
+        }),
+      )
+
+      const { body } = await request(app.getHttpServer())
+        .post('/appointments/recurring')
+        .set('Cookie', `access_token=${adminToken}`)
+        .send(recurringPayload())
+        .expect(409)
+
+      expect(body.conflictingOccurrences).toEqual([
+        expect.objectContaining({ date: second, availability: 'already_booked' }),
+      ])
+      // Only the pre-existing appointment survives — the series is all or nothing.
+      expect(await appointmentRepository.count()).toBe(1)
+      const series = await appointmentRepository.query('SELECT * FROM test.appointment_series')
+      expect(series).toHaveLength(0)
+    })
+
+    it('→ 422 when the dates are not on the requested recurrence grid', async () => {
+      const [first, second] = recurringDates(3)
+
+      await request(app.getHttpServer())
+        .post('/appointments/recurring')
+        .set('Cookie', `access_token=${adminToken}`)
+        .send(
+          recurringPayload({
+            recurrenceInterval: RecurrenceInterval.EVERY_TWO_WEEKS,
+            dates: [first, second],
+            occurrenceCount: 2,
+          }),
+        )
+        .expect(422)
+    })
+
+    it('→ 400 when fewer than two dates are submitted', async () => {
+      await request(app.getHttpServer())
+        .post('/appointments/recurring')
+        .set('Cookie', `access_token=${adminToken}`)
+        .send(recurringPayload({ dates: [futureDate], occurrenceCount: 2 }))
+        .expect(400)
+    })
+
+    it('creates the series for the requesting PROFESSIONAL, ignoring the body professionalId', async () => {
+      const { body } = await request(app.getHttpServer())
+        .post('/appointments/recurring')
+        .set('Cookie', `access_token=${doctorToken}`)
+        .send(recurringPayload({ professionalId: otherDoctorId }))
+        .expect(201)
+
+      expect(body.appointments.every((a: any) => a.professionalId === professionalId)).toBe(true)
+    })
+
+    it('→ 403 for USER role', async () => {
+      await request(app.getHttpServer())
+        .post('/appointments/recurring')
+        .set('Cookie', `access_token=${userToken}`)
+        .send(recurringPayload())
+        .expect(403)
+    })
+  })
+
+  describe('PATCH /appointments/:id/cancel with scope', () => {
+    let seriesAppointmentIds: string[]
+    let createdSeriesId: string
+
+    beforeEach(async () => {
+      const { body } = await request(app.getHttpServer())
+        .post('/appointments/recurring')
+        .set('Cookie', `access_token=${adminToken}`)
+        .send({
+          professionalId,
+          patientId,
+          startTime: '08:00',
+          recurrenceInterval: RecurrenceInterval.EVERY_WEEK,
+          dates: recurringDates(4),
+          occurrenceCount: 4,
+        })
+        .expect(201)
+
+      createdSeriesId = body.seriesId
+      seriesAppointmentIds = body.appointments.map((a: any) => a.id)
+    })
+
+    it('cancels only the chosen occurrence by default', async () => {
+      const { body } = await request(app.getHttpServer())
+        .patch(`/appointments/${seriesAppointmentIds[1]}/cancel`)
+        .set('Cookie', `access_token=${adminToken}`)
+        .send({})
+        .expect(200)
+
+      expect(body.cancelledOccurrenceCount).toBe(1)
+      const remaining = await appointmentRepository.find({
+        where: { status: AppointmentStatus.SCHEDULED },
+      })
+      expect(remaining).toHaveLength(3)
+    })
+
+    it('cancels the occurrence and all later ones in the series', async () => {
+      const { body } = await request(app.getHttpServer())
+        .patch(`/appointments/${seriesAppointmentIds[2]}/cancel`)
+        .set('Cookie', `access_token=${adminToken}`)
+        .send({
+          scope: AppointmentCancellationScope.THIS_AND_FUTURE_OCCURRENCES,
+          cancellationReason: 'Paciente concluiu o tratamento',
+        })
+        .expect(200)
+
+      expect(body.cancelledOccurrenceCount).toBe(2)
+      expect(body.cancelledAppointmentIds).toEqual([seriesAppointmentIds[2], seriesAppointmentIds[3]])
+
+      const all = await appointmentRepository.find({ order: { date: 'ASC' } })
+      expect(all.map((a) => a.status)).toEqual([
+        AppointmentStatus.SCHEDULED,
+        AppointmentStatus.SCHEDULED,
+        AppointmentStatus.CANCELLED,
+        AppointmentStatus.CANCELLED,
+      ])
+      expect(all[3].cancellationReason).toBe('Paciente concluiu o tratamento')
+    })
+
+    it('→ 422 when the series scope is used on a standalone appointment', async () => {
+      const { body: standalone } = await request(app.getHttpServer())
+        .post('/appointments')
+        .set('Cookie', `access_token=${adminToken}`)
+        .send({ professionalId, patientId, date: recurringDates(6)[5], startTime: '08:00' })
+        .expect(201)
+
+      await request(app.getHttpServer())
+        .patch(`/appointments/${standalone.id}/cancel`)
+        .set('Cookie', `access_token=${adminToken}`)
+        .send({ scope: AppointmentCancellationScope.THIS_AND_FUTURE_OCCURRENCES })
+        .expect(422)
+    })
+
+    it('frees the cancelled slots on the availability endpoint', async () => {
+      const [thirdDate] = [recurringDates(4)[2]]
+
+      await request(app.getHttpServer())
+        .patch(`/appointments/${seriesAppointmentIds[2]}/cancel`)
+        .set('Cookie', `access_token=${adminToken}`)
+        .send({ scope: AppointmentCancellationScope.THIS_AND_FUTURE_OCCURRENCES })
+        .expect(200)
+
+      const { body } = await request(app.getHttpServer())
+        .get('/appointments/availability')
+        .set('Cookie', `access_token=${adminToken}`)
+        .query({ professionalId, date: thirdDate })
+        .expect(200)
+
+      expect(body.slots.map((slot: any) => slot.startTime)).toContain('08:00')
+    })
+
+    it('exposes the series id on the cancelled occurrence', async () => {
+      const { body } = await request(app.getHttpServer())
+        .patch(`/appointments/${seriesAppointmentIds[0]}/cancel`)
+        .set('Cookie', `access_token=${adminToken}`)
+        .send({})
+        .expect(200)
+
+      expect(body.seriesId).toBe(createdSeriesId)
+      expect(body.seriesSequence).toBe(1)
+      expect(body.seriesTotalOccurrences).toBe(4)
+    })
+  })
+
+  describe('GET /appointments/series/:seriesId', () => {
+    let createdSeriesId: string
+
+    beforeEach(async () => {
+      const { body } = await request(app.getHttpServer())
+        .post('/appointments/recurring')
+        .set('Cookie', `access_token=${adminToken}`)
+        .send({
+          professionalId,
+          patientId,
+          startTime: '08:00',
+          recurrenceInterval: RecurrenceInterval.EVERY_WEEK,
+          dates: recurringDates(3),
+          occurrenceCount: 3,
+        })
+        .expect(201)
+      createdSeriesId = body.seriesId
+    })
+
+    it('→ 200 with the occurrences ordered by date', async () => {
+      const { body } = await request(app.getHttpServer())
+        .get(`/appointments/series/${createdSeriesId}`)
+        .set('Cookie', `access_token=${adminToken}`)
+        .expect(200)
+
+      expect(body.id).toBe(createdSeriesId)
+      expect(body.createdOccurrenceCount).toBe(3)
+      expect(body.occurrences.map((o: any) => o.date)).toEqual(recurringDates(3))
+      expect(body.occurrences.map((o: any) => o.seriesSequence)).toEqual([1, 2, 3])
+      expect(body.anchorDate).toBe(futureDate)
+    })
+
+    it('→ 404 for an unknown series', async () => {
+      await request(app.getHttpServer())
+        .get(`/appointments/series/${randomUUID()}`)
+        .set('Cookie', `access_token=${adminToken}`)
+        .expect(404)
+    })
+
+    it('→ 403 for a professional who does not own the series', async () => {
+      await request(app.getHttpServer())
+        .get(`/appointments/series/${createdSeriesId}`)
+        .set('Cookie', `access_token=${otherDoctorToken}`)
         .expect(403)
     })
   })

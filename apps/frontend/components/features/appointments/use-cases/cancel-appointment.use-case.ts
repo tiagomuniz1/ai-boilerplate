@@ -9,6 +9,7 @@ export async function cancelAppointmentUseCase(
 ): Promise<IAppointmentModel> {
   const response = await appointmentsService.cancel(id, {
     cancellationReason: input.cancellationReason,
+    scope: input.scope,
   })
   return toAppointmentModel(response)
 }

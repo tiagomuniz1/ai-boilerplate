@@ -2,6 +2,25 @@
 
 ## [Unreleased]
 
+### Added
+
+#### Consultas recorrentes
+- `BookAppointmentDialog` ganha a seção **Recorrência**: um checkbox "Repetir esta consulta" que revela intervalo (1, 2 ou 4 semanas) e término (após N consultas **ou** até uma data). Com a recorrência desligada o diálogo é idêntico ao de antes — mesmo layout, mesmo botão, mesmo fluxo de um passo
+- Com a recorrência ligada, o botão passa a "Revisar datas" e o corpo do diálogo troca para um **passo de pré-visualização**: cada data candidata aparece com seu status (Disponível, Ocupado, Fora da agenda, Bloqueado, No passado). Datas indisponíveis vêm desmarcadas e desabilitadas — seriam recusadas pelo backend de qualquer forma. O usuário desmarca o que quiser e confirma só as escolhidas
+- Se alguma data deixar de estar disponível entre a prévia e o envio, o diálogo permanece aberto listando exatamente quais mudaram (o backend é tudo-ou-nada: nenhuma consulta é criada)
+- Diálogo de cancelamento ganha o escopo **"Apenas esta consulta"** / **"Esta e todas as futuras da série"**, com a contagem no texto e no botão ("Cancelar 6 consultas"). A escolha só aparece quando existe ocorrência futura cancelável; o escopo destrutivo nunca vem pré-selecionado
+- Consulta de uma série é sinalizada como **"Sessão 3 de 10"** — ícone na célula da agenda, linha no diálogo de detalhes e célula na página de detalhe, onde um link **"Ver série"** abre o novo `SeriesOccurrencesDialog` com todas as ocorrências, seus status e navegação entre elas
+- Novos service (`previewRecurrence`/`bookRecurring`/`getSeries`), use-cases, hooks (`useRecurrencePreview`, `useBookRecurringAppointments`, `useAppointmentSeries`), mappers, `lib/recurrence-status.ts` e `getWeekdayNamePtBR`
+- Novos testes E2E `appointments-recurrence-book.cy.ts`, `appointments-recurrence-series.cy.ts` e `appointments-recurrence-real.cy.ts`
+
+### Fixed
+
+#### Semana da agenda podia deslocar um dia em fuso positivo
+- `getWeekDates` em `agenda-week-grid.tsx` usava `toISOString()` (que converte para UTC) enquanto o resto do código usa `toLocalDateString` justamente para evitar esse deslocamento — agora usa o mesmo helper
+
+#### Escopo de cancelamento vazava entre aberturas do diálogo
+- `CancelAppointmentDialog` não tinha `defaultValues` nem reset ao fechar, e o componente fica montado (é o `Modal` que retorna `null`) — o motivo digitado e o escopo escolhido sobreviviam até a próxima abertura
+
 ### Fixed
 
 #### Cypress local sempre roda contra o dev correto (guard-rails de E2E)

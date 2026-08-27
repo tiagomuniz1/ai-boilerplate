@@ -4,6 +4,35 @@
 
 ### Added
 
+#### Consultas recorrentes
+- Nova tabela `appointment_series` guardando a regra escolhida (intervalo, dia da semana, horário, data âncora e o terminador: nº de ocorrências e/ou data-limite) e quantas ocorrências foram criadas; `appointments` ganha `series_id` + `series_sequence` (posição 1..N, imutável — cancelar a #3 não renumera as demais)
+- `GET /appointments/recurring/preview` (ADMIN, PROFESSIONAL) devolve as datas candidatas com o motivo de cada indisponibilidade — `available`, `already_booked`, `outside_schedule`, `blocked_by_exception`, `in_the_past` — em vez de um simples "não dá"
+- `POST /appointments/recurring` (ADMIN, PROFESSIONAL) cria a série inteira ou nenhuma consulta. O cliente envia as datas que confirmou na tela; o servidor revalida que todas caem no mesmo dia da semana, na grade do intervalo, dentro do horizonte e no futuro. Se algo mudou desde a prévia, responde `409` listando **todas** as datas problemáticas de uma vez, em `conflictingOccurrences`
+- Primeiro endpoint do projeto a usar o `IdempotencyInterceptor` (que existia e nunca fora aplicado): um reenvio com o mesmo `Idempotency-Key` não duplica a série. Ressalvas conhecidas do interceptor: só cacheia sucesso e não tem guarda de in-flight — o lock e o índice único cobrem o resto
+- `PATCH /appointments/:id/cancel` aceita `scope`: `single_occurrence` (padrão, retrocompatível) ou `this_and_future_occurrences`, que cancela a ocorrência e todas as posteriores da série numa transação. A resposta ganha `cancelledOccurrenceCount` e `cancelledAppointmentIds`
+- `GET /appointments/series/:seriesId` (ADMIN, PROFESSIONAL, USER) devolve a série com suas ocorrências ordenadas
+- `AppointmentResponseDto` ganha `seriesId`, `seriesSequence` e `seriesTotalOccurrences`; `AppointmentDetailResponseDto` ganha `seriesFutureCount` (contado, não derivado de `total - sequence`, que ignoraria ocorrências já canceladas ou concluídas)
+- Limites: **26 ocorrências e 365 dias**, o que vier primeiro (`packages/shared/src/config/recurrence.config.ts`, consumido também pelo frontend)
+
+### Changed
+
+#### Concorrência da criação em lote
+- Um único lock distribuído por `(clínica, profissional)` — 26 locks aninhados por slot seriam lentos e impossíveis de liberar numa aquisição parcial. Os INSERTs saem em ordem de data crescente dentro de uma transação, o que torna deadlock entre duas séries impossível
+- O **índice único parcial continua sendo o árbitro real** da corrida contra o `POST /appointments` avulso, que tranca um espaço de chave diferente — por isso o tratamento de `23505` é obrigatório, não decorativo
+
+#### Trocar profissional bloqueado em consulta de série
+- `PATCH /appointments/:id/reassign` passa a recusar (`422`) uma consulta com `seriesId`: trocar o profissional de uma ocorrência deixaria a série heterogênea e quebraria a checagem de posse usada no cancelamento em escopo. Reatribuir a série inteira é feature futura
+
+### Fixed
+
+#### Agendamento avulso ignorava bloqueios da agenda
+- `create-appointment` derivava o slot na mão e **não consultava `schedule_exceptions`** — dava para agendar em cima de um bloqueio. Agora delega ao `ResolveProfessionalSlotUseCase`, que já validava grade + exceção + ocupação, corrigindo o furo e eliminando a duplicação. Sem isso, a prévia recorrente marcaria a data como "Bloqueado" e o usuário contornaria agendando avulso
+
+#### `GET /appointments` quebrava ao ordenar por coluna com JOIN
+- O `ORDER BY` usava `appointment.start_time` (nome de coluna) em vez de `appointment.startTime` (nome da propriedade). Sem JOIN o TypeORM não precisava resolver isso; com o JOIN da série, a paginação passa pela metadata da entidade e estourava `Cannot read properties of undefined (reading 'databaseName')`
+
+### Added
+
 #### Lembretes de consulta por SMS (AWS End User Messaging) — Fase 1
 - Novo módulo `reminders`: um cron in-app (`@nestjs/schedule`, a cada 10 min, dentro do container `backend`) que envia lembretes de consulta por **SMS via AWS End User Messaging (Pinpoint SMS Voice v2)** — credenciais pela instance role da EC2, sem chaves estáticas (igual ao S3)
 - **Dois lembretes por consulta: 24h e 3h antes** (offsets sobrescrevíveis por `REMINDER_OFFSETS_HOURS`), com janela de 15 min por offset para não sobrepor. Envia para consultas `scheduled`/`confirmed` de clínicas ativas, cross-clinic

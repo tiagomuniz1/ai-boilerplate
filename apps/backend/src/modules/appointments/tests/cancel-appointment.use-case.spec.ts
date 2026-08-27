@@ -6,7 +6,7 @@ import {
 } from '@nestjs/common'
 import { DataSource, OptimisticLockVersionMismatchError } from 'typeorm'
 import { faker } from '@faker-js/faker'
-import { AppointmentStatus, UserRole } from '@app/shared'
+import { AppointmentCancellationScope, AppointmentStatus, UserRole } from '@app/shared'
 import { CacheService } from '../../../cache/cache.service'
 import { ICurrentUser } from '../../auth/types/current-user.type'
 import { IProfessionalsRepository } from '../../professionals/repositories/professionals.repository.interface'
@@ -45,6 +45,10 @@ const mockAppointmentsRepository: jest.Mocked<IAppointmentsRepository> = {
   findById: jest.fn(),
   findActiveByProfessionalAndDate: jest.fn(),
   findActiveBySlot: jest.fn(),
+  findActiveByDatesAndTime: jest.fn(),
+  findBySeriesId: jest.fn(),
+  findBySeriesIdFromDate: jest.fn(),
+  countBySeriesIdAfterDate: jest.fn(),
   hasFutureByScheduleId: jest.fn(),
   hasFutureByProfessionalId: jest.fn(),
   create: jest.fn(),
@@ -76,7 +80,17 @@ function makeMockDataSource(): DataSource {
     andWhere: jest.fn().mockReturnThis(),
     getRawMany: jest.fn().mockResolvedValue([{ fullName: 'Dr. Test' }]),
   }
-  return { createQueryBuilder: jest.fn().mockReturnValue(builder) } as unknown as DataSource
+  return {
+    createQueryBuilder: jest.fn().mockReturnValue(builder),
+    createQueryRunner: jest.fn().mockReturnValue({
+      connect: jest.fn(),
+      startTransaction: jest.fn(),
+      commitTransaction: jest.fn(),
+      rollbackTransaction: jest.fn(),
+      release: jest.fn(),
+      manager: { getRepository: jest.fn() },
+    }),
+  } as unknown as DataSource
 }
 
 describe('CancelAppointmentUseCase', () => {
@@ -254,5 +268,144 @@ describe('CancelAppointmentUseCase', () => {
 
     expect(result.specialtyId).toBe('spec-x')
     expect(result.specialtyName).toBe('Cardiologia')
+  })
+  describe('cancellation scope', () => {
+    const seriesId = faker.string.uuid()
+
+    const makeSeriesAppointment = (date: string, sequence: number, overrides = {}) =>
+      makeAppointment({ date, seriesId, seriesSequence: sequence, series: { createdOccurrenceCount: 4 }, ...overrides })
+
+    it('defaults to the single occurrence when no scope is sent', async () => {
+      const appointment = makeSeriesAppointment('2025-06-20', 2)
+      mockAppointmentsRepository.findById.mockResolvedValue(appointment as any)
+      mockAppointmentsRepository.update.mockResolvedValue(
+        { ...appointment, status: AppointmentStatus.CANCELLED } as any,
+      )
+
+      const result = await useCase.execute(appointment.id, {}, adminUser)
+
+      expect(mockAppointmentsRepository.findBySeriesIdFromDate).not.toHaveBeenCalled()
+      expect(result.cancelledOccurrenceCount).toBe(1)
+      expect(result.cancelledAppointmentIds).toEqual([appointment.id])
+    })
+
+    it('cancels only the chosen occurrence under SINGLE_OCCURRENCE', async () => {
+      const appointment = makeSeriesAppointment('2025-06-20', 2)
+      mockAppointmentsRepository.findById.mockResolvedValue(appointment as any)
+      mockAppointmentsRepository.update.mockResolvedValue(
+        { ...appointment, status: AppointmentStatus.CANCELLED } as any,
+      )
+
+      const result = await useCase.execute(
+        appointment.id,
+        { scope: AppointmentCancellationScope.SINGLE_OCCURRENCE },
+        adminUser,
+      )
+
+      expect(mockAppointmentsRepository.update).toHaveBeenCalledTimes(1)
+      expect(result.cancelledOccurrenceCount).toBe(1)
+    })
+
+    it('throws 422 when cancelling a series scope on a standalone appointment', async () => {
+      mockAppointmentsRepository.findById.mockResolvedValue(makeAppointment() as any)
+
+      await expect(
+        useCase.execute(
+          'id',
+          { scope: AppointmentCancellationScope.THIS_AND_FUTURE_OCCURRENCES },
+          adminUser,
+        ),
+      ).rejects.toThrow('Appointment does not belong to a recurring series')
+      expect(mockAppointmentsRepository.update).not.toHaveBeenCalled()
+    })
+
+    it('cancels the occurrence and every later one in the series', async () => {
+      const target = makeSeriesAppointment('2025-06-20', 2)
+      const third = makeSeriesAppointment('2025-06-27', 3)
+      const fourth = makeSeriesAppointment('2025-07-04', 4)
+      mockAppointmentsRepository.findById.mockResolvedValue(target as any)
+      mockAppointmentsRepository.findBySeriesIdFromDate.mockResolvedValue([target, third, fourth] as any)
+      mockAppointmentsRepository.update.mockImplementation(async (id: string) => {
+        const match = [target, third, fourth].find((candidate) => candidate.id === id)!
+        return { ...match, status: AppointmentStatus.CANCELLED } as any
+      })
+
+      const result = await useCase.execute(
+        target.id,
+        {
+          cancellationReason: 'Paciente desistiu do pacote',
+          scope: AppointmentCancellationScope.THIS_AND_FUTURE_OCCURRENCES,
+        },
+        adminUser,
+      )
+
+      expect(mockAppointmentsRepository.findBySeriesIdFromDate).toHaveBeenCalledWith(
+        seriesId,
+        CLINIC_ID,
+        target.date,
+        [AppointmentStatus.SCHEDULED, AppointmentStatus.CONFIRMED],
+        expect.anything(),
+      )
+      expect(mockAppointmentsRepository.update).toHaveBeenCalledTimes(3)
+      expect(mockAppointmentsRepository.update).toHaveBeenCalledWith(
+        third.id,
+        { status: AppointmentStatus.CANCELLED, cancellationReason: 'Paciente desistiu do pacote' },
+        expect.anything(),
+      )
+      expect(result.cancelledOccurrenceCount).toBe(3)
+      expect(result.cancelledAppointmentIds).toEqual([target.id, third.id, fourth.id])
+      expect(result.id).toBe(target.id)
+      expect(result.seriesTotalOccurrences).toBe(4)
+    })
+
+    it('falls back to the first cancelled occurrence when the target is not in the result set', async () => {
+      const target = makeSeriesAppointment('2025-06-20', 2)
+      const other = makeSeriesAppointment('2025-06-27', 3)
+      mockAppointmentsRepository.findById.mockResolvedValue(target as any)
+      mockAppointmentsRepository.findBySeriesIdFromDate.mockResolvedValue([other] as any)
+      mockAppointmentsRepository.update.mockResolvedValue(
+        { ...other, status: AppointmentStatus.CANCELLED } as any,
+      )
+
+      const result = await useCase.execute(
+        target.id,
+        { scope: AppointmentCancellationScope.THIS_AND_FUTURE_OCCURRENCES },
+        adminUser,
+      )
+
+      expect(result.id).toBe(other.id)
+    })
+
+    it('rolls back and returns 409 when a sibling hits an optimistic lock mismatch', async () => {
+      const target = makeSeriesAppointment('2025-06-20', 2)
+      const third = makeSeriesAppointment('2025-06-27', 3)
+      mockAppointmentsRepository.findById.mockResolvedValue(target as any)
+      mockAppointmentsRepository.findBySeriesIdFromDate.mockResolvedValue([target, third] as any)
+      mockAppointmentsRepository.update
+        .mockResolvedValueOnce({ ...target, status: AppointmentStatus.CANCELLED } as any)
+        .mockRejectedValueOnce(new OptimisticLockVersionMismatchError('Appointment', 1, 2))
+
+      await expect(
+        useCase.execute(
+          target.id,
+          { scope: AppointmentCancellationScope.THIS_AND_FUTURE_OCCURRENCES },
+          adminUser,
+        ),
+      ).rejects.toThrow(ConflictException)
+    })
+
+    it('refuses a series cancellation for a professional who does not own it', async () => {
+      const target = makeSeriesAppointment('2025-06-20', 2)
+      mockAppointmentsRepository.findById.mockResolvedValue(target as any)
+      mockProfessionalsRepository.findByUserId.mockResolvedValue({ id: faker.string.uuid() } as any)
+
+      await expect(
+        useCase.execute(
+          target.id,
+          { scope: AppointmentCancellationScope.THIS_AND_FUTURE_OCCURRENCES },
+          doctorUser,
+        ),
+      ).rejects.toThrow(ForbiddenException)
+    })
   })
 })

@@ -155,4 +155,27 @@ describe('AppointmentDetailsDialog (integration)', () => {
     await waitFor(() => expect(screen.getByTestId('details-patient')).toBeInTheDocument())
     expect(screen.queryByTestId('fill-medical-record-button')).not.toBeInTheDocument()
   })
+  it('shows the series position when the appointment belongs to a series', async () => {
+    mockAppointmentsService.getById.mockResolvedValue(
+      makeAppointmentDto({
+        seriesId: 'series-uuid',
+        seriesSequence: 3,
+        seriesTotalOccurrences: 10,
+      }) as never,
+    )
+
+    renderWithProviders(<AppointmentDetailsDialog {...defaultProps} />)
+
+    await waitFor(() => expect(screen.getByTestId('details-series')).toBeInTheDocument())
+    expect(screen.getByTestId('details-series')).toHaveTextContent('Sessão 3 de 10')
+  })
+
+  it('omits the series row for a standalone appointment', async () => {
+    mockAppointmentsService.getById.mockResolvedValue(makeAppointmentDto() as never)
+
+    renderWithProviders(<AppointmentDetailsDialog {...defaultProps} />)
+
+    await waitFor(() => expect(screen.getByTestId('details-patient')).toBeInTheDocument())
+    expect(screen.queryByTestId('details-series')).not.toBeInTheDocument()
+  })
 })

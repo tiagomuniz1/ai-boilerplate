@@ -1,4 +1,10 @@
-import type { AppointmentStatus, PatientGender } from '@app/shared'
+import type {
+  AppointmentStatus,
+  DayOfWeek,
+  PatientGender,
+  RecurrenceInterval,
+  RecurringOccurrenceAvailability,
+} from '@app/shared'
 
 export interface IAppointmentPatientModel {
   fullName: string
@@ -11,6 +17,8 @@ export interface IAppointmentPatientModel {
 
 export interface IAppointmentDetailModel extends IAppointmentModel {
   patient: IAppointmentPatientModel
+  /** Still-cancellable occurrences after this one; null outside a series. */
+  seriesFutureCount: number | null
 }
 
 export interface IAppointmentModel {
@@ -28,8 +36,50 @@ export interface IAppointmentModel {
   status: AppointmentStatus
   reason: string | null
   cancellationReason: string | null
+  seriesId: string | null
+  seriesSequence: number | null
+  seriesTotalOccurrences: number | null
   createdAt: Date
   updatedAt: Date
+}
+
+export interface IRecurrenceOccurrenceModel {
+  date: string
+  startTime: string
+  endTime: string | null
+  availability: RecurringOccurrenceAvailability
+  selectable: boolean
+}
+
+export interface IRecurrencePreviewModel {
+  professionalId: string
+  recurrenceInterval: RecurrenceInterval
+  dayOfWeek: DayOfWeek
+  startTime: string
+  occurrences: IRecurrenceOccurrenceModel[]
+  availableOccurrenceCount: number
+  unavailableOccurrenceCount: number
+  truncatedByMaximumOccurrences: boolean
+  truncatedByHorizon: boolean
+}
+
+export interface IAppointmentSeriesModel {
+  id: string
+  professionalName: string
+  patientName: string
+  specialtyName: string | null
+  recurrenceInterval: RecurrenceInterval
+  dayOfWeek: DayOfWeek
+  startTime: string
+  anchorDate: string
+  createdOccurrenceCount: number
+  occurrences: IAppointmentModel[]
+}
+
+export interface IRecurringAppointmentsResultModel {
+  seriesId: string
+  createdOccurrenceCount: number
+  appointments: IAppointmentModel[]
 }
 
 export interface IReassignCandidateModel {

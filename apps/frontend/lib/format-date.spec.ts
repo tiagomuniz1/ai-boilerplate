@@ -1,4 +1,4 @@
-import { formatDateToBR, toLocalDateString } from './format-date'
+import { formatDateToBR, getWeekdayNamePtBR, toLocalDateString } from './format-date'
 
 describe('formatDateToBR', () => {
   it('formats a YYYY-MM-DD string into DD/MM/YYYY', () => {
@@ -27,5 +27,32 @@ describe('toLocalDateString', () => {
   it('does not shift the date near midnight regardless of the time component', () => {
     const lateNight = new Date(2026, 6, 10, 23, 59, 0)
     expect(toLocalDateString(lateNight)).toBe('2026-07-10')
+  })
+})
+
+describe('getWeekdayNamePtBR', () => {
+  it.each([
+    ['2026-09-06', 'domingo'],
+    ['2026-09-07', 'segunda-feira'],
+    ['2026-09-08', 'terça-feira'],
+    ['2026-09-09', 'quarta-feira'],
+    ['2026-09-10', 'quinta-feira'],
+    ['2026-09-11', 'sexta-feira'],
+    ['2026-09-12', 'sábado'],
+  ])('names %s as %s', (date, expected) => {
+    expect(getWeekdayNamePtBR(date)).toBe(expected)
+  })
+
+  it('does not shift the weekday for a date that UTC parsing would move back a day', () => {
+    // new Date('2026-09-08') is UTC midnight = Monday evening in UTC-3.
+    expect(getWeekdayNamePtBR('2026-09-08')).toBe('terça-feira')
+  })
+
+  it('accepts a full ISO string', () => {
+    expect(getWeekdayNamePtBR('2026-09-08T14:30:00.000Z')).toBe('terça-feira')
+  })
+
+  it('returns an empty string for an unparseable date', () => {
+    expect(getWeekdayNamePtBR('not-a-date')).toBe('')
   })
 })

@@ -26,6 +26,8 @@ import { AtestadoSection } from '@/components/features/atestados/components/ates
 import { ExameSection } from '@/components/features/exames/components/exame-section'
 import { PhotoSection } from '@/components/features/consultation-photos/components/photo-section'
 import { CancelAppointmentDialog } from '@/components/features/appointments/components/cancel-appointment-dialog'
+import type { ICancelConfirmInput } from '@/components/features/appointments/components/cancel-appointment-dialog'
+import { SeriesOccurrencesDialog } from '@/components/features/appointments/components/series-occurrences-dialog'
 import { CompleteAppointmentDialog } from '@/components/features/appointments/components/complete-appointment-dialog'
 import { ReassignProfessionalDialog } from '@/components/features/appointments/components/reassign-professional-dialog'
 import type { IApiError } from '@/types/api.types'
@@ -53,6 +55,7 @@ export default function AppointmentDetailPage() {
   const [showCancelDialog, setShowCancelDialog] = useState(false)
   const [showCompleteDialog, setShowCompleteDialog] = useState(false)
   const [showReassignDialog, setShowReassignDialog] = useState(false)
+  const [showSeriesDialog, setShowSeriesDialog] = useState(false)
 
   const canManage =
     role === UserRole.ADMIN ||
@@ -87,9 +90,9 @@ export default function AppointmentDetailPage() {
     })
   }
 
-  function handleCancelConfirm(cancellationReason?: string) {
+  function handleCancelConfirm({ cancellationReason, scope }: ICancelConfirmInput) {
     cancel(
-      { id, data: { cancellationReason } },
+      { id, data: { cancellationReason, scope } },
       {
         onSuccess: () => setShowCancelDialog(false),
       },
@@ -178,6 +181,7 @@ export default function AppointmentDetailPage() {
               onCancel={() => setShowCancelDialog(true)}
               onComplete={() => setShowCompleteDialog(true)}
               onReassign={handleOpenReassign}
+              onViewSeries={() => setShowSeriesDialog(true)}
               isPendingComplete={isCompleting}
               isPendingCancel={isCancelling}
             />
@@ -301,6 +305,17 @@ export default function AppointmentDetailPage() {
           isPending={isCancelling}
           onClose={() => setShowCancelDialog(false)}
           onConfirm={handleCancelConfirm}
+          seriesId={appointment.seriesId}
+          seriesFutureCount={appointment.seriesFutureCount}
+        />
+      )}
+
+      {appointment?.seriesId && (
+        <SeriesOccurrencesDialog
+          seriesId={appointment.seriesId}
+          isOpen={showSeriesDialog}
+          onClose={() => setShowSeriesDialog(false)}
+          currentAppointmentId={id}
         />
       )}
 

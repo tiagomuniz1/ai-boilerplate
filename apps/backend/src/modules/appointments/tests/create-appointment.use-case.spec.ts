@@ -6,13 +6,17 @@ import {
 } from '@nestjs/common'
 import { DataSource, QueryFailedError } from 'typeorm'
 import { faker } from '@faker-js/faker'
-import { AppointmentStatus, DayOfWeek, UserRole } from '@app/shared'
+import {
+  AppointmentStatus,
+  RecurringOccurrenceAvailability,
+  UserRole,
+} from '@app/shared'
 import { CacheService } from '../../../cache/cache.service'
 import { DistributedLockService } from '../../../cache/distributed-lock.service'
 import { ICurrentUser } from '../../auth/types/current-user.type'
 import { IProfessionalsRepository } from '../../professionals/repositories/professionals.repository.interface'
 import { IPatientsRepository } from '../../patients/repositories/patients.repository.interface'
-import { GetActiveSchedulesForProfessionalUseCase } from '../../schedules/use-cases/get-active-schedules-for-professional.use-case'
+import { ResolveProfessionalSlotUseCase } from '../use-cases/resolve-professional-slot.use-case'
 import { IAppointmentsRepository } from '../repositories/appointments.repository.interface'
 import { CreateAppointmentUseCase } from '../use-cases/create-appointment.use-case'
 
@@ -37,34 +41,6 @@ const adminUser: ICurrentUser = { id: faker.string.uuid(), role: UserRole.ADMIN,
 const tomorrow = new Date()
 tomorrow.setUTCDate(tomorrow.getUTCDate() + 1)
 const tomorrowStr = tomorrow.toISOString().split('T')[0]
-
-const utcDay = tomorrow.getUTCDay()
-const dayOfWeekMap: Record<number, DayOfWeek> = {
-  0: DayOfWeek.SUNDAY,
-  1: DayOfWeek.MONDAY,
-  2: DayOfWeek.TUESDAY,
-  3: DayOfWeek.WEDNESDAY,
-  4: DayOfWeek.THURSDAY,
-  5: DayOfWeek.FRIDAY,
-  6: DayOfWeek.SATURDAY,
-}
-const tomorrowDayOfWeek = dayOfWeekMap[utcDay]
-
-const makeSchedule = (overrides = {}) => ({
-  id: faker.string.uuid(),
-  professionalId,
-  dayOfWeek: tomorrowDayOfWeek,
-  startTime: '08:00',
-  endTime: '10:00',
-  slotDurationInMinutes: 30,
-  validFrom: null,
-  validUntil: null,
-  version: 1,
-  createdAt: new Date(),
-  updatedAt: new Date(),
-  deletedAt: null,
-  ...overrides,
-})
 
 const makeAppointment = (overrides = {}) => ({
   id: faker.string.uuid(),
@@ -91,6 +67,10 @@ const mockAppointmentsRepository: jest.Mocked<IAppointmentsRepository> = {
   findById: jest.fn(),
   findActiveByProfessionalAndDate: jest.fn(),
   findActiveBySlot: jest.fn(),
+  findActiveByDatesAndTime: jest.fn(),
+  findBySeriesId: jest.fn(),
+  findBySeriesIdFromDate: jest.fn(),
+  countBySeriesIdAfterDate: jest.fn(),
   hasFutureByScheduleId: jest.fn(),
   hasFutureByProfessionalId: jest.fn(),
   create: jest.fn(),
@@ -121,9 +101,22 @@ const mockPatientsRepository: jest.Mocked<IPatientsRepository> = {
   delete: jest.fn(),
 }
 
-const mockGetActiveSchedules = {
-  execute: jest.fn(),
-} as unknown as jest.Mocked<GetActiveSchedulesForProfessionalUseCase>
+const mockResolveSlot = {
+  executeDetailed: jest.fn(),
+} as unknown as jest.Mocked<ResolveProfessionalSlotUseCase>
+
+const availableSlot = (overrides = {}) => ({
+  availability: RecurringOccurrenceAvailability.AVAILABLE,
+  scheduleId: faker.string.uuid(),
+  endTime: '08:30',
+  ...overrides,
+})
+
+const unavailableSlot = (availability: RecurringOccurrenceAvailability) => ({
+  availability,
+  scheduleId: null,
+  endTime: null,
+})
 
 const mockCacheService = {
   get: jest.fn(),
@@ -170,7 +163,7 @@ describe('CreateAppointmentUseCase', () => {
       mockAppointmentsRepository,
       mockProfessionalsRepository,
       mockPatientsRepository,
-      mockGetActiveSchedules,
+      mockResolveSlot,
       mockCacheService,
       mockDistributedLockService,
     )
@@ -178,7 +171,7 @@ describe('CreateAppointmentUseCase', () => {
     mockProfessionalsRepository.findByUserId.mockResolvedValue(makeDoctor() as any)
     mockProfessionalsRepository.findById.mockResolvedValue(makeDoctor() as any)
     mockPatientsRepository.findById.mockResolvedValue({ id: faker.string.uuid() } as any)
-    mockGetActiveSchedules.execute.mockResolvedValue([makeSchedule() as any])
+    mockResolveSlot.executeDetailed.mockResolvedValue(availableSlot() as any)
     mockAppointmentsRepository.findActiveBySlot.mockResolvedValue(null)
     mockAppointmentsRepository.create.mockResolvedValue(makeAppointment() as any)
     mockCacheService.delByPrefix.mockResolvedValue(undefined)
@@ -253,9 +246,7 @@ describe('CreateAppointmentUseCase', () => {
     const endHour = hour === 23 ? 24 : hour + 1
     const endTimeStr = `${String(endHour).padStart(2, '0')}:00`
 
-    mockGetActiveSchedules.execute.mockResolvedValue([
-      makeSchedule({ startTime: timeStr, endTime: endTimeStr, slotDurationInMinutes: 60 }) as any,
-    ])
+    mockResolveSlot.executeDetailed.mockResolvedValue(availableSlot({ endTime: endTimeStr }) as any)
 
     await expect(
       useCase.execute({ patientId: faker.string.uuid(), date: dateStr, startTime: timeStr }, doctorUser),
@@ -263,16 +254,41 @@ describe('CreateAppointmentUseCase', () => {
   })
 
   it('throws UnprocessableEntityException when slot not in schedule', async () => {
+    mockResolveSlot.executeDetailed.mockResolvedValue(
+      unavailableSlot(RecurringOccurrenceAvailability.OUTSIDE_SCHEDULE) as any,
+    )
     await expect(
       useCase.execute({ patientId: faker.string.uuid(), date: tomorrowStr, startTime: '15:00' }, doctorUser),
     ).rejects.toThrow(UnprocessableEntityException)
   })
 
   it('throws UnprocessableEntityException when no active schedules for date', async () => {
-    mockGetActiveSchedules.execute.mockResolvedValue([])
+    mockResolveSlot.executeDetailed.mockResolvedValue(
+      unavailableSlot(RecurringOccurrenceAvailability.OUTSIDE_SCHEDULE) as any,
+    )
     await expect(
       useCase.execute({ patientId: faker.string.uuid(), date: tomorrowStr, startTime: '08:00' }, doctorUser),
-    ).rejects.toThrow(UnprocessableEntityException)
+    ).rejects.toThrow('Requested time is not an available slot')
+  })
+
+  it('throws UnprocessableEntityException when the slot is blocked by a schedule exception', async () => {
+    mockResolveSlot.executeDetailed.mockResolvedValue(
+      unavailableSlot(RecurringOccurrenceAvailability.BLOCKED_BY_EXCEPTION) as any,
+    )
+    await expect(
+      useCase.execute({ patientId: faker.string.uuid(), date: tomorrowStr, startTime: '08:00' }, doctorUser),
+    ).rejects.toThrow('Requested time is blocked on the professional schedule')
+    expect(mockAppointmentsRepository.create).not.toHaveBeenCalled()
+  })
+
+  it('throws ConflictException when the resolver already sees the slot taken', async () => {
+    mockResolveSlot.executeDetailed.mockResolvedValue(
+      unavailableSlot(RecurringOccurrenceAvailability.ALREADY_BOOKED) as any,
+    )
+    await expect(
+      useCase.execute({ patientId: faker.string.uuid(), date: tomorrowStr, startTime: '08:00' }, doctorUser),
+    ).rejects.toThrow(ConflictException)
+    expect(mockAppointmentsRepository.create).not.toHaveBeenCalled()
   })
 
   it('throws ConflictException when slot already booked', async () => {
@@ -283,9 +299,11 @@ describe('CreateAppointmentUseCase', () => {
   })
 
   it('creates appointment and returns dto with derived endTime and scheduleId', async () => {
-    const schedule = makeSchedule()
-    mockGetActiveSchedules.execute.mockResolvedValue([schedule as any])
-    const created = makeAppointment({ startTime: '08:00', endTime: '08:30', scheduleId: schedule.id })
+    const scheduleId = faker.string.uuid()
+    mockResolveSlot.executeDetailed.mockResolvedValue(
+      availableSlot({ scheduleId, endTime: '08:30' }) as any,
+    )
+    const created = makeAppointment({ startTime: '08:00', endTime: '08:30', scheduleId })
     mockAppointmentsRepository.create.mockResolvedValue(created as any)
 
     const result = await useCase.execute(
@@ -295,7 +313,7 @@ describe('CreateAppointmentUseCase', () => {
 
     expect(result.startTime).toBe('08:00')
     expect(result.endTime).toBe('08:30')
-    expect(result.scheduleId).toBe(schedule.id)
+    expect(result.scheduleId).toBe(scheduleId)
     expect(result.status).toBe(AppointmentStatus.SCHEDULED)
   })
 
@@ -367,7 +385,7 @@ describe('CreateAppointmentUseCase', () => {
       mockAppointmentsRepository,
       mockProfessionalsRepository,
       mockPatientsRepository,
-      mockGetActiveSchedules,
+      mockResolveSlot,
       mockCacheService,
       mockDistributedLockService,
     )

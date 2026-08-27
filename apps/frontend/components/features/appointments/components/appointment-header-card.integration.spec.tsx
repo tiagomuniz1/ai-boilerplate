@@ -46,6 +46,7 @@ const defaultProps = {
   onCancel: jest.fn(),
   onComplete: jest.fn(),
   onReassign: jest.fn(),
+  onViewSeries: jest.fn(),
   isPendingComplete: false,
   isPendingCancel: false,
 }
@@ -144,5 +145,47 @@ describe('AppointmentHeaderCard', () => {
     expect(screen.getByTestId('appointment-detail-cancellation-reason')).toHaveTextContent(
       'Paciente desmarcou',
     )
+  })
+  describe('recurring series', () => {
+    it('shows the session position and a link to the whole series', () => {
+      renderWithProviders(
+        <AppointmentHeaderCard
+          {...defaultProps}
+          appointment={makeAppointment({
+            seriesId: 'series-uuid',
+            seriesSequence: 3,
+            seriesTotalOccurrences: 10,
+          })}
+        />,
+      )
+
+      expect(screen.getByTestId('appointment-detail-series')).toHaveTextContent('Sessão 3 de 10')
+      expect(screen.getByTestId('appointment-detail-view-series-button')).toBeInTheDocument()
+    })
+
+    it('calls onViewSeries when the series link is clicked', async () => {
+      const onViewSeries = jest.fn()
+      renderWithProviders(
+        <AppointmentHeaderCard
+          {...defaultProps}
+          onViewSeries={onViewSeries}
+          appointment={makeAppointment({
+            seriesId: 'series-uuid',
+            seriesSequence: 1,
+            seriesTotalOccurrences: 4,
+          })}
+        />,
+      )
+
+      await userEvent.click(screen.getByTestId('appointment-detail-view-series-button'))
+
+      expect(onViewSeries).toHaveBeenCalled()
+    })
+
+    it('omits the series block for a standalone appointment', () => {
+      renderWithProviders(<AppointmentHeaderCard {...defaultProps} />)
+
+      expect(screen.queryByTestId('appointment-detail-series')).not.toBeInTheDocument()
+    })
   })
 })

@@ -64,6 +64,7 @@ export class ListAppointmentsUseCase extends BaseUseCase {
           professionalNames.get(a.professionalId) ?? '',
           patientNames.get(a.patientId) ?? '',
           a.specialtyId ? specialtyNames.get(a.specialtyId) ?? null : null,
+          a.series?.createdOccurrenceCount ?? null,
         ),
       ),
       total,
@@ -126,6 +127,7 @@ export class ListAppointmentsUseCase extends BaseUseCase {
     professionalName: string,
     patientName: string,
     specialtyName: string | null,
+    seriesTotalOccurrences: number | null,
   ): AppointmentResponseDto {
     return {
       id: appointment.id,
@@ -143,6 +145,9 @@ export class ListAppointmentsUseCase extends BaseUseCase {
       insuranceType: appointment.insuranceType,
       reason: appointment.reason,
       cancellationReason: appointment.cancellationReason,
+      seriesId: appointment.seriesId ?? null,
+      seriesSequence: appointment.seriesSequence ?? null,
+      seriesTotalOccurrences,
       createdAt: appointment.createdAt,
       updatedAt: appointment.updatedAt,
     }

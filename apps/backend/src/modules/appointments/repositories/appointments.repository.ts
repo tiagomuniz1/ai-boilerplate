@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
-import { QueryRunner, Repository } from 'typeorm'
+import { In, QueryRunner, Repository } from 'typeorm'
 import { AppointmentStatus } from '@app/shared'
 import { ListAppointmentsQueryDto } from '../dto/list-appointments-query.dto'
 import { Appointment } from '../entities/appointment.entity'
@@ -9,6 +9,12 @@ import {
   IAppointmentsRepository,
   UpdateAppointmentData,
 } from './appointments.repository.interface'
+
+/**
+ * Statuses that hold a slot. Kept in one place because the partial unique index
+ * UQ_appointment_slot_scheduled must stay in sync with it.
+ */
+const SLOT_HOLDING_STATUSES = [AppointmentStatus.SCHEDULED]
 
 @Injectable()
 export class AppointmentsRepository implements IAppointmentsRepository {
@@ -22,10 +28,11 @@ export class AppointmentsRepository implements IAppointmentsRepository {
 
     const qb = this.repository
       .createQueryBuilder('appointment')
+      .leftJoinAndSelect('appointment.series', 'series')
       .where('appointment.deleted_at IS NULL')
       .andWhere('appointment.clinic_id = :clinicId', { clinicId })
       .orderBy('appointment.date', 'DESC')
-      .addOrderBy('appointment.start_time', 'ASC')
+      .addOrderBy('appointment.startTime', 'ASC')
       .skip((page - 1) * limit)
       .take(limit)
 
@@ -39,8 +46,11 @@ export class AppointmentsRepository implements IAppointmentsRepository {
   }
 
   async findById(id: string, clinicId: string): Promise<Appointment | null> {
+    // series is optional, so LEFT JOIN — it carries createdOccurrenceCount,
+    // which every response needs for "session N of M".
     return this.repository.findOne({
       where: { id, clinicId },
+      relations: ['series'],
     })
   }
 
@@ -59,8 +69,77 @@ export class AppointmentsRepository implements IAppointmentsRepository {
   ): Promise<Appointment | null> {
     const repo = queryRunner ? queryRunner.manager.getRepository(Appointment) : this.repository
     return repo.findOne({
-      where: { professionalId, date, startTime, clinicId, status: AppointmentStatus.SCHEDULED },
+      where: { professionalId, date, startTime, clinicId, status: In(SLOT_HOLDING_STATUSES) },
     })
+  }
+
+  /**
+   * Batch counterpart of findActiveBySlot for a whole recurring series. Every
+   * occurrence shares the same startTime, so a single IN over the dates is
+   * enough — no tuple matching needed.
+   */
+  async findActiveByDatesAndTime(
+    professionalId: string,
+    clinicId: string,
+    dates: string[],
+    startTime: string,
+    queryRunner?: QueryRunner,
+  ): Promise<Appointment[]> {
+    if (dates.length === 0) return []
+    const repo = queryRunner ? queryRunner.manager.getRepository(Appointment) : this.repository
+    return repo.find({
+      where: {
+        professionalId,
+        clinicId,
+        startTime,
+        date: In(dates),
+        status: In(SLOT_HOLDING_STATUSES),
+      },
+      order: { date: 'ASC' },
+    })
+  }
+
+  async findBySeriesId(seriesId: string, clinicId: string): Promise<Appointment[]> {
+    return this.repository.find({
+      where: { seriesId, clinicId },
+      relations: ['series'],
+      order: { date: 'ASC' },
+    })
+  }
+
+  async findBySeriesIdFromDate(
+    seriesId: string,
+    clinicId: string,
+    fromDate: string,
+    statuses: AppointmentStatus[],
+    queryRunner?: QueryRunner,
+  ): Promise<Appointment[]> {
+    const repo = queryRunner ? queryRunner.manager.getRepository(Appointment) : this.repository
+    return repo
+      .createQueryBuilder('appointment')
+      .where('appointment.series_id = :seriesId', { seriesId })
+      .andWhere('appointment.clinic_id = :clinicId', { clinicId })
+      .andWhere('appointment.date >= :fromDate', { fromDate })
+      .andWhere('appointment.status IN (:...statuses)', { statuses })
+      .andWhere('appointment.deleted_at IS NULL')
+      .orderBy('appointment.date', 'ASC')
+      .getMany()
+  }
+
+  async countBySeriesIdAfterDate(
+    seriesId: string,
+    clinicId: string,
+    afterDate: string,
+    statuses: AppointmentStatus[],
+  ): Promise<number> {
+    return this.repository
+      .createQueryBuilder('appointment')
+      .where('appointment.series_id = :seriesId', { seriesId })
+      .andWhere('appointment.clinic_id = :clinicId', { clinicId })
+      .andWhere('appointment.date > :afterDate', { afterDate })
+      .andWhere('appointment.status IN (:...statuses)', { statuses })
+      .andWhere('appointment.deleted_at IS NULL')
+      .getCount()
   }
 
   async hasFutureByScheduleId(scheduleId: string, clinicId: string): Promise<boolean> {
@@ -113,6 +192,8 @@ export class AppointmentsRepository implements IAppointmentsRepository {
         endTime: data.endTime,
         reason: data.reason,
         insuranceType: data.insuranceType ?? null,
+        seriesId: data.seriesId ?? null,
+        seriesSequence: data.seriesSequence ?? null,
         status: AppointmentStatus.SCHEDULED,
       }),
     )
