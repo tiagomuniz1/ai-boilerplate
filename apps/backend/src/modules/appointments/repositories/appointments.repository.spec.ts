@@ -171,7 +171,12 @@ describe('AppointmentsRepository', () => {
       const result = await repository.findActiveByProfessionalAndDate(professionalId, '2099-06-20', CLINIC_ID)
 
       expect(mockRepository.find).toHaveBeenCalledWith({
-        where: { professionalId, date: '2099-06-20', clinicId: CLINIC_ID, status: AppointmentStatus.SCHEDULED },
+        where: {
+          professionalId,
+          date: '2099-06-20',
+          clinicId: CLINIC_ID,
+          status: In([AppointmentStatus.SCHEDULED, AppointmentStatus.CONFIRMED]),
+        },
       })
       expect(result).toEqual([appointment])
     })
@@ -191,7 +196,7 @@ describe('AppointmentsRepository', () => {
           date: '2099-06-20',
           startTime: '08:00',
           clinicId: CLINIC_ID,
-          status: In([AppointmentStatus.SCHEDULED]),
+          status: In([AppointmentStatus.SCHEDULED, AppointmentStatus.CONFIRMED]),
         },
       })
       expect(result).toBe(appointment)
@@ -237,7 +242,7 @@ describe('AppointmentsRepository', () => {
           clinicId: CLINIC_ID,
           startTime: '08:00',
           date: In(['2099-06-20', '2099-06-27']),
-          status: In([AppointmentStatus.SCHEDULED]),
+          status: In([AppointmentStatus.SCHEDULED, AppointmentStatus.CONFIRMED]),
         },
         order: { date: 'ASC' },
       })

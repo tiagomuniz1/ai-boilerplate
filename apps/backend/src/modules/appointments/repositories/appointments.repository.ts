@@ -12,9 +12,9 @@ import {
 
 /**
  * Statuses that hold a slot. Kept in one place because the partial unique index
- * UQ_appointment_slot_scheduled must stay in sync with it.
+ * UQ_appointment_slot_active must stay in sync with it.
  */
-const SLOT_HOLDING_STATUSES = [AppointmentStatus.SCHEDULED]
+const SLOT_HOLDING_STATUSES = [AppointmentStatus.SCHEDULED, AppointmentStatus.CONFIRMED]
 
 @Injectable()
 export class AppointmentsRepository implements IAppointmentsRepository {
@@ -56,7 +56,7 @@ export class AppointmentsRepository implements IAppointmentsRepository {
 
   async findActiveByProfessionalAndDate(professionalId: string, date: string, clinicId: string): Promise<Appointment[]> {
     return this.repository.find({
-      where: { professionalId, date, clinicId, status: AppointmentStatus.SCHEDULED },
+      where: { professionalId, date, clinicId, status: In(SLOT_HOLDING_STATUSES) },
     })
   }
 

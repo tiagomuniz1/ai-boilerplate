@@ -28,6 +28,10 @@
 #### Agendamento avulso ignorava bloqueios da agenda
 - `create-appointment` derivava o slot na mão e **não consultava `schedule_exceptions`** — dava para agendar em cima de um bloqueio. Agora delega ao `ResolveProfessionalSlotUseCase`, que já validava grade + exceção + ocupação, corrigindo o furo e eliminando a duplicação. Sem isso, a prévia recorrente marcaria a data como "Bloqueado" e o usuário contornaria agendando avulso
 
+#### Consulta confirmada não segurava o slot
+- O índice único parcial e o `findActiveBySlot` cobriam apenas `status = 'scheduled'`, então uma consulta **confirmada** reaparecia como horário livre na disponibilidade e podia ser duplo-agendada sem violar o índice. Raro numa consulta avulsa; quase certo ao longo de uma série recorrente longa
+- `UQ_appointment_slot_scheduled` vira `UQ_appointment_slot_active`, cobrindo `scheduled` e `confirmed`; `cancelled`/`completed`/`no_show` seguem liberando o slot. **Antes de rodar em produção**, checar duplicatas com a query documentada no cabeçalho da migration — a criação do índice falha se existir alguma
+
 #### `GET /appointments` quebrava ao ordenar por coluna com JOIN
 - O `ORDER BY` usava `appointment.start_time` (nome de coluna) em vez de `appointment.startTime` (nome da propriedade). Sem JOIN o TypeORM não precisava resolver isso; com o JOIN da série, a paginação passa pela metadata da entidade e estourava `Cannot read properties of undefined (reading 'databaseName')`
 
