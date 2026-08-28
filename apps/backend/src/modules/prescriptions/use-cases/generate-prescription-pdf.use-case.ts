@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common'
 import { DataSource } from 'typeorm'
 import { BaseUseCase } from '../../../common/base.use-case'
-import { getEnvConfig } from '../../../config/env.config'
+import { buildClinicUrl } from '../../../common/utils/clinic-url.utils'
 import { ICurrentUser } from '../../auth/types/current-user.type'
 import { FindClinicByIdUseCase } from '../../clinics/use-cases/find-clinic-by-id.use-case'
 import { IPrescriptionsRepository } from '../repositories/prescriptions.repository.interface'
@@ -33,8 +33,10 @@ export class GeneratePrescriptionPdfUseCase extends BaseUseCase {
       : null
 
     const clinic = await this.findClinicByIdUseCase.execute(prescription!.clinicId)
-    const { FRONTEND_URL } = getEnvConfig()
-    const verificationUrl = `${FRONTEND_URL}/${clinic.slug}/verify/prescriptions/${prescription!.verificationToken}`
+    const verificationUrl = buildClinicUrl(
+      clinic.slug,
+      `/verify/prescriptions/${prescription!.verificationToken}`,
+    )
 
     return this.prescriptionPdfBuilderService.build(snapshot, logoBase64, verificationUrl)
   }

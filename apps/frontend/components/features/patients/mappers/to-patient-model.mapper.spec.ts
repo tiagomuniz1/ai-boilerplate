@@ -28,11 +28,24 @@ describe('toPatientModel', () => {
     expect(model.gender).toBe(PatientGender.MALE)
   })
 
+  it('lands the birth date on the day it names, not the day before', () => {
+    const model = toPatientModel(makeDto())
+
+    // `new Date('1990-05-15')` parses as UTC midnight, which in UTC-3 renders as
+    // 14/05 — the patients list and detail page showed every birth date one day
+    // early. Asserted on local calendar parts, since toISOString() reintroduces
+    // exactly the UTC conversion this guards against.
+    expect(model.birthDate.getFullYear()).toBe(1990)
+    expect(model.birthDate.getMonth()).toBe(4)
+    expect(model.birthDate.getDate()).toBe(15)
+    expect(model.birthDate.toLocaleDateString('pt-BR')).toBe('15/05/1990')
+  })
+
   it('converts birthDate string to Date instance', () => {
     const model = toPatientModel(makeDto())
 
     expect(model.birthDate).toBeInstanceOf(Date)
-    expect(model.birthDate.toISOString().startsWith('1990-05-15')).toBe(true)
+    expect(model.birthDate.getDate()).toBe(15)
   })
 
   it('converts createdAt string to Date instance', () => {

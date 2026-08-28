@@ -2,6 +2,14 @@
 
 ## [Unreleased]
 
+### Fixed
+
+#### QR Code da receita levava a farmácia para uma tela de login
+- A URL do QR era montada como `${FRONTEND_URL}/${slug}/verify/prescriptions/...`, mas em produção `FRONTEND_URL` aponta para `backoffice.pulso.center` e cada clínica é servida no próprio subdomínio. O middleware do frontend lia o slug do host (`backoffice`), o que sobrava do caminho virava `/pulso/verify/...`, a rota deixava de ser pública e o visitante era mandado para o login do backoffice — uma conta que a farmácia não tem
+- Novo `common/utils/clinic-url.utils.ts` monta a URL do mesmo jeito que o app resolve a clínica em runtime: subdomínio quando `COOKIE_DOMAIN` está definido (produção e stack local completa), slug no caminho quando não está (dev local)
+- **O link do e-mail de definir senha tinha exatamente o mesmo defeito** e caía no mesmo login errado — corrigido junto
+- Os specs do gerador de PDF só exercitavam path-mode, por isso passavam com a URL errada; o caso de subdomínio agora está coberto
+
 ### Added
 
 #### Consultas recorrentes
