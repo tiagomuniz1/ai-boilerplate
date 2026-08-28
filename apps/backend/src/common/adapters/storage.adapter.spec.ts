@@ -31,6 +31,12 @@ jest.mock('@aws-sdk/client-s3', () => ({
 
 import { getEnvConfig } from '../../config/env.config'
 
+// The message AWS actually returned when the IAM policy was missing the
+// consultation-photos prefix. It names the account, the role and the instance —
+// none of which may reach the browser.
+const AWS_ACCESS_DENIED_MESSAGE =
+  'User: arn:aws:sts::111122223333:assumed-role/pulso-production-ec2/i-0abc is not authorized to perform: s3:PutObject on resource: arn:aws:s3:::clinic-assets-production/consultation-photos/x.jpg'
+
 describe('StorageAdapter', () => {
   beforeEach(() => {
     jest.clearAllMocks()
@@ -86,13 +92,30 @@ describe('StorageAdapter', () => {
       expect(key).toBe('exam-results/clinic/request/result.pdf')
     })
 
-    it('rethrows S3 client errors', async () => {
-      mockSend.mockRejectedValue(new Error('S3 failure'))
+    it('wraps S3 client errors without leaking the AWS message to the client', async () => {
+      mockSend.mockRejectedValue(new Error(AWS_ACCESS_DENIED_MESSAGE))
       const adapter = new StorageAdapter()
 
-      await expect(adapter.upload(Buffer.from('data'), 'path/file.jpg', 'image/jpeg')).rejects.toThrow(
-        'S3 failure',
-      )
+      const error = await adapter
+        .upload(Buffer.from('data'), 'path/file.jpg', 'image/jpeg')
+        .catch((caught: unknown) => caught)
+
+      expect(error).toBeInstanceOf(InternalServerErrorException)
+      expect((error as Error).message).toBe('Não foi possível salvar o arquivo. Tente novamente.')
+      expect(JSON.stringify(error)).not.toContain('arn:aws')
+      expect(JSON.stringify(error)).not.toContain('s3:PutObject')
+    })
+
+    it('still wraps a rejection that is not an Error', async () => {
+      mockSend.mockRejectedValue('socket hang up')
+      const adapter = new StorageAdapter()
+
+      const error = await adapter
+        .upload(Buffer.from('data'), 'path/file.jpg', 'image/jpeg')
+        .catch((caught: unknown) => caught)
+
+      expect(error).toBeInstanceOf(InternalServerErrorException)
+      expect((error as Error).message).toBe('Não foi possível salvar o arquivo. Tente novamente.')
     })
   })
 
@@ -118,11 +141,15 @@ describe('StorageAdapter', () => {
       expect(Array.from(buffer)).toEqual([1, 2, 3])
     })
 
-    it('rethrows S3 client errors', async () => {
-      mockSend.mockRejectedValue(new Error('S3 failure'))
+    it('wraps S3 client errors without leaking the AWS message to the client', async () => {
+      mockSend.mockRejectedValue(new Error(AWS_ACCESS_DENIED_MESSAGE))
       const adapter = new StorageAdapter()
 
-      await expect(adapter.download('path/file.pdf')).rejects.toThrow('S3 failure')
+      const error = await adapter.download('path/file.pdf').catch((caught: unknown) => caught)
+
+      expect(error).toBeInstanceOf(InternalServerErrorException)
+      expect((error as Error).message).toBe('Não foi possível ler o arquivo. Tente novamente.')
+      expect(JSON.stringify(error)).not.toContain('arn:aws')
     })
   })
 
@@ -143,11 +170,15 @@ describe('StorageAdapter', () => {
       expect(mockSend).toHaveBeenCalled()
     })
 
-    it('rethrows S3 client errors', async () => {
-      mockSend.mockRejectedValue(new Error('S3 failure'))
+    it('wraps S3 client errors without leaking the AWS message to the client', async () => {
+      mockSend.mockRejectedValue(new Error(AWS_ACCESS_DENIED_MESSAGE))
       const adapter = new StorageAdapter()
 
-      await expect(adapter.remove('path/file.jpg')).rejects.toThrow('S3 failure')
+      const error = await adapter.remove('path/file.jpg').catch((caught: unknown) => caught)
+
+      expect(error).toBeInstanceOf(InternalServerErrorException)
+      expect((error as Error).message).toBe('Não foi possível remover o arquivo. Tente novamente.')
+      expect(JSON.stringify(error)).not.toContain('arn:aws')
     })
   })
 })

@@ -20,6 +20,9 @@ export function ProfessionalList() {
   const basePath = useBasePath()
   const role = useAuthStore((s) => s.user?.role)
   const canCreate = role === UserRole.ADMIN
+  // Deleting a professional is ADMIN-only (ai/context/permissions.md). The backend
+  // rejects it with 403, so an ungated button just hands the user an error.
+  const canDelete = role === UserRole.ADMIN
   const canViewAppointments =
     role === UserRole.ADMIN || role === UserRole.PROFESSIONAL || role === UserRole.USER
   const [searchTerm, setSearchTerm] = useState('')
@@ -208,15 +211,17 @@ export function ProfessionalList() {
                     </td>
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-3">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleDeleteClick(professional)}
-                          data-testid={`professional-delete-button-${professional.id}`}
-                          className="text-xs text-danger hover:text-danger/80"
-                        >
-                          Excluir
-                        </Button>
+                        {canDelete && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleDeleteClick(professional)}
+                            data-testid={`professional-delete-button-${professional.id}`}
+                            className="text-xs text-danger hover:text-danger/80"
+                          >
+                            Excluir
+                          </Button>
+                        )}
                         <Link
                           href={`${basePath}/professionals/${professional.id}/edit`}
                           data-testid={`professional-edit-link-${professional.id}`}
@@ -302,15 +307,17 @@ export function ProfessionalList() {
                 ]}
                 actions={
                   <>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => handleDeleteClick(professional)}
-                      data-testid={`professional-card-delete-button-${professional.id}`}
-                      className="text-xs text-danger hover:text-danger/80"
-                    >
-                      Excluir
-                    </Button>
+                    {canDelete && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleDeleteClick(professional)}
+                        data-testid={`professional-card-delete-button-${professional.id}`}
+                        className="text-xs text-danger hover:text-danger/80"
+                      >
+                        Excluir
+                      </Button>
+                    )}
                     <Link
                       href={`${basePath}/professionals/${professional.id}/edit`}
                       data-testid={`professional-card-edit-link-${professional.id}`}

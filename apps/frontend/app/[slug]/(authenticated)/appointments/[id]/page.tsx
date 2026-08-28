@@ -61,7 +61,14 @@ export default function AppointmentDetailPage() {
     role === UserRole.ADMIN ||
     (role === UserRole.PROFESSIONAL && appointment?.professionalId === currentDoctorId)
 
-  const canReassign = role === UserRole.ADMIN && appointment?.status === AppointmentStatus.SCHEDULED
+  // A series is assumed to have a single professional — the ownership check when
+  // cancelling "this and all future" relies on it — so the backend rejects
+  // reassigning one occurrence with 422. Offering the button would only produce
+  // a guaranteed error.
+  const canReassign =
+    role === UserRole.ADMIN &&
+    appointment?.status === AppointmentStatus.SCHEDULED &&
+    !appointment?.seriesId
 
   const canSeeMedicalRecord =
     role === UserRole.ADMIN ||

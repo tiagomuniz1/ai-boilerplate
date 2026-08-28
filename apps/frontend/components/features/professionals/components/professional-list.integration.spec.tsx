@@ -421,4 +421,37 @@ describe('ProfessionalList (integration)', () => {
 
     expect(screen.getByTestId('delete-professional-dialog')).toBeInTheDocument()
   })
+  it('hides the delete button from a PROFESSIONAL, since deleting is ADMIN-only', async () => {
+    useAuthStore.setState({ user: makeUser(UserRole.PROFESSIONAL) })
+    ;(professionalsService.getAll as jest.Mock).mockResolvedValue({
+      data: [makeDto()],
+      total: 1,
+      page: 1,
+      limit: 20,
+    })
+
+    renderWithProviders(<ProfessionalList />)
+
+    await waitFor(() => {
+      expect(screen.getByTestId('professional-edit-link-uuid-1')).toBeInTheDocument()
+    })
+    expect(screen.queryByTestId('professional-delete-button-uuid-1')).not.toBeInTheDocument()
+    expect(screen.queryByTestId('professional-card-delete-button-uuid-1')).not.toBeInTheDocument()
+  })
+
+  it('shows the delete button to an ADMIN', async () => {
+    useAuthStore.setState({ user: makeUser(UserRole.ADMIN) })
+    ;(professionalsService.getAll as jest.Mock).mockResolvedValue({
+      data: [makeDto()],
+      total: 1,
+      page: 1,
+      limit: 20,
+    })
+
+    renderWithProviders(<ProfessionalList />)
+
+    await waitFor(() => {
+      expect(screen.getByTestId('professional-delete-button-uuid-1')).toBeInTheDocument()
+    })
+  })
 })

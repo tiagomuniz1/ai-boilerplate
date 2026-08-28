@@ -12,6 +12,13 @@ interface AppointmentSlotCellProps {
   isPast: boolean
   onBookClick: () => void
   onDetailsClick: () => void
+  /**
+   * Week view: the column is ~155px and the fixed elements (time + status label)
+   * eat all of it, squeezing the truncated patient name down to nothing. The
+   * border colour already encodes the status here, so the label is dropped and
+   * the space goes to the name.
+   */
+  dense?: boolean
 }
 
 export function AppointmentSlotCell({
@@ -20,6 +27,7 @@ export function AppointmentSlotCell({
   isPast,
   onBookClick,
   onDetailsClick,
+  dense = false,
 }: AppointmentSlotCellProps) {
   const isFree = slot.status === 'free'
   const isBooked = slot.status === 'booked'
@@ -80,8 +88,12 @@ export function AppointmentSlotCell({
             data-testid="agenda-slot-recurring"
           />
         )}
-        <span className="font-medium truncate">{apt.patientName}</span>
-        <span className="ml-auto text-xs shrink-0">{APPOINTMENT_STATUS_LABELS[apt.status]}</span>
+        <span className="font-medium truncate" title={apt.patientName}>
+          {apt.patientName}
+        </span>
+        {!dense && (
+          <span className="ml-auto text-xs shrink-0">{APPOINTMENT_STATUS_LABELS[apt.status]}</span>
+        )}
       </button>
     )
   }

@@ -94,6 +94,42 @@ describe('LoginForm', () => {
     })
   })
 
+  it.each([
+    ['Account is not active', 'Esta conta está desativada'],
+    ['User is not associated with a clinic', 'não está vinculada a nenhuma clínica'],
+    ['Captcha inválido, tente novamente', 'Captcha inválido'],
+  ])('distinguishes the 401 whose detail is %s', async (detail, expected) => {
+    mockUseLogin.mockReturnValue({
+      mutate: (_data: unknown, callbacks: { onError: (e: object) => void }) => {
+        callbacks.onError({ status: 401, title: 'Unauthorized', detail })
+      },
+      isPending: false,
+    })
+    render(<LoginForm />)
+    await userEvent.type(screen.getByTestId('login-email'), 'user@example.com')
+    await userEvent.type(screen.getByTestId('login-password'), 'password123')
+    await userEvent.click(screen.getByTestId('login-submit'))
+    await waitFor(() => {
+      expect(screen.getByTestId('login-error')).toHaveTextContent(expected)
+    })
+  })
+
+  it('falls back to the credentials message when the 401 carries no detail', async () => {
+    mockUseLogin.mockReturnValue({
+      mutate: (_data: unknown, callbacks: { onError: (e: object) => void }) => {
+        callbacks.onError({ status: 401, title: 'Unauthorized' })
+      },
+      isPending: false,
+    })
+    render(<LoginForm />)
+    await userEvent.type(screen.getByTestId('login-email'), 'user@example.com')
+    await userEvent.type(screen.getByTestId('login-password'), 'password123')
+    await userEvent.click(screen.getByTestId('login-submit'))
+    await waitFor(() => {
+      expect(screen.getByTestId('login-error')).toHaveTextContent('Email ou senha inválidos')
+    })
+  })
+
   it('shows generic error message for non-401 errors', async () => {
     mockUseLogin.mockReturnValue({
       mutate: (_data: unknown, callbacks: { onError: (e: object) => void }) => {

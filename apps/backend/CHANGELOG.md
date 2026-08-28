@@ -14,6 +14,14 @@
 - `AppointmentResponseDto` ganha `seriesId`, `seriesSequence` e `seriesTotalOccurrences`; `AppointmentDetailResponseDto` ganha `seriesFutureCount` (contado, não derivado de `total - sequence`, que ignoraria ocorrências já canceladas ou concluídas)
 - Limites: **26 ocorrências e 365 dias**, o que vier primeiro (`packages/shared/src/config/recurrence.config.ts`, consumido também pelo frontend)
 
+### Fixed
+
+#### Upload de foto da consulta falhava com `500` em produção
+- A policy IAM `clinic-assets-write-production` listava só os prefixos `clinics/*` e `exam-results/*` do bucket; `consultation-photos/*` nunca foi incluído, então todo upload de foto batia em `AccessDenied` na AWS. Corrigido em `infra/terraform/modules/s3-clinic-assets`, que agora documenta que um prefixo faltando não falha no deploy — falha como `500` no primeiro upload daquele tipo
+
+#### Erro do S3 vazava detalhes da infraestrutura para o cliente
+- `StorageAdapter` deixava a exceção do SDK subir, e o `ExceptionFilter` a devolvia no corpo da resposta: a mensagem da AWS nomeia o id da conta, o role IAM, o id da instância e o ARN do bucket. Agora as três operações (upload, download, remove) registram a causa no log do servidor e devolvem uma mensagem genérica
+
 ### Changed
 
 #### Concorrência da criação em lote

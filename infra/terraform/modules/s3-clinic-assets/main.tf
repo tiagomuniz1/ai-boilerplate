@@ -85,6 +85,10 @@ resource "aws_s3_bucket_cors_configuration" "clinic_assets" {
 
 resource "aws_iam_policy" "clinic_assets_write" {
   name        = "clinic-assets-write-${var.environment}"
+  # Kept verbatim on purpose: changing an IAM policy description forces a
+  # destroy-and-create, which detaches the policy from the EC2 role for a few
+  # seconds and fails every upload in that window. The prefix list below is the
+  # real contract; the description is cosmetic and not worth an outage.
   description = "Allows ECS backend to upload and manage clinic assets and exam results in ${local.bucket_name}"
 
   policy = jsonencode({
@@ -98,9 +102,13 @@ resource "aws_iam_policy" "clinic_assets_write" {
           "s3:DeleteObject",
           "s3:GetObject"
         ]
+        # One entry per prefix the backend writes to. A missing prefix does not
+        # fail at deploy — it fails as a 500 the first time a user uploads that
+        # kind of file, which is how consultation-photos slipped through.
         Resource = [
           "${aws_s3_bucket.clinic_assets.arn}/clinics/*",
-          "${aws_s3_bucket.clinic_assets.arn}/exam-results/*"
+          "${aws_s3_bucket.clinic_assets.arn}/exam-results/*",
+          "${aws_s3_bucket.clinic_assets.arn}/consultation-photos/*"
         ]
       }
     ]

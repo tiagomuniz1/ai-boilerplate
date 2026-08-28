@@ -15,6 +15,18 @@
 
 ### Fixed
 
+#### Botão de excluir profissional aparecia para quem não pode excluir
+- Excluir profissional é exclusivo de ADMIN (`ai/context/permissions.md`), mas a lista mostrava o botão para PROFESSIONAL e USER — o backend respondia `403` e o usuário só via um erro. O botão agora é gated por role na tabela e no card mobile
+
+#### "Trocar profissional" aparecia em ocorrência de série
+- O backend recusa reatribuir uma ocorrência de série com `422` (trocar o profissional de uma ocorrência deixaria a série heterogênea). O botão agora só aparece em consulta avulsa
+
+#### Nome do paciente ficava truncado na visão de semana
+- A célula da agenda mostrava `hora | nome | status` nas 7 colunas espremidas da semana, e o nome sobrava em "T…". Na visão de semana a célula entra em modo denso: o rótulo de status sai (a cor da célula já o comunica) e o espaço vai para o nome, que ganha `title` com o nome completo
+
+#### Login dizia "Email ou senha inválidos" para conta desativada
+- Um `401` por conta desativada, conta sem clínica vinculada ou captcha inválido exibia a mesma mensagem de credencial errada, mandando o usuário tentar de novo uma senha que estava certa. Cada caso agora tem sua própria mensagem; a de credencial segue sendo o fallback (e continua sem revelar se o e-mail existe)
+
 #### Semana da agenda podia deslocar um dia em fuso positivo
 - `getWeekDates` em `agenda-week-grid.tsx` usava `toISOString()` (que converte para UTC) enquanto o resto do código usa `toLocalDateString` justamente para evitar esse deslocamento — agora usa o mesmo helper
 

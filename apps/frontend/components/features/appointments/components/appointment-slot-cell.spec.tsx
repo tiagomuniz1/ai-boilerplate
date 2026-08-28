@@ -179,4 +179,49 @@ describe('AppointmentSlotCell', () => {
 
     expect(screen.queryByTestId('agenda-slot-recurring')).not.toBeInTheDocument()
   })
+  it('drops the status label in dense mode so the patient name keeps the space', () => {
+    render(
+      <AppointmentSlotCell
+        slot={makeBookedSlot(makeAppointment())}
+        canManage={true}
+        isPast={false}
+        onBookClick={jest.fn()}
+        onDetailsClick={jest.fn()}
+        dense
+      />,
+    )
+
+    expect(screen.getByText('Patient One')).toBeInTheDocument()
+    expect(screen.queryByText('Agendada')).not.toBeInTheDocument()
+  })
+
+  it('keeps the status label when not dense', () => {
+    render(
+      <AppointmentSlotCell
+        slot={makeBookedSlot(makeAppointment())}
+        canManage={true}
+        isPast={false}
+        onBookClick={jest.fn()}
+        onDetailsClick={jest.fn()}
+      />,
+    )
+
+    expect(screen.getByText('Patient One')).toBeInTheDocument()
+    expect(screen.getByText('Agendada')).toBeInTheDocument()
+  })
+
+  it('exposes the full patient name as a tooltip, since it can be truncated', () => {
+    render(
+      <AppointmentSlotCell
+        slot={makeBookedSlot(makeAppointment())}
+        canManage={true}
+        isPast={false}
+        onBookClick={jest.fn()}
+        onDetailsClick={jest.fn()}
+        dense
+      />,
+    )
+
+    expect(screen.getByText('Patient One')).toHaveAttribute('title', 'Patient One')
+  })
 })
