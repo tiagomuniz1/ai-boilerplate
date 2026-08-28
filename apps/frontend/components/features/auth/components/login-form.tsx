@@ -19,6 +19,24 @@ const schema = z.object({
 
 type FormValues = z.infer<typeof schema>
 
+// The API distinguishes the 401 cases in `detail`; collapsing them all into
+// "wrong password" leaves a user with a deactivated account retrying a password
+// that was never the problem.
+function loginErrorMessage(detail?: string): string {
+  const reason = detail?.toLowerCase() ?? ''
+
+  if (reason.includes('not active')) {
+    return 'Esta conta está desativada. Fale com o administrador da clínica.'
+  }
+  if (reason.includes('not associated with a clinic')) {
+    return 'Esta conta não está vinculada a nenhuma clínica.'
+  }
+  if (reason.includes('captcha')) {
+    return 'Captcha inválido. Refaça a verificação e tente novamente.'
+  }
+  return 'Email ou senha inválidos'
+}
+
 export function LoginForm() {
   const { mutate, isPending } = useLogin()
   const [globalError, setGlobalError] = useState<string | null>(null)
@@ -54,7 +72,7 @@ export function LoginForm() {
               setError(field as keyof FormValues, { message })
             })
           } else if (error.status === 401) {
-            setGlobalError('Email ou senha inválidos')
+            setGlobalError(loginErrorMessage(error.detail))
           } else {
             setGlobalError('Não foi possível fazer login. Tente novamente.')
           }

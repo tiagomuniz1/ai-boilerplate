@@ -51,7 +51,7 @@ export function MedicalRecordSection({
 }: MedicalRecordSectionProps) {
   const [mode, setMode] = useState<MedicalRecordMode>(null)
 
-  const { data: record, isLoading: isRecordLoading } = useMedicalRecordByAppointment(appointmentId)
+  const { data: record, isLoading: isRecordLoading, isError: isRecordError } = useMedicalRecordByAppointment(appointmentId)
 
   const needsProfessionalLookup = !specialtyId
   const { data: professional, isLoading: isProfessionalLoading } = useProfessional(professionalId, {
@@ -117,6 +117,16 @@ export function MedicalRecordSection({
         : createApiError || updateApiError
           ? 'Ocorreu um erro ao salvar o prontuário.'
           : null
+
+  // A failed read is not an empty prontuário. Rendering the empty state here told
+  // the professional the record did not exist and invited them to write it again.
+  if (isRecordError) {
+    return (
+      <Alert variant="error" data-testid="medical-record-error">
+        Não foi possível carregar o prontuário desta consulta. Recarregue a página e tente novamente.
+      </Alert>
+    )
+  }
 
   return (
     <>

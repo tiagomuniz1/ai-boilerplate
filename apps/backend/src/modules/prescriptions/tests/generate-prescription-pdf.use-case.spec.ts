@@ -135,6 +135,33 @@ describe('GeneratePrescriptionPdfUseCase', () => {
     expect(mockPdfBuilderService.build).toHaveBeenCalledWith(makeSnapshot(), null, expectedUrl)
   })
 
+  // Production runs in subdomain-mode, where FRONTEND_URL is the backoffice host.
+  // A slug in the path made the frontend middleware read "backoffice" as the
+  // clinic, drop /verify from its public routes and send the pharmacy to a login
+  // page. The suite above only ever exercised path-mode, so it never caught it.
+  it('points the QR at the clinic subdomain, not at the backoffice, in subdomain-mode', async () => {
+    const previousCookieDomain = process.env.COOKIE_DOMAIN
+    const previousFrontendUrl = process.env.FRONTEND_URL
+    process.env.COOKIE_DOMAIN = '.pulso.center'
+    process.env.FRONTEND_URL = 'https://backoffice.pulso.center'
+
+    try {
+      await useCase.execute(prescriptionId, adminUser)
+
+      const url = mockPdfBuilderService.build.mock.calls.at(-1)![2]
+      expect(url).toBe(
+        `https://${clinicSlug}.pulso.center/verify/prescriptions/${verificationToken}`,
+      )
+      expect(url).not.toContain('backoffice')
+    } finally {
+      // `process.env.X = undefined` stores the string "undefined", which is
+      // truthy and would leak subdomain-mode into every later test.
+      if (previousCookieDomain === undefined) delete process.env.COOKIE_DOMAIN
+      else process.env.COOKIE_DOMAIN = previousCookieDomain
+      process.env.FRONTEND_URL = previousFrontendUrl!
+    }
+  })
+
   it('does not fetch logo when logoUrl is null', async () => {
     await useCase.execute(prescriptionId, adminUser)
 

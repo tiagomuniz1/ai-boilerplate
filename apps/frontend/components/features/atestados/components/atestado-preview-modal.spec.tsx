@@ -12,7 +12,7 @@ const makeLeaveAtestado = (overrides: Partial<IAtestadoModel> = {}): IAtestadoMo
   professionalName: 'Dr. João',
   type: MedicalCertificateType.LEAVE,
   daysOff: 3,
-  startDate: new Date('2026-01-05'),
+  startDate: '2026-01-05',
   cidCode: 'M54.5',
   attendanceDate: null,
   checkInTime: null,
@@ -52,7 +52,7 @@ describe('AtestadoPreviewModal', () => {
       daysOff: null,
       startDate: null,
       cidCode: null,
-      attendanceDate: new Date('2026-01-05'),
+      attendanceDate: '2026-01-05',
       checkInTime: '08:00',
       checkOutTime: '08:30',
     })

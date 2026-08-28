@@ -81,6 +81,7 @@ function DayColumn({ professionalId, date, dayLabel, role, currentDoctorId, effe
                 onBookClick={() => setBookingSlot(slot)}
                 /* c8 ignore next */
                 onDetailsClick={() => setDetailsId(slot.appointment?.id ?? null)}
+                dense
               />
             ))}
           </div>

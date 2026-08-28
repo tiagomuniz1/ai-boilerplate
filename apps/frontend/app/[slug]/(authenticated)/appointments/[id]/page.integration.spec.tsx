@@ -394,4 +394,23 @@ describe('AppointmentDetailPage (integration)', () => {
       expect(screen.getByTestId('appointment-detail-reason')).toHaveTextContent('Dor de cabeça')
     })
   })
+  it('ADMIN sees the reassign button on a standalone appointment', async () => {
+    mockAppointmentsService.getById.mockResolvedValue(makeAppointmentDto())
+    renderWithProviders(<AppointmentDetailPage />)
+    await waitFor(() => {
+      expect(screen.getByTestId('appointment-detail-reassign-button')).toBeInTheDocument()
+    })
+  })
+
+  it('hides the reassign button on a series occurrence, which the backend rejects with 422', async () => {
+    mockAppointmentsService.getById.mockResolvedValue(
+      makeAppointmentDto({ seriesId: 'series-uuid', seriesSequence: 2, seriesTotalOccurrences: 5 }),
+    )
+    renderWithProviders(<AppointmentDetailPage />)
+    await waitFor(() => {
+      expect(screen.getByTestId('appointment-detail-cancel-button')).toBeInTheDocument()
+    })
+    expect(screen.queryByTestId('appointment-detail-reassign-button')).not.toBeInTheDocument()
+    expect(screen.queryByTestId('appointment-detail-reassign-button-mobile')).not.toBeInTheDocument()
+  })
 })

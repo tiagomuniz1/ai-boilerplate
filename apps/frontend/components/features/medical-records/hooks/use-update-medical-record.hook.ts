@@ -11,8 +11,11 @@ export function useUpdateMedicalRecord() {
     mutationFn: ({ id, data }: { id: string; data: IUpdateMedicalRecordInput }) =>
       updateMedicalRecordUseCase(id, data),
     onSuccess: (record) => {
-      queryClient.invalidateQueries({ queryKey: ['medical-records', record.id] })
-      queryClient.invalidateQueries({ queryKey: ['medical-records', 'by-appointment', record.appointmentId] })
+      // Same reasoning as the create hook: the response is the record, so write it
+      // straight into the cache rather than making the screen wait on a refetch.
+      queryClient.setQueryData(['medical-records', record.id], record)
+      queryClient.setQueryData(['medical-records', 'by-appointment', record.appointmentId], record)
+
       queryClient.invalidateQueries({ queryKey: ['medical-records', 'patient', record.patientId] })
     },
   })
