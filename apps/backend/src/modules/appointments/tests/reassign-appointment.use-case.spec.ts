@@ -59,6 +59,10 @@ const mockAppointmentsRepository: jest.Mocked<IAppointmentsRepository> = {
   findById: jest.fn(),
   findActiveByProfessionalAndDate: jest.fn(),
   findActiveBySlot: jest.fn(),
+  findActiveByDatesAndTime: jest.fn(),
+  findBySeriesId: jest.fn(),
+  findBySeriesIdFromDate: jest.fn(),
+  countBySeriesIdAfterDate: jest.fn(),
   hasFutureByScheduleId: jest.fn(),
   hasFutureByProfessionalId: jest.fn(),
   create: jest.fn(),
@@ -155,6 +159,18 @@ describe('ReassignAppointmentUseCase', () => {
       makeAppointment({ status: AppointmentStatus.COMPLETED }) as any,
     )
     await expect(useCase.execute('id', dto, adminUser)).rejects.toThrow(UnprocessableEntityException)
+  })
+
+  it('throws 422 when the appointment belongs to a recurring series', async () => {
+    mockAppointmentsRepository.findById.mockResolvedValue(
+      makeAppointment({ seriesId: faker.string.uuid(), seriesSequence: 2 }) as any,
+    )
+
+    await expect(useCase.execute('id', dto, adminUser)).rejects.toThrow(UnprocessableEntityException)
+    await expect(useCase.execute('id', dto, adminUser)).rejects.toThrow(
+      'Não é possível trocar o profissional de uma consulta que faz parte de uma série recorrente.',
+    )
+    expect(mockAppointmentsRepository.update).not.toHaveBeenCalled()
   })
 
   it('throws 422 when the target is already the appointment professional', async () => {

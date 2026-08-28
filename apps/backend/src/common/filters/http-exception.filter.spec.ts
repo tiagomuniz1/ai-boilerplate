@@ -96,6 +96,34 @@ describe('HttpExceptionFilter', () => {
     expect(body.requiresCaptcha).toBe(true)
   })
 
+  it('includes conflictingOccurrences when the exception response carries them', () => {
+    const host = makeHost()
+    const occurrences = [
+      { date: '2099-06-23', startTime: '09:00', availability: 'already_booked' },
+      { date: '2099-06-30', startTime: '09:00', availability: 'blocked_by_exception' },
+    ]
+    filter.catch(
+      new HttpException({ message: 'Slots are no longer available', conflictingOccurrences: occurrences }, 409),
+      host,
+    )
+    const { body } = getResponse(host)
+    expect(body.conflictingOccurrences).toEqual(occurrences)
+  })
+
+  it('does not include conflictingOccurrences when absent from the exception response', () => {
+    const host = makeHost()
+    filter.catch(new HttpException('Conflict', 409), host)
+    const { body } = getResponse(host)
+    expect(body.conflictingOccurrences).toBeUndefined()
+  })
+
+  it('does not include conflictingOccurrences when it is not an array', () => {
+    const host = makeHost()
+    filter.catch(new HttpException({ message: 'Conflict', conflictingOccurrences: 'nope' }, 409), host)
+    const { body } = getResponse(host)
+    expect(body.conflictingOccurrences).toBeUndefined()
+  })
+
   it('does not include requiresCaptcha when absent from the exception response', () => {
     const host = makeHost()
     filter.catch(new HttpException('Invalid credentials', 401), host)

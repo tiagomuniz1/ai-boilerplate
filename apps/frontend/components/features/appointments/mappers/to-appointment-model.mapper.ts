@@ -17,6 +17,9 @@ export function toAppointmentModel(dto: AppointmentResponseDto): IAppointmentMod
     status: dto.status,
     reason: dto.reason,
     cancellationReason: dto.cancellationReason,
+    seriesId: dto.seriesId,
+    seriesSequence: dto.seriesSequence,
+    seriesTotalOccurrences: dto.seriesTotalOccurrences,
     createdAt: new Date(dto.createdAt),
     updatedAt: new Date(dto.updatedAt),
   }

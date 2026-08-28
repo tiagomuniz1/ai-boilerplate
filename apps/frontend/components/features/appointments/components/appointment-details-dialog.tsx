@@ -11,6 +11,7 @@ import { useAppointment } from '../hooks/use-appointment.hook'
 import { APPOINTMENT_STATUS_LABELS } from '../types/appointment-model.types'
 import { APPOINTMENT_STATUS_BADGE_CLASS } from '@/lib/appointment-status'
 import { formatDateToBR } from '@/lib/format-date'
+import { RecurrenceBadge } from './recurrence-badge'
 
 interface AppointmentDetailsDialogProps {
   appointmentId: string | null
@@ -85,6 +86,21 @@ export function AppointmentDetailsDialog({
             <dd data-testid="details-time">
               {appointment.startTime} – {appointment.endTime}
             </dd>
+
+            {appointment.seriesId &&
+              appointment.seriesSequence !== null &&
+              appointment.seriesTotalOccurrences !== null && (
+                <>
+                  <dt className="text-text/50">Recorrência</dt>
+                  <dd>
+                    <RecurrenceBadge
+                      sequence={appointment.seriesSequence}
+                      total={appointment.seriesTotalOccurrences}
+                      data-testid="details-series"
+                    />
+                  </dd>
+                </>
+              )}
 
             {appointment.reason && (
               <>

@@ -1,4 +1,5 @@
 import { faker } from '@faker-js/faker'
+import { In } from 'typeorm'
 import { AppointmentStatus } from '@app/shared'
 import { Appointment } from '../entities/appointment.entity'
 import { AppointmentsRepository } from './appointments.repository'
@@ -27,6 +28,7 @@ const makeAppointment = (overrides = {}): Appointment =>
 
 const makeQueryBuilder = () => {
   const qb: any = {
+    leftJoinAndSelect: jest.fn().mockReturnThis(),
     where: jest.fn().mockReturnThis(),
     andWhere: jest.fn().mockReturnThis(),
     orderBy: jest.fn().mockReturnThis(),
@@ -34,6 +36,7 @@ const makeQueryBuilder = () => {
     skip: jest.fn().mockReturnThis(),
     take: jest.fn().mockReturnThis(),
     getCount: jest.fn(),
+    getMany: jest.fn(),
     getManyAndCount: jest.fn(),
   }
   return qb
@@ -143,7 +146,10 @@ describe('AppointmentsRepository', () => {
 
       const result = await repository.findById(appointment.id, CLINIC_ID)
 
-      expect(mockRepository.findOne).toHaveBeenCalledWith({ where: { id: appointment.id, clinicId: CLINIC_ID } })
+      expect(mockRepository.findOne).toHaveBeenCalledWith({
+        where: { id: appointment.id, clinicId: CLINIC_ID },
+        relations: ['series'],
+      })
       expect(result).toBe(appointment)
     })
 
@@ -180,7 +186,13 @@ describe('AppointmentsRepository', () => {
       const result = await repository.findActiveBySlot(professionalId, '2099-06-20', '08:00', CLINIC_ID)
 
       expect(mockRepository.findOne).toHaveBeenCalledWith({
-        where: { professionalId, date: '2099-06-20', startTime: '08:00', clinicId: CLINIC_ID, status: AppointmentStatus.SCHEDULED },
+        where: {
+          professionalId,
+          date: '2099-06-20',
+          startTime: '08:00',
+          clinicId: CLINIC_ID,
+          status: In([AppointmentStatus.SCHEDULED]),
+        },
       })
       expect(result).toBe(appointment)
     })
@@ -196,6 +208,125 @@ describe('AppointmentsRepository', () => {
       expect(queryRunner.manager.getRepository).toHaveBeenCalledWith(Appointment)
       expect(qrRepo.findOne).toHaveBeenCalled()
       expect(result).toBe(appointment)
+    })
+  })
+
+  describe('findActiveByDatesAndTime', () => {
+    it('returns an empty list without querying when there are no dates', async () => {
+      const result = await repository.findActiveByDatesAndTime(faker.string.uuid(), CLINIC_ID, [], '08:00')
+
+      expect(result).toEqual([])
+      expect(mockRepository.find).not.toHaveBeenCalled()
+    })
+
+    it('matches every date at the same start time in a single query', async () => {
+      const professionalId = faker.string.uuid()
+      const appointment = makeAppointment({ professionalId })
+      mockRepository.find.mockResolvedValue([appointment])
+
+      const result = await repository.findActiveByDatesAndTime(
+        professionalId,
+        CLINIC_ID,
+        ['2099-06-20', '2099-06-27'],
+        '08:00',
+      )
+
+      expect(mockRepository.find).toHaveBeenCalledWith({
+        where: {
+          professionalId,
+          clinicId: CLINIC_ID,
+          startTime: '08:00',
+          date: In(['2099-06-20', '2099-06-27']),
+          status: In([AppointmentStatus.SCHEDULED]),
+        },
+        order: { date: 'ASC' },
+      })
+      expect(result).toEqual([appointment])
+    })
+
+    it('uses the queryRunner repository when provided', async () => {
+      const appointment = makeAppointment()
+      const qrRepo = { find: jest.fn().mockResolvedValue([appointment]) }
+      const queryRunner = { manager: { getRepository: jest.fn().mockReturnValue(qrRepo) } } as any
+
+      const result = await repository.findActiveByDatesAndTime(
+        faker.string.uuid(),
+        CLINIC_ID,
+        ['2099-06-20'],
+        '08:00',
+        queryRunner,
+      )
+
+      expect(qrRepo.find).toHaveBeenCalled()
+      expect(mockRepository.find).not.toHaveBeenCalled()
+      expect(result).toEqual([appointment])
+    })
+  })
+
+  describe('findBySeriesId', () => {
+    it('returns every occurrence of the series ordered by date', async () => {
+      const seriesId = faker.string.uuid()
+      const appointment = makeAppointment({ seriesId })
+      mockRepository.find.mockResolvedValue([appointment])
+
+      const result = await repository.findBySeriesId(seriesId, CLINIC_ID)
+
+      expect(mockRepository.find).toHaveBeenCalledWith({
+        where: { seriesId, clinicId: CLINIC_ID },
+        relations: ['series'],
+        order: { date: 'ASC' },
+      })
+      expect(result).toEqual([appointment])
+    })
+  })
+
+  describe('findBySeriesIdFromDate', () => {
+    it('returns occurrences on or after the given date for the given statuses', async () => {
+      const seriesId = faker.string.uuid()
+      const appointment = makeAppointment({ seriesId })
+      const qb = makeQueryBuilder()
+      qb.getMany.mockResolvedValue([appointment])
+      mockRepository.createQueryBuilder.mockReturnValue(qb)
+
+      const result = await repository.findBySeriesIdFromDate(seriesId, CLINIC_ID, '2099-06-20', [
+        AppointmentStatus.SCHEDULED,
+        AppointmentStatus.CONFIRMED,
+      ])
+
+      expect(qb.where).toHaveBeenCalledWith('appointment.series_id = :seriesId', { seriesId })
+      expect(qb.andWhere).toHaveBeenCalledWith('appointment.date >= :fromDate', { fromDate: '2099-06-20' })
+      expect(qb.andWhere).toHaveBeenCalledWith('appointment.status IN (:...statuses)', {
+        statuses: [AppointmentStatus.SCHEDULED, AppointmentStatus.CONFIRMED],
+      })
+      expect(result).toEqual([appointment])
+    })
+
+    it('uses the queryRunner repository when provided', async () => {
+      const qb = makeQueryBuilder()
+      qb.getMany.mockResolvedValue([])
+      const qrRepo = { createQueryBuilder: jest.fn().mockReturnValue(qb) }
+      const queryRunner = { manager: { getRepository: jest.fn().mockReturnValue(qrRepo) } } as any
+
+      await repository.findBySeriesIdFromDate(faker.string.uuid(), CLINIC_ID, '2099-06-20', [], queryRunner)
+
+      expect(qrRepo.createQueryBuilder).toHaveBeenCalled()
+      expect(mockRepository.createQueryBuilder).not.toHaveBeenCalled()
+    })
+  })
+
+  describe('countBySeriesIdAfterDate', () => {
+    it('counts occurrences strictly after the given date', async () => {
+      const seriesId = faker.string.uuid()
+      const qb = makeQueryBuilder()
+      qb.getCount.mockResolvedValue(4)
+      mockRepository.createQueryBuilder.mockReturnValue(qb)
+
+      const result = await repository.countBySeriesIdAfterDate(seriesId, CLINIC_ID, '2099-06-20', [
+        AppointmentStatus.SCHEDULED,
+      ])
+
+      expect(qb.andWhere).toHaveBeenCalledWith('appointment.date > :afterDate', { afterDate: '2099-06-20' })
+      expect(result).toBe(4)
     })
   })
 

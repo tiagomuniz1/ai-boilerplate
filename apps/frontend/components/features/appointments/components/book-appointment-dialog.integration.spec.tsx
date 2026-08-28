@@ -3,9 +3,16 @@ jest.mock('@/components/features/patients/services/patients.service')
 jest.mock('@/components/features/professionals/services/professionals.service')
 jest.mock('next/navigation', () => ({ useRouter: jest.fn(() => ({ push: jest.fn() })) }))
 
-import { screen, waitFor } from '@testing-library/react'
+import { fireEvent, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { AppointmentStatus } from '@app/shared'
+import {
+  AppointmentStatus,
+  DayOfWeek,
+  MAXIMUM_RECURRING_OCCURRENCES,
+  MINIMUM_RECURRING_OCCURRENCES,
+  RecurrenceInterval,
+  RecurringOccurrenceAvailability,
+} from '@app/shared'
 import { appointmentsService } from '../services/appointments.service'
 import { patientsService } from '@/components/features/patients/services/patients.service'
 import { professionalsService } from '@/components/features/professionals/services/professionals.service'
@@ -378,6 +385,428 @@ describe('BookAppointmentDialog (integration)', () => {
       expect(screen.getByTestId('book-dialog-error')).toHaveTextContent(
         'Especialidade inválida ou não pertence ao profissional',
       )
+    })
+  })
+  describe('recurring series', () => {
+    // 2025-07-04 is a Friday; weekly repetitions land on 11/07 and 18/07.
+    const makePreviewResponse = (overrides: object = {}) => ({
+      professionalId: 'doctor-uuid',
+      patientId: PATIENT_UUID,
+      recurrenceInterval: RecurrenceInterval.EVERY_WEEK,
+      dayOfWeek: DayOfWeek.FRIDAY,
+      startTime: '09:00',
+      occurrences: [
+        {
+          date: '2025-07-04',
+          startTime: '09:00',
+          endTime: '09:30',
+          scheduleId: 'schedule-uuid',
+          availability: RecurringOccurrenceAvailability.AVAILABLE,
+          selectable: true,
+        },
+        {
+          date: '2025-07-11',
+          startTime: '09:00',
+          endTime: null,
+          scheduleId: null,
+          availability: RecurringOccurrenceAvailability.ALREADY_BOOKED,
+          selectable: false,
+        },
+        {
+          date: '2025-07-18',
+          startTime: '09:00',
+          endTime: '09:30',
+          scheduleId: 'schedule-uuid',
+          availability: RecurringOccurrenceAvailability.AVAILABLE,
+          selectable: true,
+        },
+      ],
+      availableOccurrenceCount: 2,
+      unavailableOccurrenceCount: 1,
+      truncatedByMaximumOccurrences: false,
+      truncatedByHorizon: false,
+      ...overrides,
+    })
+
+    async function fillFormAndGoToPreview() {
+      renderWithProviders(<BookAppointmentDialog {...defaultProps} />)
+
+      await waitFor(() => {
+        expect(screen.getByTestId('book-dialog-specialty-readonly')).toBeInTheDocument()
+      })
+      await userEvent.selectOptions(screen.getByTestId('book-dialog-patient'), PATIENT_UUID)
+      await userEvent.click(screen.getByTestId('book-dialog-recurrence-toggle'))
+      await userEvent.click(screen.getByTestId('book-dialog-submit'))
+    }
+
+    it('keeps the recurrence fields hidden until the toggle is switched on', async () => {
+      renderWithProviders(<BookAppointmentDialog {...defaultProps} />)
+
+      expect(screen.queryByTestId('book-dialog-recurrence-fields')).not.toBeInTheDocument()
+      expect(screen.getByTestId('book-dialog-submit')).toHaveTextContent('Agendar')
+
+      await userEvent.click(screen.getByTestId('book-dialog-recurrence-toggle'))
+
+      expect(screen.getByTestId('book-dialog-recurrence-fields')).toBeInTheDocument()
+      expect(screen.getByTestId('book-dialog-recurrence-summary')).toHaveTextContent(
+        'Toda sexta-feira às 09:00',
+      )
+      expect(screen.getByTestId('book-dialog-submit')).toHaveTextContent('Revisar datas')
+    })
+
+    it('constrains the occurrence count natively to the allowed range', async () => {
+      renderWithProviders(<BookAppointmentDialog {...defaultProps} />)
+
+      await userEvent.click(screen.getByTestId('book-dialog-recurrence-toggle'))
+
+      const input = screen.getByTestId('book-dialog-recurrence-occurrences')
+      expect(input).toHaveAttribute('min', String(MINIMUM_RECURRING_OCCURRENCES))
+      expect(input).toHaveAttribute('max', String(MAXIMUM_RECURRING_OCCURRENCES))
+    })
+
+    it('rejects an empty occurrence count', async () => {
+      renderWithProviders(<BookAppointmentDialog {...defaultProps} />)
+
+      await waitFor(() => {
+        expect(screen.getByTestId('book-dialog-specialty-readonly')).toBeInTheDocument()
+      })
+      await userEvent.selectOptions(screen.getByTestId('book-dialog-patient'), PATIENT_UUID)
+      await userEvent.click(screen.getByTestId('book-dialog-recurrence-toggle'))
+      await userEvent.clear(screen.getByTestId('book-dialog-recurrence-occurrences'))
+      await userEvent.click(screen.getByTestId('book-dialog-submit'))
+
+      await waitFor(() => {
+        expect(screen.getByTestId('book-dialog-recurrence-occurrences-error')).toBeInTheDocument()
+      })
+      expect(mockAppointmentsService.previewRecurrence).not.toHaveBeenCalled()
+    })
+
+    it('requires an end date when that mode is chosen', async () => {
+      renderWithProviders(<BookAppointmentDialog {...defaultProps} />)
+
+      await waitFor(() => {
+        expect(screen.getByTestId('book-dialog-specialty-readonly')).toBeInTheDocument()
+      })
+      await userEvent.selectOptions(screen.getByTestId('book-dialog-patient'), PATIENT_UUID)
+      await userEvent.click(screen.getByTestId('book-dialog-recurrence-toggle'))
+      await userEvent.click(screen.getByTestId('book-dialog-recurrence-end-date'))
+      await userEvent.click(screen.getByTestId('book-dialog-submit'))
+
+      await waitFor(() => {
+        expect(screen.getByTestId('book-dialog-recurrence-until-error')).toBeInTheDocument()
+      })
+    })
+
+    it('shows the loading state and then the preview list', async () => {
+      let resolvePreview: (value: unknown) => void = () => {}
+      mockAppointmentsService.previewRecurrence.mockReturnValue(
+        new Promise((resolve) => {
+          resolvePreview = resolve
+        }) as never,
+      )
+
+      await fillFormAndGoToPreview()
+
+      expect(screen.getByTestId('recurrence-preview-loading')).toBeInTheDocument()
+
+      resolvePreview(makePreviewResponse())
+
+      await waitFor(() => expect(screen.getByTestId('recurrence-preview-list')).toBeInTheDocument())
+    })
+
+    it('renders each occurrence status and disables the ones that cannot be booked', async () => {
+      mockAppointmentsService.previewRecurrence.mockResolvedValue(makePreviewResponse() as never)
+
+      await fillFormAndGoToPreview()
+
+      await waitFor(() => expect(screen.getByTestId('recurrence-preview-list')).toBeInTheDocument())
+
+      expect(screen.getByTestId('recurrence-preview-status-2025-07-04')).toHaveTextContent('Disponível')
+      expect(screen.getByTestId('recurrence-preview-status-2025-07-11')).toHaveTextContent('Ocupado')
+      expect(screen.getByTestId('recurrence-preview-checkbox-2025-07-11')).toBeDisabled()
+      expect(screen.getByTestId('recurrence-preview-checkbox-2025-07-11')).not.toBeChecked()
+      expect(screen.getByTestId('recurrence-preview-checkbox-2025-07-04')).toBeChecked()
+      expect(screen.getByTestId('recurrence-preview-selected-count')).toHaveTextContent(
+        '2 datas selecionadas',
+      )
+    })
+
+    it('lets the user untick a date and updates the counter and the button', async () => {
+      mockAppointmentsService.previewRecurrence.mockResolvedValue(makePreviewResponse() as never)
+
+      await fillFormAndGoToPreview()
+      await waitFor(() => expect(screen.getByTestId('recurrence-preview-list')).toBeInTheDocument())
+
+      await userEvent.click(screen.getByTestId('recurrence-preview-checkbox-2025-07-18'))
+
+      expect(screen.getByTestId('recurrence-preview-selected-count')).toHaveTextContent(
+        '1 datas selecionadas',
+      )
+      expect(screen.getByTestId('book-dialog-recurrence-confirm')).toHaveTextContent(
+        'Agendar 1 consultas',
+      )
+    })
+
+    it('re-ticks a date the user had unticked', async () => {
+      mockAppointmentsService.previewRecurrence.mockResolvedValue(makePreviewResponse() as never)
+
+      await fillFormAndGoToPreview()
+      await waitFor(() => expect(screen.getByTestId('recurrence-preview-list')).toBeInTheDocument())
+
+      await userEvent.click(screen.getByTestId('recurrence-preview-checkbox-2025-07-18'))
+      expect(screen.getByTestId('recurrence-preview-checkbox-2025-07-18')).not.toBeChecked()
+
+      await userEvent.click(screen.getByTestId('recurrence-preview-checkbox-2025-07-18'))
+
+      expect(screen.getByTestId('recurrence-preview-checkbox-2025-07-18')).toBeChecked()
+      expect(screen.getByTestId('recurrence-preview-selected-count')).toHaveTextContent(
+        '2 datas selecionadas',
+      )
+    })
+
+    it('omits the specialty for a generalist professional', async () => {
+      mockDoctorsService.getById.mockResolvedValue(makeDoctorResponse([]))
+      mockAppointmentsService.previewRecurrence.mockResolvedValue(makePreviewResponse() as never)
+      mockAppointmentsService.bookRecurring.mockResolvedValue({
+        seriesId: 'series-uuid',
+        recurrenceInterval: RecurrenceInterval.EVERY_WEEK,
+        dayOfWeek: DayOfWeek.FRIDAY,
+        startTime: '09:00',
+        createdOccurrenceCount: 2,
+        appointments: [],
+      } as never)
+
+      renderWithProviders(<BookAppointmentDialog {...defaultProps} />)
+
+      // A generalist renders no specialty block, so wait on the patient option instead.
+      await waitFor(() => expect(screen.getByRole('option', { name: 'Patient One' })).toBeInTheDocument())
+      await userEvent.selectOptions(screen.getByTestId('book-dialog-patient'), PATIENT_UUID)
+      await userEvent.click(screen.getByTestId('book-dialog-recurrence-toggle'))
+      await userEvent.click(screen.getByTestId('book-dialog-submit'))
+
+      await waitFor(() => expect(screen.getByTestId('recurrence-preview-list')).toBeInTheDocument())
+      await userEvent.click(screen.getByTestId('book-dialog-recurrence-confirm'))
+
+      await waitFor(() => expect(mockAppointmentsService.bookRecurring).toHaveBeenCalled())
+      const [payload] = mockAppointmentsService.bookRecurring.mock.calls[0]
+      expect(payload.specialtyId).toBeUndefined()
+    })
+
+    it('unticks and re-ticks every selectable date with the toggle-all button', async () => {
+      mockAppointmentsService.previewRecurrence.mockResolvedValue(makePreviewResponse() as never)
+
+      await fillFormAndGoToPreview()
+      await waitFor(() => expect(screen.getByTestId('recurrence-preview-list')).toBeInTheDocument())
+
+      await userEvent.click(screen.getByTestId('recurrence-preview-toggle-all'))
+      expect(screen.getByTestId('book-dialog-recurrence-confirm')).toBeDisabled()
+
+      await userEvent.click(screen.getByTestId('recurrence-preview-toggle-all'))
+      expect(screen.getByTestId('recurrence-preview-selected-count')).toHaveTextContent(
+        '2 datas selecionadas',
+      )
+    })
+
+    it('shows the empty state when no date is generated', async () => {
+      mockAppointmentsService.previewRecurrence.mockResolvedValue(
+        makePreviewResponse({ occurrences: [], availableOccurrenceCount: 0 }) as never,
+      )
+
+      await fillFormAndGoToPreview()
+
+      await waitFor(() => expect(screen.getByTestId('recurrence-preview-empty')).toBeInTheDocument())
+      expect(screen.queryByTestId('book-dialog-recurrence-confirm')).not.toBeInTheDocument()
+    })
+
+    it('shows the preview error and recovers on retry', async () => {
+      mockAppointmentsService.previewRecurrence.mockRejectedValueOnce(new Error('Network error'))
+
+      await fillFormAndGoToPreview()
+
+      await waitFor(() => expect(screen.getByTestId('recurrence-preview-error')).toBeInTheDocument())
+
+      mockAppointmentsService.previewRecurrence.mockResolvedValue(makePreviewResponse() as never)
+      await userEvent.click(screen.getByTestId('recurrence-preview-retry'))
+
+      await waitFor(() => expect(screen.getByTestId('recurrence-preview-list')).toBeInTheDocument())
+    })
+
+    it('submits exactly the ticked dates and closes on success', async () => {
+      mockAppointmentsService.previewRecurrence.mockResolvedValue(makePreviewResponse() as never)
+      mockAppointmentsService.bookRecurring.mockResolvedValue({
+        seriesId: 'series-uuid',
+        recurrenceInterval: RecurrenceInterval.EVERY_WEEK,
+        dayOfWeek: DayOfWeek.FRIDAY,
+        startTime: '09:00',
+        createdOccurrenceCount: 2,
+        appointments: [],
+      } as never)
+
+      await fillFormAndGoToPreview()
+      await waitFor(() => expect(screen.getByTestId('recurrence-preview-list')).toBeInTheDocument())
+
+      await userEvent.click(screen.getByTestId('book-dialog-recurrence-confirm'))
+
+      await waitFor(() => expect(mockAppointmentsService.bookRecurring).toHaveBeenCalled())
+      const [payload] = mockAppointmentsService.bookRecurring.mock.calls[0]
+      expect(payload.dates).toEqual(['2025-07-04', '2025-07-18'])
+      expect(payload.recurrenceInterval).toBe(RecurrenceInterval.EVERY_WEEK)
+      expect(payload.occurrenceCount).toBe(4)
+      expect(payload.patientId).toBe(PATIENT_UUID)
+      await waitFor(() => expect(defaultProps.onClose).toHaveBeenCalled())
+    })
+
+    it('stays on the preview listing the dates that stopped being available', async () => {
+      mockAppointmentsService.previewRecurrence.mockResolvedValue(makePreviewResponse() as never)
+      mockAppointmentsService.bookRecurring.mockRejectedValue({
+        status: 409,
+        conflictingOccurrences: [{ date: '2025-07-18' }],
+      })
+
+      await fillFormAndGoToPreview()
+      await waitFor(() => expect(screen.getByTestId('recurrence-preview-list')).toBeInTheDocument())
+
+      await userEvent.click(screen.getByTestId('book-dialog-recurrence-confirm'))
+
+      await waitFor(() => expect(screen.getByTestId('recurrence-submit-error')).toBeInTheDocument())
+      expect(screen.getByTestId('recurrence-submit-error')).toHaveTextContent('18/07/2025')
+      expect(screen.getByTestId('book-dialog-recurrence-step')).toBeInTheDocument()
+      expect(defaultProps.onClose).not.toHaveBeenCalled()
+    })
+
+    it('falls back to a generic message when the 409 carries no conflicting dates', async () => {
+      mockAppointmentsService.previewRecurrence.mockResolvedValue(makePreviewResponse() as never)
+      mockAppointmentsService.bookRecurring.mockRejectedValue({ status: 409 })
+
+      await fillFormAndGoToPreview()
+      await waitFor(() => expect(screen.getByTestId('recurrence-preview-list')).toBeInTheDocument())
+      await userEvent.click(screen.getByTestId('book-dialog-recurrence-confirm'))
+
+      await waitFor(() =>
+        expect(screen.getByTestId('recurrence-submit-error')).toHaveTextContent(
+          'Algumas datas deixaram de estar disponíveis',
+        ),
+      )
+    })
+
+    it('reports an invalid recurrence configuration rejected by the server', async () => {
+      mockAppointmentsService.previewRecurrence.mockResolvedValue(makePreviewResponse() as never)
+      mockAppointmentsService.bookRecurring.mockRejectedValue({ status: 422 })
+
+      await fillFormAndGoToPreview()
+      await waitFor(() => expect(screen.getByTestId('recurrence-preview-list')).toBeInTheDocument())
+      await userEvent.click(screen.getByTestId('book-dialog-recurrence-confirm'))
+
+      await waitFor(() =>
+        expect(screen.getByTestId('recurrence-submit-error')).toHaveTextContent(
+          'A configuração de recorrência é inválida',
+        ),
+      )
+    })
+
+    it('reports a generic failure for any other error', async () => {
+      mockAppointmentsService.previewRecurrence.mockResolvedValue(makePreviewResponse() as never)
+      mockAppointmentsService.bookRecurring.mockRejectedValue({ status: 500 })
+
+      await fillFormAndGoToPreview()
+      await waitFor(() => expect(screen.getByTestId('recurrence-preview-list')).toBeInTheDocument())
+      await userEvent.click(screen.getByTestId('book-dialog-recurrence-confirm'))
+
+      await waitFor(() =>
+        expect(screen.getByTestId('recurrence-submit-error')).toHaveTextContent(
+          'Ocorreu um erro ao agendar a série',
+        ),
+      )
+    })
+
+    it('previews and books a series bounded by an end date', async () => {
+      mockAppointmentsService.previewRecurrence.mockResolvedValue(makePreviewResponse() as never)
+      mockAppointmentsService.bookRecurring.mockResolvedValue({
+        seriesId: 'series-uuid',
+        recurrenceInterval: RecurrenceInterval.EVERY_WEEK,
+        dayOfWeek: DayOfWeek.FRIDAY,
+        startTime: '09:00',
+        createdOccurrenceCount: 2,
+        appointments: [],
+      } as never)
+
+      renderWithProviders(<BookAppointmentDialog {...defaultProps} />)
+
+      await waitFor(() => {
+        expect(screen.getByTestId('book-dialog-specialty-readonly')).toBeInTheDocument()
+      })
+      await userEvent.selectOptions(screen.getByTestId('book-dialog-patient'), PATIENT_UUID)
+      await userEvent.click(screen.getByTestId('book-dialog-recurrence-toggle'))
+      await userEvent.click(screen.getByTestId('book-dialog-recurrence-end-date'))
+      fireEvent.change(screen.getByTestId('book-dialog-recurrence-until'), {
+        target: { value: '2025-07-18' },
+      })
+      await userEvent.click(screen.getByTestId('book-dialog-submit'))
+
+      await waitFor(() => expect(mockAppointmentsService.previewRecurrence).toHaveBeenCalled())
+      const [previewParams] = mockAppointmentsService.previewRecurrence.mock.calls[0]
+      expect(previewParams.untilDate).toBe('2025-07-18')
+      expect(previewParams.occurrenceCount).toBeUndefined()
+
+      await waitFor(() => expect(screen.getByTestId('recurrence-preview-list')).toBeInTheDocument())
+      await userEvent.click(screen.getByTestId('book-dialog-recurrence-confirm'))
+
+      await waitFor(() => expect(mockAppointmentsService.bookRecurring).toHaveBeenCalled())
+      const [payload] = mockAppointmentsService.bookRecurring.mock.calls[0]
+      expect(payload.untilDate).toBe('2025-07-18')
+      expect(payload.occurrenceCount).toBeUndefined()
+    })
+
+    it('goes back to the form keeping the values that were filled in', async () => {
+      mockAppointmentsService.previewRecurrence.mockResolvedValue(makePreviewResponse() as never)
+
+      await fillFormAndGoToPreview()
+      await waitFor(() => expect(screen.getByTestId('recurrence-preview-list')).toBeInTheDocument())
+
+      await userEvent.click(screen.getByTestId('book-dialog-recurrence-back'))
+
+      expect(screen.getByTestId('book-dialog-patient')).toHaveValue(PATIENT_UUID)
+      expect(screen.getByTestId('book-dialog-recurrence-fields')).toBeInTheDocument()
+    })
+
+    it('warns when the series was capped by the maximum number of occurrences', async () => {
+      mockAppointmentsService.previewRecurrence.mockResolvedValue(
+        makePreviewResponse({ truncatedByMaximumOccurrences: true }) as never,
+      )
+
+      await fillFormAndGoToPreview()
+
+      await waitFor(() =>
+        expect(screen.getByTestId('recurrence-preview-truncated')).toBeInTheDocument(),
+      )
+    })
+
+    it('warns when the series was capped by the one-year horizon', async () => {
+      mockAppointmentsService.previewRecurrence.mockResolvedValue(
+        makePreviewResponse({ truncatedByHorizon: true }) as never,
+      )
+
+      await fillFormAndGoToPreview()
+
+      await waitFor(() =>
+        expect(screen.getByTestId('recurrence-preview-truncated-horizon')).toBeInTheDocument(),
+      )
+    })
+
+    it('books a single appointment when the toggle is left off', async () => {
+      mockAppointmentsService.book.mockResolvedValue(makeAppointmentResponse() as never)
+
+      renderWithProviders(<BookAppointmentDialog {...defaultProps} />)
+
+      await waitFor(() => {
+        expect(screen.getByTestId('book-dialog-specialty-readonly')).toBeInTheDocument()
+      })
+      await userEvent.selectOptions(screen.getByTestId('book-dialog-patient'), PATIENT_UUID)
+      await userEvent.click(screen.getByTestId('book-dialog-submit'))
+
+      await waitFor(() => expect(mockAppointmentsService.book).toHaveBeenCalled())
+      expect(mockAppointmentsService.previewRecurrence).not.toHaveBeenCalled()
+      expect(mockAppointmentsService.bookRecurring).not.toHaveBeenCalled()
     })
   })
 })

@@ -51,6 +51,10 @@ const mockAppointmentsRepository: jest.Mocked<IAppointmentsRepository> = {
   findById: jest.fn(),
   findActiveByProfessionalAndDate: jest.fn(),
   findActiveBySlot: jest.fn(),
+  findActiveByDatesAndTime: jest.fn(),
+  findBySeriesId: jest.fn(),
+  findBySeriesIdFromDate: jest.fn(),
+  countBySeriesIdAfterDate: jest.fn(),
   hasFutureByScheduleId: jest.fn(),
   hasFutureByProfessionalId: jest.fn(),
   create: jest.fn(),
@@ -216,5 +220,41 @@ describe('FindAppointmentByIdUseCase', () => {
 
     expect(result.specialtyId).toBe('spec-x')
     expect(result.specialtyName).toBe('Cardiologia')
+  })
+  it('returns null series fields for a standalone appointment', async () => {
+    const appointment = makeAppointment()
+    mockAppointmentsRepository.findById.mockResolvedValue(appointment as any)
+
+    const result = await useCase.execute(appointment.id, adminUser)
+
+    expect(result.seriesId).toBeNull()
+    expect(result.seriesSequence).toBeNull()
+    expect(result.seriesTotalOccurrences).toBeNull()
+    expect(result.seriesFutureCount).toBeNull()
+    expect(mockAppointmentsRepository.countBySeriesIdAfterDate).not.toHaveBeenCalled()
+  })
+
+  it('exposes the series position and the still-cancellable future occurrences', async () => {
+    const seriesId = faker.string.uuid()
+    const appointment = makeAppointment({
+      seriesId,
+      seriesSequence: 3,
+      series: { createdOccurrenceCount: 10 },
+    })
+    mockAppointmentsRepository.findById.mockResolvedValue(appointment as any)
+    mockAppointmentsRepository.countBySeriesIdAfterDate.mockResolvedValue(5)
+
+    const result = await useCase.execute(appointment.id, adminUser)
+
+    expect(result.seriesId).toBe(seriesId)
+    expect(result.seriesSequence).toBe(3)
+    expect(result.seriesTotalOccurrences).toBe(10)
+    expect(result.seriesFutureCount).toBe(5)
+    expect(mockAppointmentsRepository.countBySeriesIdAfterDate).toHaveBeenCalledWith(
+      seriesId,
+      CLINIC_ID,
+      appointment.date,
+      [AppointmentStatus.SCHEDULED, AppointmentStatus.CONFIRMED],
+    )
   })
 })

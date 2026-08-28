@@ -6,17 +6,21 @@ import {
   UnprocessableEntityException,
 } from '@nestjs/common'
 import { DataSource, QueryFailedError } from 'typeorm'
-import { AppointmentResponseDto, CreateAppointmentDto, UserRole } from '@app/shared'
+import {
+  AppointmentResponseDto,
+  CreateAppointmentDto,
+  RecurringOccurrenceAvailability,
+  UserRole,
+} from '@app/shared'
 import { BaseUseCase } from '../../../common/base.use-case'
 import { CacheService } from '../../../cache/cache.service'
 import { DistributedLockService } from '../../../cache/distributed-lock.service'
 import { ICurrentUser } from '../../auth/types/current-user.type'
 import { IProfessionalsRepository } from '../../professionals/repositories/professionals.repository.interface'
 import { IPatientsRepository } from '../../patients/repositories/patients.repository.interface'
-import { GetActiveSchedulesForProfessionalUseCase } from '../../schedules/use-cases/get-active-schedules-for-professional.use-case'
 import { Appointment } from '../entities/appointment.entity'
 import { IAppointmentsRepository } from '../repositories/appointments.repository.interface'
-import { generateSlots } from '../utils/slot.util'
+import { ResolveProfessionalSlotUseCase } from './resolve-professional-slot.use-case'
 
 @Injectable()
 export class CreateAppointmentUseCase extends BaseUseCase {
@@ -27,7 +31,7 @@ export class CreateAppointmentUseCase extends BaseUseCase {
     private readonly appointmentsRepository: IAppointmentsRepository,
     private readonly professionalsRepository: IProfessionalsRepository,
     private readonly patientsRepository: IPatientsRepository,
-    private readonly getActiveSchedulesUseCase: GetActiveSchedulesForProfessionalUseCase,
+    private readonly resolveProfessionalSlotUseCase: ResolveProfessionalSlotUseCase,
     private readonly cacheService: CacheService,
     private readonly distributedLockService: DistributedLockService,
   ) {
@@ -62,23 +66,28 @@ export class CreateAppointmentUseCase extends BaseUseCase {
       throw new UnprocessableEntityException('Cannot book an appointment in the past')
     }
 
-    const schedules = await this.getActiveSchedulesUseCase.execute(professional.id, clinicId, dateStr)
+    // Delegates to the shared resolver so a schedule exception blocks a single
+    // booking exactly as it blocks a recurring one — otherwise a user could work
+    // around a block the recurrence preview had flagged.
+    const resolution = await this.resolveProfessionalSlotUseCase.executeDetailed(
+      professional.id,
+      clinicId,
+      dateStr,
+      timeStr,
+    )
 
-    let matchedSlot: { startTime: string; endTime: string; scheduleId: string; slotDurationInMinutes: number } | undefined
-    for (const schedule of schedules) {
-      const slots = generateSlots(schedule)
-      const found = slots.find((s) => s.startTime === timeStr)
-      if (found) {
-        matchedSlot = found
-        break
-      }
+    if (resolution.availability === RecurringOccurrenceAvailability.BLOCKED_BY_EXCEPTION) {
+      throw new UnprocessableEntityException('Requested time is blocked on the professional schedule')
     }
-
-    if (!matchedSlot) {
+    if (resolution.availability === RecurringOccurrenceAvailability.ALREADY_BOOKED) {
+      throw new ConflictException('This slot is already booked')
+    }
+    if (resolution.availability !== RecurringOccurrenceAvailability.AVAILABLE) {
       throw new UnprocessableEntityException('Requested time is not an available slot')
     }
 
-    const { scheduleId, endTime } = matchedSlot
+    const scheduleId = resolution.scheduleId!
+    const endTime = resolution.endTime!
     const professionalId = professional.id
     const lockKey = `appointment:${clinicId}:${professionalId}:${dateStr}:${timeStr}`
 
@@ -133,7 +142,13 @@ export class CreateAppointmentUseCase extends BaseUseCase {
       this.fetchPatientName(dto.patientId),
     ])
 
-    return this.toResponse(appointment, professionalName, patientName, chosenSpecialty?.name ?? null)
+    return this.toResponse(
+      appointment,
+      professionalName,
+      patientName,
+      chosenSpecialty?.name ?? null,
+      null,
+    )
   }
 
   private resolveSpecialty(
@@ -189,6 +204,7 @@ export class CreateAppointmentUseCase extends BaseUseCase {
     professionalName: string,
     patientName: string,
     specialtyName: string | null,
+    seriesTotalOccurrences: number | null,
   ): AppointmentResponseDto {
     return {
       id: appointment.id,
@@ -206,6 +222,9 @@ export class CreateAppointmentUseCase extends BaseUseCase {
       insuranceType: appointment.insuranceType,
       reason: appointment.reason,
       cancellationReason: appointment.cancellationReason,
+      seriesId: appointment.seriesId ?? null,
+      seriesSequence: appointment.seriesSequence ?? null,
+      seriesTotalOccurrences,
       createdAt: appointment.createdAt,
       updatedAt: appointment.updatedAt,
     }

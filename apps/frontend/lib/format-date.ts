@@ -25,3 +25,25 @@ export function toLocalDateString(date: Date): string {
   const day = String(date.getDate()).padStart(2, '0')
   return `${year}-${month}-${day}`
 }
+
+const WEEKDAY_NAMES_PT_BR = [
+  'domingo',
+  'segunda-feira',
+  'terça-feira',
+  'quarta-feira',
+  'quinta-feira',
+  'sexta-feira',
+  'sábado',
+]
+
+/**
+ * Weekday name for a `YYYY-MM-DD` string, e.g. "terça-feira".
+ * Parses at local midnight (`T00:00:00`) — `new Date('YYYY-MM-DD')` is parsed as
+ * UTC and lands on the previous evening in a UTC-behind timezone, yielding the
+ * wrong weekday.
+ */
+export function getWeekdayNamePtBR(date: string): string {
+  const parsed = new Date(`${date.split('T')[0]}T00:00:00`)
+  if (Number.isNaN(parsed.getTime())) return ''
+  return WEEKDAY_NAMES_PT_BR[parsed.getDay()]
+}

@@ -1,4 +1,8 @@
-import type { AppointmentStatus } from '@app/shared'
+import type {
+  AppointmentCancellationScope,
+  AppointmentStatus,
+  RecurrenceInterval,
+} from '@app/shared'
 
 export interface IBookAppointmentInput {
   professionalId?: string
@@ -11,6 +15,29 @@ export interface IBookAppointmentInput {
 
 export interface ICancelAppointmentInput {
   cancellationReason?: string
+  scope?: AppointmentCancellationScope
+}
+
+export interface IRecurrencePreviewInput {
+  professionalId?: string
+  patientId: string
+  date: string
+  startTime: string
+  recurrenceInterval: RecurrenceInterval
+  occurrenceCount?: number
+  untilDate?: string
+}
+
+export interface IBookRecurringAppointmentsInput {
+  professionalId?: string
+  specialtyId?: string
+  patientId: string
+  startTime: string
+  recurrenceInterval: RecurrenceInterval
+  dates: string[]
+  occurrenceCount?: number
+  untilDate?: string
+  reason?: string
 }
 
 export interface IAppointmentListParams {

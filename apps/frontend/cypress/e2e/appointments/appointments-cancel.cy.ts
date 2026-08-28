@@ -90,6 +90,9 @@ describe('Appointments — cancel', () => {
       statusCode: 200,
       body: [],
     })
+    // A página de detalhe monta a aba de fotos; sem stub a chamada dá 401 e o
+    // interceptor do api-client joga o app num loop de redirect login/dashboard.
+    cy.intercept('GET', `${Cypress.env('API_URL')}/consultation-photos*`, { statusCode: 200, body: [] })
   })
 
   it('PROFESSIONAL sees cancel button on appointment detail page', () => {

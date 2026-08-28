@@ -17,6 +17,9 @@ export class AppointmentResponseDto {
   insuranceType: AppointmentInsuranceType | null
   reason: string | null
   cancellationReason: string | null
+  seriesId: string | null
+  seriesSequence: number | null
+  seriesTotalOccurrences: number | null
   createdAt: Date
   updatedAt: Date
 }

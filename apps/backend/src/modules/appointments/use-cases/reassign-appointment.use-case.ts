@@ -48,6 +48,15 @@ export class ReassignAppointmentUseCase extends BaseUseCase {
       )
     }
 
+    // A series is assumed to have a single professional — the ownership check when
+    // cancelling "this and all future" relies on it. Reassigning a whole series is
+    // a separate feature.
+    if (appointment.seriesId) {
+      throw new UnprocessableEntityException(
+        'Não é possível trocar o profissional de uma consulta que faz parte de uma série recorrente.',
+      )
+    }
+
     if (dto.professionalId === appointment.professionalId) {
       throw new UnprocessableEntityException('Este profissional já é o responsável por esta consulta.')
     }
@@ -129,7 +138,7 @@ export class ReassignAppointmentUseCase extends BaseUseCase {
       this.fetchSpecialtyName(updated.specialtyId),
     ])
 
-    return this.toResponse(updated, professionalName, patientName, specialtyName)
+    return this.toResponse(updated, professionalName, patientName, specialtyName, null)
   }
 
   private async fetchSpecialtyName(specialtyId: string | null): Promise<string | null> {
@@ -173,6 +182,7 @@ export class ReassignAppointmentUseCase extends BaseUseCase {
     professionalName: string,
     patientName: string,
     specialtyName: string | null,
+    seriesTotalOccurrences: number | null,
   ): AppointmentResponseDto {
     return {
       id: appointment.id,
@@ -190,6 +200,9 @@ export class ReassignAppointmentUseCase extends BaseUseCase {
       insuranceType: appointment.insuranceType,
       reason: appointment.reason,
       cancellationReason: appointment.cancellationReason,
+      seriesId: appointment.seriesId ?? null,
+      seriesSequence: appointment.seriesSequence ?? null,
+      seriesTotalOccurrences,
       createdAt: appointment.createdAt,
       updatedAt: appointment.updatedAt,
     }

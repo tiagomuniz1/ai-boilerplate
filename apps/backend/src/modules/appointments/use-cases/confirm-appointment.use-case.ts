@@ -68,7 +68,13 @@ export class ConfirmAppointmentUseCase extends BaseUseCase {
       this.fetchSpecialtyName(updated.specialtyId),
     ])
 
-    return this.toResponse(updated, professionalName, patientName, specialtyName)
+    return this.toResponse(
+      updated,
+      professionalName,
+      patientName,
+      specialtyName,
+      appointment.series?.createdOccurrenceCount ?? null,
+    )
   }
 
   private async fetchSpecialtyName(specialtyId: string | null): Promise<string | null> {
@@ -112,6 +118,7 @@ export class ConfirmAppointmentUseCase extends BaseUseCase {
     professionalName: string,
     patientName: string,
     specialtyName: string | null,
+    seriesTotalOccurrences: number | null,
   ): AppointmentResponseDto {
     return {
       id: appointment.id,
@@ -129,6 +136,9 @@ export class ConfirmAppointmentUseCase extends BaseUseCase {
       insuranceType: appointment.insuranceType,
       reason: appointment.reason,
       cancellationReason: appointment.cancellationReason,
+      seriesId: appointment.seriesId ?? null,
+      seriesSequence: appointment.seriesSequence ?? null,
+      seriesTotalOccurrences,
       createdAt: appointment.createdAt,
       updatedAt: appointment.updatedAt,
     }

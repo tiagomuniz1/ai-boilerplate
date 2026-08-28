@@ -1,6 +1,11 @@
 import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/common'
 import { DataSource } from 'typeorm'
-import { AppointmentDetailResponseDto, AppointmentPatientDto, UserRole } from '@app/shared'
+import {
+  AppointmentDetailResponseDto,
+  AppointmentPatientDto,
+  AppointmentStatus,
+  UserRole,
+} from '@app/shared'
 import { BaseUseCase } from '../../../common/base.use-case'
 import { ICurrentUser } from '../../auth/types/current-user.type'
 import { IProfessionalsRepository } from '../../professionals/repositories/professionals.repository.interface'
@@ -30,13 +35,38 @@ export class FindAppointmentByIdUseCase extends BaseUseCase {
       }
     }
 
-    const [professionalName, patientDetails, specialtyName] = await Promise.all([
+    const [professionalName, patientDetails, specialtyName, seriesFutureCount] = await Promise.all([
       this.fetchProfessionalName(appointment.professionalId),
       this.fetchPatientDetails(appointment.patientId),
       this.fetchSpecialtyName(appointment.specialtyId),
+      this.countStillCancellableFutureOccurrences(appointment.seriesId, appointment.date, clinicId),
     ])
 
-    return this.toResponse(appointment, professionalName, patientDetails, specialtyName)
+    return this.toResponse(
+      appointment,
+      professionalName,
+      patientDetails,
+      specialtyName,
+      appointment.series?.createdOccurrenceCount ?? null,
+      seriesFutureCount,
+    )
+  }
+
+  /**
+   * Drives the "this and all future" cancellation copy. Counted rather than
+   * derived from seriesTotalOccurrences - seriesSequence, which would wrongly
+   * include occurrences already cancelled or completed.
+   */
+  private async countStillCancellableFutureOccurrences(
+    seriesId: string | null,
+    date: string,
+    clinicId: string,
+  ): Promise<number | null> {
+    if (!seriesId) return null
+    return this.appointmentsRepository.countBySeriesIdAfterDate(seriesId, clinicId, date, [
+      AppointmentStatus.SCHEDULED,
+      AppointmentStatus.CONFIRMED,
+    ])
   }
 
   private async fetchSpecialtyName(specialtyId: string | null): Promise<string | null> {
@@ -103,6 +133,8 @@ export class FindAppointmentByIdUseCase extends BaseUseCase {
     professionalName: string,
     patientDetails: AppointmentPatientDto | null,
     specialtyName: string | null,
+    seriesTotalOccurrences: number | null,
+    seriesFutureCount: number | null,
   ): AppointmentDetailResponseDto {
     const patient: AppointmentPatientDto = patientDetails ?? {
       fullName: '',
@@ -129,9 +161,13 @@ export class FindAppointmentByIdUseCase extends BaseUseCase {
       insuranceType: appointment.insuranceType,
       reason: appointment.reason,
       cancellationReason: appointment.cancellationReason,
+      seriesId: appointment.seriesId ?? null,
+      seriesSequence: appointment.seriesSequence ?? null,
+      seriesTotalOccurrences,
       createdAt: appointment.createdAt,
       updatedAt: appointment.updatedAt,
       patient,
+      seriesFutureCount,
     }
   }
 }

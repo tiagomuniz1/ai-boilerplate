@@ -64,6 +64,16 @@ export class HttpExceptionFilter implements ExceptionFilter {
       typeof exceptionResponse === 'object' &&
       (exceptionResponse as Record<string, unknown>).requiresCaptcha === true
 
+    // Extension member: the dates of a recurring series that could not be booked.
+    // Lets the client re-run the preview and show exactly what changed, instead of
+    // a bare "conflict". Same hardcoded-branch approach as `requiresCaptcha`.
+    const conflictingOccurrences =
+      exceptionResponse &&
+      typeof exceptionResponse === 'object' &&
+      Array.isArray((exceptionResponse as Record<string, unknown>).conflictingOccurrences)
+        ? ((exceptionResponse as Record<string, unknown>).conflictingOccurrences as unknown[])
+        : undefined
+
     response.status(status).json({
       type: `https://httpstatuses.com/${status}`,
       title: HttpStatus[status] ?? 'Error',
@@ -73,6 +83,7 @@ export class HttpExceptionFilter implements ExceptionFilter {
       requestId: request.requestId,
       ...(errors ? { errors } : {}),
       ...(requiresCaptcha ? { requiresCaptcha: true } : {}),
+      ...(conflictingOccurrences ? { conflictingOccurrences } : {}),
     })
   }
 }

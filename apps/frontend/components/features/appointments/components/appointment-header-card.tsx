@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/atoms/button/button'
 import { APPOINTMENT_STATUS_BADGE_CLASS } from '@/lib/appointment-status'
 import { calculateAge } from '@/lib/calculate-age'
 import { formatDateToBR } from '@/lib/format-date'
+import { RecurrenceBadge } from './recurrence-badge'
 import {
   APPOINTMENT_STATUS_LABELS,
   type IAppointmentDetailModel,
@@ -73,6 +74,7 @@ interface AppointmentHeaderCardProps {
   onCancel: () => void
   onComplete: () => void
   onReassign: () => void
+  onViewSeries: () => void
   isPendingComplete: boolean
   isPendingCancel: boolean
 }
@@ -88,6 +90,7 @@ export function AppointmentHeaderCard({
   onCancel,
   onComplete,
   onReassign,
+  onViewSeries,
   isPendingComplete,
   isPendingCancel,
 }: AppointmentHeaderCardProps) {
@@ -253,6 +256,31 @@ export function AppointmentHeaderCard({
             {appointment.startTime} – {appointment.endTime}
           </dd>
         </div>
+
+        {appointment.seriesId &&
+          appointment.seriesSequence !== null &&
+          appointment.seriesTotalOccurrences !== null && (
+            <div className="flex flex-col gap-0.5">
+              <dt className="text-xs font-medium uppercase tracking-wider text-text-mute">
+                Recorrência
+              </dt>
+              <dd className="flex flex-wrap items-center gap-2">
+                <RecurrenceBadge
+                  sequence={appointment.seriesSequence}
+                  total={appointment.seriesTotalOccurrences}
+                  data-testid="appointment-detail-series"
+                />
+                <button
+                  type="button"
+                  onClick={onViewSeries}
+                  data-testid="appointment-detail-view-series-button"
+                  className="text-sm text-accent underline underline-offset-2 hover:opacity-80"
+                >
+                  Ver série
+                </button>
+              </dd>
+            </div>
+          )}
 
         {appointment.reason && (
           <div className="flex flex-col gap-0.5">

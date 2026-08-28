@@ -5,6 +5,7 @@ import { UserRole } from '@app/shared'
 import { Alert } from '@/components/ui/molecules/alert/alert'
 import { useScheduleExceptions } from '@/components/features/schedule-exceptions/hooks/use-schedule-exceptions.hook'
 import { BlockBanner } from '@/components/features/schedule-exceptions/components/BlockBanner'
+import { toLocalDateString } from '@/lib/format-date'
 import { useDayAgenda } from '../hooks/use-day-agenda.hook'
 import { AgendaSkeleton } from './agenda-skeleton'
 import { AppointmentSlotCell } from './appointment-slot-cell'
@@ -20,7 +21,9 @@ function getWeekDates(startDate: string): string[] {
   for (let i = 0; i < 7; i++) {
     const d = new Date(base)
     d.setDate(d.getDate() + i)
-    dates.push(d.toISOString().split('T')[0])
+    // toLocalDateString, not toISOString: the latter converts to UTC and shifts
+    // the day for viewers in a positive-offset timezone.
+    dates.push(toLocalDateString(d))
   }
   return dates
 }

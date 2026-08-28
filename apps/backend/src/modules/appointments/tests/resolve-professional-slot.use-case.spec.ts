@@ -1,5 +1,6 @@
 import { DataSource } from 'typeorm'
 import { faker } from '@faker-js/faker'
+import { RecurringOccurrenceAvailability } from '@app/shared'
 import { GetActiveSchedulesForProfessionalUseCase } from '../../schedules/use-cases/get-active-schedules-for-professional.use-case'
 import { GetActiveExceptionsForProfessionalUseCase } from '../../schedule-exceptions/use-cases/get-active-exceptions-for-professional.use-case'
 import { IAppointmentsRepository } from '../repositories/appointments.repository.interface'
@@ -22,6 +23,10 @@ const mockAppointmentsRepository: jest.Mocked<IAppointmentsRepository> = {
   findById: jest.fn(),
   findActiveByProfessionalAndDate: jest.fn(),
   findActiveBySlot: jest.fn(),
+  findActiveByDatesAndTime: jest.fn(),
+  findBySeriesId: jest.fn(),
+  findBySeriesIdFromDate: jest.fn(),
+  countBySeriesIdAfterDate: jest.fn(),
   hasFutureByScheduleId: jest.fn(),
   hasFutureByProfessionalId: jest.fn(),
   create: jest.fn(),
@@ -88,5 +93,74 @@ describe('ResolveProfessionalSlotUseCase', () => {
     const result = await useCase.execute(professionalId, CLINIC_ID, DATE, '14:00')
 
     expect(result).toEqual({ scheduleId: afternoon.id, endTime: '14:30' })
+  })
+
+  describe('executeDetailed', () => {
+    it('reports AVAILABLE with the matched schedule and end time', async () => {
+      const schedule = makeSchedule()
+      mockGetActiveSchedules.execute.mockResolvedValue([schedule as any])
+
+      const result = await useCase.executeDetailed(professionalId, CLINIC_ID, DATE, '08:30')
+
+      expect(result).toEqual({
+        availability: RecurringOccurrenceAvailability.AVAILABLE,
+        scheduleId: schedule.id,
+        endTime: '09:00',
+      })
+    })
+
+    it('reports OUTSIDE_SCHEDULE when there is no schedule for the date', async () => {
+      mockGetActiveSchedules.execute.mockResolvedValue([])
+
+      const result = await useCase.executeDetailed(professionalId, CLINIC_ID, DATE, '08:00')
+
+      expect(result).toEqual({
+        availability: RecurringOccurrenceAvailability.OUTSIDE_SCHEDULE,
+        scheduleId: null,
+        endTime: null,
+      })
+      expect(mockGetActiveExceptions.execute).not.toHaveBeenCalled()
+    })
+
+    it('reports OUTSIDE_SCHEDULE when the startTime is off the slot grid', async () => {
+      const result = await useCase.executeDetailed(professionalId, CLINIC_ID, DATE, '08:15')
+
+      expect(result.availability).toBe(RecurringOccurrenceAvailability.OUTSIDE_SCHEDULE)
+    })
+
+    it('reports BLOCKED_BY_EXCEPTION for a full-day block', async () => {
+      mockGetActiveExceptions.execute.mockResolvedValue([{ startTime: null, endTime: null } as any])
+
+      const result = await useCase.executeDetailed(professionalId, CLINIC_ID, DATE, '08:00')
+
+      expect(result).toEqual({
+        availability: RecurringOccurrenceAvailability.BLOCKED_BY_EXCEPTION,
+        scheduleId: null,
+        endTime: null,
+      })
+      expect(mockAppointmentsRepository.findActiveBySlot).not.toHaveBeenCalled()
+    })
+
+    it('reports BLOCKED_BY_EXCEPTION for a partial block overlapping the slot', async () => {
+      mockGetActiveExceptions.execute.mockResolvedValue([
+        { startTime: '08:15', endTime: '08:45' } as any,
+      ])
+
+      const result = await useCase.executeDetailed(professionalId, CLINIC_ID, DATE, '08:00')
+
+      expect(result.availability).toBe(RecurringOccurrenceAvailability.BLOCKED_BY_EXCEPTION)
+    })
+
+    it('reports ALREADY_BOOKED when the slot is taken', async () => {
+      mockAppointmentsRepository.findActiveBySlot.mockResolvedValue({ id: faker.string.uuid() } as any)
+
+      const result = await useCase.executeDetailed(professionalId, CLINIC_ID, DATE, '08:00')
+
+      expect(result).toEqual({
+        availability: RecurringOccurrenceAvailability.ALREADY_BOOKED,
+        scheduleId: null,
+        endTime: null,
+      })
+    })
   })
 })
