@@ -2,6 +2,17 @@
 
 ## [Unreleased]
 
+### Fixed
+
+#### Agenda mostrava o mesmo horário duas vezes
+- A disponibilidade só retém um slot enquanto a consulta está `scheduled`, então consulta **cancelada, confirmada, concluída ou faltou** voltava como slot livre **e** como consulta — e a grade concatenava as duas listas, renderizando o mesmo horário duas vezes ("15:00 Livre" logo acima de "15:00 Cancelada"). Parecia dupla marcação
+- `useDayAgenda` agora entrega uma linha por horário: a consulta vence, exceto quando é só uma cancelada e o slot de fato voltou a ficar livre — aí a linha útil é a agendável, e o cancelamento segue visível na lista de consultas e no histórico do paciente. Cancelada sem slot livre correspondente continua sendo exibida, para nada sumir sem rastro
+
+#### Prontuário salvo não aparecia até recarregar a página
+- Ao **criar**, o registro era gravado mas a aba continuava em "Prontuário ainda não preenchido" e o cabeçalho seguia oferecendo "Preencher prontuário" — levando o profissional a achar que não salvou e preencher de novo
+- Criar e editar agora escrevem no cache o prontuário que a própria API devolveu (`setQueryData`), em vez de invalidar e esperar uma nova leitura. A resposta do POST/PUT já é a representação autoritativa; descartá-la para perguntar de novo é o que abria a janela
+- A seção também deixava de distinguir **leitura que falhou** de **prontuário inexistente**: um erro na busca renderizava o estado vazio, convidando a duplicar um registro que podia existir. Agora informa a falha
+
 ### Added
 
 #### Consultas recorrentes

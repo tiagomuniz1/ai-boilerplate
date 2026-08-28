@@ -132,4 +132,62 @@ describe('useDayAgenda', () => {
     expect(result.current.slots[0].status).toBe('booked')
     expect(result.current.slots[0].appointment?.status).toBe(AppointmentStatus.COMPLETED)
   })
+  // Availability only withholds a slot while the appointment is SCHEDULED, so every
+  // other status came back as a free slot AND as an appointment, and the agenda
+  // rendered the same time twice — which reads as a double booking.
+  describe('one row per start time', () => {
+    const setup = (slots: IAvailableSlotModel[], appointments: IAppointmentModel[]) => {
+      ;(useAvailability as jest.Mock).mockReturnValue(makeQueryResult(slots))
+      ;(useAppointments as jest.Mock).mockReturnValue(makeQueryResult({ data: appointments }))
+      return renderHook(() => useDayAgenda('doc-uuid', '2025-06-20')).result.current.slots
+    }
+
+    it('shows the free slot, not the cancelled appointment, when both land on 15:00', () => {
+      const cancelled = { ...makeAppointment('15:00'), status: AppointmentStatus.CANCELLED }
+      const slots = setup([makeSlot('15:00')], [cancelled])
+
+      expect(slots).toHaveLength(1)
+      expect(slots[0].status).toBe('free')
+      expect(slots[0].appointment).toBeNull()
+    })
+
+    it('keeps a cancelled appointment when no free slot covers its time', () => {
+      const cancelled = { ...makeAppointment('15:00'), status: AppointmentStatus.CANCELLED }
+      const slots = setup([], [cancelled])
+
+      expect(slots).toHaveLength(1)
+      expect(slots[0].appointment?.status).toBe(AppointmentStatus.CANCELLED)
+    })
+
+    it.each([
+      AppointmentStatus.CONFIRMED,
+      AppointmentStatus.COMPLETED,
+      AppointmentStatus.NO_SHOW,
+    ])('shows the %s appointment instead of the free slot at the same time', (status) => {
+      const appointment = { ...makeAppointment('15:00'), status }
+      const slots = setup([makeSlot('15:00')], [appointment])
+
+      expect(slots).toHaveLength(1)
+      expect(slots[0].status).toBe('booked')
+      expect(slots[0].appointment?.status).toBe(status)
+    })
+
+    it('prefers the active appointment over a cancelled one in the same slot', () => {
+      const cancelled = { ...makeAppointment('15:00'), id: 'old', status: AppointmentStatus.CANCELLED }
+      const scheduled = { ...makeAppointment('15:00'), id: 'new', status: AppointmentStatus.SCHEDULED }
+      const slots = setup([], [cancelled, scheduled])
+
+      expect(slots).toHaveLength(1)
+      expect(slots[0].appointment?.id).toBe('new')
+    })
+
+    it('leaves distinct times untouched and ordered', () => {
+      const slots = setup(
+        [makeSlot('16:00'), makeSlot('08:00')],
+        [makeAppointment('09:00')],
+      )
+
+      expect(slots.map((s) => s.startTime)).toEqual(['08:00', '09:00', '16:00'])
+    })
+  })
 })

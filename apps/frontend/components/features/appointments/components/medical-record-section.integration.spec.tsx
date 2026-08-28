@@ -238,6 +238,39 @@ describe('MedicalRecordSection (integration)', () => {
     })
   })
 
+  it('shows the saved record right after creating it, without waiting on a refetch', async () => {
+    mockMedicalRecordsService.create.mockResolvedValue(makeRecordDto() as any)
+    mockTemplatesService.getAll.mockResolvedValue({ data: [makeTemplateDto()], total: 1, page: 1, limit: 1 })
+    // getByAppointment keeps answering null for the whole test on purpose: the
+    // screen must show the record the POST returned, not depend on a follow-up
+    // read. In production that read never brought the record back, and the
+    // section sat on "Prontuário ainda não preenchido" over a saved record.
+    mockMedicalRecordsService.getByAppointment.mockResolvedValue(null)
+    renderWithProviders(<MedicalRecordSection {...defaultProps} />)
+
+    await waitFor(() => expect(screen.getByTestId('fill-medical-record-button')).toBeInTheDocument())
+    await userEvent.click(screen.getByTestId('fill-medical-record-button'))
+    await waitFor(() => expect(screen.getByTestId('medical-record-form')).toBeInTheDocument())
+    await userEvent.click(screen.getByTestId('medical-record-form-submit'))
+
+    await waitFor(() => {
+      expect(screen.getByTestId('medical-record-view')).toBeInTheDocument()
+    })
+    expect(screen.queryByTestId('fill-medical-record-button')).not.toBeInTheDocument()
+  })
+
+  it('reports a failed read instead of claiming the prontuário is empty', async () => {
+    mockMedicalRecordsService.getByAppointment.mockRejectedValue({ status: 500 })
+    renderWithProviders(<MedicalRecordSection {...defaultProps} />)
+
+    await waitFor(() => {
+      expect(screen.getByTestId('medical-record-error')).toBeInTheDocument()
+    })
+    // Offering "Preencher prontuário" here invites a duplicate over a record that
+    // may well exist.
+    expect(screen.queryByTestId('fill-medical-record-button')).not.toBeInTheDocument()
+  })
+
   it('shows 409 error when create fails with 409', async () => {
     mockMedicalRecordsService.create.mockRejectedValue({ status: 409 })
     mockTemplatesService.getAll.mockResolvedValue({ data: [makeTemplateDto()], total: 1, page: 1, limit: 1 })
