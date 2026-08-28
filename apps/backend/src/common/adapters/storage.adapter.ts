@@ -15,6 +15,15 @@ export class StorageAdapter implements IStorageAdapter {
     this.region = config.AWS_REGION
   }
 
+  // S3 failures are logged in full and re-thrown as a generic 500: the AWS SDK
+  // message names the account, the IAM role, the instance id and the bucket ARN,
+  // and the exception filter would put all of it in the response body.
+  // An Error serializes to `{}` inside a log object, so read the message out by
+  // hand — otherwise the server log keeps nothing to debug with either.
+  private describeError(error: unknown): string {
+    return error instanceof Error ? error.message : String(error)
+  }
+
   // The bucket is private: objects are uploaded with no ACL (bucket-owner-only) and are only
   // reachable through `download()` below. Returns the object key.
   async upload(buffer: Buffer, path: string, mimeType: string): Promise<string> {
@@ -36,8 +45,8 @@ export class StorageAdapter implements IStorageAdapter {
         }),
       )
     } catch (error) {
-      this.logger.error('S3 upload failed', { path, mimeType, error })
-      throw error
+      this.logger.error('S3 upload failed', { path, mimeType, reason: this.describeError(error) })
+      throw new InternalServerErrorException('Não foi possível salvar o arquivo. Tente novamente.')
     }
 
     return path
@@ -57,8 +66,8 @@ export class StorageAdapter implements IStorageAdapter {
       const bytes = await response.Body!.transformToByteArray()
       return Buffer.from(bytes)
     } catch (error) {
-      this.logger.error('S3 download failed', { path, error })
-      throw error
+      this.logger.error('S3 download failed', { path, reason: this.describeError(error) })
+      throw new InternalServerErrorException('Não foi possível ler o arquivo. Tente novamente.')
     }
   }
 
@@ -74,8 +83,8 @@ export class StorageAdapter implements IStorageAdapter {
     try {
       await client.send(new DeleteObjectCommand({ Bucket: this.bucket, Key: path }))
     } catch (error) {
-      this.logger.error('S3 remove failed', { path, error })
-      throw error
+      this.logger.error('S3 remove failed', { path, reason: this.describeError(error) })
+      throw new InternalServerErrorException('Não foi possível remover o arquivo. Tente novamente.')
     }
   }
 }
