@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { MedicalCertificateType, UserRole } from '@app/shared'
 import { Modal } from '@/components/ui/organisms/modal/modal'
+import { formatDateToBR } from '@/lib/format-date'
 import { Button } from '@/components/ui/atoms/button/button'
 import { Alert } from '@/components/ui/molecules/alert/alert'
 import { useAtestados } from '../hooks/use-atestados.hook'
@@ -34,7 +35,7 @@ function atestadoTitle(atestado: IAtestadoModel): string {
 
 function atestadoDate(atestado: IAtestadoModel): string {
   const date = atestado.type === MedicalCertificateType.LEAVE ? atestado.startDate : atestado.attendanceDate
-  return date?.toLocaleDateString('pt-BR') ?? ''
+  return date ? formatDateToBR(date) : ''
 }
 
 function atestadoDetail(atestado: IAtestadoModel): string | null {

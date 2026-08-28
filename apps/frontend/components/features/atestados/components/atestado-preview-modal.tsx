@@ -2,6 +2,7 @@
 
 import { MedicalCertificateType } from '@app/shared'
 import { Modal } from '@/components/ui/organisms/modal/modal'
+import { formatDateToBR } from '@/lib/format-date'
 import type { IAtestadoModel } from '../types/atestado-model.types'
 
 interface AtestadoPreviewModalProps {
@@ -67,12 +68,12 @@ export function AtestadoPreviewModal({ atestado, onClose }: AtestadoPreviewModal
             {isLeave ? (
               <p className="text-sm text-text-dim" data-testid="atestado-preview-body">
                 {atestado.daysOff} {atestado.daysOff === 1 ? 'dia' : 'dias'} a partir de{' '}
-                {atestado.startDate?.toLocaleDateString('pt-BR')}
+                {atestado.startDate && formatDateToBR(atestado.startDate)}
                 {atestado.cidCode ? ` — CID: ${atestado.cidCode}` : ''}
               </p>
             ) : (
               <p className="text-sm text-text-dim" data-testid="atestado-preview-body">
-                {atestado.attendanceDate?.toLocaleDateString('pt-BR')}, das {atestado.checkInTime}{' '}
+                {atestado.attendanceDate && formatDateToBR(atestado.attendanceDate)}, das {atestado.checkInTime}{' '}
                 às {atestado.checkOutTime}
               </p>
             )}

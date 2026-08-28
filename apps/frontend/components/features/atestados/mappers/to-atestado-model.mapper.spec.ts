@@ -44,10 +44,11 @@ describe('toAtestadoModel', () => {
     expect(model.observations).toBe('Repouso absoluto.')
   })
 
-  it('converts startDate string to Date for LEAVE', () => {
+  it('keeps startDate as the calendar string the API sent, never a Date', () => {
     const model = toAtestadoModel(makeLeaveDto() as any)
-    expect(model.startDate).toBeInstanceOf(Date)
-    expect(model.startDate?.toISOString().slice(0, 10)).toBe('2026-01-05')
+    // Parsing it into a Date reads it as UTC midnight, which renders as 04/01
+    // in UTC-3 — a legally wrong date on a sick note.
+    expect(model.startDate).toBe('2026-01-05')
   })
 
   it('sets attendance fields to null for LEAVE', () => {
@@ -57,9 +58,9 @@ describe('toAtestadoModel', () => {
     expect(model.checkOutTime).toBeNull()
   })
 
-  it('converts attendanceDate string to Date for ATTENDANCE', () => {
+  it('keeps attendanceDate as the calendar string the API sent, never a Date', () => {
     const model = toAtestadoModel(makeAttendanceDto() as any)
-    expect(model.attendanceDate).toBeInstanceOf(Date)
+    expect(model.attendanceDate).toBe('2026-01-05')
     expect(model.checkInTime).toBe('08:00')
     expect(model.checkOutTime).toBe('08:30')
   })

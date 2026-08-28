@@ -2,6 +2,13 @@
 
 ## [Unreleased]
 
+### Fixed
+
+#### Data do atestado aparecia um dia antes da informada
+- `toAtestadoModel` fazia `new Date('2026-08-28')` numa data de calendário, que o JS interpreta como meia-noite **UTC**; formatada em UTC-3 voltava para 27/08. Num atestado de afastamento a data tem peso legal, e o PDF (gerado no backend, que já tratava isso) imprimia a data certa enquanto a tela mostrava a errada
+- `startDate` e `attendanceDate` passam a ser mantidos como a string `YYYY-MM-DD` que a API envia e formatados com o `formatDateToBR` que já existia — data de calendário não é instante
+- O teste da listagem derivava o valor esperado com a mesma expressão bugada da implementação, então concordava com a saída errada e nunca poderia falhar; agora afirma o literal
+
 ### Added
 
 #### Consultas recorrentes
