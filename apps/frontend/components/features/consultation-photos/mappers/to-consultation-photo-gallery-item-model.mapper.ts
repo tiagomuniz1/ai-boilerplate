@@ -12,6 +12,6 @@ export function toConsultationPhotoGalleryItemModel(
     fileSizeBytes: dto.fileSizeBytes,
     createdAt: new Date(dto.createdAt as unknown as string),
     professionalName: dto.professionalName,
-    appointmentDate: new Date(dto.appointmentDate as unknown as string),
+    appointmentDate: new Date((dto.appointmentDate as unknown as string) + 'T00:00:00'),
   }
 }

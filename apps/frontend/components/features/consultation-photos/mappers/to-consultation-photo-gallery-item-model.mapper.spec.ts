@@ -9,7 +9,8 @@ describe('toConsultationPhotoGalleryItemModel', () => {
     fileSizeBytes: 1000,
     createdAt: '2026-01-05T10:00:00.000Z' as unknown as Date,
     professionalName: 'Ana Nutri',
-    appointmentDate: '2026-01-04T00:00:00.000Z' as unknown as Date,
+    // `appointments.date` is a Postgres `date` column, so it arrives date-only.
+    appointmentDate: '2026-01-04' as unknown as Date,
   }
 
   it('maps all fields correctly, including professionalName', () => {
@@ -26,6 +27,11 @@ describe('toConsultationPhotoGalleryItemModel', () => {
     expect(model.createdAt).toBeInstanceOf(Date)
     expect(model.createdAt.toISOString()).toBe('2026-01-05T10:00:00.000Z')
     expect(model.appointmentDate).toBeInstanceOf(Date)
-    expect(model.appointmentDate.toISOString()).toBe('2026-01-04T00:00:00.000Z')
+    // Asserted on the local calendar parts, not toISOString(): a date-only value
+    // must land on the day it names, and the previous assertion encoded the very
+    // shift this guards against.
+    expect(model.appointmentDate.getFullYear()).toBe(2026)
+    expect(model.appointmentDate.getMonth()).toBe(0)
+    expect(model.appointmentDate.getDate()).toBe(4)
   })
 })
