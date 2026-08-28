@@ -3,6 +3,7 @@ import { createHash, randomBytes } from 'crypto'
 import { DataSource } from 'typeorm'
 import { BaseUseCase } from '../../../common/base.use-case'
 import { getEnvConfig } from '../../../config/env.config'
+import { buildClinicUrl } from '../../../common/utils/clinic-url.utils'
 import { FindClinicByIdUseCase } from '../../clinics/use-cases/find-clinic-by-id.use-case'
 import { FindThemeByIdUseCase } from '../../themes/use-cases/find-theme-by-id.use-case'
 import { IUsersRepository } from '../../users/repositories/users.repository.interface'
@@ -69,9 +70,12 @@ export class SendSetPasswordEmailUseCase extends BaseUseCase {
         }
       }
 
-      const env = getEnvConfig()
-      const path = slug ? `/${slug}/set-password` : '/set-password'
-      const link = `${env.FRONTEND_URL}${path}?token=${token}`
+      // A clinic user's link must point at that clinic's own host, not at
+      // FRONTEND_URL (the backoffice). Platform admins have no clinic and keep
+      // the backoffice URL.
+      const link = slug
+        ? buildClinicUrl(slug, `/set-password?token=${token}`)
+        : `${getEnvConfig().FRONTEND_URL}/set-password?token=${token}`
 
       await this.emailAdapter.sendSetPasswordEmail({
         to: user.email,
