@@ -7,7 +7,9 @@ export function toPatientModel(dto: PatientResponseDto): IPatientModel {
     fullName: dto.user.fullName,
     email: dto.user.email,
     phoneNumber: dto.phoneNumber,
-    birthDate: new Date(dto.birthDate),
+    // `new Date('1987-05-01')` parses as UTC midnight and renders as the previous
+    // day in UTC-3. Same pattern already used in to-appointment-detail-model.
+    birthDate: new Date(dto.birthDate + 'T00:00:00'),
     documentNumber: dto.documentNumber,
     gender: dto.gender,
     responsiblePatientId: dto.responsiblePatientId,
