@@ -2,6 +2,14 @@
 
 ## [Unreleased]
 
+### Fixed
+
+#### Consulta confirmada não segurava o slot
+- O índice único parcial e as consultas de disponibilidade olhavam só `status = 'scheduled'`, então **confirmar** uma consulta soltava o horário: ele reaparecia como livre na disponibilidade e podia ser agendado por cima sem violar o índice. Raro numa marcação avulsa, quase certo ao longo de uma série recorrente
+- `UQ_appointment_slot_scheduled` vira `UQ_appointment_slot_active`, cobrindo `scheduled` **e** `confirmed`. A constante do repositório passa a se chamar `ACTIVE_STATUSES` e é a fonte única com que o índice precisa ficar em sincronia
+- Os guardas de "tem consulta futura?" que bloqueiam excluir **agenda** e **profissional** também olhavam só `scheduled` — dava para excluir um profissional cujas consultas futuras estivessem todas confirmadas. Uma consulta confirmada é mais motivo para bloquear a exclusão, não menos
+- Verificado antes de aplicar: a query de detecção não encontrou **nenhuma** linha duplicada em produção, e não existe hoje nenhuma consulta `confirmed` — a migração é preventiva e não pode falhar com os dados atuais
+
 ### Added
 
 #### Consultas recorrentes
@@ -27,6 +35,10 @@
 
 #### Agendamento avulso ignorava bloqueios da agenda
 - `create-appointment` derivava o slot na mão e **não consultava `schedule_exceptions`** — dava para agendar em cima de um bloqueio. Agora delega ao `ResolveProfessionalSlotUseCase`, que já validava grade + exceção + ocupação, corrigindo o furo e eliminando a duplicação. Sem isso, a prévia recorrente marcaria a data como "Bloqueado" e o usuário contornaria agendando avulso
+
+#### Consulta confirmada não segurava o slot
+- O índice único parcial e o `findActiveBySlot` cobriam apenas `status = 'scheduled'`, então uma consulta **confirmada** reaparecia como horário livre na disponibilidade e podia ser duplo-agendada sem violar o índice. Raro numa consulta avulsa; quase certo ao longo de uma série recorrente longa
+- `UQ_appointment_slot_scheduled` vira `UQ_appointment_slot_active`, cobrindo `scheduled` e `confirmed`; `cancelled`/`completed`/`no_show` seguem liberando o slot. **Antes de rodar em produção**, checar duplicatas com a query documentada no cabeçalho da migration — a criação do índice falha se existir alguma
 
 #### `GET /appointments` quebrava ao ordenar por coluna com JOIN
 - O `ORDER BY` usava `appointment.start_time` (nome de coluna) em vez de `appointment.startTime` (nome da propriedade). Sem JOIN o TypeORM não precisava resolver isso; com o JOIN da série, a paginação passa pela metadata da entidade e estourava `Cannot read properties of undefined (reading 'databaseName')`

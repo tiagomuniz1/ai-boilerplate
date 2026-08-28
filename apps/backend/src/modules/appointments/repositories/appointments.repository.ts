@@ -11,10 +11,12 @@ import {
 } from './appointments.repository.interface'
 
 /**
- * Statuses that hold a slot. Kept in one place because the partial unique index
- * UQ_appointment_slot_scheduled must stay in sync with it.
+ * The statuses of an appointment that is still going to happen. They hold the
+ * slot — the partial unique index UQ_appointment_slot_active must stay in sync
+ * with this list — and they are also what makes an appointment count as
+ * "future" when guarding a deletion.
  */
-const SLOT_HOLDING_STATUSES = [AppointmentStatus.SCHEDULED]
+const ACTIVE_STATUSES = [AppointmentStatus.SCHEDULED, AppointmentStatus.CONFIRMED]
 
 @Injectable()
 export class AppointmentsRepository implements IAppointmentsRepository {
@@ -56,7 +58,7 @@ export class AppointmentsRepository implements IAppointmentsRepository {
 
   async findActiveByProfessionalAndDate(professionalId: string, date: string, clinicId: string): Promise<Appointment[]> {
     return this.repository.find({
-      where: { professionalId, date, clinicId, status: AppointmentStatus.SCHEDULED },
+      where: { professionalId, date, clinicId, status: In(ACTIVE_STATUSES) },
     })
   }
 
@@ -69,7 +71,7 @@ export class AppointmentsRepository implements IAppointmentsRepository {
   ): Promise<Appointment | null> {
     const repo = queryRunner ? queryRunner.manager.getRepository(Appointment) : this.repository
     return repo.findOne({
-      where: { professionalId, date, startTime, clinicId, status: In(SLOT_HOLDING_STATUSES) },
+      where: { professionalId, date, startTime, clinicId, status: In(ACTIVE_STATUSES) },
     })
   }
 
@@ -93,7 +95,7 @@ export class AppointmentsRepository implements IAppointmentsRepository {
         clinicId,
         startTime,
         date: In(dates),
-        status: In(SLOT_HOLDING_STATUSES),
+        status: In(ACTIVE_STATUSES),
       },
       order: { date: 'ASC' },
     })
@@ -145,7 +147,7 @@ export class AppointmentsRepository implements IAppointmentsRepository {
   async hasFutureByScheduleId(scheduleId: string, clinicId: string): Promise<boolean> {
     const today = new Date().toISOString().split('T')[0]
     const count = await this.repository.count({
-      where: { scheduleId, clinicId, status: AppointmentStatus.SCHEDULED },
+      where: { scheduleId, clinicId, status: In(ACTIVE_STATUSES) },
     })
     if (count === 0) return false
 
@@ -153,7 +155,7 @@ export class AppointmentsRepository implements IAppointmentsRepository {
       .createQueryBuilder('appointment')
       .where('appointment.schedule_id = :scheduleId', { scheduleId })
       .andWhere('appointment.clinic_id = :clinicId', { clinicId })
-      .andWhere('appointment.status = :status', { status: AppointmentStatus.SCHEDULED })
+      .andWhere('appointment.status IN (:...activeStatuses)', { activeStatuses: ACTIVE_STATUSES })
       .andWhere('appointment.date >= :today', { today })
       .andWhere('appointment.deleted_at IS NULL')
       .getCount()
@@ -161,16 +163,17 @@ export class AppointmentsRepository implements IAppointmentsRepository {
     return result > 0
   }
 
-  // Any still-scheduled appointment dated today or later for this professional —
+  // Any still-active appointment dated today or later for this professional —
   // used to block deleting a professional who would otherwise leave orphaned
-  // future consultations behind (there is no reassign/reschedule flow).
+  // future consultations behind (there is no reassign/reschedule flow). A
+  // confirmed appointment is more reason to block the deletion, not less.
   async hasFutureByProfessionalId(professionalId: string, clinicId: string): Promise<boolean> {
     const today = new Date().toISOString().split('T')[0]
     const result = await this.repository
       .createQueryBuilder('appointment')
       .where('appointment.professional_id = :professionalId', { professionalId })
       .andWhere('appointment.clinic_id = :clinicId', { clinicId })
-      .andWhere('appointment.status = :status', { status: AppointmentStatus.SCHEDULED })
+      .andWhere('appointment.status IN (:...activeStatuses)', { activeStatuses: ACTIVE_STATUSES })
       .andWhere('appointment.date >= :today', { today })
       .andWhere('appointment.deleted_at IS NULL')
       .getCount()

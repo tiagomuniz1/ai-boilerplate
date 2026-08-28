@@ -171,7 +171,12 @@ describe('AppointmentsRepository', () => {
       const result = await repository.findActiveByProfessionalAndDate(professionalId, '2099-06-20', CLINIC_ID)
 
       expect(mockRepository.find).toHaveBeenCalledWith({
-        where: { professionalId, date: '2099-06-20', clinicId: CLINIC_ID, status: AppointmentStatus.SCHEDULED },
+        where: {
+          professionalId,
+          date: '2099-06-20',
+          clinicId: CLINIC_ID,
+          status: In([AppointmentStatus.SCHEDULED, AppointmentStatus.CONFIRMED]),
+        },
       })
       expect(result).toEqual([appointment])
     })
@@ -191,7 +196,7 @@ describe('AppointmentsRepository', () => {
           date: '2099-06-20',
           startTime: '08:00',
           clinicId: CLINIC_ID,
-          status: In([AppointmentStatus.SCHEDULED]),
+          status: In([AppointmentStatus.SCHEDULED, AppointmentStatus.CONFIRMED]),
         },
       })
       expect(result).toBe(appointment)
@@ -237,7 +242,7 @@ describe('AppointmentsRepository', () => {
           clinicId: CLINIC_ID,
           startTime: '08:00',
           date: In(['2099-06-20', '2099-06-27']),
-          status: In([AppointmentStatus.SCHEDULED]),
+          status: In([AppointmentStatus.SCHEDULED, AppointmentStatus.CONFIRMED]),
         },
         order: { date: 'ASC' },
       })
@@ -364,6 +369,29 @@ describe('AppointmentsRepository', () => {
 
       expect(result).toBe(false)
     })
+
+    // A confirmed appointment is more reason to block deleting the schedule, not
+    // less — the guard used to look at 'scheduled' alone and would have let it go.
+    it('counts confirmed appointments, not only scheduled ones', async () => {
+      const scheduleId = faker.string.uuid()
+      mockRepository.count.mockResolvedValue(1)
+      const qb = makeQueryBuilder()
+      qb.getCount.mockResolvedValue(1)
+      mockRepository.createQueryBuilder.mockReturnValue(qb)
+
+      await repository.hasFutureByScheduleId(scheduleId, CLINIC_ID)
+
+      expect(mockRepository.count).toHaveBeenCalledWith({
+        where: {
+          scheduleId,
+          clinicId: CLINIC_ID,
+          status: In([AppointmentStatus.SCHEDULED, AppointmentStatus.CONFIRMED]),
+        },
+      })
+      expect(qb.andWhere).toHaveBeenCalledWith('appointment.status IN (:...activeStatuses)', {
+        activeStatuses: [AppointmentStatus.SCHEDULED, AppointmentStatus.CONFIRMED],
+      })
+    })
   })
 
   describe('hasFutureByProfessionalId', () => {
@@ -385,6 +413,18 @@ describe('AppointmentsRepository', () => {
       mockRepository.createQueryBuilder.mockReturnValue(qb)
 
       expect(await repository.hasFutureByProfessionalId(faker.string.uuid(), CLINIC_ID)).toBe(false)
+    })
+
+    it('counts confirmed appointments, not only scheduled ones', async () => {
+      const qb = makeQueryBuilder()
+      qb.getCount.mockResolvedValue(1)
+      mockRepository.createQueryBuilder.mockReturnValue(qb)
+
+      await repository.hasFutureByProfessionalId(faker.string.uuid(), CLINIC_ID)
+
+      expect(qb.andWhere).toHaveBeenCalledWith('appointment.status IN (:...activeStatuses)', {
+        activeStatuses: [AppointmentStatus.SCHEDULED, AppointmentStatus.CONFIRMED],
+      })
     })
   })
 
