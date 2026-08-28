@@ -193,6 +193,8 @@ declare global {
       createMedicationViaApi(input: CreateMedicationInput, accessToken: string): Chainable<{ id: string; name: string }>
       deleteMedicationViaApi(id: string, accessToken?: string): Chainable<void>
       createCanonicalFieldViaApi(input: CreateCanonicalFieldInput, accessToken: string): Chainable<{ id: string; canonicalKey: string; label: string }>
+      stubAppointmentDetailWidgets(overrides?: AppointmentDetailWidgetStubs): Chainable<void>
+      stubPatientDetailWidgets(overrides?: PatientDetailWidgetStubs): Chainable<void>
     }
   }
 }
@@ -694,6 +696,85 @@ Cypress.Commands.add('createCanonicalFieldViaApi', (input: CreateCanonicalFieldI
     canonicalKey: response.body.canonicalKey as string,
     label: response.body.label as string,
   }))
+})
+
+/**
+ * Every widget the appointment detail page mounts fires its own GET as soon as
+ * the page renders — including tabs the test never opens. An un-stubbed one
+ * answers 401, the api-client tries to refresh, fails, and sends the app to
+ * /login: the spec then dies in a login/dashboard redirect loop with an error
+ * that says nothing about the missing stub.
+ *
+ * Stubbing them here instead of in each spec means adding a widget tomorrow is a
+ * one-line change, not a hunt through a dozen files. Pass `overrides` to give a
+ * specific endpoint a real body; everything else answers empty.
+ */
+export interface AppointmentDetailWidgetStubs {
+  medicalRecord?: unknown
+  templates?: unknown
+  prescriptions?: unknown
+  atestados?: unknown
+  examRequests?: unknown
+  consultationPhotos?: unknown
+}
+
+Cypress.Commands.add('stubAppointmentDetailWidgets', (overrides: AppointmentDetailWidgetStubs = {}) => {
+  const api = Cypress.env('API_URL')
+  const emptyPage = { data: [], total: 0, page: 1, limit: 20 }
+
+  cy.intercept('GET', `${api}/medical-records/by-appointment/*`, {
+    statusCode: 200,
+    body: overrides.medicalRecord ?? null,
+  }).as('getMedicalRecord')
+
+  cy.intercept('GET', `${api}/medical-record-templates*`, {
+    statusCode: 200,
+    body: overrides.templates ?? { data: [], total: 0, page: 1, limit: 1 },
+  }).as('getTemplates')
+
+  cy.intercept('GET', `${api}/prescriptions*`, {
+    statusCode: 200,
+    body: overrides.prescriptions ?? emptyPage,
+  }).as('getPrescriptions')
+
+  cy.intercept('GET', `${api}/medical-certificates*`, {
+    statusCode: 200,
+    body: overrides.atestados ?? [],
+  }).as('getAtestados')
+
+  cy.intercept('GET', `${api}/exam-requests*`, {
+    statusCode: 200,
+    body: overrides.examRequests ?? [],
+  }).as('getExamRequests')
+
+  cy.intercept('GET', `${api}/consultation-photos*`, {
+    statusCode: 200,
+    body: overrides.consultationPhotos ?? [],
+  }).as('getConsultationPhotos')
+})
+
+/**
+ * The patient detail page mounts the medical history and the evolution photo
+ * gallery on load. Same trap as the appointment page: an un-stubbed 401 sends the
+ * app to /login and the spec dies in a redirect loop.
+ */
+export interface PatientDetailWidgetStubs {
+  medicalHistory?: unknown
+  photoGallery?: unknown
+}
+
+Cypress.Commands.add('stubPatientDetailWidgets', (overrides: PatientDetailWidgetStubs = {}) => {
+  const api = Cypress.env('API_URL')
+
+  cy.intercept('GET', `${api}/medical-records*`, {
+    statusCode: 200,
+    body: overrides.medicalHistory ?? { data: [], total: 0, page: 1, limit: 10 },
+  }).as('getPatientHistory')
+
+  cy.intercept('GET', `${api}/consultation-photos/by-patient/*`, {
+    statusCode: 200,
+    body: overrides.photoGallery ?? { data: [], total: 0, page: 1, limit: 20 },
+  }).as('getPatientPhotos')
 })
 
 export {}

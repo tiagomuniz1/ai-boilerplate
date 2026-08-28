@@ -33,6 +33,7 @@ describe('Patients Update', () => {
   beforeEach(() => {
     cy.clearCookies()
     cy.clearLocalStorage()
+    cy.stubPatientDetailWidgets()
   })
 
   it('shows skeleton while loading patient data', () => {

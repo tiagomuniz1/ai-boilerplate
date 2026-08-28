@@ -2,6 +2,18 @@
 
 ## [Unreleased]
 
+### Fixed
+
+#### Consulta sem prontuário exibia estado de erro e escondia o botão de preencher
+- `GET /medical-records/by-appointment/:id` responde **404** quando ainda não existe prontuário — o caso normal, não uma falha. O estado de erro introduzido junto com a correção de cache tratava esse 404 como erro e escondia o botão "Preencher prontuário"
+- O 404 passa a ser traduzido para "não há prontuário" no use-case, e o estado de erro fica reservado a falhas de verdade
+
+### Changed
+
+#### Cypress: stubs das páginas de detalhe centralizados
+- Novos `cy.stubAppointmentDetailWidgets()` e `cy.stubPatientDetailWidgets()`. As páginas de detalhe disparam um GET por widget assim que montam, inclusive de abas que o teste nunca abre; um deles sem stub responde `401`, o api-client tenta refresh, falha e manda o app para `/login` — a spec morre num loop de redirect com um erro que não menciona o stub faltante
+- Antes cada spec repetia os stubs (um deles escondido dentro de uma função chamada `stubExamRequests`), então todo widget novo quebrava a suíte de novo. Agora é uma linha num lugar só
+
 ### Added
 
 #### Consultas recorrentes

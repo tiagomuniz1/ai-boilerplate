@@ -31,6 +31,7 @@ describe('Patients Delete', () => {
   beforeEach(() => {
     cy.clearCookies()
     cy.clearLocalStorage()
+    cy.stubPatientDetailWidgets()
   })
 
   it('shows delete confirmation dialog when delete button is clicked', () => {

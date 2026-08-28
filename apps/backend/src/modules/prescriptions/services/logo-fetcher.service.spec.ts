@@ -11,8 +11,14 @@ const mockAxiosGet = axios.get as jest.Mock
 describe('LogoFetcherService', () => {
   let service: LogoFetcherService
 
+  // sharp() is what actually parses the bytes now, so the default mock stands for
+  // "this really is an image"; individual tests override it to reject.
+  const mockMetadata = jest.fn()
+
   beforeEach(() => {
     jest.clearAllMocks()
+    mockMetadata.mockResolvedValue({ format: 'png', width: 10, height: 10 })
+    mockSharp.mockReturnValue({ metadata: mockMetadata })
     service = new LogoFetcherService()
   })
 
@@ -53,7 +59,7 @@ describe('LogoFetcherService', () => {
     })
     const mockToBuffer = jest.fn().mockResolvedValue(pngBuffer)
     const mockPng = jest.fn().mockReturnValue({ toBuffer: mockToBuffer })
-    mockSharp.mockReturnValue({ png: mockPng })
+    mockSharp.mockReturnValue({ png: mockPng, metadata: mockMetadata })
 
     const result = await service.fetchAsBase64('https://example.com/logo.webp')
 
@@ -82,12 +88,29 @@ describe('LogoFetcherService', () => {
     expect(await service.fetchAsBase64('https://example.com/broken.png')).toBeNull()
   })
 
+  // The upload endpoint only checks the client-declared mimetype, so a file that
+  // merely claims to be a PNG gets stored. Handing those bytes to pdfmake throws
+  // and takes the whole document with it — one bad logo would break every
+  // prescription, atestado and exam request the clinic issues.
+  it('returns null when the bytes are not a real image, even if declared as PNG', async () => {
+    mockAxiosGet.mockResolvedValue({
+      data: Buffer.from('fake-png-bytes'),
+      headers: { 'content-type': 'image/png' },
+    })
+    mockMetadata.mockRejectedValue(new Error('Input buffer contains unsupported image format'))
+
+    expect(await service.fetchAsBase64('https://example.com/logo.png')).toBeNull()
+  })
+
   it('returns null when sharp conversion fails', async () => {
     mockAxiosGet.mockResolvedValue({
       data: Buffer.from('bad-webp'),
       headers: { 'content-type': 'image/webp' },
     })
-    mockSharp.mockReturnValue({ png: jest.fn().mockReturnValue({ toBuffer: jest.fn().mockRejectedValue(new Error('corrupt')) }) })
+    mockSharp.mockReturnValue({
+      png: jest.fn().mockReturnValue({ toBuffer: jest.fn().mockRejectedValue(new Error('corrupt')) }),
+      metadata: mockMetadata,
+    })
 
     expect(await service.fetchAsBase64('https://example.com/logo.webp')).toBeNull()
   })
