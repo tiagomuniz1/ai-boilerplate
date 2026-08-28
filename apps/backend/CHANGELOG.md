@@ -2,14 +2,6 @@
 
 ## [Unreleased]
 
-### Fixed
-
-#### QR Code da receita levava a farmácia para uma tela de login
-- A URL do QR era montada como `${FRONTEND_URL}/${slug}/verify/prescriptions/...`, mas em produção `FRONTEND_URL` aponta para `backoffice.pulso.center` e cada clínica é servida no próprio subdomínio. O middleware do frontend lia o slug do host (`backoffice`), o que sobrava do caminho virava `/pulso/verify/...`, a rota deixava de ser pública e o visitante era mandado para o login do backoffice — uma conta que a farmácia não tem
-- Novo `common/utils/clinic-url.utils.ts` monta a URL do mesmo jeito que o app resolve a clínica em runtime: subdomínio quando `COOKIE_DOMAIN` está definido (produção e stack local completa), slug no caminho quando não está (dev local)
-- **O link do e-mail de definir senha tinha exatamente o mesmo defeito** e caía no mesmo login errado — corrigido junto
-- Os specs do gerador de PDF só exercitavam path-mode, por isso passavam com a URL errada; o caso de subdomínio agora está coberto
-
 ### Added
 
 #### Consultas recorrentes
@@ -21,14 +13,6 @@
 - `GET /appointments/series/:seriesId` (ADMIN, PROFESSIONAL, USER) devolve a série com suas ocorrências ordenadas
 - `AppointmentResponseDto` ganha `seriesId`, `seriesSequence` e `seriesTotalOccurrences`; `AppointmentDetailResponseDto` ganha `seriesFutureCount` (contado, não derivado de `total - sequence`, que ignoraria ocorrências já canceladas ou concluídas)
 - Limites: **26 ocorrências e 365 dias**, o que vier primeiro (`packages/shared/src/config/recurrence.config.ts`, consumido também pelo frontend)
-
-### Fixed
-
-#### Upload de foto da consulta falhava com `500` em produção
-- A policy IAM `clinic-assets-write-production` listava só os prefixos `clinics/*` e `exam-results/*` do bucket; `consultation-photos/*` nunca foi incluído, então todo upload de foto batia em `AccessDenied` na AWS. Corrigido em `infra/terraform/modules/s3-clinic-assets`, que agora documenta que um prefixo faltando não falha no deploy — falha como `500` no primeiro upload daquele tipo
-
-#### Erro do S3 vazava detalhes da infraestrutura para o cliente
-- `StorageAdapter` deixava a exceção do SDK subir, e o `ExceptionFilter` a devolvia no corpo da resposta: a mensagem da AWS nomeia o id da conta, o role IAM, o id da instância e o ARN do bucket. Agora as três operações (upload, download, remove) registram a causa no log do servidor e devolvem uma mensagem genérica
 
 ### Changed
 
@@ -183,6 +167,22 @@
 #### Medicamentos — índices de busca
 - Migration `add_medications_trigram_indexes`: índices GIN `gin_trgm_ops` em `name` e `active_ingredient` (parciais, `WHERE deleted_at IS NULL`) para acelerar a busca `ILIKE '%termo%'` — elimina o Seq Scan na listagem e no `COUNT` (medido: count ~16ms→1ms, página de termo raro ~31ms→2ms na base com ~36k registros)
 - Removido o btree `IDX_medications_active_ingredient` (não utilizável por `ILIKE` nem ordenação)
+
+## [1.3.1] - 2026-08-28
+
+### Fixed
+
+#### QR Code da receita levava a farmácia para uma tela de login
+- A URL do QR era montada como `${FRONTEND_URL}/${slug}/verify/prescriptions/...`, mas em produção `FRONTEND_URL` aponta para `backoffice.pulso.center` e cada clínica é servida no próprio subdomínio. O middleware do frontend lia o slug do host (`backoffice`), o que sobrava do caminho virava `/pulso/verify/...`, a rota deixava de ser pública e o visitante era mandado para o login do backoffice — uma conta que a farmácia não tem
+- Novo `common/utils/clinic-url.utils.ts` monta a URL do mesmo jeito que o app resolve a clínica em runtime: subdomínio quando `COOKIE_DOMAIN` está definido (produção e stack local completa), slug no caminho quando não está (dev local)
+- **O link do e-mail de definir senha tinha exatamente o mesmo defeito** e caía no mesmo login errado — corrigido junto
+- Os specs do gerador de PDF só exercitavam path-mode, por isso passavam com a URL errada; o caso de subdomínio agora está coberto
+
+#### Upload de foto da consulta falhava com `500` em produção
+- A policy IAM `clinic-assets-write-production` listava só os prefixos `clinics/*` e `exam-results/*` do bucket; `consultation-photos/*` nunca foi incluído, então todo upload de foto batia em `AccessDenied` na AWS. Corrigido em `infra/terraform/modules/s3-clinic-assets`, que agora documenta que um prefixo faltando não falha no deploy — falha como `500` no primeiro upload daquele tipo
+
+#### Erro do S3 vazava detalhes da infraestrutura para o cliente
+- `StorageAdapter` deixava a exceção do SDK subir, e o `ExceptionFilter` a devolvia no corpo da resposta: a mensagem da AWS nomeia o id da conta, o role IAM, o id da instância e o ARN do bucket. Agora as três operações (upload, download, remove) registram a causa no log do servidor e devolvem uma mensagem genérica
 
 ## [1.1.0] - 2026-06-20
 

@@ -2,27 +2,6 @@
 
 ## [Unreleased]
 
-### Fixed
-
-#### Agenda mostrava o mesmo horário duas vezes
-- A disponibilidade só retém um slot enquanto a consulta está `scheduled`, então consulta **cancelada, confirmada, concluída ou faltou** voltava como slot livre **e** como consulta — e a grade concatenava as duas listas, renderizando o mesmo horário duas vezes ("15:00 Livre" logo acima de "15:00 Cancelada"). Parecia dupla marcação
-- `useDayAgenda` agora entrega uma linha por horário: a consulta vence, exceto quando é só uma cancelada e o slot de fato voltou a ficar livre — aí a linha útil é a agendável, e o cancelamento segue visível na lista de consultas e no histórico do paciente. Cancelada sem slot livre correspondente continua sendo exibida, para nada sumir sem rastro
-
-#### Prontuário salvo não aparecia até recarregar a página
-- Ao **criar**, o registro era gravado mas a aba continuava em "Prontuário ainda não preenchido" e o cabeçalho seguia oferecendo "Preencher prontuário" — levando o profissional a achar que não salvou e preencher de novo
-- Criar e editar agora escrevem no cache o prontuário que a própria API devolveu (`setQueryData`), em vez de invalidar e esperar uma nova leitura. A resposta do POST/PUT já é a representação autoritativa; descartá-la para perguntar de novo é o que abria a janela
-- A seção também deixava de distinguir **leitura que falhou** de **prontuário inexistente**: um erro na busca renderizava o estado vazio, convidando a duplicar um registro que podia existir. Agora informa a falha
-
-#### Data de nascimento do paciente aparecia um dia antes da cadastrada
-- Mesmo defeito do atestado, em outro módulo: `toPatientModel` fazia `new Date('1987-05-01')` e a lista e a página do paciente mostravam 30/04/1987, contradizendo o próprio formulário de edição e a tela da consulta — que já usava `+ 'T00:00:00'` e acertava
-- Corrigidos junto os mesmos parses em `to-consultation-photo-gallery-item-model` (data da consulta na galeria) e `to-dashboard-model` (período), que ainda não são renderizados mas herdariam o erro na primeira tela que os usasse
-- Os testes de `to-patient-model` e da galeria afirmavam com `toISOString()`, que reintroduz a mesma conversão para UTC do bug; agora afirmam o dia no calendário local
-
-#### Data do atestado aparecia um dia antes da informada
-- `toAtestadoModel` fazia `new Date('2026-08-28')` numa data de calendário, que o JS interpreta como meia-noite **UTC**; formatada em UTC-3 voltava para 27/08. Num atestado de afastamento a data tem peso legal, e o PDF (gerado no backend, que já tratava isso) imprimia a data certa enquanto a tela mostrava a errada
-- `startDate` e `attendanceDate` passam a ser mantidos como a string `YYYY-MM-DD` que a API envia e formatados com o `formatDateToBR` que já existia — data de calendário não é instante
-- O teste da listagem derivava o valor esperado com a mesma expressão bugada da implementação, então concordava com a saída errada e nunca poderia falhar; agora afirma o literal
-
 ### Added
 
 #### Consultas recorrentes
@@ -35,18 +14,6 @@
 - Novos testes E2E `appointments-recurrence-book.cy.ts`, `appointments-recurrence-series.cy.ts` e `appointments-recurrence-real.cy.ts`
 
 ### Fixed
-
-#### Botão de excluir profissional aparecia para quem não pode excluir
-- Excluir profissional é exclusivo de ADMIN (`ai/context/permissions.md`), mas a lista mostrava o botão para PROFESSIONAL e USER — o backend respondia `403` e o usuário só via um erro. O botão agora é gated por role na tabela e no card mobile
-
-#### "Trocar profissional" aparecia em ocorrência de série
-- O backend recusa reatribuir uma ocorrência de série com `422` (trocar o profissional de uma ocorrência deixaria a série heterogênea). O botão agora só aparece em consulta avulsa
-
-#### Nome do paciente ficava truncado na visão de semana
-- A célula da agenda mostrava `hora | nome | status` nas 7 colunas espremidas da semana, e o nome sobrava em "T…". Na visão de semana a célula entra em modo denso: o rótulo de status sai (a cor da célula já o comunica) e o espaço vai para o nome, que ganha `title` com o nome completo
-
-#### Login dizia "Email ou senha inválidos" para conta desativada
-- Um `401` por conta desativada, conta sem clínica vinculada ou captcha inválido exibia a mesma mensagem de credencial errada, mandando o usuário tentar de novo uma senha que estava certa. Cada caso agora tem sua própria mensagem; a de credencial segue sendo o fallback (e continua sem revelar se o e-mail existe)
 
 #### Semana da agenda podia deslocar um dia em fuso positivo
 - `getWeekDates` em `agenda-week-grid.tsx` usava `toISOString()` (que converte para UTC) enquanto o resto do código usa `toLocalDateString` justamente para evitar esse deslocamento — agora usa o mesmo helper
@@ -157,6 +124,41 @@
 - Campos `doctorId`/`doctorName` renomeados para `professionalId`/`professionalName` em todas as features consumidoras (consultas, agendas, exceções de agenda, exames, atestados, receitas, templates de receita, prontuários, dashboard)
 - Página pública de verificação de receita exibe o conselho e número de registro do profissional (`professionalCouncilType`/`professionalRegistrationNumber`) em vez de CRM fixo
 - Suíte E2E (Cypress) migrada por completo para o novo modelo: specs de `doctors/*` renomeadas para `professionals/*` e reescritas para o formulário multi-registro; demais specs (consultas, agendas, exames, prontuários, usuários, mobile) atualizadas para os novos testids e payloads (`registrations` em vez de `crmNumber`)
+
+## [1.3.1] - 2026-08-28
+
+### Fixed
+
+#### Agenda mostrava o mesmo horário duas vezes
+- A disponibilidade só retém um slot enquanto a consulta está `scheduled`, então consulta **cancelada, confirmada, concluída ou faltou** voltava como slot livre **e** como consulta — e a grade concatenava as duas listas, renderizando o mesmo horário duas vezes ("15:00 Livre" logo acima de "15:00 Cancelada"). Parecia dupla marcação
+- `useDayAgenda` agora entrega uma linha por horário: a consulta vence, exceto quando é só uma cancelada e o slot de fato voltou a ficar livre — aí a linha útil é a agendável, e o cancelamento segue visível na lista de consultas e no histórico do paciente. Cancelada sem slot livre correspondente continua sendo exibida, para nada sumir sem rastro
+
+#### Prontuário salvo não aparecia até recarregar a página
+- Ao **criar**, o registro era gravado mas a aba continuava em "Prontuário ainda não preenchido" e o cabeçalho seguia oferecendo "Preencher prontuário" — levando o profissional a achar que não salvou e preencher de novo
+- Criar e editar agora escrevem no cache o prontuário que a própria API devolveu (`setQueryData`), em vez de invalidar e esperar uma nova leitura. A resposta do POST/PUT já é a representação autoritativa; descartá-la para perguntar de novo é o que abria a janela
+- A seção também deixava de distinguir **leitura que falhou** de **prontuário inexistente**: um erro na busca renderizava o estado vazio, convidando a duplicar um registro que podia existir. Agora informa a falha
+
+#### Data de nascimento do paciente aparecia um dia antes da cadastrada
+- Mesmo defeito do atestado, em outro módulo: `toPatientModel` fazia `new Date('1987-05-01')` e a lista e a página do paciente mostravam 30/04/1987, contradizendo o próprio formulário de edição e a tela da consulta — que já usava `+ 'T00:00:00'` e acertava
+- Corrigidos junto os mesmos parses em `to-consultation-photo-gallery-item-model` (data da consulta na galeria) e `to-dashboard-model` (período), que ainda não são renderizados mas herdariam o erro na primeira tela que os usasse
+- Os testes de `to-patient-model` e da galeria afirmavam com `toISOString()`, que reintroduz a mesma conversão para UTC do bug; agora afirmam o dia no calendário local
+
+#### Data do atestado aparecia um dia antes da informada
+- `toAtestadoModel` fazia `new Date('2026-08-28')` numa data de calendário, que o JS interpreta como meia-noite **UTC**; formatada em UTC-3 voltava para 27/08. Num atestado de afastamento a data tem peso legal, e o PDF (gerado no backend, que já tratava isso) imprimia a data certa enquanto a tela mostrava a errada
+- `startDate` e `attendanceDate` passam a ser mantidos como a string `YYYY-MM-DD` que a API envia e formatados com o `formatDateToBR` que já existia — data de calendário não é instante
+- O teste da listagem derivava o valor esperado com a mesma expressão bugada da implementação, então concordava com a saída errada e nunca poderia falhar; agora afirma o literal
+
+#### Botão de excluir profissional aparecia para quem não pode excluir
+- Excluir profissional é exclusivo de ADMIN (`ai/context/permissions.md`), mas a lista mostrava o botão para PROFESSIONAL e USER — o backend respondia `403` e o usuário só via um erro. O botão agora é gated por role na tabela e no card mobile
+
+#### "Trocar profissional" aparecia em ocorrência de série
+- O backend recusa reatribuir uma ocorrência de série com `422` (trocar o profissional de uma ocorrência deixaria a série heterogênea). O botão agora só aparece em consulta avulsa
+
+#### Nome do paciente ficava truncado na visão de semana
+- A célula da agenda mostrava `hora | nome | status` nas 7 colunas espremidas da semana, e o nome sobrava em "T…". Na visão de semana a célula entra em modo denso: o rótulo de status sai (a cor da célula já o comunica) e o espaço vai para o nome, que ganha `title` com o nome completo
+
+#### Login dizia "Email ou senha inválidos" para conta desativada
+- Um `401` por conta desativada, conta sem clínica vinculada ou captcha inválido exibia a mesma mensagem de credencial errada, mandando o usuário tentar de novo uma senha que estava certa. Cada caso agora tem sua própria mensagem; a de credencial segue sendo o fallback (e continua sem revelar se o e-mail existe)
 
 ## [1.1.0] - 2026-06-20
 
