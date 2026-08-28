@@ -2,14 +2,6 @@
 
 ## [Unreleased]
 
-### Fixed
-
-#### QR Code da receita levava a farmácia para uma tela de login
-- A URL do QR era montada como `${FRONTEND_URL}/${slug}/verify/prescriptions/...`, mas em produção `FRONTEND_URL` aponta para `backoffice.pulso.center` e cada clínica é servida no próprio subdomínio. O middleware do frontend lia o slug do host (`backoffice`), o que sobrava do caminho virava `/pulso/verify/...`, a rota deixava de ser pública e o visitante era mandado para o login do backoffice — uma conta que a farmácia não tem
-- Novo `common/utils/clinic-url.utils.ts` monta a URL do mesmo jeito que o app resolve a clínica em runtime: subdomínio quando `COOKIE_DOMAIN` está definido (produção e stack local completa), slug no caminho quando não está (dev local)
-- **O link do e-mail de definir senha tinha exatamente o mesmo defeito** e caía no mesmo login errado — corrigido junto
-- Os specs do gerador de PDF só exercitavam path-mode, por isso passavam com a URL errada; o caso de subdomínio agora está coberto
-
 ### Added
 
 #### Consultas recorrentes
@@ -179,6 +171,12 @@
 ## [1.3.1] - 2026-08-28
 
 ### Fixed
+
+#### QR Code da receita levava a farmácia para uma tela de login
+- A URL do QR era montada como `${FRONTEND_URL}/${slug}/verify/prescriptions/...`, mas em produção `FRONTEND_URL` aponta para `backoffice.pulso.center` e cada clínica é servida no próprio subdomínio. O middleware do frontend lia o slug do host (`backoffice`), o que sobrava do caminho virava `/pulso/verify/...`, a rota deixava de ser pública e o visitante era mandado para o login do backoffice — uma conta que a farmácia não tem
+- Novo `common/utils/clinic-url.utils.ts` monta a URL do mesmo jeito que o app resolve a clínica em runtime: subdomínio quando `COOKIE_DOMAIN` está definido (produção e stack local completa), slug no caminho quando não está (dev local)
+- **O link do e-mail de definir senha tinha exatamente o mesmo defeito** e caía no mesmo login errado — corrigido junto
+- Os specs do gerador de PDF só exercitavam path-mode, por isso passavam com a URL errada; o caso de subdomínio agora está coberto
 
 #### Upload de foto da consulta falhava com `500` em produção
 - A policy IAM `clinic-assets-write-production` listava só os prefixos `clinics/*` e `exam-results/*` do bucket; `consultation-photos/*` nunca foi incluído, então todo upload de foto batia em `AccessDenied` na AWS. Corrigido em `infra/terraform/modules/s3-clinic-assets`, que agora documenta que um prefixo faltando não falha no deploy — falha como `500` no primeiro upload daquele tipo
