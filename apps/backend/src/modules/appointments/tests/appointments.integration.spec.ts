@@ -283,6 +283,49 @@ describe('AppointmentsController (integration)', () => {
       expect(body.professionalId).toBe(professionalId)
     })
 
+    // A confirmed appointment used to release its slot: availability offered it as
+    // free and a second booking went through, because both the guard and the
+    // partial unique index looked at 'scheduled' alone.
+    it('returns 409 when the slot is held by a confirmed appointment', async () => {
+      const { body: created } = await request(app.getHttpServer())
+        .post('/appointments')
+        .set('Cookie', `access_token=${doctorToken}`)
+        .send({ patientId, date: futureDate, startTime: '08:00' })
+        .expect(201)
+
+      await request(app.getHttpServer())
+        .patch(`/appointments/${created.id}/confirm`)
+        .set('Cookie', `access_token=${doctorToken}`)
+        .expect(200)
+
+      await request(app.getHttpServer())
+        .post('/appointments')
+        .set('Cookie', `access_token=${doctorToken}`)
+        .send({ patientId, date: futureDate, startTime: '08:00' })
+        .expect(409)
+    })
+
+    it('does not offer a slot held by a confirmed appointment as available', async () => {
+      const { body: created } = await request(app.getHttpServer())
+        .post('/appointments')
+        .set('Cookie', `access_token=${doctorToken}`)
+        .send({ patientId, date: futureDate, startTime: '08:00' })
+        .expect(201)
+
+      await request(app.getHttpServer())
+        .patch(`/appointments/${created.id}/confirm`)
+        .set('Cookie', `access_token=${doctorToken}`)
+        .expect(200)
+
+      const { body } = await request(app.getHttpServer())
+        .get('/appointments/availability')
+        .set('Cookie', `access_token=${doctorToken}`)
+        .query({ date: futureDate })
+        .expect(200)
+
+      expect(body.slots.map((slot: { startTime: string }) => slot.startTime)).not.toContain('08:00')
+    })
+
     it('returns 422 when ADMIN omits professionalId', async () => {
       await request(app.getHttpServer())
         .get('/appointments/availability')

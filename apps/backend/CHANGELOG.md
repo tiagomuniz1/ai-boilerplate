@@ -2,6 +2,14 @@
 
 ## [Unreleased]
 
+### Fixed
+
+#### Consulta confirmada não segurava o slot
+- O índice único parcial e as consultas de disponibilidade olhavam só `status = 'scheduled'`, então **confirmar** uma consulta soltava o horário: ele reaparecia como livre na disponibilidade e podia ser agendado por cima sem violar o índice. Raro numa marcação avulsa, quase certo ao longo de uma série recorrente
+- `UQ_appointment_slot_scheduled` vira `UQ_appointment_slot_active`, cobrindo `scheduled` **e** `confirmed`. A constante do repositório passa a se chamar `ACTIVE_STATUSES` e é a fonte única com que o índice precisa ficar em sincronia
+- Os guardas de "tem consulta futura?" que bloqueiam excluir **agenda** e **profissional** também olhavam só `scheduled` — dava para excluir um profissional cujas consultas futuras estivessem todas confirmadas. Uma consulta confirmada é mais motivo para bloquear a exclusão, não menos
+- Verificado antes de aplicar: a query de detecção não encontrou **nenhuma** linha duplicada em produção, e não existe hoje nenhuma consulta `confirmed` — a migração é preventiva e não pode falhar com os dados atuais
+
 ### Added
 
 #### Consultas recorrentes
