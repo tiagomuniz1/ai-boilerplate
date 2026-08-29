@@ -63,7 +63,8 @@ const baseObjectSchema = z.object({
     .string()
     .min(2, 'Deve ter no mínimo 2 caracteres')
     .max(120, 'Deve ter no máximo 120 caracteres'),
-  type: z.nativeEnum(MedicalRecordFieldType, { required_error: 'Tipo obrigatório' }),
+  // errorMap, not required_error — see the note in schedule-form.tsx.
+  type: z.nativeEnum(MedicalRecordFieldType, { errorMap: () => ({ message: 'Tipo obrigatório' }) }),
   unit: z.string().max(20, 'Deve ter no máximo 20 caracteres').optional(),
   specialtyId: z.string().optional(),
   description: z.string().max(500, 'Deve ter no máximo 500 caracteres').optional(),

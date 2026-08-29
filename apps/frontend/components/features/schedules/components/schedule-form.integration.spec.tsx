@@ -140,6 +140,24 @@ describe('ScheduleForm — create mode', () => {
     expect(screen.getByTestId('schedule-form-end-time')).toHaveAttribute('aria-invalid', 'true')
   })
 
+  // These three shipped in English — 'Required' and the full list of accepted
+  // enum values — because the check above only asserted aria-invalid.
+  it('writes the empty-field errors in Portuguese, without exposing enum values', async () => {
+    renderWithProviders(
+      <ScheduleForm mode="create" role={UserRole.PROFESSIONAL} isPending={false} onSubmit={jest.fn()} />,
+    )
+
+    await userEvent.click(screen.getByTestId('schedule-form-submit'))
+
+    await waitFor(() => {
+      expect(screen.getByText('Dia da semana obrigatório')).toBeInTheDocument()
+    })
+
+    expect(screen.getAllByText('Campo obrigatório')).toHaveLength(2)
+    expect(screen.queryByText(/Required/)).not.toBeInTheDocument()
+    expect(screen.queryByText(/MONDAY/)).not.toBeInTheDocument()
+  })
+
   it('shows validation error when no doctor is selected in ADMIN mode', async () => {
     renderWithProviders(
       <ScheduleForm
