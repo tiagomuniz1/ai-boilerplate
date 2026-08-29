@@ -1,5 +1,21 @@
 # Changelog — Frontend
 
+## [1.3.4] - 2026-08-29
+
+### Fixed
+
+#### Mensagens de validação do zod apareciam em inglês, expondo valores internos
+- O projeto nunca instalou um error map do zod, então todo campo cuja mensagem não foi escrita à mão caía no texto padrão da biblioteca. Na tela de nova agenda, um envio vazio mostrava `Required` em Início e Fim e `Invalid enum value. Expected 'MONDAY' | 'TUESDAY' | ... , received ''` em Dia da semana — violando a regra de nunca exibir detalhe técnico ao usuário
+- Novo `lib/zod-error-map.ts` com mensagens em português, instalado em `app/providers.tsx` e em `jest.setup.ts`. Não sobrepõe nenhuma mensagem já escrita no schema — o zod só consulta o map quando não há `message`
+- `required_error` em `z.nativeEnum` trocado por `errorMap` em `schedule-form` e `canonical-field-form`: um `<select>` com opção vazia envia `''`, e `required_error` só cobre `undefined` — por isso a mensagem específica nunca aparecia
+
+#### Backoffice exibia a marca de clínica em vez do logo do Pulso
+- `Sidebar` derivava `isBackoffice` de `usePathname().startsWith('/backoffice')`. Sob subdomínio o middleware reescreve `backoffice.exemplo.com/themes` para `/backoffice/themes` internamente, mas `usePathname()` reporta o caminho externo `/themes` — a checagem era verdadeira só no modo path do dev local e falsa em produção, onde o backoffice aparecia com o quadrado de inicial e o rótulo "Clínica"
+- Passa a usar `useSlug() === 'backoffice'`, a mesma fonte que `useCurrentClinic` já usava
+
+#### Gráfico do dashboard rotulava cada ponto um dia antes
+- `to-dashboard-model.ts` fazia `new Date(d.date)` para `appointmentsByDay` — parse UTC, que em UTC-3 cai na véspera — enquanto `period.from` e `period.to`, duas linhas acima, já ancoravam em `T00:00:00`. Um período de 26/08 a 30/08 abria o eixo em 25/08
+
 ## [1.3.3] - 2026-08-28
 
 ### Fixed

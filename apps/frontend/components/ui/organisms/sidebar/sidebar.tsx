@@ -5,6 +5,7 @@ import { usePathname } from 'next/navigation'
 import { useSidebarNavigation } from '@/hooks/use-sidebar-navigation.hook'
 import { useAuthStore } from '@/stores/auth.store'
 import { useCurrentClinic } from '@/components/features/clinics/hooks/use-current-clinic.hook'
+import { useSlug } from '@/lib/slug-context'
 import { useThemeStore } from '@/stores/theme.store'
 import { useSidebarStore } from '@/stores/sidebar.store'
 import { cn } from '@/lib/cn'
@@ -38,7 +39,12 @@ export function Sidebar() {
     }
   }, [pathname, closeMobile])
 
-  const isBackoffice = pathname?.startsWith('/backoffice') ?? false
+  // The slug, not the pathname. In subdomain-mode the middleware rewrites
+  // backoffice.example.com/themes to /backoffice/themes internally, but
+  // usePathname() reports the external '/themes' — so a pathname check is false
+  // in production and true only in path-mode local dev, and the backoffice ends
+  // up wearing the clinic's branding block instead of the Pulso logo.
+  const isBackoffice = useSlug() === 'backoffice'
   const clinicName = isBackoffice ? 'Backoffice' : (clinic?.name ?? 'Clínica')
   const clinicInitial = clinicName.charAt(0).toUpperCase()
   const logoUrl = (theme === 'dark' && clinic?.logoDarkUrl) ? clinic.logoDarkUrl : clinic?.logoUrl

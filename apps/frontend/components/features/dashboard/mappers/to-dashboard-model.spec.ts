@@ -53,6 +53,17 @@ describe('toDashboardModel', () => {
     expect(model.appointmentsByDay[0].count).toBe(3)
   })
 
+  // The timeline chart labels each point with the date's local calendar day.
+  // `new Date('YYYY-MM-DD')` parses as UTC midnight, which is the previous
+  // evening in a UTC-behind timezone — every point would be labelled a day early.
+  it('anchors appointmentsByDay dates at local midnight, not UTC', () => {
+    const { date } = toDashboardModel(mockDto).appointmentsByDay[0]
+    expect(date.getFullYear()).toBe(2026)
+    expect(date.getMonth()).toBe(0)
+    expect(date.getDate()).toBe(15)
+    expect(date.getHours()).toBe(0)
+  })
+
   it('passes ageDistribution through', () => {
     const { ageDistribution } = toDashboardModel(mockDto)
     expect(ageDistribution).toEqual(mockDto.ageDistribution)

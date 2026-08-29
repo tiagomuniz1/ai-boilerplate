@@ -7,6 +7,7 @@ import { useAuthStore } from '@/stores/auth.store'
 import { useCurrentClinic } from '@/components/features/clinics/hooks/use-current-clinic.hook'
 import { useThemeStore } from '@/stores/theme.store'
 import { useSidebarStore } from '@/stores/sidebar.store'
+import { SlugProvider } from '@/lib/slug-context'
 import type { INavigationItemViewModel } from '@/types/navigation.types'
 
 jest.mock('@/hooks/use-sidebar-navigation.hook')
@@ -17,6 +18,17 @@ jest.mock('next/navigation', () => ({
 }))
 
 const mockUseCurrentClinic = useCurrentClinic as jest.MockedFunction<typeof useCurrentClinic>
+
+// The backoffice identifies itself by slug, not by pathname: under a subdomain
+// the middleware rewrites backoffice.example.com/themes to /backoffice/themes
+// internally and usePathname() still reports '/themes'.
+function renderSidebarWithSlug(slug: string) {
+  return render(
+    <SlugProvider slug={slug}>
+      <Sidebar />
+    </SlugProvider>,
+  )
+}
 
 const mockItems: INavigationItemViewModel[] = [
   {
@@ -91,15 +103,23 @@ describe('Sidebar', () => {
     expect(screen.getByTestId('sidebar-logo')).toHaveTextContent('C')
   })
 
-  it('shows the Pulso brand logo instead of the clinic name on a /backoffice path', () => {
-    ;(usePathname as jest.Mock).mockReturnValue('/backoffice/clinics')
-    render(<Sidebar />)
+  it('shows the Pulso brand logo instead of the clinic name in the backoffice', () => {
+    renderSidebarWithSlug('backoffice')
     expect(screen.queryByTestId('sidebar-clinic-name')).not.toBeInTheDocument()
   })
 
-  it('renders both Pulso logo variants (light/dark theme) on backoffice path', () => {
-    ;(usePathname as jest.Mock).mockReturnValue('/backoffice/clinics')
-    render(<Sidebar />)
+  // In production the backoffice lives on its own subdomain, so the pathname is
+  // '/themes', not '/backoffice/themes'. Keying off the pathname showed the
+  // clinic branding block there instead of the Pulso logo.
+  it('shows the Pulso logo in the backoffice even when the path has no /backoffice prefix', () => {
+    ;(usePathname as jest.Mock).mockReturnValue('/themes')
+    renderSidebarWithSlug('backoffice')
+    expect(screen.getAllByRole('img', { name: 'Pulso' })).toHaveLength(2)
+    expect(screen.queryByTestId('sidebar-clinic-name')).not.toBeInTheDocument()
+  })
+
+  it('renders both Pulso logo variants (light/dark theme) in the backoffice', () => {
+    renderSidebarWithSlug('backoffice')
     const images = screen.getAllByRole('img', { name: 'Pulso' })
     expect(images).toHaveLength(2)
     expect(images[0]).toHaveAttribute('src', '/brand/pulso-logo-light.png')

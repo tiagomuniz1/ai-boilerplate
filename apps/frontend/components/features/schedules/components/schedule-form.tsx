@@ -28,7 +28,9 @@ const timeRegex = /^([01]\d|2[0-3]):[0-5]\d$/
 const dateRegex = /^\d{4}-\d{2}-\d{2}$/
 
 const baseFields = {
-  dayOfWeek: z.nativeEnum(DayOfWeek, { required_error: 'Dia da semana obrigatório' }),
+  // errorMap, not required_error: the empty <option> submits '' rather than
+  // undefined, and required_error only covers undefined.
+  dayOfWeek: z.nativeEnum(DayOfWeek, { errorMap: () => ({ message: 'Dia da semana obrigatório' }) }),
   startTime: z.string().regex(timeRegex, 'Horário inválido. Use HH:MM'),
   endTime: z.string().regex(timeRegex, 'Horário inválido. Use HH:MM'),
   slotDurationInMinutes: z
