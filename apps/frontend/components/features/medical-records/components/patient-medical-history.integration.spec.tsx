@@ -23,7 +23,7 @@ function makeRecord(id: string, overrides: Partial<IMedicalRecordModel> = {}): I
     professionalName: 'Dr. João',
     specialtyId: 'spec-uuid',
     specialtyName: 'Cardiologia',
-    schema: [{ key: 'symptom', label: 'Sintoma', type: MedicalRecordFieldType.TEXT, required: false, order: 0, options: null, placeholder: null, helpText: null }],
+    schema: [{ key: 'symptom', label: 'Sintoma', type: MedicalRecordFieldType.TEXT, required: false, order: 0, options: null, placeholder: null, helpText: null, sectionKey: null }],
     data: { symptom: 'Febre' },
     notes: null,
     createdAt: new Date('2024-03-15T10:00:00Z'),

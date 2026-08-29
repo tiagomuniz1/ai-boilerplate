@@ -1,0 +1,20 @@
+{
+  // Os testes Jest ficam fora do tsconfig do app (o build do Next não deve
+  // compilá-los), então nada os checava. Esta configuração cobre exatamente eles,
+  // com os globals do Jest — sem misturar com a árvore da aplicação.
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "noEmit": true,
+    "types": ["jest", "node"]
+  },
+  "include": [
+    "next-env.d.ts",
+    "jest.config.ts",
+    "jest.setup.ts",
+    "**/*.spec.ts",
+    "**/*.spec.tsx",
+    "**/*.integration.spec.ts",
+    "**/*.integration.spec.tsx"
+  ],
+  "exclude": ["node_modules", "cypress", ".next"]
+}

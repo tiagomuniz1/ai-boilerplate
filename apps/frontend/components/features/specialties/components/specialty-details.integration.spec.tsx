@@ -22,6 +22,7 @@ function mockAuthStoreAs(role: UserRole) {
 const specialty: ISpecialtyModel = {
   id: 'uuid-1',
   name: 'Cardiologia',
+  titleName: null,
   description: 'Especialidade do coração',
   clinicCount: 0,
   createdAt: new Date('2024-01-15'),

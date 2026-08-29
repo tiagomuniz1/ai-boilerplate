@@ -18,7 +18,7 @@ const input: ICreateScheduleInput = {
 }
 
 const mockDto = { dayOfWeek: DayOfWeek.TUESDAY, startTime: '09:00', endTime: '13:00', slotDurationInMinutes: 60 }
-const mockResponse = { id: 'uuid-1', ...mockDto, professionalId: 'doc-uuid', validFrom: null, validUntil: null, createdAt: new Date(), updatedAt: new Date() }
+const mockResponse = { id: 'uuid-1', ...mockDto, professionalId: 'doc-uuid', professionalName: 'Dr. Test', validFrom: null, validUntil: null, createdAt: new Date(), updatedAt: new Date() }
 const mockModel: IScheduleModel = { ...mockResponse, createdAt: new Date(), updatedAt: new Date() }
 
 describe('createScheduleUseCase', () => {

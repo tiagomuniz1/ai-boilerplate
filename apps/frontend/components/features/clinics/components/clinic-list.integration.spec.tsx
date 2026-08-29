@@ -39,7 +39,7 @@ const defaultThemesReturn = {
   },
   isPending: false,
   isError: false,
-} as ReturnType<typeof useThemes>
+} as unknown as ReturnType<typeof useThemes>
 
 function mockAuth(role: UserRole) {
   const user = { ...mockPlatformAdminUser, role }
@@ -55,8 +55,8 @@ const makeDto = (overrides = {}) => ({
   isActive: true,
   plan: SubscriptionPlan.FREE,
   themeId: null,
-  createdAt: '2024-01-15T10:00:00.000Z',
-  updatedAt: '2024-01-16T10:00:00.000Z',
+  createdAt: '2024-01-15T10:00:00.000Z' as unknown as Date,
+  updatedAt: '2024-01-16T10:00:00.000Z' as unknown as Date,
   ...overrides,
 })
 
@@ -282,7 +282,7 @@ describe('ClinicList (integration)', () => {
       data: undefined,
       isPending: false,
       isError: false,
-    } as ReturnType<typeof useThemes>)
+    } as unknown as ReturnType<typeof useThemes>)
 
     renderWithProviders(<ClinicList />)
 

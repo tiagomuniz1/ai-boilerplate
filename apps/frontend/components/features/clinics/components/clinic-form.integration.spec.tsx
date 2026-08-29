@@ -5,7 +5,7 @@ jest.mock('@/components/features/themes/hooks/use-themes.hook')
 import { screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { useRouter } from 'next/navigation'
-import { SubscriptionPlan } from '@app/shared'
+import { SubscriptionPlan, ThemeBorderRadius } from '@app/shared'
 import { useThemes } from '@/components/features/themes/hooks/use-themes.hook'
 import { renderWithProviders } from '@/tests/utils/render-with-providers'
 import { ClinicForm } from './clinic-form'
@@ -25,6 +25,9 @@ const sampleThemes: IThemeModel[] = [
     slug: 'azul-clinico',
     accentColor: '#2563EB',
     accentSoftColor: '#DBEAFE',
+    borderRadius: ThemeBorderRadius.DEFAULT,
+    bgColor: null,
+    bgDarkColor: null,
     isDefault: true,
     createdAt: new Date('2024-01-01'),
     updatedAt: new Date('2024-01-01'),
@@ -35,6 +38,9 @@ const sampleThemes: IThemeModel[] = [
     slug: 'verde-saude',
     accentColor: '#16A34A',
     accentSoftColor: '#DCFCE7',
+    borderRadius: ThemeBorderRadius.DEFAULT,
+    bgColor: null,
+    bgDarkColor: null,
     isDefault: false,
     createdAt: new Date('2024-01-01'),
     updatedAt: new Date('2024-01-01'),
@@ -370,6 +376,10 @@ const clinicWithoutAddress: IClinicModel = {
   slug: 'clinica-sem-endereco',
   isActive: true,
   themeId: null,
+  plan: SubscriptionPlan.FREE,
+  logoUrl: null,
+  logoDarkUrl: null,
+  faviconUrl: null,
   address: null,
   createdAt: new Date('2024-01-15'),
   updatedAt: new Date('2024-01-16'),

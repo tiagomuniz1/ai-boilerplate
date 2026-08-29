@@ -18,6 +18,7 @@ function wrapper({ children }: { children: React.ReactNode }) {
 const makeModel = (): IScheduleModel => ({
   id: 'uuid-1',
   professionalId: 'doc-uuid',
+  professionalName: 'Dr. Test',
   dayOfWeek: DayOfWeek.MONDAY,
   startTime: '08:00',
   endTime: '12:00',

@@ -21,6 +21,7 @@ function wrapper({ children }: { children: React.ReactNode }) {
 const mockModel: IScheduleModel = {
   id: 'uuid-1',
   professionalId: 'doc-uuid',
+  professionalName: 'Dr. Test',
   dayOfWeek: DayOfWeek.MONDAY,
   startTime: '09:00',
   endTime: '12:00',

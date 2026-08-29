@@ -1,9 +1,10 @@
+import { CouncilType } from '@app/shared'
 import { toUpdateProfessionalDto } from './to-update-professional-dto.mapper'
 
 describe('toUpdateProfessionalDto', () => {
   it('maps all fields to DTO correctly', () => {
     const input = {
-      registrations: [{ number: '12345', state: 'SP', isPrimary: true }],
+      registrations: [{ councilType: CouncilType.CRM, number: '12345', state: 'SP', isPrimary: true }],
       specialties: [{ specialtyId: 'spec-uuid-1', registryNumber: '6789' }],
       bio: 'Bio atualizada.',
       isActive: false,

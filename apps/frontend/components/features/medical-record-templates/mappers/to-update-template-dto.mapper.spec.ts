@@ -9,6 +9,7 @@ const makeField = (overrides = {}) => ({
   options: [],
   placeholder: '',
   helpText: '',
+  sectionKey: '',
   canonical: false,
   canonicalKey: '',
   ...overrides,

@@ -10,11 +10,11 @@
 
 ### Changed
 
-#### Cypress: 170 erros de tipo corrigidos e o `typecheck` passa a cobri-los
-- A pasta `cypress` fica fora do `tsconfig.json` do app, então `yarn typecheck` nunca a compilava e os erros se acumularam sem ninguém ver. `typecheck` agora roda também `cypress/tsconfig.json`, via o novo script `typecheck:e2e`
-- **145 erros** vinham de dois helpers cujo tipo mentia: `visitBackoffice` tinha o tipo inferido do valor padrão (`mockPlatformAdmin`, que traz `clinicId: null`), tornando o campo obrigatório para todo chamador; e `stubClinicLayout`/`visitClinic` exigiam um `MockAuthUser` completo enquanto os testes passam só os campos que lhes importam. Passaram a receber `Partial<MockAuthUser>`, o que também eliminou o `{} as MockAuthUser` que enganava o compilador
-- **20 erros** eram colisão de escopo: nove specs não têm `import` nem `export`, então o TypeScript as trata como scripts e suas constantes de topo (`PLATFORM_EMAIL` e afins) dividiam o escopo global. Um `export {}` em cada as torna módulos
-- **5 erros** apontavam para defaults marcados como código morto em `stubClinicLayout` — sintoma do mesmo tipo errado, resolvidos junto
+#### Testes: 406 erros de tipo corrigidos e o `typecheck` passa a cobri-los
+- O `tsconfig.json` do app exclui `cypress` **e** `**/*.spec.ts(x)`, então nem os 114 arquivos de E2E nem os 427 de Jest eram compilados — 406 erros acumularam sem ninguém ver. `yarn typecheck` agora roda as três árvores, via os novos `typecheck:test` e `typecheck:e2e`, cada uma com seu tsconfig para não misturar os tipos do app com os globais de Jest e Cypress
+- **236 nos testes Jest**, quase todos a mesma coisa: fixtures que envelheceram junto com o produto. Profissional ainda com `crmNumber` (virou `registrations` na generalização para profissional de saúde), especialidade com `rqe` em vez de `registryNumber`, consulta sem `insuranceType` nem os campos de série, paciente sem os campos de parentesco, clínica sem `themeId`/`logoDarkUrl`, template sem `sectionKey`/`sections`, e um `ThemeBorderRadius.MD` que nunca existiu no enum
+- **170 no Cypress**: dois helpers cujo tipo mentia (`visitBackoffice` inferia o tipo do valor padrão, tornando `clinicId` obrigatório; `visitClinic` e `stubClinicLayout` exigiam um `MockAuthUser` completo — daí o `{} as MockAuthUser`) e nove specs sem `import`/`export`, tratadas como scripts e dividindo o escopo global
+- É a mesma classe de defeito que deixou a fixture de paciente sem `dependents` e derrubou o app durante a validação: cada entrega deixava mocks para trás e nada avisava
 
 #### Cypress: stubs das páginas de detalhe centralizados
 - Novos `cy.stubAppointmentDetailWidgets()` e `cy.stubPatientDetailWidgets()`. As páginas de detalhe disparam um GET por widget assim que montam, inclusive de abas que o teste nunca abre; um deles sem stub responde `401`, o api-client tenta refresh, falha e manda o app para `/login` — a spec morre num loop de redirect com um erro que não menciona o stub faltante

@@ -18,6 +18,9 @@ const user: IUserModel = {
   email: 'alice@example.com',
   role: UserRole.ADMIN,
   isActive: true,
+  isProfessional: false,
+  isPatient: false,
+  councilType: null,
   createdAt: new Date('2024-01-15'),
   updatedAt: new Date('2024-01-16'),
 }

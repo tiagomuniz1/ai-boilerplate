@@ -21,6 +21,9 @@ const existingUser: IUserModel = {
   email: 'alice@example.com',
   role: UserRole.USER,
   isActive: true,
+  isProfessional: false,
+  isPatient: false,
+  councilType: null,
   createdAt: new Date('2024-01-15'),
   updatedAt: new Date('2024-01-16'),
 }
@@ -30,6 +33,10 @@ const professionalUser: IUserModel = {
   id: 'uuid-professional-1',
   fullName: 'Ana Nutri',
   role: UserRole.PROFESSIONAL,
+  isActive: true,
+  isProfessional: false,
+  isPatient: false,
+  councilType: null,
 }
 
 const professionalDto = {
@@ -65,6 +72,10 @@ describe('UserForm (integration) — create mode', () => {
       fullName: 'Bob Silva',
       email: 'bob@example.com',
       role: UserRole.USER,
+      isActive: true,
+      isProfessional: false,
+      isPatient: false,
+      councilType: null,
       createdAt: new Date(),
       updatedAt: new Date(),
     })

@@ -1,9 +1,10 @@
+import { CouncilType } from '@app/shared'
 import { toCreateProfessionalDto } from './to-create-professional-dto.mapper'
 
 describe('toCreateProfessionalDto', () => {
   const input = {
     userId: 'user-uuid-1',
-    registrations: [{ number: '12345', state: 'SP', isPrimary: true }],
+    registrations: [{ councilType: CouncilType.CRM, number: '12345', state: 'SP', isPrimary: true }],
     specialties: [
       { specialtyId: 'spec-uuid-1', registryNumber: '6789' },
       { specialtyId: 'spec-uuid-2', registryNumber: undefined },
@@ -30,7 +31,7 @@ describe('toCreateProfessionalDto', () => {
     const newUserInput = {
       fullName: 'Maria Áurea de Andrade Borba',
       email: 'maria.aurea@example.com',
-      registrations: [{ number: '28250', state: 'PE', isPrimary: true }],
+      registrations: [{ councilType: CouncilType.CRM, number: '28250', state: 'PE', isPrimary: true }],
       specialties: [{ specialtyId: 'spec-uuid-1' }],
       bio: 'Bio da médica.',
     }

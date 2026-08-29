@@ -1,3 +1,4 @@
+import { CouncilType } from '@app/shared'
 import { toProfessionalModel } from './to-professional-model.mapper'
 
 const makeDto = () => ({
@@ -8,7 +9,7 @@ const makeDto = () => ({
     email: 'joao@example.com',
     isActive: true,
   },
-  registrations: [{ id: 'crm-uuid-1', number: '12345', state: 'SP', isPrimary: true }],
+  registrations: [{ id: 'crm-uuid-1', councilType: CouncilType.CRM, number: '12345', state: 'SP', isPrimary: true }],
   specialties: [{ id: 'spec-uuid-1', name: 'Cardiologia', registryNumber: '6789' }],
   bio: 'Especialista em cardiologia intervencionista.',
   createdAt: '2024-01-15T10:00:00.000Z' as unknown as Date,
@@ -23,7 +24,7 @@ describe('toProfessionalModel', () => {
     expect(model.user.id).toBe('user-uuid-1')
     expect(model.user.fullName).toBe('Dr. João Silva')
     expect(model.user.email).toBe('joao@example.com')
-    expect(model.registrations).toEqual([{ id: 'crm-uuid-1', number: '12345', state: 'SP', isPrimary: true }])
+    expect(model.registrations).toEqual([{ id: 'crm-uuid-1', councilType: CouncilType.CRM, number: '12345', state: 'SP', isPrimary: true }])
     expect(model.specialties).toEqual([{ id: 'spec-uuid-1', name: 'Cardiologia', registryNumber: '6789' }])
     expect(model.bio).toBe('Especialista em cardiologia intervencionista.')
   })
@@ -78,15 +79,15 @@ describe('toProfessionalModel', () => {
     const dto = {
       ...makeDto(),
       registrations: [
-        { id: 'crm-uuid-1', number: '12345', state: 'SP', isPrimary: true },
-        { id: 'crm-uuid-2', number: '54321', state: 'RJ', isPrimary: false },
+        { id: 'crm-uuid-1', councilType: CouncilType.CRM, number: '12345', state: 'SP', isPrimary: true },
+        { id: 'crm-uuid-2', councilType: CouncilType.CRM, number: '54321', state: 'RJ', isPrimary: false },
       ],
     }
 
     const model = toProfessionalModel(dto)
 
     expect(model.registrations).toHaveLength(2)
-    expect(model.registrations[1]).toEqual({ id: 'crm-uuid-2', number: '54321', state: 'RJ', isPrimary: false })
+    expect(model.registrations[1]).toEqual({ id: 'crm-uuid-2', councilType: CouncilType.CRM, number: '54321', state: 'RJ', isPrimary: false })
   })
 
   it('maps multiple specialties correctly', () => {

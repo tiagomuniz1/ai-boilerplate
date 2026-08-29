@@ -21,8 +21,8 @@ const makeProfessionalDto = (overrides: object = {}) => ({
   registrations: [{ id: 'reg-1', councilType: CouncilType.CRM, number: '12345', state: 'SP', isPrimary: true }],
   specialties: [],
   bio: null,
-  createdAt: new Date().toISOString(),
-  updatedAt: new Date().toISOString(),
+  createdAt: new Date().toISOString() as unknown as Date,
+  updatedAt: new Date().toISOString() as unknown as Date,
   ...overrides,
 })
 
@@ -30,6 +30,7 @@ const makeTemplateDto = (overrides: object = {}) => ({
   id: 'tpl-uuid',
   specialtyId: 'spec-uuid',
   specialtyName: 'Cardiologia',
+  councilType: null,
   name: 'Anamnese',
   sections: [],
   fields: [
@@ -60,8 +61,8 @@ const makeTemplateDto = (overrides: object = {}) => ({
     },
   ],
   isActive: true,
-  createdAt: new Date().toISOString(),
-  updatedAt: new Date().toISOString(),
+  createdAt: new Date().toISOString() as unknown as Date,
+  updatedAt: new Date().toISOString() as unknown as Date,
   ...overrides,
 })
 
@@ -74,6 +75,7 @@ const makeRecordDto = (overrides: object = {}) => ({
   professionalName: 'Dr. Test',
   specialtyId: 'spec-uuid',
   specialtyName: 'Cardiologia',
+  councilType: null,
   templateId: 'tpl-uuid',
   templateSchemaSnapshot: [
     {
@@ -92,8 +94,8 @@ const makeRecordDto = (overrides: object = {}) => ({
   ],
   data: { complaint: 'Dor de cabeça' },
   notes: null,
-  createdAt: new Date().toISOString(),
-  updatedAt: new Date().toISOString(),
+  createdAt: new Date().toISOString() as unknown as Date,
+  updatedAt: new Date().toISOString() as unknown as Date,
   ...overrides,
 })
 

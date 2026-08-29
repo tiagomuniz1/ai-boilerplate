@@ -8,11 +8,11 @@ const makeDto = (overrides = {}) => ({
   isDefault: true,
   accentColor: '#4CAF50',
   accentSoftColor: '#A5D6A7',
-  borderRadius: ThemeBorderRadius.MD,
+  borderRadius: ThemeBorderRadius.DEFAULT,
   bgColor: '#FFFFFF',
   bgDarkColor: '#121212',
-  createdAt: '2024-01-15T10:00:00.000Z',
-  updatedAt: '2024-01-16T10:00:00.000Z',
+  createdAt: '2024-01-15T10:00:00.000Z' as unknown as Date,
+  updatedAt: '2024-01-16T10:00:00.000Z' as unknown as Date,
   ...overrides,
 })
 
@@ -27,7 +27,7 @@ describe('toThemeModel', () => {
     expect(model.isDefault).toBe(true)
     expect(model.accentColor).toBe('#4CAF50')
     expect(model.accentSoftColor).toBe('#A5D6A7')
-    expect(model.borderRadius).toBe(ThemeBorderRadius.MD)
+    expect(model.borderRadius).toBe(ThemeBorderRadius.DEFAULT)
     expect(model.bgColor).toBe('#FFFFFF')
     expect(model.bgDarkColor).toBe('#121212')
     expect(model.createdAt).toEqual(new Date('2024-01-15T10:00:00.000Z'))

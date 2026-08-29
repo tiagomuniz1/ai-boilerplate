@@ -5,7 +5,7 @@ jest.mock('../services/medical-record-templates.service')
 
 import { screen, waitFor } from '@testing-library/react'
 import { useRouter } from 'next/navigation'
-import { UserRole, MedicalRecordFieldType } from '@app/shared'
+import { UserRole, MedicalRecordFieldType, CouncilType } from '@app/shared'
 import { useAuthStore } from '@/stores/auth.store'
 import { medicalRecordTemplatesService } from '../services/medical-record-templates.service'
 import { renderWithProviders } from '@/tests/utils/render-with-providers'
@@ -86,7 +86,7 @@ describe('TemplateList (integration)', () => {
 
     it('shows the profession for a generalist (null specialty) template and leaves specialty blank', async () => {
       ;(medicalRecordTemplatesService.getAll as jest.Mock).mockResolvedValue(
-        makePaginated([makeDto({ specialtyId: null, specialtyName: null, councilType: 'crm' })]),
+        makePaginated([makeDto({ specialtyId: null, specialtyName: null, councilType: CouncilType.CRM })]),
       )
 
       renderWithProviders(<TemplateList />)
@@ -189,7 +189,7 @@ describe('TemplateList (integration)', () => {
 
     it('shows the profession for a non-CRM (specialty-less) template and leaves specialty blank', async () => {
       ;(medicalRecordTemplatesService.getAll as jest.Mock).mockResolvedValue(
-        makePaginated([makeDto({ specialtyId: null, specialtyName: null, councilType: 'crn' })]),
+        makePaginated([makeDto({ specialtyId: null, specialtyName: null, councilType: CouncilType.CRN })]),
       )
 
       renderWithProviders(<TemplateList />)

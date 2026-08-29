@@ -1,3 +1,4 @@
+import { CouncilType } from '@app/shared'
 jest.mock('../use-cases/list-professionals.use-case')
 
 import React from 'react'
@@ -16,7 +17,7 @@ function wrapper({ children }: { children: React.ReactNode }) {
 const makeModel = () => ({
   id: 'uuid-1',
   user: { id: 'user-uuid-1', fullName: 'Dr. João', email: 'joao@example.com' },
-  registrations: [{ id: 'reg-uuid-1', councilType: 'crm', number: '12345', state: 'SP', isPrimary: true }],
+  registrations: [{ id: 'reg-uuid-1', councilType: CouncilType.CRM, number: '12345', state: 'SP', isPrimary: true }],
   specialties: [{ id: 'spec-uuid-1', name: 'Cardiologia', registryNumber: null }],
   bio: null,
   createdAt: new Date(),

@@ -5,6 +5,16 @@ import { clinicsService } from '../services/clinics.service'
 import { toClinicModel } from '../mappers/to-clinic-model'
 import { createClinicUseCase } from './create-clinic.use-case'
 
+// `address` passou a ser obrigatório em ICreateClinicInput.
+const testAddress = {
+  street: 'Rua Teste',
+  number: '100',
+  neighborhood: 'Centro',
+  city: 'Recife',
+  state: 'PE',
+  zipCode: '50000-000',
+}
+
 const makeDto = () => ({
   id: 'uuid-1',
   name: 'Clínica do Coração',
@@ -27,7 +37,7 @@ describe('createClinicUseCase', () => {
   it('calls clinicsService.create with input and returns mapped model', async () => {
     const dto = makeDto()
     const model = makeModel()
-    const input = { name: 'Clínica do Coração', slug: 'clinica-do-coracao' }
+    const input = { name: 'Clínica do Coração', slug: 'clinica-do-coracao', address: testAddress }
     ;(clinicsService.create as jest.Mock).mockResolvedValue(dto)
     ;(toClinicModel as jest.Mock).mockReturnValue(model)
 
@@ -42,7 +52,7 @@ describe('createClinicUseCase', () => {
   it('calls clinicsService.create without slug when slug is undefined', async () => {
     const dto = makeDto()
     const model = makeModel()
-    const input = { name: 'Clínica do Coração' }
+    const input = { name: 'Clínica do Coração', address: testAddress }
     ;(clinicsService.create as jest.Mock).mockResolvedValue(dto)
     ;(toClinicModel as jest.Mock).mockReturnValue(model)
 
@@ -55,6 +65,6 @@ describe('createClinicUseCase', () => {
     const error = { status: 409, title: 'Conflict', detail: 'Slug already in use' }
     ;(clinicsService.create as jest.Mock).mockRejectedValue(error)
 
-    await expect(createClinicUseCase({ name: 'Clínica' })).rejects.toEqual(error)
+    await expect(createClinicUseCase({ name: 'Clínica', address: testAddress })).rejects.toEqual(error)
   })
 })

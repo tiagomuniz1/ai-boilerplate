@@ -1,3 +1,4 @@
+import { SubscriptionPlan } from '@app/shared'
 jest.mock('../hooks/use-upload-clinic-logo.hook')
 jest.mock('../hooks/use-upload-clinic-logo-dark.hook')
 jest.mock('../hooks/use-upload-clinic-favicon.hook')
@@ -25,6 +26,7 @@ function makeClinic(overrides: Partial<IClinicModel> = {}): IClinicModel {
     name: 'Clínica do Coração',
     slug: 'clinica-do-coracao',
     isActive: true,
+    plan: SubscriptionPlan.FREE,
     logoUrl: null,
     logoDarkUrl: null,
     faviconUrl: null,

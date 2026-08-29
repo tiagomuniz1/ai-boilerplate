@@ -3,6 +3,16 @@ jest.mock('@/lib/api-client')
 import { apiClient } from '@/lib/api-client'
 import { clinicsService } from './clinics.service'
 
+// `address` passou a ser obrigatório em ICreateClinicInput.
+const testAddress = {
+  street: 'Rua Teste',
+  number: '100',
+  neighborhood: 'Centro',
+  city: 'Recife',
+  state: 'PE',
+  zipCode: '50000-000',
+}
+
 const mockApiClient = apiClient as jest.Mocked<typeof apiClient>
 
 const makeClinicDto = () => ({
@@ -66,7 +76,7 @@ describe('clinicsService', () => {
   it('create calls POST /clinics with data and returns result', async () => {
     const dto = makeClinicDto()
     mockApiClient.post.mockResolvedValue(dto)
-    const input = { name: 'Clínica do Coração', slug: 'clinica-do-coracao' }
+    const input = { name: 'Clínica do Coração', slug: 'clinica-do-coracao', address: testAddress }
 
     const result = await clinicsService.create(input)
 
@@ -77,7 +87,7 @@ describe('clinicsService', () => {
   it('update calls PATCH /clinics/:id with data and returns result', async () => {
     const dto = makeClinicDto()
     mockApiClient.patch.mockResolvedValue(dto)
-    const input = { name: 'Clínica Nova' }
+    const input = { name: 'Clínica Nova', address: testAddress }
 
     const result = await clinicsService.update('uuid-1', input)
 

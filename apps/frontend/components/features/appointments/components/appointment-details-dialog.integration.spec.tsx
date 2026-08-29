@@ -29,6 +29,10 @@ const makeAppointmentDto = (overrides: object = {}) => ({
   insuranceType: null,
   reason: null,
   cancellationReason: null,
+  seriesFutureCount: null,
+  seriesId: null,
+  seriesSequence: null,
+  seriesTotalOccurrences: null,
   createdAt: new Date(),
   updatedAt: new Date(),
   patient: {
@@ -127,6 +131,9 @@ describe('AppointmentDetailsDialog (integration)', () => {
       makeAppointmentDto({
         status: AppointmentStatus.CANCELLED,
         cancellationReason: 'Paciente desmarcou',
+        seriesId: null,
+        seriesSequence: null,
+        seriesTotalOccurrences: null,
       }),
     )
     renderWithProviders(<AppointmentDetailsDialog {...defaultProps} />)

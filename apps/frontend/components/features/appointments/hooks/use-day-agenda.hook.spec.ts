@@ -21,6 +21,8 @@ const makeAppointment = (startTime = '09:00'): IAppointmentModel => ({
   professionalName: 'Dr. Test',
   patientId: 'pat-uuid',
   patientName: 'Patient',
+  specialtyId: null,
+  specialtyName: null,
   scheduleId: 'sched-uuid',
   date: '2025-06-20',
   startTime,
@@ -28,6 +30,9 @@ const makeAppointment = (startTime = '09:00'): IAppointmentModel => ({
   status: AppointmentStatus.SCHEDULED,
   reason: null,
   cancellationReason: null,
+  seriesId: null,
+  seriesSequence: null,
+  seriesTotalOccurrences: null,
   createdAt: new Date(),
   updatedAt: new Date(),
 })

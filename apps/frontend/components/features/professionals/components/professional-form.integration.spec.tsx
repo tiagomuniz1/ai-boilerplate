@@ -6,7 +6,7 @@ jest.mock('@/stores/auth.store')
 
 import { screen, waitFor, act, fireEvent } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import type { CouncilType } from '@app/shared'
+import { CouncilType } from '@app/shared'
 import { useRouter } from 'next/navigation'
 import { userService } from '@/components/features/users/services/users.service'
 import { clinicSpecialtiesService } from '@/components/features/clinic-specialties/services/clinic-specialties.service'
@@ -35,7 +35,7 @@ const mockAdminUser = { id: 'auth-user-id', fullName: 'Admin', email: 'admin@tes
 const existingProfessional: IProfessionalModel = {
   id: 'uuid-1',
   user: { id: 'user-uuid-1', fullName: 'Dr. João Silva', email: 'joao@example.com', isActive: true },
-  registrations: [{ id: 'crm-uuid-1', councilType: 'crm' as CouncilType, number: '12345', state: 'SP', isPrimary: true }],
+  registrations: [{ id: 'crm-uuid-1', councilType: CouncilType.CRM as CouncilType, number: '12345', state: 'SP', isPrimary: true }],
   specialties: [{ id: SPEC_ID_1, name: 'Cardiologia', registryNumber: '6789' }],
   bio: 'Bio inicial.',
   createdAt: new Date('2024-01-15'),
@@ -173,7 +173,7 @@ describe('ProfessionalForm (integration) — create mode', () => {
       expect(onSubmit).toHaveBeenCalledWith(
         expect.objectContaining({
           userId: 'user-uuid-1',
-          registrations: [{ number: '12345', state: 'SP', isPrimary: true, councilType: 'crm' }],
+          registrations: [{ number: '12345', state: 'SP', isPrimary: true, councilType: CouncilType.CRM }],
           specialties: [{ specialtyId: SPEC_ID_1, registryNumber: undefined }],
         }),
         expect.any(Function),
@@ -238,7 +238,7 @@ describe('ProfessionalForm (integration) — create mode', () => {
         expect.objectContaining({
           fullName: 'Dra. Maria Santos',
           email: 'maria@clinica.com',
-          registrations: [{ number: '54321', state: 'RJ', isPrimary: true, councilType: 'crm' }],
+          registrations: [{ number: '54321', state: 'RJ', isPrimary: true, councilType: CouncilType.CRM }],
         }),
         expect.any(Function),
       )
@@ -318,7 +318,7 @@ describe('ProfessionalForm (integration) — create mode', () => {
     await waitFor(() => {
       expect(onSubmit).toHaveBeenCalledWith(
         expect.objectContaining({
-          registrations: [{ number: '12345678', state: 'SP', isPrimary: true, councilType: 'crn' }],
+          registrations: [{ number: '12345678', state: 'SP', isPrimary: true, councilType: CouncilType.CRN }],
           specialties: [],
         }),
         expect.any(Function),
@@ -378,7 +378,7 @@ describe('ProfessionalForm (integration) — create mode', () => {
     await waitFor(() => {
       expect(onSubmit).toHaveBeenCalledWith(
         expect.objectContaining({
-          registrations: [{ number: '06/12345', state: 'SP', isPrimary: true, councilType: 'crp' }],
+          registrations: [{ number: '06/12345', state: 'SP', isPrimary: true, councilType: CouncilType.CRP }],
         }),
         expect.any(Function),
       )
@@ -655,7 +655,7 @@ describe('ProfessionalForm (integration) — edit mode', () => {
     await waitFor(() => {
       expect(onSubmit).toHaveBeenCalledWith(
         expect.objectContaining({
-          registrations: [{ number: '12345', state: 'SP', isPrimary: true, councilType: 'crm' }],
+          registrations: [{ number: '12345', state: 'SP', isPrimary: true, councilType: CouncilType.CRM }],
           specialties: expect.arrayContaining([
             { specialtyId: SPEC_ID_1, registryNumber: '6789' },
             { specialtyId: SPEC_ID_2, registryNumber: undefined },

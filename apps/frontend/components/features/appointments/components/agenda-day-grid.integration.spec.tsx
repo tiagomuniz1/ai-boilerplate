@@ -7,7 +7,7 @@ jest.mock('next/navigation', () => ({ useRouter: jest.fn(() => ({ push: jest.fn(
 
 import { screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { AppointmentStatus, UserRole } from '@app/shared'
+import { AppointmentStatus, UserRole, type AppointmentResponseDto } from '@app/shared'
 import { appointmentsService } from '../services/appointments.service'
 import { patientsService } from '@/components/features/patients/services/patients.service'
 import { scheduleExceptionsService } from '@/components/features/schedule-exceptions/services/schedule-exceptions.service'
@@ -38,7 +38,9 @@ const makeAvailabilityResponse = (
   })),
 })
 
-const makePaginatedAppointments = (appointments: object[] = []) => ({
+// `object[]` não satisfaz AppointmentResponseDto[]; o tipo precisa ser o do DTO
+// para que uma fixture incompleta apareça aqui em vez de passar batido.
+const makePaginatedAppointments = (appointments: AppointmentResponseDto[] = []) => ({
   data: appointments,
   total: 0,
   page: 1,
@@ -60,6 +62,10 @@ const makeAppointmentDto = (overrides: object = {}) => ({
   status: AppointmentStatus.SCHEDULED,
   reason: null,
   cancellationReason: null,
+  insuranceType: null,
+  seriesId: null,
+  seriesSequence: null,
+  seriesTotalOccurrences: null,
   createdAt: new Date(),
   updatedAt: new Date(),
   ...overrides,

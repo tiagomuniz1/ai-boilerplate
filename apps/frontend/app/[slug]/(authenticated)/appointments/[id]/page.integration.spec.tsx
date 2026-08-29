@@ -15,7 +15,7 @@ jest.mock('next/navigation', () => ({
 
 import { screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { AppointmentStatus, PatientGender, UserRole } from '@app/shared'
+import { AppointmentStatus, PatientGender, UserRole, CouncilType } from '@app/shared'
 import { useRouter } from 'next/navigation'
 import { appointmentsService } from '@/components/features/appointments/services/appointments.service'
 import { professionalsService } from '@/components/features/professionals/services/professionals.service'
@@ -56,11 +56,11 @@ const makeDoctorsResponse = (id = DOCTOR_ID) => ({
     {
       id,
       user: { id: DOCTOR_USER_ID, fullName: 'Dr. Test', email: 'doctor@test.com', isActive: true },
-      registrations: [{ id: 'crm-1', councilType: 'crm', number: '12345', state: 'SP', isPrimary: true }],
+      registrations: [{ id: 'crm-1', councilType: CouncilType.CRM, number: '12345', state: 'SP', isPrimary: true }],
       specialties: [],
       bio: null,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
+      createdAt: new Date().toISOString() as unknown as Date,
+      updatedAt: new Date().toISOString() as unknown as Date,
     },
   ],
   total: 1,
@@ -84,6 +84,11 @@ const makeAppointmentDto = (overrides: object = {}) => ({
   insuranceType: null,
   reason: null,
   cancellationReason: null,
+  // Campos de série: null porque a consulta não pertence a nenhuma.
+  seriesFutureCount: null,
+  seriesId: null,
+  seriesSequence: null,
+  seriesTotalOccurrences: null,
   createdAt: new Date(),
   updatedAt: new Date(),
   patient: {
@@ -374,7 +379,12 @@ describe('AppointmentDetailPage (integration)', () => {
   it('confirming cancel dialog calls cancel service', async () => {
     mockAppointmentsService.getById.mockResolvedValue(makeAppointmentDto())
     mockAppointmentsService.cancel.mockResolvedValue(
-      makeAppointmentDto({ status: AppointmentStatus.CANCELLED }),
+      // cancel() devolve AppointmentResponseDto + a contagem do escopo cancelado.
+      {
+        ...makeAppointmentDto({ status: AppointmentStatus.CANCELLED }),
+        cancelledOccurrenceCount: 1,
+        cancelledAppointmentIds: ['appt-uuid'],
+      },
     )
     mockAppointmentsService.getAll.mockResolvedValue({ data: [], total: 0, page: 1, limit: 100 })
     mockAppointmentsService.getAvailability.mockResolvedValue({ professionalId: DOCTOR_ID, date: '2025-06-10', slots: [] })

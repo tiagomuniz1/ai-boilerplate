@@ -15,7 +15,7 @@ jest.mock('@/lib/slug-context', () => ({
 }))
 
 function setRole(role: UserRole) {
-  useAuthStore.setState({ user: { id: 'u1', fullName: 'Test', email: 't@t.com', role } })
+  useAuthStore.setState({ user: { id: 'u1', fullName: 'Test', email: 't@t.com', role, clinicId: 'clinic-uuid' } })
 }
 
 describe('useSidebarNavigation', () => {

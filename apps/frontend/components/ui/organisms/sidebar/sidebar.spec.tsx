@@ -1,3 +1,4 @@
+import { UserRole } from '@app/shared'
 import { render, screen, fireEvent } from '@testing-library/react'
 import { usePathname } from 'next/navigation'
 import { Sidebar } from './sidebar'
@@ -34,7 +35,7 @@ const mockItems: INavigationItemViewModel[] = [
   },
 ]
 
-const mockUser = { id: 'uuid-1', fullName: 'Alice Costa', email: 'alice@example.com' }
+const mockUser = { id: 'uuid-1', fullName: 'Alice Costa', email: 'alice@example.com', role: UserRole.ADMIN, clinicId: 'clinic-uuid' }
 
 const mockUseSidebarNavigation = useSidebarNavigation as jest.MockedFunction<typeof useSidebarNavigation>
 

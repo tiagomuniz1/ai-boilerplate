@@ -1,3 +1,4 @@
+import { CouncilType } from '@app/shared'
 jest.mock('next/navigation', () => ({ useRouter: jest.fn() }))
 jest.mock('../services/professionals.service')
 
@@ -13,7 +14,7 @@ const mockPush = jest.fn()
 const professional: IProfessionalModel = {
   id: 'uuid-1',
   user: { id: 'user-uuid-1', fullName: 'Dr. João Silva', email: 'joao@example.com', isActive: true },
-  registrations: [{ id: 'crm-uuid-1', number: '12345', state: 'SP', isPrimary: true }],
+  registrations: [{ id: 'crm-uuid-1', councilType: CouncilType.CRM, number: '12345', state: 'SP', isPrimary: true }],
   specialties: [{ id: 'spec-uuid-1', name: 'Cardiologia', registryNumber: '6789' }],
   bio: 'Especialista em cardiologia.',
   createdAt: new Date('2024-01-15'),
@@ -40,9 +41,9 @@ describe('ProfessionalDetails (integration)', () => {
     const multiSpecialtyProfessional: IProfessionalModel = {
       ...professional,
       specialties: [
-        { id: 'spec-uuid-1', name: 'Cardiologia' },
-        { id: 'spec-uuid-2', name: 'Neurologia' },
-        { id: 'spec-uuid-3', name: 'Ortopedia' },
+        { id: 'spec-uuid-1', name: 'Cardiologia', registryNumber: null },
+        { id: 'spec-uuid-2', name: 'Neurologia', registryNumber: null },
+        { id: 'spec-uuid-3', name: 'Ortopedia', registryNumber: null },
       ],
     }
 
