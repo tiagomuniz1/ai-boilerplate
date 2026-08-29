@@ -40,6 +40,20 @@ describe('ResumoTab', () => {
     expect(screen.getByTestId('patient-info-gender')).toHaveTextContent('Feminino')
   })
 
+  it('formats the CPF when the patient has one', () => {
+    renderWithProviders(<ResumoTab {...defaultProps} />)
+    expect(screen.getByTestId('patient-info-cpf')).toHaveTextContent('123.456.789-01')
+  })
+
+  // A dependent may legitimately have no CPF. Rendering the label with nothing
+  // beside it reads as a loading failure; the patient page says "Não informado".
+  it('says "Não informado" for a patient without a CPF', () => {
+    renderWithProviders(
+      <ResumoTab {...defaultProps} patient={makePatient({ documentNumber: null })} />,
+    )
+    expect(screen.getByTestId('patient-info-cpf')).toHaveTextContent('Não informado')
+  })
+
   it('falls back to the raw gender value when it has no known label', () => {
     renderWithProviders(
       <ResumoTab {...defaultProps} patient={makePatient({ gender: 'unknown' as PatientGender })} />,

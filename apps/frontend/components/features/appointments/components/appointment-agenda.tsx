@@ -7,19 +7,12 @@ import { useAuthStore } from '@/stores/auth.store'
 import { useIsMobile } from '@/hooks/use-is-mobile.hook'
 import { useProfessionals } from '@/components/features/professionals/hooks/use-professionals.hook'
 import { BlockTimeDialog } from '@/components/features/schedule-exceptions/components/BlockTimeDialog'
-import { toLocalDateString } from '@/lib/format-date'
+import { getWeekStart, toLocalDateString } from '@/lib/format-date'
 import { AgendaToolbar } from './agenda-toolbar'
 import { AgendaDayGrid } from './agenda-day-grid'
 import { AgendaWeekGrid } from './agenda-week-grid'
 
 type AgendaView = 'day' | 'week'
-
-function getWeekStart(date: Date): Date {
-  const d = new Date(date)
-  const day = d.getDay()
-  d.setDate(d.getDate() - day)
-  return d
-}
 
 function parseDate(str: string | null): Date {
   if (!str) return new Date()

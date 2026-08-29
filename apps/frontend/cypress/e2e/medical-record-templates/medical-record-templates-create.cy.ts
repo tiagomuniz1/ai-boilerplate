@@ -134,7 +134,30 @@ describe('Medical Record Templates Create', () => {
     cy.get('[data-testid="template-form-submit"]').click()
 
     cy.wait('@createTemplate')
-    cy.get('[data-testid="template-form-global-error"]').should('be.visible')
+    // The rule is one template per specialty, never per name — a message about
+    // the name sends the user off renaming, which cannot clear the conflict.
+    cy.get('[data-testid="template-form-global-error"]')
+      .should('be.visible')
+      .and('contain', 'já tem um modelo para esta especialidade')
+  })
+
+  it('names the profession, not the specialty, when the conflicting template is the generalist one', () => {
+    cy.intercept('POST', `${Cypress.env('API_URL')}/medical-record-templates`, {
+      statusCode: 409,
+      body: { title: 'Conflict' },
+    }).as('createTemplate')
+
+    visitClinic('/medical-record-templates/new', mockAdmin)
+    cy.wait('@getSpecialties')
+    cy.get('[data-testid="template-form-name"]').type('Generalista')
+    cy.get('[data-testid="template-form-add-field"]').click()
+    cy.get('[data-testid="field-editor-label-0"]').type('Sintoma')
+    cy.get('[data-testid="template-form-submit"]').click()
+
+    cy.wait('@createTemplate')
+    cy.get('[data-testid="template-form-global-error"]')
+      .should('be.visible')
+      .and('contain', 'modelo generalista para esta profissão')
   })
 
   // Real-backend happy path lives in medical-record-templates-happy-path-real.cy.ts.

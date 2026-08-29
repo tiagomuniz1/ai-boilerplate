@@ -2,6 +2,7 @@
 
 import Link from 'next/link'
 import { useBasePath } from '@/lib/slug-context'
+import { formatDateToBR } from '@/lib/format-date'
 import { Button } from '@/components/ui/atoms/button/button'
 import { Typography } from '@/components/ui/atoms/typography/typography'
 import { DAY_OF_WEEK_LABELS } from '../types/schedule-model.types'
@@ -81,14 +82,14 @@ export function ScheduleDetails({ schedule, canManageSchedules, onDeleteClick }:
           <div className="bg-surface px-6 py-4">
             <DetailRow
               label="Válido de"
-              value={schedule.validFrom ?? 'Indefinido'}
+              value={schedule.validFrom ? formatDateToBR(schedule.validFrom) : 'Indefinido'}
               testId="schedule-details-valid-from"
             />
           </div>
           <div className="bg-surface px-6 py-4">
             <DetailRow
               label="Válido até"
-              value={schedule.validUntil ?? 'Indefinido'}
+              value={schedule.validUntil ? formatDateToBR(schedule.validUntil) : 'Indefinido'}
               testId="schedule-details-valid-until"
             />
           </div>

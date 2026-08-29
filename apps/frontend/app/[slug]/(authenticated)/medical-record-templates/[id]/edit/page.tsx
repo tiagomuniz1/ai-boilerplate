@@ -43,7 +43,10 @@ export default function EditMedicalRecordTemplatePage({ params }: EditMedicalRec
       onError: (error) => {
         const apiError = error as unknown as IApiError
         if (apiError.status === 409) {
-          setGlobalError('Já existe um modelo com este nome para esta especialidade.')
+          // Editing cannot change the template's scope, so a 409 here is never a
+          // uniqueness conflict — it is the optimistic lock reporting that someone
+          // else saved this template first.
+          setGlobalError('Este modelo foi alterado por outra pessoa. Recarregue a página e tente novamente.')
         } else {
           setGlobalError('Não foi possível salvar o modelo. Tente novamente.')
         }

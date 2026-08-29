@@ -169,7 +169,7 @@ describe('ScheduleList (integration)', () => {
 
       await waitFor(() => expect(screen.getByTestId('schedule-validity-uuid-1')).toBeInTheDocument())
 
-      expect(screen.getByTestId('schedule-validity-uuid-1')).toHaveTextContent('2025-01-01 → ∞')
+      expect(screen.getByTestId('schedule-validity-uuid-1')).toHaveTextContent('01/01/2025 → ∞')
     })
 
     it('shows "∞" for validFrom when validFrom is null but validUntil is set', async () => {
@@ -181,7 +181,7 @@ describe('ScheduleList (integration)', () => {
 
       await waitFor(() => expect(screen.getByTestId('schedule-validity-uuid-1')).toBeInTheDocument())
 
-      expect(screen.getByTestId('schedule-validity-uuid-1')).toHaveTextContent('∞ → 2025-12-31')
+      expect(screen.getByTestId('schedule-validity-uuid-1')).toHaveTextContent('∞ → 31/12/2025')
     })
 
     it('filters by dayOfWeek when day filter is changed', async () => {

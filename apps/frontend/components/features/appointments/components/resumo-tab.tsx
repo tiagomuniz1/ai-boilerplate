@@ -121,7 +121,7 @@ export function ResumoTab({
           />
           <DetailRow
             label="CPF"
-            value={formatCpf(patient.documentNumber)}
+            value={patient.documentNumber ? formatCpf(patient.documentNumber) : 'Não informado'}
             testId="patient-info-cpf"
           />
           <DetailRow
