@@ -2,24 +2,6 @@
 
 ## [Unreleased]
 
-### Fixed
-
-#### Consulta sem prontuário exibia estado de erro e escondia o botão de preencher
-- `GET /medical-records/by-appointment/:id` responde **404** quando ainda não existe prontuário — o caso normal, não uma falha. O estado de erro introduzido junto com a correção de cache tratava esse 404 como erro e escondia o botão "Preencher prontuário"
-- O 404 passa a ser traduzido para "não há prontuário" no use-case, e o estado de erro fica reservado a falhas de verdade
-
-### Changed
-
-#### Testes: 406 erros de tipo corrigidos e o `typecheck` passa a cobri-los
-- O `tsconfig.json` do app exclui `cypress` **e** `**/*.spec.ts(x)`, então nem os 114 arquivos de E2E nem os 427 de Jest eram compilados — 406 erros acumularam sem ninguém ver. `yarn typecheck` agora roda as três árvores, via os novos `typecheck:test` e `typecheck:e2e`, cada uma com seu tsconfig para não misturar os tipos do app com os globais de Jest e Cypress
-- **236 nos testes Jest**, quase todos a mesma coisa: fixtures que envelheceram junto com o produto. Profissional ainda com `crmNumber` (virou `registrations` na generalização para profissional de saúde), especialidade com `rqe` em vez de `registryNumber`, consulta sem `insuranceType` nem os campos de série, paciente sem os campos de parentesco, clínica sem `themeId`/`logoDarkUrl`, template sem `sectionKey`/`sections`, e um `ThemeBorderRadius.MD` que nunca existiu no enum
-- **170 no Cypress**: dois helpers cujo tipo mentia (`visitBackoffice` inferia o tipo do valor padrão, tornando `clinicId` obrigatório; `visitClinic` e `stubClinicLayout` exigiam um `MockAuthUser` completo — daí o `{} as MockAuthUser`) e nove specs sem `import`/`export`, tratadas como scripts e dividindo o escopo global
-- É a mesma classe de defeito que deixou a fixture de paciente sem `dependents` e derrubou o app durante a validação: cada entrega deixava mocks para trás e nada avisava
-
-#### Cypress: stubs das páginas de detalhe centralizados
-- Novos `cy.stubAppointmentDetailWidgets()` e `cy.stubPatientDetailWidgets()`. As páginas de detalhe disparam um GET por widget assim que montam, inclusive de abas que o teste nunca abre; um deles sem stub responde `401`, o api-client tenta refresh, falha e manda o app para `/login` — a spec morre num loop de redirect com um erro que não menciona o stub faltante
-- Antes cada spec repetia os stubs (um deles escondido dentro de uma função chamada `stubExamRequests`), então todo widget novo quebrava a suíte de novo. Agora é uma linha num lugar só
-
 ### Added
 
 #### Consultas recorrentes
@@ -142,6 +124,26 @@
 - Campos `doctorId`/`doctorName` renomeados para `professionalId`/`professionalName` em todas as features consumidoras (consultas, agendas, exceções de agenda, exames, atestados, receitas, templates de receita, prontuários, dashboard)
 - Página pública de verificação de receita exibe o conselho e número de registro do profissional (`professionalCouncilType`/`professionalRegistrationNumber`) em vez de CRM fixo
 - Suíte E2E (Cypress) migrada por completo para o novo modelo: specs de `doctors/*` renomeadas para `professionals/*` e reescritas para o formulário multi-registro; demais specs (consultas, agendas, exames, prontuários, usuários, mobile) atualizadas para os novos testids e payloads (`registrations` em vez de `crmNumber`)
+
+## [1.3.2] - 2026-08-28
+
+### Fixed
+
+#### Consulta sem prontuário exibia estado de erro e escondia o botão de preencher
+- `GET /medical-records/by-appointment/:id` responde **404** quando ainda não existe prontuário — o caso normal, não uma falha. O estado de erro introduzido junto com a correção de cache tratava esse 404 como erro e escondia o botão "Preencher prontuário"
+- O 404 passa a ser traduzido para "não há prontuário" no use-case, e o estado de erro fica reservado a falhas de verdade
+
+### Changed
+
+#### Testes: 406 erros de tipo corrigidos e o `typecheck` passa a cobri-los
+- O `tsconfig.json` do app exclui `cypress` **e** `**/*.spec.ts(x)`, então nem os 114 arquivos de E2E nem os 427 de Jest eram compilados — 406 erros acumularam sem ninguém ver. `yarn typecheck` agora roda as três árvores, via os novos `typecheck:test` e `typecheck:e2e`, cada uma com seu tsconfig para não misturar os tipos do app com os globais de Jest e Cypress
+- **236 nos testes Jest**, quase todos a mesma coisa: fixtures que envelheceram junto com o produto. Profissional ainda com `crmNumber` (virou `registrations` na generalização para profissional de saúde), especialidade com `rqe` em vez de `registryNumber`, consulta sem `insuranceType` nem os campos de série, paciente sem os campos de parentesco, clínica sem `themeId`/`logoDarkUrl`, template sem `sectionKey`/`sections`, e um `ThemeBorderRadius.MD` que nunca existiu no enum
+- **170 no Cypress**: dois helpers cujo tipo mentia (`visitBackoffice` inferia o tipo do valor padrão, tornando `clinicId` obrigatório; `visitClinic` e `stubClinicLayout` exigiam um `MockAuthUser` completo — daí o `{} as MockAuthUser`) e nove specs sem `import`/`export`, tratadas como scripts e dividindo o escopo global
+- É a mesma classe de defeito que deixou a fixture de paciente sem `dependents` e derrubou o app durante a validação: cada entrega deixava mocks para trás e nada avisava
+
+#### Cypress: stubs das páginas de detalhe centralizados
+- Novos `cy.stubAppointmentDetailWidgets()` e `cy.stubPatientDetailWidgets()`. As páginas de detalhe disparam um GET por widget assim que montam, inclusive de abas que o teste nunca abre; um deles sem stub responde `401`, o api-client tenta refresh, falha e manda o app para `/login` — a spec morre num loop de redirect com um erro que não menciona o stub faltante
+- Antes cada spec repetia os stubs (um deles escondido dentro de uma função chamada `stubExamRequests`), então todo widget novo quebrava a suíte de novo. Agora é uma linha num lugar só
 
 ## [1.3.1] - 2026-08-28
 
