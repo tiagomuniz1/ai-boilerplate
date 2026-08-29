@@ -2,6 +2,7 @@
 
 import { UserRole } from '@app/shared'
 import { Button } from '@/components/ui/atoms/button/button'
+import { getWeekStart } from '@/lib/format-date'
 import type { IProfessionalModel } from '@/components/features/professionals/types/professional-model.types'
 
 type AgendaView = 'day' | 'week'
@@ -22,9 +23,12 @@ function formatDateLabel(date: Date, view: AgendaView): string {
   if (view === 'day') {
     return date.toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })
   }
-  const end = new Date(date)
+  // Snap to the same Sunday the week grid snaps to. Labelling `date`..`date + 6`
+  // describes a different week than the grid renders on any non-Sunday.
+  const start = getWeekStart(date)
+  const end = new Date(start)
   end.setDate(end.getDate() + 6)
-  return `${date.toLocaleDateString('pt-BR', { day: 'numeric', month: 'short' })} – ${end.toLocaleDateString('pt-BR', { day: 'numeric', month: 'short', year: 'numeric' })}`
+  return `${start.toLocaleDateString('pt-BR', { day: 'numeric', month: 'short' })} – ${end.toLocaleDateString('pt-BR', { day: 'numeric', month: 'short', year: 'numeric' })}`
 }
 
 export function AgendaToolbar({
@@ -74,7 +78,7 @@ export function AgendaToolbar({
         </Button>
       </div>
 
-      <span className="text-sm font-medium capitalize" data-testid="toolbar-date-label">
+      <span className="text-sm font-medium first-letter:uppercase" data-testid="toolbar-date-label">
         {formatDateLabel(currentDate, view)}
       </span>
 

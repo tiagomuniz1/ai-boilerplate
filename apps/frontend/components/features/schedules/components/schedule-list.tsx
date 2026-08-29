@@ -4,6 +4,7 @@ import { useState } from 'react'
 import Link from 'next/link'
 import { UserRole } from '@app/shared'
 import { useBasePath } from '@/lib/slug-context'
+import { formatDateToBR } from '@/lib/format-date'
 import { Alert } from '@/components/ui/molecules/alert/alert'
 import { Button } from '@/components/ui/atoms/button/button'
 import { MobileListCard } from '@/components/ui/molecules/mobile-list-card/mobile-list-card'
@@ -48,7 +49,7 @@ function ShieldIcon() {
 
 function scheduleValidityLabel(schedule: IScheduleModel): string {
   return schedule.validFrom || schedule.validUntil
-    ? `${schedule.validFrom ?? '∞'} → ${schedule.validUntil ?? '∞'}`
+    ? `${schedule.validFrom ? formatDateToBR(schedule.validFrom) : '∞'} → ${schedule.validUntil ? formatDateToBR(schedule.validUntil) : '∞'}`
     : 'Indefinida'
 }
 

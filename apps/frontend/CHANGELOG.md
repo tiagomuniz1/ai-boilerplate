@@ -1,5 +1,26 @@
 # Changelog — Frontend
 
+## [1.3.3] - 2026-08-28
+
+### Fixed
+
+#### Cabeçalho da agenda semanal apontava uma semana diferente da grade
+- `AgendaToolbar` rotulava `currentDate` até `currentDate + 6`, enquanto `AgendaWeekGrid` renderiza a semana de domingo a sábado que contém a data selecionada. Em qualquer dia que não fosse domingo os dois discordavam — a grade mostrava 23–29/08 sob o título "28 de ago. – 3 de set."
+- `getWeekStart` saiu de `appointment-agenda.tsx` para `lib/format-date.ts` e agora é a única definição de semana: grade e rótulo derivam dela
+
+#### Rótulo de data da agenda capitalizava todas as palavras
+- `capitalize` do Tailwind vira "28 De Ago. De 2026"; a intenção era só a primeira letra, para a visão diária ler "Sexta-feira, 28 de agosto de 2026". Trocado por `first-letter:uppercase`
+
+#### Mensagem de conflito de modelo de prontuário citava o nome, que não é a regra
+- A restrição é um modelo por especialidade (ou por profissão, no generalista) por clínica — nunca por nome. Dizer "já existe um modelo com este nome" mandava o usuário renomear, o que não resolve o conflito. A mensagem agora nomeia a especialidade ou a profissão, acompanhando o próprio 409 do backend
+- Na edição, o escopo do modelo não pode mudar, então um 409 ali é o optimistic lock, não a unicidade — a mensagem passou a ser "Este modelo foi alterado por outra pessoa"
+
+#### Datas de validade da agenda saíam em ISO
+- Lista e detalhe de agendas mostravam `2026-09-01 → 2026-12-31`; agora usam `formatDateToBR`, como o resto do sistema
+
+#### CPF em branco no resumo da consulta
+- Paciente dependente pode legitimamente não ter CPF. A página do paciente já dizia "Não informado"; o resumo da consulta renderizava o rótulo sem valor, o que parece falha de carregamento
+
 ## [Unreleased]
 
 ### Added

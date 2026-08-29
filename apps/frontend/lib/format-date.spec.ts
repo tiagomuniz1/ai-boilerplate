@@ -1,4 +1,4 @@
-import { formatDateToBR, getWeekdayNamePtBR, toLocalDateString } from './format-date'
+import { formatDateToBR, getWeekStart, getWeekdayNamePtBR, toLocalDateString } from './format-date'
 
 describe('formatDateToBR', () => {
   it('formats a YYYY-MM-DD string into DD/MM/YYYY', () => {
@@ -54,5 +54,30 @@ describe('getWeekdayNamePtBR', () => {
 
   it('returns an empty string for an unparseable date', () => {
     expect(getWeekdayNamePtBR('not-a-date')).toBe('')
+  })
+})
+
+describe('getWeekStart', () => {
+  it.each([
+    ['2026-08-23', '2026-08-23'], // sunday: already the week start
+    ['2026-08-24', '2026-08-23'],
+    ['2026-08-28', '2026-08-23'],
+    ['2026-08-29', '2026-08-23'], // saturday: still the same week
+  ])('maps %s to the week starting %s', (date, expected) => {
+    expect(toLocalDateString(getWeekStart(new Date(`${date}T00:00:00`)))).toBe(expected)
+  })
+
+  it('crosses into the previous month when the week straddles it', () => {
+    expect(toLocalDateString(getWeekStart(new Date('2026-09-02T00:00:00')))).toBe('2026-08-30')
+  })
+
+  it('crosses into the previous year when the week straddles it', () => {
+    expect(toLocalDateString(getWeekStart(new Date('2027-01-01T00:00:00')))).toBe('2026-12-27')
+  })
+
+  it('does not mutate the date it receives', () => {
+    const date = new Date('2026-08-28T00:00:00')
+    getWeekStart(date)
+    expect(toLocalDateString(date)).toBe('2026-08-28')
   })
 })

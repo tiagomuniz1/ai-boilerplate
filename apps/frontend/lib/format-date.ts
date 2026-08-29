@@ -47,3 +47,16 @@ export function getWeekdayNamePtBR(date: string): string {
   if (Number.isNaN(parsed.getTime())) return ''
   return WEEKDAY_NAMES_PT_BR[parsed.getDay()]
 }
+
+/**
+ * The Sunday that opens the calendar week containing `date`.
+ * The agenda's week grid and its toolbar label must derive the week from this
+ * single function: computing the week independently in each one lets the label
+ * describe a different week than the grid renders whenever the selected date is
+ * not already a Sunday.
+ */
+export function getWeekStart(date: Date): Date {
+  const start = new Date(date)
+  start.setDate(start.getDate() - start.getDay())
+  return start
+}

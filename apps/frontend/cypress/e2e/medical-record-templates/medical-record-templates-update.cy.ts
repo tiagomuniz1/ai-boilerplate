@@ -126,7 +126,11 @@ describe('Medical Record Templates Update', () => {
     cy.wait('@getTemplate')
     cy.get('[data-testid="template-form-submit"]').click()
     cy.wait('@updateTemplate')
-    cy.get('[data-testid="template-form-global-error"]').should('be.visible')
+    // Editing cannot change the template's scope, so a 409 here is the optimistic
+    // lock, not the uniqueness rule.
+    cy.get('[data-testid="template-form-global-error"]')
+      .should('be.visible')
+      .and('contain', 'alterado por outra pessoa')
   })
 
   it('redirects to details on successful save', () => {

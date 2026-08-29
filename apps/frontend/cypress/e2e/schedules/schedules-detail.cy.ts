@@ -73,8 +73,8 @@ describe('Schedule Detail', () => {
     visitClinic(`/schedules/${mockScheduleWithValidity.id}`, mockProfessionalUser)
     cy.wait('@getSchedule')
 
-    cy.get('[data-testid="schedule-details-valid-from"]').should('contain', '2025-01-01')
-    cy.get('[data-testid="schedule-details-valid-until"]').should('contain', '2025-12-31')
+    cy.get('[data-testid="schedule-details-valid-from"]').should('contain', '01/01/2025')
+    cy.get('[data-testid="schedule-details-valid-until"]').should('contain', '31/12/2025')
   })
 
   it('shows edit and delete action buttons', () => {

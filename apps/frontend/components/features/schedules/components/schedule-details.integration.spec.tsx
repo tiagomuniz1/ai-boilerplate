@@ -58,8 +58,8 @@ describe('ScheduleDetails', () => {
         onDeleteClick={jest.fn()}
       />,
     )
-    expect(screen.getByTestId('schedule-details-valid-from')).toHaveTextContent('2025-03-01')
-    expect(screen.getByTestId('schedule-details-valid-until')).toHaveTextContent('2025-12-31')
+    expect(screen.getByTestId('schedule-details-valid-from')).toHaveTextContent('01/03/2025')
+    expect(screen.getByTestId('schedule-details-valid-until')).toHaveTextContent('31/12/2025')
   })
 
   it('renders edit and delete buttons when canManageSchedules is true', () => {
