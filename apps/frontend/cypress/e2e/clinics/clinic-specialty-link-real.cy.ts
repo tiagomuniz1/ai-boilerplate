@@ -1,3 +1,8 @@
+// Sem um import ou export, o TypeScript trata o arquivo como script e as
+// constantes de topo passam a dividir o escopo global com as outras specs —
+// PLATFORM_EMAIL e companhia colidiam entre nove arquivos.
+export {}
+
 // Stack real ponta a ponta — zero cobertura hoje. Vincular/desvincular
 // especialidade pela UI da clínica (hoje só existia cobertura indireta via
 // API, dentro de outros specs que precisavam de uma especialidade vinculada).

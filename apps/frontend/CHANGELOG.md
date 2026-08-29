@@ -10,6 +10,12 @@
 
 ### Changed
 
+#### Cypress: 170 erros de tipo corrigidos e o `typecheck` passa a cobri-los
+- A pasta `cypress` fica fora do `tsconfig.json` do app, então `yarn typecheck` nunca a compilava e os erros se acumularam sem ninguém ver. `typecheck` agora roda também `cypress/tsconfig.json`, via o novo script `typecheck:e2e`
+- **145 erros** vinham de dois helpers cujo tipo mentia: `visitBackoffice` tinha o tipo inferido do valor padrão (`mockPlatformAdmin`, que traz `clinicId: null`), tornando o campo obrigatório para todo chamador; e `stubClinicLayout`/`visitClinic` exigiam um `MockAuthUser` completo enquanto os testes passam só os campos que lhes importam. Passaram a receber `Partial<MockAuthUser>`, o que também eliminou o `{} as MockAuthUser` que enganava o compilador
+- **20 erros** eram colisão de escopo: nove specs não têm `import` nem `export`, então o TypeScript as trata como scripts e suas constantes de topo (`PLATFORM_EMAIL` e afins) dividiam o escopo global. Um `export {}` em cada as torna módulos
+- **5 erros** apontavam para defaults marcados como código morto em `stubClinicLayout` — sintoma do mesmo tipo errado, resolvidos junto
+
 #### Cypress: stubs das páginas de detalhe centralizados
 - Novos `cy.stubAppointmentDetailWidgets()` e `cy.stubPatientDetailWidgets()`. As páginas de detalhe disparam um GET por widget assim que montam, inclusive de abas que o teste nunca abre; um deles sem stub responde `401`, o api-client tenta refresh, falha e manda o app para `/login` — a spec morre num loop de redirect com um erro que não menciona o stub faltante
 - Antes cada spec repetia os stubs (um deles escondido dentro de uma função chamada `stubExamRequests`), então todo widget novo quebrava a suíte de novo. Agora é uma linha num lugar só

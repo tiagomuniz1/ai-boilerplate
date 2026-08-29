@@ -1,3 +1,8 @@
+// Sem um import ou export, o TypeScript trata o arquivo como script e as
+// constantes de topo passam a dividir o escopo global com as outras specs —
+// PLATFORM_EMAIL e companhia colidiam entre nove arquivos.
+export {}
+
 // Aprofunda themes-happy-path-real.cy.ts (que só cobria o CRUD feliz + 403 de
 // ADMIN comum). Formato de cor é validado no client com o mesmo regex do
 // backend, então a rejeição de formato inválido é genuinamente real (nunca

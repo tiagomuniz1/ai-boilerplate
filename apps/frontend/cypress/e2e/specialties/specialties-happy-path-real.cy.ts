@@ -1,3 +1,8 @@
+// Sem um import ou export, o TypeScript trata o arquivo como script e as
+// constantes de topo passam a dividir o escopo global com as outras specs —
+// PLATFORM_EMAIL e companhia colidiam entre nove arquivos.
+export {}
+
 // Stack real ponta a ponta — happy path (create/update/delete) nunca bateu no
 // backend real; a suíte existente (specialties-create/update/delete/detail/list)
 // é toda mockada.
