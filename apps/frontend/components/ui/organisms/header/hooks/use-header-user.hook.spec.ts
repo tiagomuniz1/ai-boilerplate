@@ -1,3 +1,4 @@
+import { UserRole } from '@app/shared'
 import { renderHook } from '@testing-library/react'
 import { useAuthStore } from '@/stores/auth.store'
 import { useHeaderUser } from './use-header-user.hook'
@@ -19,6 +20,8 @@ describe('useHeaderUser', () => {
       id: 'user-123',
       fullName: 'Maria Silva',
       email: 'maria@example.com',
+      role: UserRole.ADMIN,
+      clinicId: 'clinic-uuid',
     }
 
     useAuthStore.setState({ user: storeUser })
@@ -26,6 +29,8 @@ describe('useHeaderUser', () => {
     const { result } = renderHook(() => useHeaderUser())
 
     expect(result.current.isAuthenticated).toBe(true)
+    // O IHeaderUserModel projeta só o que o cabeçalho mostra — role e clinicId
+    // ficam de fora de propósito.
     expect(result.current.user).toEqual({
       id: 'user-123',
       fullName: 'Maria Silva',
@@ -38,6 +43,8 @@ describe('useHeaderUser', () => {
       id: 'abc-456',
       fullName: 'João Oliveira',
       email: 'joao@clinic.com',
+      role: UserRole.ADMIN,
+      clinicId: 'clinic-uuid',
     }
 
     useAuthStore.setState({ user: storeUser })
@@ -55,7 +62,7 @@ describe('useHeaderUser', () => {
     expect(result.current.isAuthenticated).toBe(false)
 
     useAuthStore.setState({
-      user: { id: 'user-789', fullName: 'Ana Souza', email: 'ana@example.com' },
+      user: { id: 'user-789', fullName: 'Ana Souza', email: 'ana@example.com', role: UserRole.ADMIN, clinicId: 'clinic-uuid' },
     })
 
     rerender()
@@ -66,7 +73,7 @@ describe('useHeaderUser', () => {
 
   it('updates when store user changes from logged in to null', () => {
     useAuthStore.setState({
-      user: { id: 'user-789', fullName: 'Ana Souza', email: 'ana@example.com' },
+      user: { id: 'user-789', fullName: 'Ana Souza', email: 'ana@example.com', role: UserRole.ADMIN, clinicId: 'clinic-uuid' },
     })
 
     const { result, rerender } = renderHook(() => useHeaderUser())

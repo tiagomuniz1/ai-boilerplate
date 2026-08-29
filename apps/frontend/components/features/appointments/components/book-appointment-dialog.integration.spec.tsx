@@ -5,14 +5,12 @@ jest.mock('next/navigation', () => ({ useRouter: jest.fn(() => ({ push: jest.fn(
 
 import { fireEvent, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import {
-  AppointmentStatus,
+import { AppointmentStatus,
   DayOfWeek,
   MAXIMUM_RECURRING_OCCURRENCES,
   MINIMUM_RECURRING_OCCURRENCES,
   RecurrenceInterval,
-  RecurringOccurrenceAvailability,
-} from '@app/shared'
+  RecurringOccurrenceAvailability, CouncilType, PatientGender } from '@app/shared'
 import { appointmentsService } from '../services/appointments.service'
 import { patientsService } from '@/components/features/patients/services/patients.service'
 import { professionalsService } from '@/components/features/professionals/services/professionals.service'
@@ -35,9 +33,14 @@ const makePatientsResponse = (patients: { id: string; fullName: string }[] = [])
     phoneNumber: '11999999999',
     birthDate: '1990-01-01',
     documentNumber: '12345678901',
-    gender: 'male',
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
+    gender: PatientGender.MALE,
+    // Vínculo de dependente: entrou no DTO com o parentesco entre pacientes.
+    responsiblePatientId: null,
+    kinshipType: null,
+    responsiblePatient: null,
+    dependents: [],
+    createdAt: new Date().toISOString() as unknown as Date,
+    updatedAt: new Date().toISOString() as unknown as Date,
   })),
   total: patients.length,
   page: 1,
@@ -47,11 +50,13 @@ const makePatientsResponse = (patients: { id: string; fullName: string }[] = [])
 const makeDoctorResponse = (specialties: { id: string; name: string }[]) => ({
   id: 'doctor-uuid',
   user: { id: 'user-uuid', fullName: 'Dr. Test', email: 'doc@test.com', isActive: true },
-  registrations: [{ id: 'crm-1', councilType: 'crm', number: '12345', state: 'SP', isPrimary: true }],
-  specialties: specialties.map((s) => ({ ...s, rqe: null })),
+  registrations: [{ id: 'crm-1', councilType: CouncilType.CRM, number: '12345', state: 'SP', isPrimary: true }],
+  // `rqe` virou `registryNumber` quando a especialidade deixou de ser exclusiva
+  // de médico.
+  specialties: specialties.map((s) => ({ ...s, registryNumber: null })),
   bio: null,
-  createdAt: new Date().toISOString(),
-  updatedAt: new Date().toISOString(),
+  createdAt: new Date().toISOString() as unknown as Date,
+  updatedAt: new Date().toISOString() as unknown as Date,
 })
 
 const makeAppointmentResponse = () => ({
@@ -69,6 +74,10 @@ const makeAppointmentResponse = () => ({
   status: AppointmentStatus.SCHEDULED,
   reason: null,
   cancellationReason: null,
+  insuranceType: null,
+  seriesId: null,
+  seriesSequence: null,
+  seriesTotalOccurrences: null,
   createdAt: new Date(),
   updatedAt: new Date(),
 })

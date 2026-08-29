@@ -1,3 +1,8 @@
+// Sem um import ou export, o TypeScript trata o arquivo como script e as
+// constantes de topo passam a dividir o escopo global com as outras specs —
+// PLATFORM_EMAIL e companhia colidiam entre nove arquivos.
+export {}
+
 // Stack real ponta a ponta — CRUD de temas no backoffice nunca foi testado,
 // nem mockado nem real. Só PLATFORM_ADMIN pode gerenciar; ADMIN de clínica é
 // rejeitado com 403 real.

@@ -72,7 +72,11 @@ describe('Permissions — consultation photos ownership (real)', () => {
                     professionalId: professionalB.professionalId,
                     patientId: patient.patientId,
                     specialtyId: professionalB.specialtyId,
-                    date: futureDateString(15),
+                    // Both schedules are created for *today's* weekday, so only
+                    // multiples of 7 days ahead land on a day the professional
+                    // actually works — +15 fell on another weekday and the API
+                    // answered 422 "not an available slot".
+                    date: futureDateString(14),
                     startTime: '14:00',
                   },
                   professionalB.accessToken,

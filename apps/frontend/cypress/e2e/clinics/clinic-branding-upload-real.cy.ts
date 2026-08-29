@@ -1,3 +1,8 @@
+// Sem um import ou export, o TypeScript trata o arquivo como script e as
+// constantes de topo passam a dividir o escopo global com as outras specs —
+// PLATFORM_EMAIL e companhia colidiam entre nove arquivos.
+export {}
+
 // Stack real ponta a ponta — zero cobertura hoje. Upload de identidade visual
 // da clínica (logo, logo dark, favicon) é módulo de maior risco (upload de
 // arquivo) — erro real de tipo/tamanho inválido também é provocado de

@@ -1,3 +1,4 @@
+import { CouncilType } from '@app/shared'
 jest.mock('@/components/features/professionals/hooks/use-professional.hook')
 
 import { screen, waitFor } from '@testing-library/react'
@@ -85,8 +86,8 @@ describe('AtestadoForm (integration)', () => {
         id: 'doctor-uuid',
         user: { id: 'user-uuid', fullName: 'Dr. Test', email: 'dr@example.com', isActive: true },
         registrations: [
-          { id: 'crm-1', councilType: 'crm', number: '12345', state: 'SP', isPrimary: true },
-          { id: 'crm-2', councilType: 'crm', number: '67890', state: 'RJ', isPrimary: false },
+          { id: 'crm-1', councilType: CouncilType.CRM, number: '12345', state: 'SP', isPrimary: true },
+          { id: 'crm-2', councilType: CouncilType.CRM, number: '67890', state: 'RJ', isPrimary: false },
         ],
         specialties: [
           { id: 'spec-1', name: 'Cardiologia', registryNumber: '111' },

@@ -33,7 +33,9 @@ const makeModel = () => ({
 const makeInput = () => ({
   specialtyId: 'spec-uuid',
   name: 'Anamnese',
-  fields: [{ label: 'Sintoma', type: MedicalRecordFieldType.TEXT, required: true, order: 0, options: [], placeholder: '', helpText: '', canonical: false, canonicalKey: '' }],
+  fields: [{ label: 'Sintoma', type: MedicalRecordFieldType.TEXT, required: true, order: 0, options: [], placeholder: '', helpText: '', canonical: false, canonicalKey: '', sectionKey: '' }],
+  // `sections` entrou no input quando o template passou a ter seções.
+  sections: [],
 })
 
 describe('useCreateTemplate', () => {

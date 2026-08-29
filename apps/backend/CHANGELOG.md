@@ -4,6 +4,13 @@
 
 ### Fixed
 
+#### Um logo inválido derrubava a geração de PDF inteira
+- `LogoFetcherService` confiava no `content-type` e devolvia os bytes em base64 **sem verificar se eram uma imagem**. O upload valida apenas o `mimetype` declarado pelo cliente, então um arquivo que só se diz PNG chegava intacto ao pdfmake, que lançava exceção e levava o documento junto — uma clínica com um logo corrompido perderia **receita, atestado e exame de uma vez**
+- Os bytes passam a ser lidos pelo `sharp` antes de virarem data URI; se não forem uma imagem, o PDF é gerado sem logo, que é o que o serviço já dizia fazer nos outros caminhos de falha
+- O serviço tem **três cópias idênticas** (receitas, atestados e exames); a correção foi aplicada nas três
+
+### Fixed
+
 #### Consulta confirmada não segurava o slot
 - O índice único parcial e as consultas de disponibilidade olhavam só `status = 'scheduled'`, então **confirmar** uma consulta soltava o horário: ele reaparecia como livre na disponibilidade e podia ser agendado por cima sem violar o índice. Raro numa marcação avulsa, quase certo ao longo de uma série recorrente
 - `UQ_appointment_slot_scheduled` vira `UQ_appointment_slot_active`, cobrindo `scheduled` **e** `confirmed`. A constante do repositório passa a se chamar `ACTIVE_STATUSES` e é a fonte única com que o índice precisa ficar em sincronia

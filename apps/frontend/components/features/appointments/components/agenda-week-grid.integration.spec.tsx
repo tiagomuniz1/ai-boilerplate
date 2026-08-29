@@ -5,7 +5,7 @@ jest.mock('next/navigation', () => ({ useRouter: jest.fn(() => ({ push: jest.fn(
 
 import { screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { UserRole } from '@app/shared'
+import { UserRole, AppointmentStatus } from '@app/shared'
 import { appointmentsService } from '../services/appointments.service'
 import { patientsService } from '@/components/features/patients/services/patients.service'
 import { scheduleExceptionsService } from '@/components/features/schedule-exceptions/services/schedule-exceptions.service'
@@ -144,7 +144,7 @@ describe('AgendaWeekGrid (integration)', () => {
         return Promise.resolve({
           professionalId: 'doctor-uuid',
           date: SLOT_DATE,
-          slots: [{ startTime: '09:00', endTime: '09:30' }],
+          slots: [{ startTime: '09:00', endTime: '09:30', scheduleId: 'schedule-uuid', slotDurationInMinutes: 30 }],
         })
       }
       return Promise.resolve(emptyAvailability)
@@ -167,7 +167,7 @@ describe('AgendaWeekGrid (integration)', () => {
         return Promise.resolve({
           professionalId: 'doctor-uuid',
           date: SLOT_DATE,
-          slots: [{ startTime: '09:00', endTime: '09:30' }],
+          slots: [{ startTime: '09:00', endTime: '09:30', scheduleId: 'schedule-uuid', slotDurationInMinutes: 30 }],
         })
       }
       return Promise.resolve(emptyAvailability)
@@ -205,9 +205,13 @@ describe('AgendaWeekGrid (integration)', () => {
             date: SLOT_DATE,
             startTime: '09:00',
             endTime: '09:30',
-            status: 'scheduled',
+            status: AppointmentStatus.SCHEDULED,
             reason: null,
             cancellationReason: null,
+            insuranceType: null,
+            seriesId: null,
+            seriesSequence: null,
+            seriesTotalOccurrences: null,
             createdAt: new Date(),
             updatedAt: new Date(),
           }],
@@ -246,9 +250,13 @@ describe('AgendaWeekGrid (integration)', () => {
             date: SLOT_DATE,
             startTime: '09:00',
             endTime: '09:30',
-            status: 'scheduled',
+            status: AppointmentStatus.SCHEDULED,
             reason: null,
             cancellationReason: null,
+            insuranceType: null,
+            seriesId: null,
+            seriesSequence: null,
+            seriesTotalOccurrences: null,
             createdAt: new Date(),
             updatedAt: new Date(),
           }],
@@ -289,13 +297,19 @@ describe('AgendaWeekGrid (integration)', () => {
               professionalName: 'Dr. Test',
               patientId: 'patient-uuid',
               patientName: 'Patient One',
+              specialtyId: null,
+              specialtyName: null,
               scheduleId: 'sched-uuid',
               date: SLOT_DATE,
               startTime: '09:00',
               endTime: '09:30',
-              status: 'scheduled',
+              status: AppointmentStatus.SCHEDULED,
               reason: null,
               cancellationReason: null,
+              insuranceType: null,
+              seriesId: null,
+              seriesSequence: null,
+              seriesTotalOccurrences: null,
               createdAt: new Date(),
               updatedAt: new Date(),
             },

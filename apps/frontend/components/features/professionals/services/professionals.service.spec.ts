@@ -1,3 +1,4 @@
+import { CouncilType } from '@app/shared'
 jest.mock('@/lib/api-client')
 
 import { apiClient } from '@/lib/api-client'
@@ -8,7 +9,7 @@ const mockApiClient = apiClient as jest.Mocked<typeof apiClient>
 const makeDto = () => ({
   id: 'uuid-1',
   user: { id: 'user-uuid-1', fullName: 'Dr. João Silva', email: 'joao@example.com' },
-  registrations: [{ id: 'crm-uuid-1', number: '12345', state: 'SP', isPrimary: true }],
+  registrations: [{ id: 'crm-uuid-1', councilType: CouncilType.CRM, number: '12345', state: 'SP', isPrimary: true }],
   specialties: [{ id: 'spec-uuid-1', name: 'Cardiologia', registryNumber: null }],
   bio: null,
   createdAt: new Date('2024-01-15T10:00:00.000Z'),
@@ -61,7 +62,7 @@ describe('professionalsService', () => {
     mockApiClient.post.mockResolvedValue(dto)
     const input = {
       userId: 'user-uuid-1',
-      registrations: [{ id: 'crm-uuid-1', number: '12345', state: 'SP', isPrimary: true }],
+      registrations: [{ id: 'crm-uuid-1', councilType: CouncilType.CRM, number: '12345', state: 'SP', isPrimary: true }],
       specialties: [{ specialtyId: 'spec-uuid-1' }],
     }
 

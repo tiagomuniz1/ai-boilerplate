@@ -14,6 +14,7 @@ function makeField(overrides: Partial<IRecordFieldModel> = {}): IRecordFieldMode
     options: null,
     placeholder: null,
     helpText: null,
+    sectionKey: null,
     ...overrides,
   }
 }

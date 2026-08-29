@@ -10,6 +10,10 @@ const user: IUserModel = {
   fullName: 'Alice Costa',
   email: 'alice@example.com',
   role: UserRole.USER,
+  isActive: true,
+  isProfessional: false,
+  isPatient: false,
+  councilType: null,
   createdAt: new Date('2024-01-15'),
   updatedAt: new Date('2024-01-16'),
 }

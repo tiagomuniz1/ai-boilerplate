@@ -68,7 +68,7 @@ describe('updatePrescriptionTemplateUseCase', () => {
     })
 
     const call = mockService.update.mock.calls[0][1]
-    expect(call.items[0]).toEqual({
+    expect(call.items?.[0]).toEqual({
       medicationId: 'med-uuid',
       dosage: '500mg',
       quantity: '1 caixa',
@@ -84,7 +84,7 @@ describe('updatePrescriptionTemplateUseCase', () => {
     })
 
     const call = mockService.update.mock.calls[0][1]
-    expect(call.items[0]).toEqual({
+    expect(call.items?.[0]).toEqual({
       activeIngredientName: 'Amoxicilina',
       instructions: 'Tomar 1 cp',
     })

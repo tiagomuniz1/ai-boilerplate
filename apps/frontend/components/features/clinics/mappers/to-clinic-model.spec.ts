@@ -18,7 +18,10 @@ const makeDto = (overrides: object = {}) => ({
   slug: 'clinica-do-coracao',
   isActive: true,
   plan: SubscriptionPlan.FREE,
+  // themeId e logoDarkUrl entraram no DTO com a identidade visual por clínica.
+  themeId: null as string | null,
   logoUrl: null as string | null,
+  logoDarkUrl: null as string | null,
   faviconUrl: null as string | null,
   address: makeAddress(),
   createdAt: '2024-01-15T10:00:00.000Z' as unknown as Date,

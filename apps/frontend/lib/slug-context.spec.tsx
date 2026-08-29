@@ -4,7 +4,9 @@ import { SlugProvider, useSlug, useClinicPath } from './slug-context'
 
 function makeWrapper(slug: string) {
   return function Wrapper({ children }: { children: React.ReactNode }) {
-    return React.createElement(SlugProvider, { slug }, children)
+    // `children` precisa vir nas props: o terceiro argumento de createElement não
+    // satisfaz a assinatura do componente para o compilador.
+    return <SlugProvider slug={slug}>{children}</SlugProvider>
   }
 }
 
@@ -21,9 +23,9 @@ describe('SlugProvider / useSlug', () => {
 
   it('renders children inside SlugProvider', () => {
     render(
-      React.createElement(SlugProvider, { slug: 'my-clinic' },
-        React.createElement('span', { 'data-testid': 'child' }, 'hello'),
-      ),
+      <SlugProvider slug="my-clinic">
+        <span data-testid="child">hello</span>
+      </SlugProvider>,
     )
     expect(screen.getByTestId('child')).toBeInTheDocument()
   })

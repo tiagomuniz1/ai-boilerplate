@@ -7,7 +7,7 @@ jest.mock('@/components/features/professionals/services/professionals.service')
 import { screen, waitFor, fireEvent } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { useRouter } from 'next/navigation'
-import { UserRole, DayOfWeek } from '@app/shared'
+import { UserRole, DayOfWeek, CouncilType } from '@app/shared'
 import { useAuthStore } from '@/stores/auth.store'
 import { schedulesService } from '../services/schedules.service'
 import { deleteScheduleUseCase } from '../use-cases/delete-schedule.use-case'
@@ -49,7 +49,7 @@ const makePaginatedResponse = (items = [makeScheduleDto()]) => ({
 const makeDoctorDto = (overrides = {}) => ({
   id: 'doc-uuid-1',
   user: { id: 'user-uuid-1', fullName: 'Dr. João Silva', email: 'joao@example.com', isActive: true },
-  registrations: [{ id: 'crm-1', councilType: 'crm', number: '12345', state: 'SP', isPrimary: true }],
+  registrations: [{ id: 'crm-1', councilType: CouncilType.CRM, number: '12345', state: 'SP', isPrimary: true }],
   specialties: [],
   bio: null,
   createdAt: '2025-01-01T10:00:00.000Z',

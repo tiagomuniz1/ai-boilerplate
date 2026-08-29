@@ -110,7 +110,7 @@ describe('TemplateDetails (integration)', () => {
 
     it('shows the profession for a generalist (null specialty) template and leaves specialty blank', async () => {
       ;(medicalRecordTemplatesService.getById as jest.Mock).mockResolvedValue(
-        makeDto({ specialtyId: null, specialtyName: null, councilType: 'crm' }),
+        makeDto({ specialtyId: null, specialtyName: null, councilType: CouncilType.CRM }),
       )
 
       renderWithProviders(<TemplateDetails templateId="uuid-1" />)

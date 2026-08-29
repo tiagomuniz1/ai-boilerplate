@@ -68,7 +68,10 @@ describe('Fotos da consulta — lifecycle real', () => {
               cy.wait('@uploadPhoto').its('response.statusCode').should('eq', 201)
 
               cy.get('[data-testid="photo-section-grid"]', { timeout: 10000 }).should('be.visible')
-              cy.get('[data-testid^="photo-thumbnail-"]').should('have.length', 1)
+              // Contado pela imagem: cada card renderiza tres elementos cujo testid
+              // comeca com "photo-thumbnail-" (o card, a imagem e a data), entao o
+              // prefixo generico multiplicava a contagem por tres.
+              cy.get('[data-testid^="photo-thumbnail-image-"]').should('have.length', 1)
 
               // Prova de que a imagem é servida via blob (endpoint autenticado), nunca URL pública direta.
               cy.get('[data-testid^="photo-thumbnail-image-"]', { timeout: 10000 })
@@ -89,7 +92,7 @@ describe('Fotos da consulta — lifecycle real', () => {
                 { force: true },
               )
               cy.wait('@uploadSecondPhoto').its('response.statusCode').should('eq', 201)
-              cy.get('[data-testid^="photo-thumbnail-"]').should('have.length', 2)
+              cy.get('[data-testid^="photo-thumbnail-image-"]').should('have.length', 2)
 
               cy.get('[data-testid^="photo-thumbnail-"]').first().click()
               cy.get('[data-testid="photo-preview-modal"]').should('be.visible')
@@ -110,12 +113,12 @@ describe('Fotos da consulta — lifecycle real', () => {
               cy.get('[data-testid="photo-delete-dialog"]').should('be.visible')
               cy.get('[data-testid="photo-delete-dialog-cancel"]').click()
               cy.get('[data-testid="photo-delete-dialog"]').should('not.exist')
-              cy.get('[data-testid^="photo-thumbnail-"]').should('have.length', 2)
+              cy.get('[data-testid^="photo-thumbnail-image-"]').should('have.length', 2)
 
               cy.get('[data-testid="photo-preview-delete-button"]').click()
               cy.get('[data-testid="photo-delete-dialog-confirm"]').click()
               cy.get('[data-testid="photo-preview-modal"]', { timeout: 10000 }).should('not.exist')
-              cy.get('[data-testid^="photo-thumbnail-"]', { timeout: 10000 }).should('have.length', 1)
+              cy.get('[data-testid^="photo-thumbnail-image-"]', { timeout: 10000 }).should('have.length', 1)
 
               cy.request({
                 method: 'PATCH',

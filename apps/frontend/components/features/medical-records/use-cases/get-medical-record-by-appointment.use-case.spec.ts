@@ -29,4 +29,20 @@ describe('getMedicalRecordByAppointmentUseCase', () => {
     expect(result).toBeNull()
     expect(toMedicalRecordModel).not.toHaveBeenCalled()
   })
+  // The API signals "no prontuário yet" with a 404, not with 200/null — the
+  // ordinary case for any appointment that has not been filled in. Treating it as
+  // an error made the section render a failure state over a perfectly normal
+  // appointment and hid the "Preencher prontuário" button.
+  it('returns null when the API answers 404', async () => {
+    ;(medicalRecordsService.getByAppointment as jest.Mock).mockRejectedValue({ status: 404, title: 'Not Found', detail: 'x' })
+
+    await expect(getMedicalRecordByAppointmentUseCase('appt-uuid')).resolves.toBeNull()
+  })
+
+  it('rethrows failures that are not a missing record', async () => {
+    const failure = { status: 500, title: 'Internal Error', detail: 'boom' }
+    ;(medicalRecordsService.getByAppointment as jest.Mock).mockRejectedValue(failure)
+
+    await expect(getMedicalRecordByAppointmentUseCase('appt-uuid')).rejects.toEqual(failure)
+  })
 })

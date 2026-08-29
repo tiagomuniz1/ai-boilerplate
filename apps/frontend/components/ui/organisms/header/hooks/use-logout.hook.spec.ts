@@ -1,3 +1,4 @@
+import { UserRole } from '@app/shared'
 jest.mock('@/components/features/auth/services/auth.service')
 jest.mock('next/navigation', () => ({
   useRouter: jest.fn(),
@@ -34,7 +35,7 @@ function renderLogoutHook() {
 describe('useLogout', () => {
   beforeEach(() => {
     jest.clearAllMocks()
-    useAuthStore.setState({ user: { id: 'u1', fullName: 'Test User', email: 'test@example.com' } })
+    useAuthStore.setState({ user: { id: 'u1', fullName: 'Test User', email: 'test@example.com', role: UserRole.ADMIN, clinicId: 'clinic-uuid' } })
   })
 
   it('returns error as null initially', () => {

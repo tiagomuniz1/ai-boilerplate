@@ -1,3 +1,4 @@
+import { CouncilType } from '@app/shared'
 jest.mock('../use-cases/create-professional.use-case')
 jest.mock('next/navigation', () => ({ useRouter: jest.fn() }))
 jest.mock('@/lib/slug-context', () => ({ useSlug: () => 'test-clinic', useBasePath: () => '/test-clinic' }))
@@ -19,13 +20,13 @@ function wrapper({ children }: { children: React.ReactNode }) {
 describe('useCreateProfessional', () => {
   const input = {
     userId: 'user-uuid-1',
-    registrations: [{ id: 'crm-uuid-1', number: '12345', state: 'SP', isPrimary: true }],
+    registrations: [{ id: 'crm-uuid-1', councilType: CouncilType.CRM, number: '12345', state: 'SP', isPrimary: true }],
     specialties: [{ specialtyId: 'spec-uuid-1' }],
   }
   const model = {
     id: 'uuid-1',
     user: { id: 'user-uuid-1', fullName: 'Dr. João', email: 'joao@example.com' },
-    registrations: [{ id: 'crm-uuid-1', number: '12345', state: 'SP', isPrimary: true }],
+    registrations: [{ id: 'crm-uuid-1', councilType: CouncilType.CRM, number: '12345', state: 'SP', isPrimary: true }],
     specialties: [{ id: 'spec-uuid-1', name: 'Cardiologia', registryNumber: null }],
     bio: null,
     createdAt: new Date(),

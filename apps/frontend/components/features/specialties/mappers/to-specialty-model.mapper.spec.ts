@@ -3,6 +3,7 @@ import { toSpecialtyModel } from './to-specialty-model.mapper'
 const makeDto = () => ({
   id: 'uuid-1',
   name: 'Cardiologia',
+  titleName: null,
   description: 'Especialidade do coração',
   clinicCount: 2,
   createdAt: '2024-01-15T10:00:00.000Z' as unknown as Date,

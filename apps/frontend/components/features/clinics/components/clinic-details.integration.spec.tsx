@@ -6,7 +6,7 @@ jest.mock('@/components/features/clinic-specialties/components/clinic-specialty-
 }))
 
 import { screen } from '@testing-library/react'
-import { SubscriptionPlan } from '@app/shared'
+import { SubscriptionPlan, ThemeBorderRadius } from '@app/shared'
 import { useRouter } from 'next/navigation'
 import { useTheme } from '@/components/features/themes/hooks/use-theme.hook'
 import { renderWithProviders } from '@/tests/utils/render-with-providers'
@@ -24,6 +24,10 @@ const sampleTheme = {
   slug: 'azul-clinico',
   accentColor: '#2563EB',
   accentSoftColor: '#DBEAFE',
+  // Campos que o tema ganhou depois: raio da borda e fundos.
+  borderRadius: ThemeBorderRadius.DEFAULT,
+  bgColor: null,
+  bgDarkColor: null,
   isDefault: true,
   createdAt: new Date('2024-01-01'),
   updatedAt: new Date('2024-01-01'),
@@ -66,7 +70,7 @@ describe('ClinicDetails (integration)', () => {
   beforeEach(() => {
     jest.clearAllMocks()
     ;(useRouter as jest.Mock).mockReturnValue({ push: mockPush })
-    mockUseTheme.mockReturnValue({ data: undefined, isPending: false, isError: false } as ReturnType<typeof useTheme>)
+    mockUseTheme.mockReturnValue({ data: undefined, isPending: false, isError: false } as unknown as ReturnType<typeof useTheme>)
   })
 
   it('renders clinic name and slug', () => {
@@ -183,7 +187,7 @@ describe('ClinicDetails (integration)', () => {
   })
 
   it('shows theme name and swatch when clinic has a theme', () => {
-    mockUseTheme.mockReturnValue({ data: sampleTheme, isPending: false, isError: false } as ReturnType<typeof useTheme>)
+    mockUseTheme.mockReturnValue({ data: sampleTheme, isPending: false, isError: false } as unknown as ReturnType<typeof useTheme>)
 
     renderWithProviders(<ClinicDetails clinic={{ ...activeClinic, themeId: THEME_ID }} />)
 
@@ -191,7 +195,7 @@ describe('ClinicDetails (integration)', () => {
   })
 
   it('shows dash while theme is loading', () => {
-    mockUseTheme.mockReturnValue({ data: undefined, isPending: true, isError: false } as ReturnType<typeof useTheme>)
+    mockUseTheme.mockReturnValue({ data: undefined, isPending: true, isError: false } as unknown as ReturnType<typeof useTheme>)
 
     renderWithProviders(<ClinicDetails clinic={{ ...activeClinic, themeId: THEME_ID }} />)
 

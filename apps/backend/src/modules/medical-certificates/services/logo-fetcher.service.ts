@@ -18,9 +18,16 @@ export class LogoFetcherService {
       const contentType = (response.headers['content-type'] as string | undefined) ?? ''
       const mimeType = contentType.split(';')[0].trim().toLowerCase()
 
-      const imageBuffer = Buffer.from(response.data)
+      let imageBuffer = Buffer.from(response.data)
 
       if (NATIVE_MIME_TYPES.includes(mimeType)) {
+        // Parse the bytes before trusting the declared type. The upload endpoint
+        // only validates `file.mimetype`, which the client sends, so a file that
+        // merely claims to be a PNG reaches this point intact — and pdfmake
+        // answers a corrupt image with an exception that takes down the whole
+        // document. A clinic with one bad logo would lose every PDF it issues:
+        // prescriptions, atestados and exam requests alike.
+        await sharp(imageBuffer).metadata()
         return `data:${mimeType};base64,${imageBuffer.toString('base64')}`
       }
 
@@ -36,7 +43,7 @@ export class LogoFetcherService {
       })
       return null
     } catch {
-      this.logger.warn('Failed to fetch clinic logo — generating PDF without logo', {
+      this.logger.warn('Could not read the clinic logo — generating PDF without logo', {
         context: LogoFetcherService.name,
         url,
       })

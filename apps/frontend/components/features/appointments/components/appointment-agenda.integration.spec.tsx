@@ -10,7 +10,7 @@ jest.mock('next/navigation', () => ({
 
 import { screen, waitFor, fireEvent } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { UserRole } from '@app/shared'
+import { UserRole, CouncilType } from '@app/shared'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { appointmentsService } from '../services/appointments.service'
 import { patientsService } from '@/components/features/patients/services/patients.service'
@@ -38,11 +38,15 @@ const makeDoctorsResponse = (doctors: { id: string; fullName: string }[] = []) =
   data: doctors.map((d) => ({
     id: d.id,
     user: { id: 'user-uuid', fullName: d.fullName, email: `${d.id}@test.com`, isActive: true },
-    crmNumber: '123456',
+    // O modelo trocou `crmNumber` por `registrations` na generalização de médico
+    // para profissional de saúde; a fixture tinha ficado para trás.
+    registrations: [
+      { id: 'reg-uuid', councilType: CouncilType.CRM, number: '123456', state: 'SP', isPrimary: true },
+    ],
     specialties: [],
     bio: null,
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
+    createdAt: new Date().toISOString() as unknown as Date,
+    updatedAt: new Date().toISOString() as unknown as Date,
   })),
   total: doctors.length,
   page: 1,

@@ -1,6 +1,6 @@
 import { render, screen, fireEvent } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { UserRole } from '@app/shared'
+import { UserRole, CouncilType } from '@app/shared'
 import { AgendaToolbar } from './agenda-toolbar'
 
 const fixedDate = new Date('2025-06-09T12:00:00.000Z') // Monday
@@ -88,7 +88,7 @@ describe('AgendaToolbar', () => {
         {...defaultProps}
         role={UserRole.ADMIN}
         doctors={[
-          { id: 'd1', user: { id: 'u1', fullName: 'Dr. A', email: 'a@a.com' }, crmNumber: '123', specialties: [], bio: null, createdAt: new Date(), updatedAt: new Date() },
+          { id: 'd1', user: { id: 'u1', fullName: 'Dr. A', email: 'a@a.com', isActive: true }, registrations: [{ id: 'reg-uuid', councilType: CouncilType.CRM, number: '123', state: 'SP', isPrimary: true }], specialties: [], bio: null, createdAt: new Date(), updatedAt: new Date() },
         ]}
       />,
     )
@@ -151,7 +151,7 @@ describe('AgendaToolbar', () => {
         {...defaultProps}
         role={UserRole.ADMIN}
         doctors={[
-          { id: 'd1', user: { id: 'u1', fullName: 'Dr. A', email: 'a@a.com' }, crmNumber: '123', specialties: [], bio: null, createdAt: new Date(), updatedAt: new Date() },
+          { id: 'd1', user: { id: 'u1', fullName: 'Dr. A', email: 'a@a.com', isActive: true }, registrations: [{ id: 'reg-uuid', councilType: CouncilType.CRM, number: '123', state: 'SP', isPrimary: true }], specialties: [], bio: null, createdAt: new Date(), updatedAt: new Date() },
         ]}
       />,
     )
@@ -166,7 +166,7 @@ describe('AgendaToolbar', () => {
         role={UserRole.ADMIN}
         selectedDoctorId="d1"
         doctors={[
-          { id: 'd1', user: { id: 'u1', fullName: 'Dr. A', email: 'a@a.com' }, crmNumber: '123', specialties: [], bio: null, createdAt: new Date(), updatedAt: new Date() },
+          { id: 'd1', user: { id: 'u1', fullName: 'Dr. A', email: 'a@a.com', isActive: true }, registrations: [{ id: 'reg-uuid', councilType: CouncilType.CRM, number: '123', state: 'SP', isPrimary: true }], specialties: [], bio: null, createdAt: new Date(), updatedAt: new Date() },
         ]}
       />,
     )

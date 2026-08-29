@@ -2,7 +2,7 @@ jest.mock('next/navigation', () => ({ useRouter: jest.fn() }))
 
 import { screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { useForm } from 'react-hook-form'
+import { useForm, type Control } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { renderWithProviders } from '@/tests/utils/render-with-providers'
@@ -12,7 +12,10 @@ function OptionsEditorWrapper({ defaultOptions = [] }: { defaultOptions?: { valu
   const { control, formState: { errors } } = useForm({
     defaultValues: { options: defaultOptions },
   })
-  return <CanonicalFieldOptionsEditor control={control} errors={errors} />
+  // O componente recebe Control<any>; um Control<T> concreto não é atribuível a
+  // ele por contravariância em ValidateForm<T> — limitação de tipos do
+  // react-hook-form, não do componente.
+  return <CanonicalFieldOptionsEditor control={control as unknown as Control<any>} errors={errors} />
 }
 
 const validatedOptionsSchema = z.object({
@@ -37,7 +40,7 @@ function OptionsEditorWrapperWithValidation() {
   })
   return (
     <form onSubmit={handleSubmit(() => {})} data-testid="test-form">
-      <CanonicalFieldOptionsEditor control={control} errors={errors} />
+      <CanonicalFieldOptionsEditor control={control as unknown as Control<any>} errors={errors} />
       <button type="submit" data-testid="test-submit">
         Submit
       </button>

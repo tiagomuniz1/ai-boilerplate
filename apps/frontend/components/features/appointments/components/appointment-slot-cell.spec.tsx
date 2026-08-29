@@ -101,6 +101,9 @@ describe('AppointmentSlotCell', () => {
       status: AppointmentStatus.SCHEDULED,
       reason: null,
       cancellationReason: null,
+      seriesId: null,
+      seriesSequence: null,
+      seriesTotalOccurrences: null,
       createdAt: new Date(),
       updatedAt: new Date(),
     })

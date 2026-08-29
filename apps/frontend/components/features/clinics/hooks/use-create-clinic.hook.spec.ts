@@ -10,6 +10,16 @@ import { createQueryClient } from '@/lib/react-query.config'
 import { createClinicUseCase } from '../use-cases/create-clinic.use-case'
 import { useCreateClinic } from './use-create-clinic.hook'
 
+// `address` passou a ser obrigatório em ICreateClinicInput.
+const testAddress = {
+  street: 'Rua Teste',
+  number: '100',
+  neighborhood: 'Centro',
+  city: 'Recife',
+  state: 'PE',
+  zipCode: '50000-000',
+}
+
 const mockPush = jest.fn()
 
 function wrapper({ children }: { children: React.ReactNode }) {
@@ -32,7 +42,7 @@ describe('useCreateClinic', () => {
   })
 
   it('calls createClinicUseCase with input', async () => {
-    const input = { name: 'Clínica do Coração', slug: 'clinica-do-coracao' }
+    const input = { name: 'Clínica do Coração', slug: 'clinica-do-coracao', address: testAddress }
     ;(createClinicUseCase as jest.Mock).mockResolvedValue(makeModel())
 
     const { result } = renderHook(() => useCreateClinic(), { wrapper })
@@ -51,7 +61,7 @@ describe('useCreateClinic', () => {
 
     const { result } = renderHook(() => useCreateClinic(), { wrapper })
 
-    act(() => result.current.mutate({ name: 'Clínica do Coração' }))
+    act(() => result.current.mutate({ name: 'Clínica do Coração', address: testAddress }))
 
     await waitFor(() => {
       expect(mockPush).toHaveBeenCalledWith('/test-clinic/clinics')
@@ -64,7 +74,7 @@ describe('useCreateClinic', () => {
 
     const { result } = renderHook(() => useCreateClinic(), { wrapper })
 
-    act(() => result.current.mutate({ name: 'Clínica do Coração' }))
+    act(() => result.current.mutate({ name: 'Clínica do Coração', address: testAddress }))
 
     await waitFor(() => expect(result.current.isError).toBe(true))
 

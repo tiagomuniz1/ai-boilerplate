@@ -15,6 +15,7 @@ const mockDto = { startTime: '10:00' }
 const mockResponse = {
   id: 'uuid-1',
   professionalId: 'doc-uuid',
+  professionalName: 'Dr. Test',
   dayOfWeek: DayOfWeek.MONDAY,
   startTime: '10:00',
   endTime: '12:00',

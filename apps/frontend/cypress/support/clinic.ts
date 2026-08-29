@@ -10,7 +10,7 @@ export const CLINIC_ID = '10000000-0000-4000-8000-000000000000'
 
 const MOCK_TOKEN = 'mock-access-token'
 
-interface MockAuthUser {
+export interface MockAuthUser {
   id: string
   fullName: string
   email: string
@@ -54,7 +54,10 @@ const mockActiveThemeResponse = {
 // Registra os intercepts que o layout autenticado da clínica dispara
 // (auth/me, clinic-by-slug, theme ativo). Use em testes que aterrissam numa
 // página autenticada sem passar por visitClinic (ex.: redirect pós-login).
-export function stubClinicLayout(authUser: MockAuthUser = {} as MockAuthUser) {
+// Partial porque os testes passam só os campos que lhes importam — o resto vem
+// dos defaults abaixo. Tipar como MockAuthUser completo obrigava o `{} as`, que
+// mentia para o compilador e ainda marcava os defaults como código morto.
+export function stubClinicLayout(authUser: Partial<MockAuthUser> = {}) {
   const user: MockAuthUser = {
     id: 'mock-auth-user-id',
     fullName: 'Mock User',
@@ -82,8 +85,9 @@ export function stubClinicLayout(authUser: MockAuthUser = {} as MockAuthUser) {
 
 // Visita uma página dentro da clínica `pulso`. `path` é o caminho SEM o slug
 // (ex: '/professionals/123/edit'); o slug é prefixado internamente.
-export function visitClinic(path: string, authUser: MockAuthUser) {
-  const user: MockAuthUser = { clinicId: CLINIC_ID, ...authUser }
+// Partial pelo mesmo motivo de stubClinicLayout, para onde os defaults vão.
+export function visitClinic(path: string, authUser: Partial<MockAuthUser>) {
+  const user: Partial<MockAuthUser> = { clinicId: CLINIC_ID, ...authUser }
 
   stubClinicLayout(user)
 
@@ -130,7 +134,9 @@ const mockPlatformAdmin = {
 // (ex: '/clinics/123/edit'); o prefixo é adicionado internamente.
 export function visitBackoffice(
   path: string,
-  authUser = mockPlatformAdmin,
+  // Sem a anotação o tipo era inferido de mockPlatformAdmin, que tem
+  // `clinicId: null`, e todo chamador que omitia o campo virava erro de tipo.
+  authUser: Partial<MockAuthUser> = mockPlatformAdmin,
   themesResponse?: { statusCode: number; body: object; delay?: number },
 ) {
   const user = { clinicId: null, ...authUser }

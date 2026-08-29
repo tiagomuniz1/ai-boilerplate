@@ -24,8 +24,8 @@ function makeProfessional(overrides = {}) {
     registrations: [{ id: 'reg-1', councilType: CouncilType.CRM, number: '12345', state: 'SP', isPrimary: true }],
     specialties: [],
     bio: null,
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
+    createdAt: new Date().toISOString() as unknown as Date,
+    updatedAt: new Date().toISOString() as unknown as Date,
     ...overrides,
   }
 }
@@ -665,6 +665,7 @@ describe('TemplateForm (integration)', () => {
       id: 'tpl-uuid',
       specialtyId: 'spec-uuid',
       specialtyName: 'Cardiologia',
+      councilType: null,
       name: 'Anamnese Cardíaca',
       fields: [
         {

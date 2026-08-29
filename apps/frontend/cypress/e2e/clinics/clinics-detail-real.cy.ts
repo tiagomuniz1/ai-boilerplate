@@ -1,3 +1,8 @@
+// Sem um import ou export, o TypeScript trata o arquivo como script e as
+// constantes de topo passam a dividir o escopo global com as outras specs —
+// PLATFORM_EMAIL e companhia colidiam entre nove arquivos.
+export {}
+
 // Stack real ponta a ponta — zero cobertura hoje: detalhe e edição de clínica
 // no backoffice nunca foram testados, nem mockado nem real. Erro de 409 de
 // slug duplicado também é provocado de verdade (módulo de maior risco —

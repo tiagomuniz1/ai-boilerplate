@@ -54,6 +54,10 @@ describe('Exames — Create', () => {
   beforeEach(() => {
     cy.clearCookies()
     cy.clearLocalStorage()
+    // Registered first on purpose: any spec-specific intercept below overrides
+    // it, and the widgets this spec does not care about stop 401-ing the app
+    // into a login/dashboard redirect loop.
+    cy.stubAppointmentDetailWidgets()
     cy.intercept('GET', `${Cypress.env('API_URL')}/professionals*`, {
       statusCode: 200,
       body: { data: [mockProfessional], total: 1, page: 1, limit: 200 },

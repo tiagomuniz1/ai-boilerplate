@@ -159,6 +159,10 @@ describe('Mobile (375px) — sem scroll horizontal', () => {
     cy.viewport(375, 667)
     cy.clearCookies()
     cy.clearLocalStorage()
+    // Registered first on purpose: any spec-specific intercept below overrides
+    // it, and the widgets this spec does not care about stop 401-ing the app
+    // into a login/dashboard redirect loop.
+    cy.stubAppointmentDetailWidgets()
 
     cy.intercept('GET', `${Cypress.env('API_URL')}/professionals*`, {
       statusCode: 200,

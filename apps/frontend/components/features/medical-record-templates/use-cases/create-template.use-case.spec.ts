@@ -15,7 +15,9 @@ describe('createTemplateUseCase', () => {
     const input = {
       specialtyId: 'spec-uuid',
       name: 'Anamnese',
-      fields: [{ label: 'Sintoma', type: MedicalRecordFieldType.TEXT, required: true, order: 0, options: [], placeholder: '', helpText: '', canonical: false, canonicalKey: '' }],
+      fields: [{ label: 'Sintoma', type: MedicalRecordFieldType.TEXT, required: true, order: 0, options: [], placeholder: '', helpText: '', canonical: false, canonicalKey: '', sectionKey: '' }],
+  // `sections` entrou no input quando o template passou a ter seções.
+  sections: [],
     }
     const mappedDto = { specialtyId: 'spec-uuid', name: 'Anamnese', fields: [] }
     const responseDto = { id: 'uuid-1', name: 'Anamnese' }

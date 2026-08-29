@@ -37,6 +37,14 @@ const mockPatient = {
   birthDate: '1990-01-01',
   documentNumber: '12345678901',
   gender: 'female',
+  // The kinship fields are required by PatientResponseDto and the detail page
+  // reads `dependents.length` straight from the mapper. Omitting them here threw
+  // "Cannot read properties of undefined" inside the app, which Cypress reports
+  // as an uncaught application error with no hint about the stale fixture.
+  responsiblePatientId: null,
+  kinshipType: null,
+  responsiblePatient: null,
+  dependents: [],
   createdAt: new Date().toISOString(),
   updatedAt: new Date().toISOString(),
 }
@@ -55,6 +63,9 @@ describe('Patient Medical History', () => {
       statusCode: 200,
       body: mockPaginatedPatients,
     }).as('getPatients')
+    // Stubs the photo gallery the detail page also mounts; the medical-records
+    // intercept right below overrides this command's empty default.
+    cy.stubPatientDetailWidgets()
     cy.intercept('GET', `${Cypress.env('API_URL')}/medical-records*`, {
       statusCode: 200,
       body: {
