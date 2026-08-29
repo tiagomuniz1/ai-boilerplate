@@ -1,5 +1,25 @@
 # Changelog — Frontend
 
+## [Unreleased]
+
+### Added
+
+#### Suíte E2E em modo subdomínio
+- Nova `cypress.subdomain.config.ts` + `cypress/e2e/subdomain/` (11 testes) rodando contra a stack completa (`docker-compose.full.yml`), que reproduz a topologia de produção: nginx roteando por `Host`, `COOKIE_DOMAIN` no domínio-pai, CORS entre subdomínios e o `website` no apex. Script: `yarn workspace @app/frontend cypress:run:subdomain`
+- Cobre o que o modo path é incapaz de exercitar: slug no host e ausente do caminho, links internos sem prefixo, marca do backoffice, apex servindo o `website`, redirect de login no subdomínio atual, escopo e nomes distintos de cookie, e as páginas públicas (verificação de receita e definição de senha)
+- Não duplica a suíte padrão — regra de negócio já é coberta em modo path
+- Os helpers de `cypress/support/clinic.ts` passam a ser mode-aware (`SUBDOMAIN_BASE_DOMAIN`): montam URL, domínio de cookie e asserção de caminho conforme o modo, então specs que os usam valem nos dois
+
+### Fixed
+
+#### A suíte E2E era cega a divergência de hidratação
+- `cypress/support/e2e.ts` silencia erros de hidratação do React. Como a reescrita de caminho por subdomínio faz servidor e cliente enxergarem pathnames diferentes, essa é exatamente a assinatura dos bugs que esse modo produz — e nenhum dos 117 specs podia percebê-los. Foi assim que a Sidebar passou a exibir marca de clínica no backoffice em produção
+- A suíte de subdomínio usa `cypress/support/e2e.subdomain.ts`, que **falha** nesses erros e explica o que a divergência costuma significar. Casa também as mensagens minificadas (`Minified React error #418/#423/#425/#426`), que o filtro por texto não pegava em build de produção
+- Verificado reintroduzindo o bug da Sidebar e reconstruindo a imagem: a suíte fica vermelha; com a correção, verde
+
+#### Proxy local da stack completa não subia com o repositório fora de /Users
+- `docker-compose.full.yml` montava `nginx.local.conf` do host, o que depende do diretório do projeto estar no file sharing do Docker Desktop. Agora a configuração é copiada para dentro da imagem (`infra/proxy/Dockerfile.local`) — sem dependência do host, e o mesmo passo funciona no CI
+
 ## [1.3.4] - 2026-08-29
 
 ### Fixed

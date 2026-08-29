@@ -16,6 +16,7 @@
     "lint": "next lint",
     "e2e:check": "node scripts/check-e2e-env.js",
     "cypress:run": "node scripts/check-e2e-env.js && cypress run",
+    "cypress:run:subdomain": "E2E_SUBDOMAIN_MODE=1 node scripts/check-e2e-env.js && cypress run --config-file cypress.subdomain.config.ts",
     "cypress:run:headed": "node scripts/check-e2e-env.js && cypress run --browser chrome --headed"
   },
   "dependencies": {
