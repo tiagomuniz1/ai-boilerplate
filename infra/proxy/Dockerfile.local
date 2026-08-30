@@ -1,0 +1,10 @@
+# Proxy local da stack completa (docker-compose.full.yml).
+#
+# A configuração é copiada para dentro da imagem em vez de montada do host: um
+# bind mount depende do diretório do projeto estar na lista de file sharing do
+# Docker Desktop, o que falha silenciosamente quando o repositório vive fora de
+# /Users (ex.: um volume externo) e quebraria o mesmo passo no CI. Como o arquivo
+# só muda junto com o compose, copiar não custa nada — `up --build` recarrega.
+FROM nginx:1.27-alpine
+
+COPY nginx.local.conf /etc/nginx/conf.d/default.conf

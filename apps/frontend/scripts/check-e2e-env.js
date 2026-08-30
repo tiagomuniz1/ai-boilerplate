@@ -8,9 +8,23 @@
 // Ports mirror cypress.config.ts (baseUrl 3000, API 3001) and can be overridden with
 // E2E_BASE_URL / E2E_API_URL (e.g. when running the frontend on an alternate port).
 
-const BASE_URL = (process.env.E2E_BASE_URL ?? 'http://localhost:3000').replace(/\/$/, '')
-const API_URL = (process.env.E2E_API_URL ?? 'http://localhost:3001').replace(/\/$/, '')
 const CLINIC_SLUG = 'pulso'
+
+// Modo subdomínio (docker-compose.full.yml): a clínica vive no host, não no
+// caminho, e a API tem subdomínio próprio. Sem isto o pré-voo checaria
+// localhost:3000/pulso, que nesse modo não existe, e falharia com uma mensagem
+// que aponta para o lugar errado.
+const SUBDOMAIN_MODE = process.env.E2E_SUBDOMAIN_MODE === '1'
+const BASE_DOMAIN = process.env.E2E_BASE_DOMAIN ?? 'pulso.localhost'
+
+const DEFAULT_BASE_URL = SUBDOMAIN_MODE ? `http://${CLINIC_SLUG}.${BASE_DOMAIN}` : 'http://localhost:3000'
+const DEFAULT_API_URL = SUBDOMAIN_MODE ? `http://api.${BASE_DOMAIN}` : 'http://localhost:3001'
+
+const BASE_URL = (process.env.E2E_BASE_URL ?? DEFAULT_BASE_URL).replace(/\/$/, '')
+const API_URL = (process.env.E2E_API_URL ?? DEFAULT_API_URL).replace(/\/$/, '')
+
+// A página da clínica: sob subdomínio a raiz do host já é a clínica.
+const CLINIC_PAGE_URL = SUBDOMAIN_MODE ? `${BASE_URL}/` : `${BASE_URL}/${CLINIC_SLUG}`
 
 function fail(message) {
   console.error(`\n✖ E2E pre-flight failed:\n  ${message}\n`)
@@ -41,17 +55,19 @@ async function main() {
   //    or the frontend can't reach the backend). 200/redirects are fine.
   let pageRes
   try {
-    pageRes = await fetch(`${BASE_URL}/${CLINIC_SLUG}`, { redirect: 'manual' })
+    pageRes = await fetch(CLINIC_PAGE_URL, { redirect: 'manual' })
   } catch {
     fail(
       `No frontend reachable at ${BASE_URL}.\n` +
-        `  Start it with: yarn workspace @app/frontend dev\n` +
+        (SUBDOMAIN_MODE
+          ? '  Start the full stack with: docker compose -f docker-compose.yml -f docker-compose.full.yml up -d --build\n'
+          : '  Start it with: yarn workspace @app/frontend dev\n') +
         `  Override the URL with E2E_BASE_URL if it runs on another port.`,
     )
   }
   if (pageRes.status === 404) {
     fail(
-      `${BASE_URL}/${CLINIC_SLUG} returned 404 — the app on ${BASE_URL} is not resolving the\n` +
+      `${CLINIC_PAGE_URL} returned 404 — the app on ${BASE_URL} is not resolving the\n` +
         `  '${CLINIC_SLUG}' clinic. Either another project is occupying that port, or the Pulso\n` +
         `  frontend can't reach the backend (check NEXT_PUBLIC_API_URL = ${API_URL}).`,
     )
