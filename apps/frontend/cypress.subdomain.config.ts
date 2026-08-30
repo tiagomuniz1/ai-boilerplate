@@ -26,6 +26,9 @@ export default defineConfig({
     // Support próprio: não herda o silenciador de erro de hidratação da suíte padrão.
     supportFile: 'cypress/support/e2e.subdomain.ts',
     specPattern: 'cypress/e2e/subdomain/**/*.cy.{ts,tsx}',
+    // Anula a exclusão herdada do config base, que existe justamente para manter
+    // estes specs fora da suíte padrão.
+    excludeSpecPattern: [],
     env: {
       ...baseConfig.e2e?.env,
       API_URL: 'http://api.pulso.localhost',

@@ -6,6 +6,10 @@ export default defineConfig({
     baseUrl: 'http://localhost:3000',
     supportFile: 'cypress/support/e2e.ts',
     specPattern: 'cypress/e2e/**/*.cy.{ts,tsx}',
+    // A suíte de subdomínio exige a stack completa (docker-compose.full.yml) e
+    // falha por construção em modo path: as URLs, o domínio do cookie e as
+    // asserções de caminho são outros. Roda por cypress.subdomain.config.ts.
+    excludeSpecPattern: 'cypress/e2e/subdomain/**/*.cy.{ts,tsx}',
     video: false,
     screenshotOnRunFailure: true,
     env: {
