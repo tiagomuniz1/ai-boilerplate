@@ -49,9 +49,21 @@ describe('Medical Record Templates Create', () => {
       statusCode: 200,
       body: [],
     }).as('getCanonicalFields')
-    cy.intercept('GET', `${Cypress.env('API_URL')}/specialties*`, {
+    // O formulário lê as especialidades VINCULADAS À CLÍNICA, não o catálogo
+    // da plataforma.
+    cy.intercept('GET', `${Cypress.env('API_URL')}/clinics/*/specialties*`, {
       statusCode: 200,
-      body: mockSpecialties,
+      body: {
+        ...mockSpecialties,
+        data: mockSpecialties.data.map((s) => ({
+          id: `link-${s.id}`,
+          clinicId: CLINIC_ID,
+          specialtyId: s.id,
+          name: s.name,
+          description: s.description ?? null,
+          linkedAt: '2024-01-01T00:00:00.000Z',
+        })),
+      },
     }).as('getSpecialties')
   })
 

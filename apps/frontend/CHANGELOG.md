@@ -1,5 +1,14 @@
 # Changelog — Frontend
 
+## [1.4.1] - 2026-08-31
+
+### Fixed
+
+#### Modelo de prontuário oferecia especialidades que a clínica não atende
+- O select de especialidade do formulário lia `useSpecialties({ limit: 100 })` — o catálogo da plataforma inteiro (17 especialidades) — em vez dos vínculos da clínica. Um ADMIN podia criar modelo para uma especialidade que a clínica não oferece
+- Passa a usar `useClinicSpecialties(clinicId)`, que já existia. A opção "Generalista (sem especialidade)" é a `value=""` do select e não depende dessa lista, então continua disponível
+- O caminho do PROFESSIONAL não muda: continua restrito às próprias especialidades, que é a regra documentada
+
 ## [1.4.0] - 2026-08-31
 
 ### Changed
