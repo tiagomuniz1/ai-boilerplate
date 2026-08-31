@@ -11,7 +11,6 @@ export function toCanonicalFieldModel(dto: CanonicalFieldResponseDto): ICanonica
       ? dto.options.map((o) => ({ value: o.value, label: o.label }))
       : null,
     unit: dto.unit,
-    specialtyId: dto.specialtyId,
     description: dto.description,
   }
 }

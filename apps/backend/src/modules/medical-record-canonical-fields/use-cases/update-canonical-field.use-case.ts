@@ -14,7 +14,6 @@ import {
 } from '@app/shared'
 import { BaseUseCase } from '../../../common/base.use-case'
 import { CacheService } from '../../../cache/cache.service'
-import { ISpecialtiesRepository } from '../../specialties/repositories/specialties.repository.interface'
 import { MedicalRecordCanonicalField } from '../entities/medical-record-canonical-field.entity'
 import { IMedicalRecordCanonicalFieldsRepository } from '../repositories/medical-record-canonical-fields.repository.interface'
 
@@ -25,7 +24,6 @@ export class UpdateCanonicalFieldUseCase extends BaseUseCase {
   constructor(
     dataSource: DataSource,
     private readonly canonicalFieldsRepository: IMedicalRecordCanonicalFieldsRepository,
-    private readonly specialtiesRepository: ISpecialtiesRepository,
     private readonly cacheService: CacheService,
   ) {
     super(dataSource)
@@ -41,11 +39,6 @@ export class UpdateCanonicalFieldUseCase extends BaseUseCase {
       this.validateTypeOptions(effectiveType, effectiveOptions ?? null)
     }
 
-    if (dto.specialtyId) {
-      const specialty = await this.specialtiesRepository.findById(dto.specialtyId)
-      if (!specialty) throw new UnprocessableEntityException('Specialty not found')
-    }
-
     if (dto.canonicalKey !== undefined && dto.canonicalKey !== field.canonicalKey) {
       const existing = await this.canonicalFieldsRepository.findByCanonicalKey(dto.canonicalKey)
       if (existing) throw new ConflictException('Canonical key already in use')
@@ -59,7 +52,6 @@ export class UpdateCanonicalFieldUseCase extends BaseUseCase {
       updateData.options = dto.options.length > 0 ? dto.options : null
     }
     if (dto.unit !== undefined) updateData.unit = dto.unit ?? null
-    if (dto.specialtyId !== undefined) updateData.specialtyId = dto.specialtyId ?? null
     if (dto.description !== undefined) updateData.description = dto.description ?? null
     if (dto.isActive !== undefined) updateData.isActive = dto.isActive
 
@@ -104,7 +96,6 @@ export class UpdateCanonicalFieldUseCase extends BaseUseCase {
       type: field.type,
       options: field.options,
       unit: field.unit,
-      specialtyId: field.specialtyId,
       description: field.description,
       isActive: field.isActive,
     }

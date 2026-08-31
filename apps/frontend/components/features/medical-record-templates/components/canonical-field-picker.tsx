@@ -16,12 +16,11 @@ const FIELD_TYPE_LABELS: Record<MedicalRecordFieldType, string> = {
 }
 
 interface CanonicalFieldPickerProps {
-  specialtyId?: string
   onAdopt: (field: ICanonicalFieldModel) => void
 }
 
-export function CanonicalFieldPicker({ specialtyId, onAdopt }: CanonicalFieldPickerProps) {
-  const { data: canonicalFields, isPending, isError } = useCanonicalFields(specialtyId)
+export function CanonicalFieldPicker({ onAdopt }: CanonicalFieldPickerProps) {
+  const { data: canonicalFields, isPending, isError } = useCanonicalFields()
 
   if (isPending) {
     return (
@@ -42,7 +41,7 @@ export function CanonicalFieldPicker({ specialtyId, onAdopt }: CanonicalFieldPic
   if (!canonicalFields || canonicalFields.length === 0) {
     return (
       <div className="text-sm text-text-mute py-2" data-testid="canonical-field-picker-empty">
-        Nenhum campo canônico disponível para esta especialidade.
+        Nenhum campo canônico disponível.
       </div>
     )
   }

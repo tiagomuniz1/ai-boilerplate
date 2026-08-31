@@ -47,7 +47,6 @@ export default function NewCanonicalFieldPage() {
       </div>
       <CanonicalFieldForm
         mode="create"
-        specialties={[]}
         isPending={isPending}
         globalError={globalError}
         onSubmit={handleSubmit}

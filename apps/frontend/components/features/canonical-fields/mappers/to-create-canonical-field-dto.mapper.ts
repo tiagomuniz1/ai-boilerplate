@@ -16,7 +16,6 @@ export function toCreateCanonicalFieldDto(input: ICreateCanonicalFieldInput): Cr
   }
 
   if (input.unit !== undefined) dto.unit = input.unit
-  if (input.specialtyId !== undefined) dto.specialtyId = input.specialtyId
   if (input.description !== undefined) dto.description = input.description
 
   return dto

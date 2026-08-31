@@ -21,7 +21,9 @@ describe('Medical record templates — canonical field adoption and reorder real
 
       const ts = Date.now()
       cy.createCanonicalFieldViaApi(
-        { canonicalKey: `pressao_arterial_${ts}`, label: `Pressão arterial ${ts}`, type: 'number', unit: 'mmHg', specialtyId: specialty.id },
+        // Sem escopo: o catálogo é global e o campo aparece no seletor de
+        // qualquer modelo, com ou sem especialidade escolhida.
+        { canonicalKey: `pressao_arterial_${ts}`, label: `Pressão arterial ${ts}`, type: 'number', unit: 'mmHg' },
         specialty.platformAdminToken,
       ).then((canonicalField) => {
         cy.loginAsClinicUser(ADMIN_EMAIL, ADMIN_PASSWORD, CLINIC_SLUG).then((adminToken) => {

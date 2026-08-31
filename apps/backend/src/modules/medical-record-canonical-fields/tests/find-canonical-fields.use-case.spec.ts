@@ -8,7 +8,7 @@ import { IMedicalRecordCanonicalFieldsRepository } from '../repositories/medical
 import { FindCanonicalFieldsUseCase } from '../use-cases/find-canonical-fields.use-case'
 
 const mockRepository: jest.Mocked<IMedicalRecordCanonicalFieldsRepository> = {
-  findForSuggestion: jest.fn(),
+  findAll: jest.fn(),
   findById: jest.fn(),
   findByCanonicalKey: jest.fn(),
   create: jest.fn(),
@@ -30,7 +30,6 @@ const makeField = (overrides = {}) => ({
   type: MedicalRecordFieldType.NUMBER,
   options: null,
   unit: 'kg',
-  specialtyId: null,
   description: null,
   isActive: true,
   createdAt: new Date(),
@@ -56,49 +55,40 @@ describe('FindCanonicalFieldsUseCase', () => {
     const result = await useCase.execute({} as CanonicalFieldListQueryDto, admin)
 
     expect(result).toBe(cached as any)
-    expect(mockRepository.findForSuggestion).not.toHaveBeenCalled()
+    expect(mockRepository.findAll).not.toHaveBeenCalled()
   })
 
+  // Uma chave só: o catálogo é global, não há variante por escopo a cachear.
   it('queries repository on cache miss and caches the result', async () => {
     const field = makeField()
     mockCacheService.get.mockResolvedValue(null)
-    mockRepository.findForSuggestion.mockResolvedValue([field] as any)
+    mockRepository.findAll.mockResolvedValue([field] as any)
 
-    const result = await useCase.execute({ specialtyId: 'spec-1' } as CanonicalFieldListQueryDto, admin)
+    const result = await useCase.execute({} as CanonicalFieldListQueryDto, admin)
 
-    expect(mockRepository.findForSuggestion).toHaveBeenCalledWith('spec-1', false)
-    expect(mockCacheService.get).toHaveBeenCalledWith('canonical_fields:list:spec-1')
-    expect(mockCacheService.set).toHaveBeenCalledWith('canonical_fields:list:spec-1', result, 600)
+    expect(mockRepository.findAll).toHaveBeenCalledWith(false)
+    expect(mockCacheService.get).toHaveBeenCalledWith('canonical_fields:list')
+    expect(mockCacheService.set).toHaveBeenCalledWith('canonical_fields:list', result, 600)
     expect(result[0].id).toBe(field.id)
   })
 
-  it('uses "all" cache key when no specialtyId is provided', async () => {
-    mockCacheService.get.mockResolvedValue(null)
-    mockRepository.findForSuggestion.mockResolvedValue([])
-
-    await useCase.execute({} as CanonicalFieldListQueryDto, admin)
-
-    expect(mockCacheService.get).toHaveBeenCalledWith('canonical_fields:list:all')
-    expect(mockRepository.findForSuggestion).toHaveBeenCalledWith(undefined, false)
-  })
-
   it('respects includeInactive only for PLATFORM_ADMIN and bypasses cache', async () => {
-    mockRepository.findForSuggestion.mockResolvedValue([])
+    mockRepository.findAll.mockResolvedValue([])
 
     await useCase.execute({ includeInactive: true } as CanonicalFieldListQueryDto, platformAdmin)
 
-    expect(mockRepository.findForSuggestion).toHaveBeenCalledWith(undefined, true)
+    expect(mockRepository.findAll).toHaveBeenCalledWith(true)
     expect(mockCacheService.get).not.toHaveBeenCalled()
     expect(mockCacheService.set).not.toHaveBeenCalled()
   })
 
   it('ignores includeInactive for non-PLATFORM_ADMIN roles', async () => {
     mockCacheService.get.mockResolvedValue(null)
-    mockRepository.findForSuggestion.mockResolvedValue([])
+    mockRepository.findAll.mockResolvedValue([])
 
     await useCase.execute({ includeInactive: true } as CanonicalFieldListQueryDto, admin)
 
-    expect(mockRepository.findForSuggestion).toHaveBeenCalledWith(undefined, false)
+    expect(mockRepository.findAll).toHaveBeenCalledWith(false)
   })
 
   it('maps entity to response shape', async () => {
@@ -106,9 +96,8 @@ describe('FindCanonicalFieldsUseCase', () => {
     const field = makeField({
       type: MedicalRecordFieldType.SELECT,
       options: [{ value: 'low', label: 'Baixo' }],
-      specialtyId: 'spec-1',
     })
-    mockRepository.findForSuggestion.mockResolvedValue([field] as any)
+    mockRepository.findAll.mockResolvedValue([field] as any)
 
     const [result] = await useCase.execute({} as CanonicalFieldListQueryDto, admin)
 
@@ -119,7 +108,6 @@ describe('FindCanonicalFieldsUseCase', () => {
       type: field.type,
       options: field.options,
       unit: field.unit,
-      specialtyId: field.specialtyId,
       description: field.description,
       isActive: field.isActive,
     })
@@ -127,18 +115,18 @@ describe('FindCanonicalFieldsUseCase', () => {
 
   it('continues when cache read fails', async () => {
     mockCacheService.get.mockRejectedValue(new Error('Redis error'))
-    mockRepository.findForSuggestion.mockResolvedValue([])
+    mockRepository.findAll.mockResolvedValue([])
 
     const result = await useCase.execute({} as CanonicalFieldListQueryDto, admin)
 
     expect(result).toEqual([])
-    expect(mockRepository.findForSuggestion).toHaveBeenCalled()
+    expect(mockRepository.findAll).toHaveBeenCalled()
   })
 
   it('continues when cache write fails', async () => {
     mockCacheService.get.mockResolvedValue(null)
     mockCacheService.set.mockRejectedValue(new Error('Redis error'))
-    mockRepository.findForSuggestion.mockResolvedValue([makeField()] as any)
+    mockRepository.findAll.mockResolvedValue([makeField()] as any)
 
     const result = await useCase.execute({} as CanonicalFieldListQueryDto, admin)
 

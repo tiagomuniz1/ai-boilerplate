@@ -13,7 +13,6 @@ import {
 } from '@app/shared'
 import { BaseUseCase } from '../../../common/base.use-case'
 import { CacheService } from '../../../cache/cache.service'
-import { ISpecialtiesRepository } from '../../specialties/repositories/specialties.repository.interface'
 import { MedicalRecordCanonicalField } from '../entities/medical-record-canonical-field.entity'
 import { IMedicalRecordCanonicalFieldsRepository } from '../repositories/medical-record-canonical-fields.repository.interface'
 
@@ -24,7 +23,6 @@ export class CreateCanonicalFieldUseCase extends BaseUseCase {
   constructor(
     dataSource: DataSource,
     private readonly canonicalFieldsRepository: IMedicalRecordCanonicalFieldsRepository,
-    private readonly specialtiesRepository: ISpecialtiesRepository,
     private readonly cacheService: CacheService,
   ) {
     super(dataSource)
@@ -32,11 +30,6 @@ export class CreateCanonicalFieldUseCase extends BaseUseCase {
 
   async execute(dto: CreateCanonicalFieldDto): Promise<CanonicalFieldResponseDto> {
     this.validateTypeOptions(dto.type, dto.options ?? null)
-
-    if (dto.specialtyId) {
-      const specialty = await this.specialtiesRepository.findById(dto.specialtyId)
-      if (!specialty) throw new UnprocessableEntityException('Specialty not found')
-    }
 
     const existing = await this.canonicalFieldsRepository.findByCanonicalKey(dto.canonicalKey)
     if (existing) throw new ConflictException('Canonical key already in use')
@@ -47,7 +40,6 @@ export class CreateCanonicalFieldUseCase extends BaseUseCase {
       type: dto.type,
       options: dto.options ?? null,
       unit: dto.unit ?? null,
-      specialtyId: dto.specialtyId ?? null,
       description: dto.description ?? null,
     })
 
@@ -90,7 +82,6 @@ export class CreateCanonicalFieldUseCase extends BaseUseCase {
       type: field.type,
       options: field.options,
       unit: field.unit,
-      specialtyId: field.specialtyId,
       description: field.description,
       isActive: field.isActive,
     }

@@ -5,7 +5,6 @@ import type { ICanonicalFieldListParams } from '../types/canonical-field-model.t
 export const canonicalFieldsAdminService = {
   getAll: (params?: ICanonicalFieldListParams) => {
     const searchParams = new URLSearchParams()
-    if (params?.specialtyId) searchParams.set('specialtyId', params.specialtyId)
     if (params?.includeInactive) searchParams.set('includeInactive', 'true')
     const query = searchParams.toString()
     return apiClient.get<CanonicalFieldResponseDto[]>(

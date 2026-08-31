@@ -66,7 +66,6 @@ const baseObjectSchema = z.object({
   // errorMap, not required_error — see the note in schedule-form.tsx.
   type: z.nativeEnum(MedicalRecordFieldType, { errorMap: () => ({ message: 'Tipo obrigatório' }) }),
   unit: z.string().max(20, 'Deve ter no máximo 20 caracteres').optional(),
-  specialtyId: z.string().optional(),
   description: z.string().max(500, 'Deve ter no máximo 500 caracteres').optional(),
   options: z.array(optionSchema).optional(),
 })
@@ -86,14 +85,8 @@ const createSchema = addOptionsRefinement(createObjectSchema)
 type CreateFormValues = z.infer<typeof createSchema>
 type UpdateFormValues = z.infer<typeof baseSchema>
 
-export interface ISpecialtyOption {
-  id: string
-  name: string
-}
-
 interface CanonicalFieldFormCreateProps {
   mode: 'create'
-  specialties: ISpecialtyOption[]
   isPending: boolean
   globalError?: string | null
   onSubmit: (
@@ -105,7 +98,6 @@ interface CanonicalFieldFormCreateProps {
 interface CanonicalFieldFormEditProps {
   mode: 'edit'
   defaultValues: ICanonicalFieldModel
-  specialties: ISpecialtyOption[]
   isPending: boolean
   globalError?: string | null
   onSubmit: (
@@ -122,7 +114,6 @@ export function CanonicalFieldForm(props: CanonicalFieldFormProps) {
 }
 
 function CanonicalFieldFormCreate({
-  specialties,
   isPending,
   globalError,
   onSubmit,
@@ -149,7 +140,6 @@ function CanonicalFieldFormCreate({
       type: data.type,
       ...(isSelect && data.options?.length ? { options: data.options } : {}),
       ...(data.unit ? { unit: data.unit } : {}),
-      ...(data.specialtyId ? { specialtyId: data.specialtyId } : {}),
       ...(data.description ? { description: data.description } : {}),
     }
     onSubmit(input, setError as any)
@@ -201,22 +191,6 @@ function CanonicalFieldFormCreate({
           <CanonicalFieldOptionsEditor control={control} errors={errors} />
         )}
 
-        <SelectField
-          label="Especialidade"
-          id="specialtyId"
-          error={undefined}
-          testId="canonical-field-form-specialty"
-          registerProps={register('specialtyId')}
-          optional
-        >
-          <option value="">Geral (todas as especialidades)</option>
-          {specialties.map((s) => (
-            <option key={s.id} value={s.id}>
-              {s.name}
-            </option>
-          ))}
-        </SelectField>
-
         <Input
           label="Unidade"
           id="unit"
@@ -250,7 +224,6 @@ function CanonicalFieldFormCreate({
 
 function CanonicalFieldFormEdit({
   defaultValues,
-  specialties,
   isPending,
   globalError,
   onSubmit,
@@ -273,7 +246,6 @@ function CanonicalFieldFormEdit({
       label: defaultValues.label,
       type: defaultValues.type,
       unit: defaultValues.unit ?? '',
-      specialtyId: defaultValues.specialtyId ?? '',
       description: defaultValues.description ?? '',
       options: defaultValues.options ?? [],
     })
@@ -288,7 +260,6 @@ function CanonicalFieldFormEdit({
       type: data.type,
       ...(isSelect && data.options?.length ? { options: data.options } : {}),
       unit: data.unit || undefined,
-      specialtyId: data.specialtyId || undefined,
       description: data.description || undefined,
     }
     onSubmit(input, setError as any)
@@ -339,22 +310,6 @@ function CanonicalFieldFormEdit({
         {isSelect && (
           <CanonicalFieldOptionsEditor control={control} errors={errors} />
         )}
-
-        <SelectField
-          label="Especialidade"
-          id="specialtyId"
-          error={undefined}
-          testId="canonical-field-form-specialty"
-          registerProps={register('specialtyId')}
-          optional
-        >
-          <option value="">Geral (todas as especialidades)</option>
-          {specialties.map((s) => (
-            <option key={s.id} value={s.id}>
-              {s.name}
-            </option>
-          ))}
-        </SelectField>
 
         <Input
           label="Unidade"

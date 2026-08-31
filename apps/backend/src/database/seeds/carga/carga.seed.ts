@@ -20,6 +20,7 @@ import {
   MedicalRecordTemplateSection,
 } from '../../../modules/medical-record-templates/entities/medical-record-template.entity'
 import { MedicalRecordCanonicalField } from '../../../modules/medical-record-canonical-fields/entities/medical-record-canonical-field.entity'
+import { CANONICAL_FIELDS } from '../canonical-fields/canonical-fields'
 import { generateFieldKey } from '../../../modules/medical-record-templates/utils/generate-field-key.util'
 
 export const CARGA_CLINIC_ID = '20000000-0000-4000-8000-000000000000'
@@ -314,21 +315,24 @@ async function seedAdminUser(dataSource: DataSource): Promise<User> {
 
 async function seedCanonicalFields(dataSource: DataSource): Promise<void> {
   const repo = dataSource.getRepository(MedicalRecordCanonicalField)
-  const fields = [
-    { canonicalKey: 'weight', label: 'Peso', type: MedicalRecordFieldType.NUMBER, unit: 'kg' },
-    { canonicalKey: 'height', label: 'Altura', type: MedicalRecordFieldType.NUMBER, unit: 'cm' },
-    { canonicalKey: 'blood_pressure', label: 'Pressão arterial', type: MedicalRecordFieldType.TEXT, unit: 'mmHg' },
-    { canonicalKey: 'heart_rate', label: 'Frequência cardíaca', type: MedicalRecordFieldType.NUMBER, unit: 'bpm' },
-    { canonicalKey: 'temperature', label: 'Temperatura', type: MedicalRecordFieldType.NUMBER, unit: '°C' },
-    { canonicalKey: 'chief_complaint', label: 'Queixa principal', type: MedicalRecordFieldType.TEXTAREA },
-    { canonicalKey: 'allergies', label: 'Alergias', type: MedicalRecordFieldType.TEXTAREA },
-    { canonicalKey: 'smoker', label: 'Fumante', type: MedicalRecordFieldType.BOOLEAN },
-  ]
-  for (const f of fields) {
-    const existing = await repo.findOneBy({ canonicalKey: f.canonicalKey })
-    if (!existing) {
-      await repo.save(repo.create({ ...f, unit: f.unit ?? null, specialtyId: null, description: null, options: null }))
-    }
+
+  // Consumes the shared catalogue instead of repeating it: the inline copy here
+  // held only the 8 general entries, so the templates below that reference `bmi`,
+  // `waist_circumference` and `range_of_motion` fell through as non-canonical.
+  for (const field of CANONICAL_FIELDS) {
+    const existing = await repo.findOneBy({ canonicalKey: field.canonicalKey })
+    if (existing) continue
+
+    await repo.save(
+      repo.create({
+        canonicalKey: field.canonicalKey,
+        label: field.label,
+        type: field.type,
+        unit: field.unit ?? null,
+        options: field.options ?? null,
+        description: field.description ?? null,
+      }),
+    )
   }
   log('Canonical fields seeded.')
 }

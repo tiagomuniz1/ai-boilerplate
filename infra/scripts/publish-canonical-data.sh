@@ -26,7 +26,7 @@ fi
 
 case "$DATASET" in
   all)
-    SEED_STEPS='node apps/backend/dist/database/seeds/run-import-themes.js && node apps/backend/dist/database/seeds/run-import-canonical-fields.js && node apps/backend/dist/database/seeds/run-import-specialties.js && node apps/backend/dist/database/seeds/run-import-medications.js' ;;
+    SEED_STEPS='node apps/backend/dist/database/seeds/run-import-themes.js && node apps/backend/dist/database/seeds/run-import-specialties.js && node apps/backend/dist/database/seeds/run-import-canonical-fields.js && node apps/backend/dist/database/seeds/run-import-medications.js' ;;
   themes)
     SEED_STEPS='node apps/backend/dist/database/seeds/run-import-themes.js' ;;
   canonical-fields)

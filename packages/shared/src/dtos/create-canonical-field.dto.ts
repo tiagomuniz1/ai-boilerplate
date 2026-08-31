@@ -5,7 +5,6 @@ import {
   IsEnum,
   IsOptional,
   IsString,
-  IsUUID,
   Matches,
   MaxLength,
   MinLength,
@@ -42,10 +41,6 @@ export class CreateCanonicalFieldDto {
   @IsString()
   @MaxLength(20)
   unit?: string
-
-  @IsOptional()
-  @IsUUID()
-  specialtyId?: string
 
   @IsOptional()
   @IsString()

@@ -6,7 +6,7 @@ import { IMedicalRecordCanonicalFieldsRepository } from '../repositories/medical
 import { FindCanonicalFieldByIdUseCase } from '../use-cases/find-canonical-field-by-id.use-case'
 
 const mockRepository: jest.Mocked<IMedicalRecordCanonicalFieldsRepository> = {
-  findForSuggestion: jest.fn(),
+  findAll: jest.fn(),
   findById: jest.fn(),
   findByCanonicalKey: jest.fn(),
   create: jest.fn(),
@@ -20,7 +20,6 @@ const makeField = (overrides = {}) => ({
   type: MedicalRecordFieldType.NUMBER,
   options: null,
   unit: 'kg',
-  specialtyId: null,
   description: null,
   isActive: true,
   createdAt: new Date(),
@@ -50,7 +49,6 @@ describe('FindCanonicalFieldByIdUseCase', () => {
       type: field.type,
       options: field.options,
       unit: field.unit,
-      specialtyId: field.specialtyId,
       description: field.description,
       isActive: field.isActive,
     })

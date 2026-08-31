@@ -9,7 +9,6 @@ export function toCanonicalFieldModel(dto: CanonicalFieldResponseDto): ICanonica
     type: dto.type,
     options: dto.options,
     unit: dto.unit,
-    specialtyId: dto.specialtyId,
     description: dto.description,
     isActive: dto.isActive,
   }

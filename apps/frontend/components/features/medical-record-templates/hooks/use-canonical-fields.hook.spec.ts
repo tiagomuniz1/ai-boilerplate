@@ -38,15 +38,6 @@ describe('useCanonicalFields', () => {
     expect(result.current.data).toEqual([model])
   })
 
-  it('passes specialtyId when provided', async () => {
-    ;(listCanonicalFieldsUseCase as jest.Mock).mockResolvedValue([])
-
-    const { result } = renderHook(() => useCanonicalFields('spec-uuid'), { wrapper })
-
-    await waitFor(() => expect(result.current.isSuccess).toBe(true))
-    expect(listCanonicalFieldsUseCase).toHaveBeenCalledWith('spec-uuid')
-  })
-
   it('returns error state on failure', async () => {
     ;(listCanonicalFieldsUseCase as jest.Mock).mockRejectedValue(new Error('error'))
 

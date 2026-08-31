@@ -26,7 +26,7 @@ export class FindCanonicalFieldsUseCase extends BaseUseCase {
   ): Promise<CanonicalFieldResponseDto[]> {
     const includeInactive =
       query.includeInactive === true && currentUser.role === UserRole.PLATFORM_ADMIN
-    const cacheKey = `canonical_fields:list:${query.specialtyId ?? 'all'}`
+    const cacheKey = 'canonical_fields:list'
 
     if (!includeInactive) {
       try {
@@ -37,10 +37,7 @@ export class FindCanonicalFieldsUseCase extends BaseUseCase {
       }
     }
 
-    const fields = await this.canonicalFieldsRepository.findForSuggestion(
-      query.specialtyId,
-      includeInactive,
-    )
+    const fields = await this.canonicalFieldsRepository.findAll(includeInactive)
     const result = fields.map((field) => this.toResponse(field))
 
     if (!includeInactive) {
@@ -62,7 +59,6 @@ export class FindCanonicalFieldsUseCase extends BaseUseCase {
       type: field.type,
       options: field.options,
       unit: field.unit,
-      specialtyId: field.specialtyId,
       description: field.description,
       isActive: field.isActive,
     }

@@ -249,7 +249,6 @@ export function TemplateForm(props: Props) {
     }
   }, [showProfessionSelector, watchedCouncilType, watchedSpecialtyId, setValue])
 
-  const canonicalPickerSpecialtyId = isEdit ? props.specialtyId : (watchedSpecialtyId || undefined)
 
   function buildFieldInputs(
     formFields: ITemplateFormValues['fields'],
@@ -552,7 +551,6 @@ export function TemplateForm(props: Props) {
                   register={register}
                   errors={errors}
                   watch={watch}
-                  specialtyId={canonicalPickerSpecialtyId}
                   dragHandleProps={handleProps}
                   fieldMoveToContainers={getSectionFieldMoveToContainers(sectionIndex)}
                   onMoveFieldToContainer={(fieldIndex, targetId) =>
@@ -574,10 +572,7 @@ export function TemplateForm(props: Props) {
         <p className="text-sm text-text-dim">
           Adote campos padronizados da plataforma para garantir consistência entre modelos.
         </p>
-        <CanonicalFieldPicker
-          specialtyId={canonicalPickerSpecialtyId}
-          onAdopt={handleAdoptCanonicalField}
-        />
+        <CanonicalFieldPicker onAdopt={handleAdoptCanonicalField} />
       </div>
 
       <div className="flex gap-3 justify-end">

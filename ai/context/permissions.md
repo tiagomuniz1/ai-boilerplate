@@ -121,6 +121,8 @@ O sistema possui quatro perfis de usuário (`UserRole`). Cada perfil reflete um 
 
 > ADMIN e PROFESSIONAL acessam a listagem apenas para compor templates — sem criar ou editar entradas do catálogo.
 
+> **O catálogo é global — não há segmentação.** Todo campo canônico vale para qualquer profissional, de qualquer profissão ou especialidade, e o seletor do construtor de templates mostra o catálogo inteiro. O campo já teve escopo por especialidade, o que só limitava: template é escopado por especialidade **ou** por `councilType`, enquanto o campo só podia sê-lo por especialidade — então as entradas escritas para profissões não-médicas não tinham como existir.
+
 ---
 
 ## Medicamentos (`/medications`)

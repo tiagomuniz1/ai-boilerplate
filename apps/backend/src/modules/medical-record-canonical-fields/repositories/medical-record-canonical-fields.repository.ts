@@ -13,29 +13,16 @@ export class MedicalRecordCanonicalFieldsRepository
     private readonly repository: Repository<MedicalRecordCanonicalField>,
   ) {}
 
-  async findForSuggestion(
-    specialtyId: string | undefined,
-    includeInactive: boolean,
-  ): Promise<MedicalRecordCanonicalField[]> {
+  // The catalogue is global — every field is offered to every professional, so
+  // the only thing left to decide is whether deactivated entries come along.
+  async findAll(includeInactive: boolean): Promise<MedicalRecordCanonicalField[]> {
     const queryBuilder = this.repository.createQueryBuilder('field')
 
     if (!includeInactive) {
       queryBuilder.andWhere('field.isActive = :isActive', { isActive: true })
     }
 
-    if (specialtyId) {
-      queryBuilder.andWhere(
-        '(field.specialtyId IS NULL OR field.specialtyId = :specialtyId)',
-        { specialtyId },
-      )
-    } else {
-      queryBuilder.andWhere('field.specialtyId IS NULL')
-    }
-
-    return queryBuilder
-      .orderBy('field.specialtyId', 'ASC', 'NULLS FIRST')
-      .addOrderBy('field.label', 'ASC')
-      .getMany()
+    return queryBuilder.orderBy('field.label', 'ASC').getMany()
   }
 
   async findById(id: string): Promise<MedicalRecordCanonicalField | null> {

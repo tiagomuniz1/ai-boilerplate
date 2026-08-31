@@ -81,13 +81,14 @@ describe('CanonicalFieldPicker (integration)', () => {
     )
   })
 
-  it('passes specialtyId to service when provided', async () => {
+  // O catálogo é global: o picker mostra tudo, sem receber escopo nenhum.
+  it('asks the service for the whole catalogue, unscoped', async () => {
     ;(canonicalFieldsService.getAll as jest.Mock).mockResolvedValue([])
 
-    renderWithProviders(<CanonicalFieldPicker specialtyId="spec-uuid" onAdopt={jest.fn()} />)
+    renderWithProviders(<CanonicalFieldPicker onAdopt={jest.fn()} />)
 
     await waitFor(() => {
-      expect(canonicalFieldsService.getAll).toHaveBeenCalledWith('spec-uuid')
+      expect(canonicalFieldsService.getAll).toHaveBeenCalledWith()
     })
   })
 })
