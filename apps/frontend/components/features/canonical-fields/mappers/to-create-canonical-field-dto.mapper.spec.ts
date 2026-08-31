@@ -47,18 +47,16 @@ describe('toCreateCanonicalFieldDto', () => {
     expect(dto.options).toBeUndefined()
   })
 
-  it('includes optional unit, specialtyId, description when provided', () => {
+  it('includes optional unit and description when provided', () => {
     const dto = toCreateCanonicalFieldDto({
       canonicalKey: 'blood_pressure',
       label: 'Pressão',
       type: MedicalRecordFieldType.NUMBER,
       unit: 'mmHg',
-      specialtyId: 'spec-uuid',
       description: 'Campo de pressão',
     })
 
     expect(dto.unit).toBe('mmHg')
-    expect(dto.specialtyId).toBe('spec-uuid')
     expect(dto.description).toBe('Campo de pressão')
   })
 
@@ -70,7 +68,6 @@ describe('toCreateCanonicalFieldDto', () => {
     })
 
     expect(dto.unit).toBeUndefined()
-    expect(dto.specialtyId).toBeUndefined()
     expect(dto.description).toBeUndefined()
     expect(dto.options).toBeUndefined()
   })

@@ -1,5 +1,26 @@
 # Changelog — Backend
 
+## [1.4.0] - 2026-08-31
+
+### Changed
+
+#### Catálogo de campos canônicos passa a ser global
+- **Breaking (DTO):** `specialtyId` sai de `CanonicalFieldResponseDto`, `CreateCanonicalFieldDto` e `UpdateCanonicalFieldDto`, e do query param da listagem. O `ValidationPipe` roda com `forbidNonWhitelisted`, então enviar o campo agora resulta em `400`
+- Migration `1754700000000` derruba `specialty_id`, sua FK e seu índice. O `down` recria a estrutura, **não os dados**
+- `findForSuggestion(specialtyId, includeInactive)` vira `findAll(includeInactive)` — o nome descrevia um escopo que não existe mais. A ordenação passa a ser só por `label`
+- `create`/`update` deixam de validar a especialidade; o módulo não importa mais `SpecialtiesModule`
+- Chave de cache simplifica de `canonical_fields:list:${specialtyId ?? 'all'}` para `canonical_fields:list`
+
+### Fixed
+
+#### Campo escopado era invisível no backoffice
+- A listagem reusava `findForSuggestion`, cujo ramo sem especialidade filtrava `specialty_id IS NULL`. Como a tela de catálogo não tem filtro de especialidade, o PLATFORM_ADMIN nunca via nem editava uma entrada escopada — em produção o `risk_level` estava no banco e some da tela
+
+#### Três campos do catálogo nunca eram importados
+- `bmi` e `waist_circumference` apontavam para "Nutrição Clínica" e `range_of_motion` para "Fisioterapia Ortopédica", especialidades que o catálogo não define (só as 17 do CRM). O importador as descartava com warning. Sem escopo, os três entram
+- `infra/scripts/publish-canonical-data.sh`: no dataset `all`, os campos canônicos eram importados **antes** das especialidades, o que garantia o descarte em base nova. Ordem corrigida
+- `carga.seed.ts` duplicava o catálogo inline com só 8 entradas; passa a consumir `CANONICAL_FIELDS`, então os templates que referenciam `bmi`, `waist_circumference` e `range_of_motion` deixam de cair como não-canônicos
+
 ## [Unreleased]
 
 ### Added

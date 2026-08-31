@@ -39,12 +39,9 @@ describe('listCanonicalFieldsAdminUseCase', () => {
   it('passes params to service', async () => {
     ;(canonicalFieldsAdminService.getAll as jest.Mock).mockResolvedValue([])
 
-    await listCanonicalFieldsAdminUseCase({ includeInactive: true, specialtyId: 'spec-uuid' })
+    await listCanonicalFieldsAdminUseCase({ includeInactive: true })
 
-    expect(canonicalFieldsAdminService.getAll).toHaveBeenCalledWith({
-      includeInactive: true,
-      specialtyId: 'spec-uuid',
-    })
+    expect(canonicalFieldsAdminService.getAll).toHaveBeenCalledWith({ includeInactive: true })
   })
 
   it('returns empty array when service returns empty', async () => {

@@ -27,9 +27,6 @@ export class MedicalRecordCanonicalField {
   @Column({ type: 'varchar', nullable: true })
   unit: string | null
 
-  @Column({ name: 'specialty_id', type: 'uuid', nullable: true })
-  specialtyId: string | null
-
   @Column({ type: 'varchar', nullable: true })
   description: string | null
 

@@ -76,7 +76,6 @@ export default function EditCanonicalFieldPage() {
         <CanonicalFieldForm
           mode="edit"
           defaultValues={field}
-          specialties={[]}
           isPending={isUpdating}
           globalError={globalError}
           onSubmit={handleSubmit}

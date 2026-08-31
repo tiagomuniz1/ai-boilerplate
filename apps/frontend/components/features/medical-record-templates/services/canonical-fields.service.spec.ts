@@ -15,10 +15,13 @@ describe('canonicalFieldsService', () => {
       expect(mockApiClient.get).toHaveBeenCalledWith('/medical-record-canonical-fields')
     })
 
-    it('calls GET with specialtyId param', async () => {
+    // O catálogo é global: a listagem nunca leva parâmetro de escopo.
+    it('never sends a scoping query param', async () => {
       mockApiClient.get.mockResolvedValue([])
-      await canonicalFieldsService.getAll('spec-uuid')
-      expect(mockApiClient.get).toHaveBeenCalledWith('/medical-record-canonical-fields?specialtyId=spec-uuid')
+      await canonicalFieldsService.getAll()
+      expect(mockApiClient.get).toHaveBeenCalledWith(
+        expect.not.stringContaining('?'),
+      )
     })
 
     it('returns API response', async () => {

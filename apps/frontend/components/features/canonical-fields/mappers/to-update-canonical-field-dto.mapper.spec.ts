@@ -22,10 +22,9 @@ describe('toUpdateCanonicalFieldDto', () => {
     expect(toUpdateCanonicalFieldDto({ isActive: true }).isActive).toBe(true)
   })
 
-  it('maps unit, specialtyId, description when provided', () => {
-    const dto = toUpdateCanonicalFieldDto({ unit: 'kg', specialtyId: 'spec-uuid', description: 'Desc' })
+  it('maps unit and description when provided', () => {
+    const dto = toUpdateCanonicalFieldDto({ unit: 'kg', description: 'Desc' })
     expect(dto.unit).toBe('kg')
-    expect(dto.specialtyId).toBe('spec-uuid')
     expect(dto.description).toBe('Desc')
   })
 
@@ -62,7 +61,6 @@ describe('toUpdateCanonicalFieldDto', () => {
     const dto = toUpdateCanonicalFieldDto({ label: 'Label' })
     expect(dto.type).toBeUndefined()
     expect(dto.unit).toBeUndefined()
-    expect(dto.specialtyId).toBeUndefined()
     expect(dto.description).toBeUndefined()
     expect(dto.isActive).toBeUndefined()
   })

@@ -7,12 +7,10 @@ export interface ICanonicalFieldModel {
   type: MedicalRecordFieldType
   options: { value: string; label: string }[] | null
   unit: string | null
-  specialtyId: string | null
   description: string | null
   isActive: boolean
 }
 
 export interface ICanonicalFieldListParams {
-  specialtyId?: string
   includeInactive?: boolean
 }

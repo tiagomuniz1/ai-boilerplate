@@ -153,7 +153,6 @@ interface CreateCanonicalFieldInput {
   label: string
   type: string
   unit?: string
-  specialtyId?: string
 }
 
 declare global {

@@ -18,19 +18,17 @@ const existingField: ICanonicalFieldModel = {
   type: MedicalRecordFieldType.NUMBER,
   options: null,
   unit: 'mmHg',
-  specialtyId: null,
   description: 'Desc existente',
   isActive: true,
 }
 
-const specialties = [{ id: 'spec-uuid', name: 'Cardiologia' }]
 
 describe('CanonicalFieldForm (integration) — create mode', () => {
   beforeEach(() => jest.clearAllMocks())
 
   it('renders all fields', () => {
     renderWithProviders(
-      <CanonicalFieldForm mode="create" specialties={[]} isPending={false} onSubmit={jest.fn()} />,
+      <CanonicalFieldForm mode="create" isPending={false} onSubmit={jest.fn()} />,
     )
 
     expect(screen.getByTestId('canonical-field-form-canonical-key')).toBeInTheDocument()
@@ -44,7 +42,7 @@ describe('CanonicalFieldForm (integration) — create mode', () => {
     const onSubmit = jest.fn()
 
     renderWithProviders(
-      <CanonicalFieldForm mode="create" specialties={[]} isPending={false} onSubmit={onSubmit} />,
+      <CanonicalFieldForm mode="create" isPending={false} onSubmit={onSubmit} />,
     )
 
     await userEvent.type(screen.getByTestId('canonical-field-form-canonical-key'), 'weight')
@@ -63,7 +61,7 @@ describe('CanonicalFieldForm (integration) — create mode', () => {
 
   it('shows validation error for invalid canonicalKey format', async () => {
     renderWithProviders(
-      <CanonicalFieldForm mode="create" specialties={[]} isPending={false} onSubmit={jest.fn()} />,
+      <CanonicalFieldForm mode="create" isPending={false} onSubmit={jest.fn()} />,
     )
 
     await userEvent.type(screen.getByTestId('canonical-field-form-canonical-key'), 'Invalid Key!')
@@ -80,7 +78,7 @@ describe('CanonicalFieldForm (integration) — create mode', () => {
 
   it('shows validation error when label is too short', async () => {
     renderWithProviders(
-      <CanonicalFieldForm mode="create" specialties={[]} isPending={false} onSubmit={jest.fn()} />,
+      <CanonicalFieldForm mode="create" isPending={false} onSubmit={jest.fn()} />,
     )
 
     await userEvent.type(screen.getByTestId('canonical-field-form-canonical-key'), 'weight')
@@ -95,7 +93,7 @@ describe('CanonicalFieldForm (integration) — create mode', () => {
 
   it('shows options editor when type is SELECT', async () => {
     renderWithProviders(
-      <CanonicalFieldForm mode="create" specialties={[]} isPending={false} onSubmit={jest.fn()} />,
+      <CanonicalFieldForm mode="create" isPending={false} onSubmit={jest.fn()} />,
     )
 
     await userEvent.selectOptions(screen.getByTestId('canonical-field-form-type'), MedicalRecordFieldType.SELECT)
@@ -105,7 +103,7 @@ describe('CanonicalFieldForm (integration) — create mode', () => {
 
   it('shows options editor when type is MULTISELECT', async () => {
     renderWithProviders(
-      <CanonicalFieldForm mode="create" specialties={[]} isPending={false} onSubmit={jest.fn()} />,
+      <CanonicalFieldForm mode="create" isPending={false} onSubmit={jest.fn()} />,
     )
 
     await userEvent.selectOptions(screen.getByTestId('canonical-field-form-type'), MedicalRecordFieldType.MULTISELECT)
@@ -115,7 +113,7 @@ describe('CanonicalFieldForm (integration) — create mode', () => {
 
   it('hides options editor when type is not SELECT/MULTISELECT', async () => {
     renderWithProviders(
-      <CanonicalFieldForm mode="create" specialties={[]} isPending={false} onSubmit={jest.fn()} />,
+      <CanonicalFieldForm mode="create" isPending={false} onSubmit={jest.fn()} />,
     )
 
     await userEvent.selectOptions(screen.getByTestId('canonical-field-form-type'), MedicalRecordFieldType.TEXT)
@@ -127,7 +125,6 @@ describe('CanonicalFieldForm (integration) — create mode', () => {
     renderWithProviders(
       <CanonicalFieldForm
         mode="create"
-        specialties={[]}
         isPending={false}
         globalError="Chave já cadastrada."
         onSubmit={jest.fn()}
@@ -139,23 +136,24 @@ describe('CanonicalFieldForm (integration) — create mode', () => {
 
   it('disables submit button when isPending', () => {
     renderWithProviders(
-      <CanonicalFieldForm mode="create" specialties={[]} isPending={true} onSubmit={jest.fn()} />,
+      <CanonicalFieldForm mode="create" isPending={true} onSubmit={jest.fn()} />,
     )
 
     expect(screen.getByTestId('canonical-field-form-submit')).toBeDisabled()
   })
 
-  it('renders specialty options', () => {
+  // O catálogo é global — o formulário não oferece escopo por especialidade.
+  it('has no specialty field', () => {
     renderWithProviders(
-      <CanonicalFieldForm mode="create" specialties={specialties} isPending={false} onSubmit={jest.fn()} />,
+      <CanonicalFieldForm mode="create" isPending={false} onSubmit={jest.fn()} />,
     )
 
-    expect(screen.getByRole('option', { name: 'Cardiologia' })).toBeInTheDocument()
+    expect(screen.queryByTestId('canonical-field-form-specialty')).not.toBeInTheDocument()
   })
 
   it('shows options error when SELECT type submitted with no options', async () => {
     renderWithProviders(
-      <CanonicalFieldForm mode="create" specialties={[]} isPending={false} onSubmit={jest.fn()} />,
+      <CanonicalFieldForm mode="create" isPending={false} onSubmit={jest.fn()} />,
     )
 
     await userEvent.type(screen.getByTestId('canonical-field-form-canonical-key'), 'severity')
@@ -176,7 +174,7 @@ describe('CanonicalFieldForm (integration) — create mode', () => {
   it('shows type error when form submitted without selecting a type', async () => {
     const onSubmit = jest.fn()
     renderWithProviders(
-      <CanonicalFieldForm mode="create" specialties={[]} isPending={false} onSubmit={onSubmit} />,
+      <CanonicalFieldForm mode="create" isPending={false} onSubmit={onSubmit} />,
     )
 
     await userEvent.type(screen.getByTestId('canonical-field-form-canonical-key'), 'weight')
@@ -191,7 +189,7 @@ describe('CanonicalFieldForm (integration) — create mode', () => {
 
   it('shows description error when description exceeds maximum length', async () => {
     renderWithProviders(
-      <CanonicalFieldForm mode="create" specialties={[]} isPending={false} onSubmit={jest.fn()} />,
+      <CanonicalFieldForm mode="create" isPending={false} onSubmit={jest.fn()} />,
     )
 
     await userEvent.type(screen.getByTestId('canonical-field-form-canonical-key'), 'weight')
@@ -205,18 +203,17 @@ describe('CanonicalFieldForm (integration) — create mode', () => {
     })
   })
 
-  it('includes optional fields in onSubmit when provided', async () => {
+  it('includes optional unit and description in onSubmit', async () => {
     const onSubmit = jest.fn()
 
     renderWithProviders(
-      <CanonicalFieldForm mode="create" specialties={specialties} isPending={false} onSubmit={onSubmit} />,
+      <CanonicalFieldForm mode="create" isPending={false} onSubmit={onSubmit} />,
     )
 
     await userEvent.type(screen.getByTestId('canonical-field-form-canonical-key'), 'weight')
     await userEvent.type(screen.getByTestId('canonical-field-form-label'), 'Peso')
     await userEvent.selectOptions(screen.getByTestId('canonical-field-form-type'), MedicalRecordFieldType.NUMBER)
     await userEvent.type(screen.getByTestId('canonical-field-form-unit'), 'kg')
-    await userEvent.selectOptions(screen.getByTestId('canonical-field-form-specialty'), 'spec-uuid')
     await userEvent.type(screen.getByTestId('canonical-field-form-description'), 'Peso corporal do paciente')
     await userEvent.click(screen.getByTestId('canonical-field-form-submit'))
 
@@ -224,7 +221,6 @@ describe('CanonicalFieldForm (integration) — create mode', () => {
       expect(onSubmit).toHaveBeenCalledWith(
         expect.objectContaining({
           unit: 'kg',
-          specialtyId: 'spec-uuid',
           description: 'Peso corporal do paciente',
         }),
         expect.any(Function),
@@ -236,7 +232,7 @@ describe('CanonicalFieldForm (integration) — create mode', () => {
     const onSubmit = jest.fn()
 
     renderWithProviders(
-      <CanonicalFieldForm mode="create" specialties={[]} isPending={false} onSubmit={onSubmit} />,
+      <CanonicalFieldForm mode="create" isPending={false} onSubmit={onSubmit} />,
     )
 
     await userEvent.type(screen.getByTestId('canonical-field-form-canonical-key'), 'severity')
@@ -263,7 +259,7 @@ describe('CanonicalFieldForm (integration) — create mode', () => {
   it('blocks submission when SELECT type has duplicate option values', async () => {
     const onSubmit = jest.fn()
     renderWithProviders(
-      <CanonicalFieldForm mode="create" specialties={[]} isPending={false} onSubmit={onSubmit} />,
+      <CanonicalFieldForm mode="create" isPending={false} onSubmit={onSubmit} />,
     )
 
     await userEvent.type(screen.getByTestId('canonical-field-form-canonical-key'), 'severity')
@@ -299,7 +295,6 @@ describe('CanonicalFieldForm (integration) — edit mode', () => {
       <CanonicalFieldForm
         mode="edit"
         defaultValues={existingField}
-        specialties={[]}
         isPending={false}
         onSubmit={jest.fn()}
       />,
@@ -317,7 +312,6 @@ describe('CanonicalFieldForm (integration) — edit mode', () => {
       <CanonicalFieldForm
         mode="edit"
         defaultValues={existingField}
-        specialties={[]}
         isPending={false}
         onSubmit={jest.fn()}
       />,
@@ -338,7 +332,6 @@ describe('CanonicalFieldForm (integration) — edit mode', () => {
       <CanonicalFieldForm
         mode="edit"
         defaultValues={existingField}
-        specialties={[]}
         isPending={false}
         onSubmit={onSubmit}
       />,
@@ -364,7 +357,6 @@ describe('CanonicalFieldForm (integration) — edit mode', () => {
     const fieldWithNulls: ICanonicalFieldModel = {
       ...existingField,
       unit: null,
-      specialtyId: 'spec-uuid',
       description: null,
     }
 
@@ -372,7 +364,6 @@ describe('CanonicalFieldForm (integration) — edit mode', () => {
       <CanonicalFieldForm
         mode="edit"
         defaultValues={fieldWithNulls}
-        specialties={specialties}
         isPending={false}
         onSubmit={jest.fn()}
       />,
@@ -392,7 +383,6 @@ describe('CanonicalFieldForm (integration) — edit mode', () => {
       <CanonicalFieldForm
         mode="edit"
         defaultValues={existingField}
-        specialties={[]}
         isPending={false}
         onSubmit={onSubmit}
       />,
@@ -419,7 +409,6 @@ describe('CanonicalFieldForm (integration) — edit mode', () => {
       <CanonicalFieldForm
         mode="edit"
         defaultValues={existingField}
-        specialties={[]}
         isPending={false}
         onSubmit={onSubmit}
       />,
@@ -452,7 +441,6 @@ describe('CanonicalFieldForm (integration) — edit mode', () => {
       <CanonicalFieldForm
         mode="edit"
         defaultValues={fieldWithOptions}
-        specialties={[]}
         isPending={false}
         onSubmit={jest.fn()}
       />,
@@ -477,7 +465,6 @@ describe('CanonicalFieldForm (integration) — edit mode', () => {
       <CanonicalFieldForm
         mode="edit"
         defaultValues={fieldWithOptions}
-        specialties={[]}
         isPending={false}
         onSubmit={onSubmit}
       />,
@@ -500,7 +487,6 @@ describe('CanonicalFieldForm (integration) — edit mode', () => {
       <CanonicalFieldForm
         mode="edit"
         defaultValues={existingField}
-        specialties={[]}
         isPending={false}
         globalError="Erro ao salvar."
         onSubmit={jest.fn()}
@@ -515,7 +501,6 @@ describe('CanonicalFieldForm (integration) — edit mode', () => {
       <CanonicalFieldForm
         mode="edit"
         defaultValues={existingField}
-        specialties={[]}
         isPending={true}
         onSubmit={jest.fn()}
       />,

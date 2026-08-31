@@ -1,5 +1,5 @@
 import * as bcrypt from 'bcrypt'
-import { DataSource, ILike, IsNull } from 'typeorm'
+import { DataSource, IsNull } from 'typeorm'
 import { AppointmentInsuranceType, AppointmentStatus, CouncilType, DayOfWeek, MedicalRecordFieldType, PatientGender, UserRole } from '@app/shared'
 import { Theme } from '../../../modules/themes/entities/theme.entity'
 import { CANONICAL_THEMES as SEED_THEMES } from '../themes/canonical-themes'
@@ -25,7 +25,6 @@ import { generateFieldKey } from '../../../modules/medical-record-templates/util
 const SEED_CLINIC_ID = '10000000-0000-4000-8000-000000000000'
 
 // General (non specialty-scoped) canonical fields, sourced from the shared catalogue.
-const SEED_GENERAL_CANONICAL_FIELDS = CANONICAL_FIELDS.filter((field) => !field.specialtyName)
 
 export async function devSeed(dataSource: DataSource): Promise<void> {
   const defaultTheme = await seedThemes(dataSource)
@@ -132,46 +131,24 @@ async function seedNutritionistProfessional(dataSource: DataSource, specialty: S
 async function seedCanonicalFields(dataSource: DataSource): Promise<void> {
   const repository = dataSource.getRepository(MedicalRecordCanonicalField)
 
-  for (const data of SEED_GENERAL_CANONICAL_FIELDS) {
+  // The catalogue is global — a single pass, and `options`/`description` come
+  // from the catalogue itself: dropping them would leave a SELECT field with no
+  // options to pick from.
+  for (const data of CANONICAL_FIELDS) {
     const existing = await repository.findOneBy({ canonicalKey: data.canonicalKey })
-    if (!existing) {
-      await repository.save(
-        repository.create({
-          canonicalKey: data.canonicalKey,
-          label: data.label,
-          type: data.type,
-          options: null,
-          unit: data.unit ?? null,
-          specialtyId: null,
-          description: null,
-        }),
-      )
-      console.log(`Dev seed: canonical field "${data.canonicalKey}" created.`)
-    }
-  }
+    if (existing) continue
 
-  const specialtyFields = CANONICAL_FIELDS.filter((field) => field.specialtyName)
-  for (const data of specialtyFields) {
-    const specialty = await dataSource
-      .getRepository(Specialty)
-      .findOne({ where: { name: ILike(data.specialtyName as string) } })
-    if (!specialty) continue
-
-    const existing = await repository.findOneBy({ canonicalKey: data.canonicalKey })
-    if (!existing) {
-      await repository.save(
-        repository.create({
-          canonicalKey: data.canonicalKey,
-          label: data.label,
-          type: data.type,
-          options: data.options ?? null,
-          unit: data.unit ?? null,
-          specialtyId: specialty.id,
-          description: data.description ?? null,
-        }),
-      )
-      console.log(`Dev seed: canonical field "${data.canonicalKey}" (${data.specialtyName}) created.`)
-    }
+    await repository.save(
+      repository.create({
+        canonicalKey: data.canonicalKey,
+        label: data.label,
+        type: data.type,
+        options: data.options ?? null,
+        unit: data.unit ?? null,
+        description: data.description ?? null,
+      }),
+    )
+    console.log(`Dev seed: canonical field "${data.canonicalKey}" created.`)
   }
 }
 

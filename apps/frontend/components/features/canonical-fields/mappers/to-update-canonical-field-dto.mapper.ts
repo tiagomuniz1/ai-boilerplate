@@ -10,7 +10,6 @@ export function toUpdateCanonicalFieldDto(input: IUpdateCanonicalFieldInput): Up
   if (input.label !== undefined) dto.label = input.label
   if (input.type !== undefined) dto.type = input.type
   if (input.unit !== undefined) dto.unit = input.unit
-  if (input.specialtyId !== undefined) dto.specialtyId = input.specialtyId
   if (input.description !== undefined) dto.description = input.description
   if (input.isActive !== undefined) dto.isActive = input.isActive
 

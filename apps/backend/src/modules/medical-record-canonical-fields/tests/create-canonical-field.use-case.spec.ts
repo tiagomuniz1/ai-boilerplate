@@ -3,21 +3,16 @@ import { DataSource } from 'typeorm'
 import { faker } from '@faker-js/faker'
 import { CreateCanonicalFieldDto, MedicalRecordFieldType } from '@app/shared'
 import { CacheService } from '../../../cache/cache.service'
-import { ISpecialtiesRepository } from '../../specialties/repositories/specialties.repository.interface'
 import { IMedicalRecordCanonicalFieldsRepository } from '../repositories/medical-record-canonical-fields.repository.interface'
 import { CreateCanonicalFieldUseCase } from '../use-cases/create-canonical-field.use-case'
 
 const mockRepository: jest.Mocked<IMedicalRecordCanonicalFieldsRepository> = {
-  findForSuggestion: jest.fn(),
+  findAll: jest.fn(),
   findById: jest.fn(),
   findByCanonicalKey: jest.fn(),
   create: jest.fn(),
   update: jest.fn(),
 }
-
-const mockSpecialtiesRepository = {
-  findById: jest.fn(),
-} as unknown as jest.Mocked<ISpecialtiesRepository>
 
 const mockCacheService = {
   delByPattern: jest.fn(),
@@ -30,7 +25,6 @@ const makeField = (overrides = {}) => ({
   type: MedicalRecordFieldType.NUMBER,
   options: null,
   unit: 'kg',
-  specialtyId: null,
   description: null,
   isActive: true,
   createdAt: new Date(),
@@ -46,7 +40,6 @@ describe('CreateCanonicalFieldUseCase', () => {
     useCase = new CreateCanonicalFieldUseCase(
       {} as DataSource,
       mockRepository,
-      mockSpecialtiesRepository,
       mockCacheService,
     )
   })
@@ -71,7 +64,6 @@ describe('CreateCanonicalFieldUseCase', () => {
       type: MedicalRecordFieldType.NUMBER,
       options: null,
       unit: null,
-      specialtyId: null,
       description: null,
     })
     expect(result.id).toBe(created.id)
@@ -123,25 +115,6 @@ describe('CreateCanonicalFieldUseCase', () => {
     await expect(
       useCase.execute({ ...baseDto, options: [{ value: 'x', label: 'X' }] }),
     ).rejects.toThrow(UnprocessableEntityException)
-  })
-
-  it('throws when specialtyId does not exist', async () => {
-    mockSpecialtiesRepository.findById.mockResolvedValue(null)
-
-    await expect(useCase.execute({ ...baseDto, specialtyId: 'missing' })).rejects.toThrow(
-      UnprocessableEntityException,
-    )
-    expect(mockRepository.create).not.toHaveBeenCalled()
-  })
-
-  it('creates field when specialtyId exists', async () => {
-    mockSpecialtiesRepository.findById.mockResolvedValue({ id: 'spec-1' } as any)
-    mockRepository.findByCanonicalKey.mockResolvedValue(null)
-    mockRepository.create.mockResolvedValue(makeField({ specialtyId: 'spec-1' }) as any)
-
-    const result = await useCase.execute({ ...baseDto, specialtyId: 'spec-1' })
-
-    expect(result.specialtyId).toBe('spec-1')
   })
 
   it('throws ConflictException when canonicalKey already exists', async () => {

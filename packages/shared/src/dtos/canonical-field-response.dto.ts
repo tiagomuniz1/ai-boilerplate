@@ -8,7 +8,6 @@ export class CanonicalFieldResponseDto {
   type!: MedicalRecordFieldType
   options!: MedicalRecordFieldOptionDto[] | null
   unit!: string | null
-  specialtyId!: string | null
   description!: string | null
   isActive!: boolean
 }

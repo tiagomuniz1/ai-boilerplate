@@ -130,10 +130,6 @@ describe('MedicalRecordCanonicalFieldsController (integration)', () => {
       .send(payload)
   }
 
-  async function createSpecialty(name: string): Promise<Specialty> {
-    return specialtyRepository.save(specialtyRepository.create({ name }))
-  }
-
   const generalField = {
     canonicalKey: 'weight',
     label: 'Peso',
@@ -148,7 +144,6 @@ describe('MedicalRecordCanonicalFieldsController (integration)', () => {
       expect(body.id).toBeDefined()
       expect(body.canonicalKey).toBe('weight')
       expect(body.type).toBe('number')
-      expect(body.specialtyId).toBeNull()
       expect(body.isActive).toBe(true)
     })
 
@@ -186,23 +181,13 @@ describe('MedicalRecordCanonicalFieldsController (integration)', () => {
       await createField(platformAdminToken, generalField).expect(409)
     })
 
-    it('returns 422 when specialtyId does not exist', async () => {
+    // O catálogo é global: escopo não é mais parte do contrato, e o
+    // ValidationPipe (forbidNonWhitelisted) recusa quem tentar mandá-lo.
+    it('returns 400 when a specialty scope is sent', async () => {
       await createField(platformAdminToken, {
         ...generalField,
         specialtyId: faker.string.uuid(),
-      }).expect(422)
-    })
-
-    it('returns 201 when specialtyId exists', async () => {
-      const specialty = await createSpecialty('Cardiologia')
-
-      const { body } = await createField(platformAdminToken, {
-        ...generalField,
-        canonicalKey: 'ejection_fraction',
-        specialtyId: specialty.id,
-      }).expect(201)
-
-      expect(body.specialtyId).toBe(specialty.id)
+      }).expect(400)
     })
 
     it('returns 400 when canonicalKey is not a valid slug', async () => {
@@ -234,13 +219,15 @@ describe('MedicalRecordCanonicalFieldsController (integration)', () => {
   })
 
   describe('GET /medical-record-canonical-fields', () => {
-    it('returns only active generals when no specialtyId is provided', async () => {
-      const specialty = await createSpecialty('Cardiologia')
+    // A regressão que motivou a mudança: antes a listagem sem filtro só
+    // devolvia `specialty_id IS NULL`, então campo escopado sumia da tela do
+    // backoffice — que nunca teve filtro de especialidade para revelá-lo.
+    it('returns every active field, in label order', async () => {
       await createField(platformAdminToken, generalField).expect(201)
       await createField(platformAdminToken, {
         ...generalField,
         canonicalKey: 'ejection_fraction',
-        specialtyId: specialty.id,
+        label: 'Fração de ejeção',
       }).expect(201)
 
       const { body } = await request(app.getHttpServer())
@@ -248,28 +235,11 @@ describe('MedicalRecordCanonicalFieldsController (integration)', () => {
         .set('Authorization', `Bearer ${adminToken}`)
         .expect(200)
 
-      expect(body.every((f: any) => f.specialtyId === null)).toBe(true)
-      expect(body.some((f: any) => f.canonicalKey === 'weight')).toBe(true)
-      expect(body.some((f: any) => f.canonicalKey === 'ejection_fraction')).toBe(false)
-    })
-
-    it('returns generals and specialty fields ordered with generals first', async () => {
-      const specialty = await createSpecialty('Cardiologia')
-      await createField(platformAdminToken, generalField).expect(201)
-      await createField(platformAdminToken, {
-        ...generalField,
-        canonicalKey: 'ejection_fraction',
-        specialtyId: specialty.id,
-      }).expect(201)
-
-      const { body } = await request(app.getHttpServer())
-        .get(`/medical-record-canonical-fields?specialtyId=${specialty.id}`)
-        .set('Authorization', `Bearer ${adminToken}`)
-        .expect(200)
-
       expect(body).toHaveLength(2)
-      expect(body[0].specialtyId).toBeNull()
-      expect(body[1].specialtyId).toBe(specialty.id)
+      expect(body.map((f: any) => f.canonicalKey)).toEqual(
+        expect.arrayContaining(['weight', 'ejection_fraction']),
+      )
+      expect(body[0].label.localeCompare(body[1].label)).toBeLessThan(0)
     })
 
     it('ignores includeInactive for ADMIN (active only)', async () => {

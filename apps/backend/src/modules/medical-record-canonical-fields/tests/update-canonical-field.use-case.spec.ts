@@ -7,21 +7,16 @@ import { DataSource } from 'typeorm'
 import { faker } from '@faker-js/faker'
 import { MedicalRecordFieldType, UpdateCanonicalFieldDto } from '@app/shared'
 import { CacheService } from '../../../cache/cache.service'
-import { ISpecialtiesRepository } from '../../specialties/repositories/specialties.repository.interface'
 import { IMedicalRecordCanonicalFieldsRepository } from '../repositories/medical-record-canonical-fields.repository.interface'
 import { UpdateCanonicalFieldUseCase } from '../use-cases/update-canonical-field.use-case'
 
 const mockRepository: jest.Mocked<IMedicalRecordCanonicalFieldsRepository> = {
-  findForSuggestion: jest.fn(),
+  findAll: jest.fn(),
   findById: jest.fn(),
   findByCanonicalKey: jest.fn(),
   create: jest.fn(),
   update: jest.fn(),
 }
-
-const mockSpecialtiesRepository = {
-  findById: jest.fn(),
-} as unknown as jest.Mocked<ISpecialtiesRepository>
 
 const mockCacheService = {
   delByPattern: jest.fn(),
@@ -34,7 +29,6 @@ const makeField = (overrides = {}) => ({
   type: MedicalRecordFieldType.NUMBER,
   options: null,
   unit: 'kg',
-  specialtyId: null,
   description: null,
   isActive: true,
   createdAt: new Date(),
@@ -50,7 +44,6 @@ describe('UpdateCanonicalFieldUseCase', () => {
     useCase = new UpdateCanonicalFieldUseCase(
       {} as DataSource,
       mockRepository,
-      mockSpecialtiesRepository,
       mockCacheService,
     )
   })
@@ -128,16 +121,6 @@ describe('UpdateCanonicalFieldUseCase', () => {
     expect(mockRepository.update).toHaveBeenCalledWith(field.id, { options: null })
   })
 
-  it('throws when new specialtyId does not exist', async () => {
-    const field = makeField()
-    mockRepository.findById.mockResolvedValue(field as any)
-    mockSpecialtiesRepository.findById.mockResolvedValue(null)
-
-    await expect(useCase.execute(field.id, { specialtyId: 'missing' })).rejects.toThrow(
-      UnprocessableEntityException,
-    )
-  })
-
   it('throws ConflictException when new canonicalKey already exists', async () => {
     const field = makeField({ canonicalKey: 'weight' })
     mockRepository.findById.mockResolvedValue(field as any)
@@ -190,44 +173,39 @@ describe('UpdateCanonicalFieldUseCase', () => {
     })
   })
 
-  it('updates options to a new valid set and links a valid specialty', async () => {
+  it('updates options to a new valid set', async () => {
     const field = makeField({
       type: MedicalRecordFieldType.SELECT,
       options: [{ value: 'low', label: 'Baixo' }],
     })
     mockRepository.findById.mockResolvedValue(field as any)
-    mockSpecialtiesRepository.findById.mockResolvedValue({ id: 'spec-1' } as any)
     mockRepository.update.mockResolvedValue(field as any)
 
     const newOptions = [
       { value: 'low', label: 'Baixo' },
       { value: 'high', label: 'Alto' },
     ]
-    await useCase.execute(field.id, { options: newOptions, specialtyId: 'spec-1' })
+    await useCase.execute(field.id, { options: newOptions })
 
     expect(mockRepository.update).toHaveBeenCalledWith(field.id, {
       options: newOptions,
-      specialtyId: 'spec-1',
     })
   })
 
-  it('clears unit, specialtyId and description when null is provided', async () => {
-    const field = makeField({ unit: 'kg', specialtyId: 'spec-1', description: 'old' })
+  it('clears unit and description when null is provided', async () => {
+    const field = makeField({ unit: 'kg', description: 'old' })
     mockRepository.findById.mockResolvedValue(field as any)
     mockRepository.update.mockResolvedValue(field as any)
 
     await useCase.execute(field.id, {
       unit: null as any,
-      specialtyId: null as any,
       description: null as any,
     })
 
     expect(mockRepository.update).toHaveBeenCalledWith(field.id, {
       unit: null,
-      specialtyId: null,
       description: null,
     })
-    expect(mockSpecialtiesRepository.findById).not.toHaveBeenCalled()
   })
 
   it('continues when cache invalidation fails', async () => {

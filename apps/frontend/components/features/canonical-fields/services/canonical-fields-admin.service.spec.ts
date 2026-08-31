@@ -36,19 +36,12 @@ describe('canonicalFieldsAdminService', () => {
       )
     })
 
-    it('calls GET with specialtyId param when set', async () => {
+    // includeInactive é o único parâmetro que resta: o catálogo é global.
+    it('sends no scoping param alongside includeInactive', async () => {
       mockApiClient.get.mockResolvedValue([makeDto()])
-      await canonicalFieldsAdminService.getAll({ specialtyId: 'spec-uuid' })
+      await canonicalFieldsAdminService.getAll({ includeInactive: true })
       expect(mockApiClient.get).toHaveBeenCalledWith(
-        '/medical-record-canonical-fields?specialtyId=spec-uuid',
-      )
-    })
-
-    it('calls GET with both params combined', async () => {
-      mockApiClient.get.mockResolvedValue([makeDto()])
-      await canonicalFieldsAdminService.getAll({ specialtyId: 'spec-uuid', includeInactive: true })
-      expect(mockApiClient.get).toHaveBeenCalledWith(
-        '/medical-record-canonical-fields?specialtyId=spec-uuid&includeInactive=true',
+        '/medical-record-canonical-fields?includeInactive=true',
       )
     })
 

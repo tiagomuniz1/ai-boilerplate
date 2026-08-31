@@ -8,7 +8,6 @@ const makeDto = (overrides = {}) => ({
   type: MedicalRecordFieldType.NUMBER,
   options: null,
   unit: 'mmHg',
-  specialtyId: null,
   description: 'PA sistólica',
   isActive: true,
   ...overrides,
@@ -22,7 +21,6 @@ describe('toCanonicalFieldModel', () => {
     expect(model.label).toBe('Pressão arterial')
     expect(model.type).toBe(MedicalRecordFieldType.NUMBER)
     expect(model.unit).toBe('mmHg')
-    expect(model.specialtyId).toBeNull()
     expect(model.description).toBe('PA sistólica')
   })
 
@@ -45,8 +43,9 @@ describe('toCanonicalFieldModel', () => {
     expect((model as any).isActive).toBeUndefined()
   })
 
-  it('maps specialtyId when present', () => {
-    const model = toCanonicalFieldModel(makeDto({ specialtyId: 'spec-uuid' }) as any)
-    expect(model.specialtyId).toBe('spec-uuid')
+  // O catálogo é global: o modelo não carrega escopo nenhum.
+  it('does not carry a specialty scope', () => {
+    const model = toCanonicalFieldModel(makeDto() as any)
+    expect(model).not.toHaveProperty('specialtyId')
   })
 })

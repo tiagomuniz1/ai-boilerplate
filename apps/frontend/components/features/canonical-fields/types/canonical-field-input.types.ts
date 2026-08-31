@@ -6,7 +6,6 @@ export interface ICreateCanonicalFieldInput {
   type: MedicalRecordFieldType
   options?: { value: string; label: string }[]
   unit?: string
-  specialtyId?: string
   description?: string
 }
 
@@ -15,7 +14,6 @@ export interface IUpdateCanonicalFieldInput {
   type?: MedicalRecordFieldType
   options?: { value: string; label: string }[]
   unit?: string
-  specialtyId?: string
   description?: string
   isActive?: boolean
 }

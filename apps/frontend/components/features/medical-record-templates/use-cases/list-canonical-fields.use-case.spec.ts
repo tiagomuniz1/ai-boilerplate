@@ -8,16 +8,10 @@ import { listCanonicalFieldsUseCase } from './list-canonical-fields.use-case'
 describe('listCanonicalFieldsUseCase', () => {
   beforeEach(() => jest.clearAllMocks())
 
-  it('calls service without specialtyId when not provided', async () => {
+  it('calls the service with no arguments', async () => {
     ;(canonicalFieldsService.getAll as jest.Mock).mockResolvedValue([])
     await listCanonicalFieldsUseCase()
-    expect(canonicalFieldsService.getAll).toHaveBeenCalledWith(undefined)
-  })
-
-  it('calls service with specialtyId when provided', async () => {
-    ;(canonicalFieldsService.getAll as jest.Mock).mockResolvedValue([])
-    await listCanonicalFieldsUseCase('spec-uuid')
-    expect(canonicalFieldsService.getAll).toHaveBeenCalledWith('spec-uuid')
+    expect(canonicalFieldsService.getAll).toHaveBeenCalledWith()
   })
 
   it('maps each dto to model', async () => {

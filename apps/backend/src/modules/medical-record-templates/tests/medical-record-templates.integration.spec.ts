@@ -243,7 +243,6 @@ describe('MedicalRecordTemplatesController (integration)', () => {
           type: MedicalRecordFieldType.TEXTAREA,
           options: null,
           unit: null,
-          specialtyId: null,
           description: null,
         }),
       )

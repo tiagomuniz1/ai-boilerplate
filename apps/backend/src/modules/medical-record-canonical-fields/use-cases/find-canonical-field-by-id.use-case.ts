@@ -29,7 +29,6 @@ export class FindCanonicalFieldByIdUseCase extends BaseUseCase {
       type: field.type,
       options: field.options,
       unit: field.unit,
-      specialtyId: field.specialtyId,
       description: field.description,
       isActive: field.isActive,
     }

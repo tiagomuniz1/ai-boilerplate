@@ -1,5 +1,15 @@
 # Changelog — Frontend
 
+## [1.4.0] - 2026-08-31
+
+### Changed
+
+#### Catálogo de campos canônicos passa a ser global
+- O seletor do construtor de templates mostra o catálogo inteiro. Antes recebia a especialidade do template e o backend devolvia só os gerais mais os daquela especialidade — para profissão não-médica, que não passa por especialidade, isso significava só os gerais
+- `CanonicalFieldPicker`, `useCanonicalFields`, o use-case e o service perdem o parâmetro de escopo; `template-form` e `section-editor` deixam de repassá-lo. O select de especialidade **do template** continua, que é outro escopo
+- Formulário do backoffice perde o select "Especialidade" — que, aliás, nunca teve opções: as duas páginas passavam `specialties={[]}` literal
+- Estado vazio do seletor deixa de dizer "para esta especialidade"
+
 ## [Unreleased]
 
 ### Added

@@ -4,9 +4,11 @@ import { MedicalRecordFieldOptionDto, MedicalRecordFieldType } from '@app/shared
 // Single source of truth shared by the dev seed and the importer
 // (run-import-canonical-fields) so both stay in sync.
 //
-// Specialty-scoped fields reference the specialty by NAME (not id): specialty ids
-// differ per environment, so the importer resolves the name against the target
-// database at run time. `specialtyName` undefined = general field (specialtyId null).
+// The catalogue is global: every field is offered to every professional. It used
+// to carry a specialty scope, which could only ever narrow the picker wrongly —
+// templates are scoped by specialty OR by profession, while a field could only be
+// scoped by specialty, so the entries written for nutrition and physiotherapy
+// named specialties the catalogue does not define and were dropped on import.
 export interface CanonicalFieldSeed {
   canonicalKey: string
   label: string
@@ -14,7 +16,6 @@ export interface CanonicalFieldSeed {
   unit?: string | null
   options?: MedicalRecordFieldOptionDto[] | null
   description?: string | null
-  specialtyName?: string
 }
 
 export const CANONICAL_FIELDS: CanonicalFieldSeed[] = [
@@ -30,7 +31,6 @@ export const CANONICAL_FIELDS: CanonicalFieldSeed[] = [
     canonicalKey: 'risk_level',
     label: 'Nível de risco',
     type: MedicalRecordFieldType.SELECT,
-    specialtyName: 'Cardiologia',
     options: [
       { value: 'low', label: 'Baixo' },
       { value: 'moderate', label: 'Moderado' },
@@ -42,19 +42,16 @@ export const CANONICAL_FIELDS: CanonicalFieldSeed[] = [
     label: 'IMC',
     type: MedicalRecordFieldType.NUMBER,
     unit: 'kg/m²',
-    specialtyName: 'Nutrição Clínica',
   },
   {
     canonicalKey: 'waist_circumference',
     label: 'Circunferência abdominal',
     type: MedicalRecordFieldType.NUMBER,
     unit: 'cm',
-    specialtyName: 'Nutrição Clínica',
   },
   {
     canonicalKey: 'range_of_motion',
     label: 'Amplitude de movimento',
     type: MedicalRecordFieldType.TEXT,
-    specialtyName: 'Fisioterapia Ortopédica',
   },
 ]

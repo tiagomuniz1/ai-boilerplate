@@ -19,7 +19,6 @@ interface SectionEditorProps {
   register: UseFormRegister<ITemplateFormValues>
   errors: FieldErrors<ITemplateFormValues>
   watch: UseFormWatch<ITemplateFormValues>
-  specialtyId?: string
   /** Props from useSortable to attach to the section drag handle. */
   dragHandleProps?: React.HTMLAttributes<HTMLElement>
   /** Containers that each field in this section can be moved to. */
@@ -38,7 +37,6 @@ export function SectionEditor({
   register,
   errors,
   watch,
-  specialtyId,
   dragHandleProps,
   fieldMoveToContainers,
   onMoveFieldToContainer,
@@ -199,10 +197,7 @@ export function SectionEditor({
 
       <div className="border-t border-line pt-3">
         <p className="text-xs text-text-mute mb-2">Campos canônicos</p>
-        <CanonicalFieldPicker
-          specialtyId={specialtyId}
-          onAdopt={handleAdoptCanonical}
-        />
+        <CanonicalFieldPicker onAdopt={handleAdoptCanonical} />
       </div>
     </div>
   )

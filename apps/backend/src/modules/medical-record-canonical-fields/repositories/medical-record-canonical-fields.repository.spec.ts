@@ -31,7 +31,6 @@ function makeField(overrides = {}): MedicalRecordCanonicalField {
     type: MedicalRecordFieldType.NUMBER,
     options: null,
     unit: 'kg',
-    specialtyId: null,
     description: null,
     isActive: true,
     createdAt: new Date(),
@@ -50,33 +49,20 @@ describe('MedicalRecordCanonicalFieldsRepository', () => {
     repository = new MedicalRecordCanonicalFieldsRepository(repo)
   })
 
-  describe('findForSuggestion', () => {
-    it('returns only generals (active) when no specialtyId is provided', async () => {
+  describe('findAll', () => {
+    // O catálogo é global: a única decisão que resta é incluir ou não os inativos.
+    it('returns every active field, with no scoping filter', async () => {
       const qb = makeQueryBuilder()
       const fields = [makeField()]
       qb.getMany.mockResolvedValue(fields)
       repo.createQueryBuilder.mockReturnValue(qb as any)
 
-      const result = await repository.findForSuggestion(undefined, false)
+      const result = await repository.findAll(false)
 
       expect(qb.andWhere).toHaveBeenCalledWith('field.isActive = :isActive', { isActive: true })
-      expect(qb.andWhere).toHaveBeenCalledWith('field.specialtyId IS NULL')
-      expect(qb.orderBy).toHaveBeenCalledWith('field.specialtyId', 'ASC', 'NULLS FIRST')
-      expect(qb.addOrderBy).toHaveBeenCalledWith('field.label', 'ASC')
+      expect(qb.andWhere).toHaveBeenCalledTimes(1)
+      expect(qb.orderBy).toHaveBeenCalledWith('field.label', 'ASC')
       expect(result).toBe(fields)
-    })
-
-    it('returns generals and specialty-specific fields when specialtyId is provided', async () => {
-      const qb = makeQueryBuilder()
-      qb.getMany.mockResolvedValue([])
-      repo.createQueryBuilder.mockReturnValue(qb as any)
-
-      await repository.findForSuggestion('spec-1', false)
-
-      expect(qb.andWhere).toHaveBeenCalledWith(
-        '(field.specialtyId IS NULL OR field.specialtyId = :specialtyId)',
-        { specialtyId: 'spec-1' },
-      )
     })
 
     it('does not filter by isActive when includeInactive is true', async () => {
@@ -84,9 +70,9 @@ describe('MedicalRecordCanonicalFieldsRepository', () => {
       qb.getMany.mockResolvedValue([])
       repo.createQueryBuilder.mockReturnValue(qb as any)
 
-      await repository.findForSuggestion(undefined, true)
+      await repository.findAll(true)
 
-      expect(qb.andWhere).not.toHaveBeenCalledWith('field.isActive = :isActive', { isActive: true })
+      expect(qb.andWhere).not.toHaveBeenCalled()
     })
   })
 
