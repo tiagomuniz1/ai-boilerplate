@@ -1,7 +1,7 @@
 jest.mock('next/navigation', () => ({ useRouter: jest.fn() }))
 jest.mock('@/lib/slug-context', () => ({ useSlug: jest.fn(() => 'clinic-slug'), useBasePath: () => '/clinic-slug' }))
 jest.mock('../services/canonical-fields.service')
-jest.mock('../../specialties/services/specialties.service')
+jest.mock('../../clinic-specialties/services/clinic-specialties.service')
 jest.mock('../../professionals/services/professionals.service')
 
 import { screen, waitFor, within } from '@testing-library/react'
@@ -9,7 +9,7 @@ import userEvent from '@testing-library/user-event'
 import { useRouter } from 'next/navigation'
 import { CouncilType, MedicalRecordFieldType, UserRole } from '@app/shared'
 import { canonicalFieldsService } from '../services/canonical-fields.service'
-import { specialtiesService } from '../../specialties/services/specialties.service'
+import { clinicSpecialtiesService } from '../../clinic-specialties/services/clinic-specialties.service'
 import { professionalsService } from '../../professionals/services/professionals.service'
 import { renderWithProviders } from '@/tests/utils/render-with-providers'
 import { useAuthStore } from '@/stores/auth.store'
@@ -32,9 +32,12 @@ function makeProfessional(overrides = {}) {
 
 const emptySpecialtiesResponse = { data: [], total: 0, page: 1, limit: 100 }
 
+// Vínculos da clínica: `id` é o vínculo, `specialtyId` é a especialidade — é o
+// segundo que vai para o value da option.
+const CLINIC_ID = 'clinic-uuid'
 const mockSpecialties = [
-  { id: 'spec-uuid', name: 'Cardiologia', description: null, createdAt: new Date(), updatedAt: new Date() },
-  { id: 'spec-uuid-2', name: 'Neurologia', description: null, createdAt: new Date(), updatedAt: new Date() },
+  { id: 'link-1', clinicId: CLINIC_ID, specialtyId: 'spec-uuid', name: 'Cardiologia', description: null, linkedAt: '2026-01-01T00:00:00.000Z' },
+  { id: 'link-2', clinicId: CLINIC_ID, specialtyId: 'spec-uuid-2', name: 'Neurologia', description: null, linkedAt: '2026-01-01T00:00:00.000Z' },
 ]
 
 const mockCanonicalFields = [
@@ -56,7 +59,7 @@ describe('TemplateForm (integration)', () => {
     jest.clearAllMocks()
     useAuthStore.setState({ user: null })
     ;(canonicalFieldsService.getAll as jest.Mock).mockResolvedValue([])
-    ;(specialtiesService.getAll as jest.Mock).mockResolvedValue(emptySpecialtiesResponse)
+    ;(clinicSpecialtiesService.getAll as jest.Mock).mockResolvedValue(emptySpecialtiesResponse)
     ;(professionalsService.getAll as jest.Mock).mockResolvedValue({ data: [], total: 0, page: 1, limit: 20 })
   })
 
@@ -89,7 +92,12 @@ describe('TemplateForm (integration)', () => {
     })
 
     it('populates specialty select with available specialties', async () => {
-      ;(specialtiesService.getAll as jest.Mock).mockResolvedValue({
+      // O ADMIN precisa de clínica: a lista vem dos vínculos dela, não do
+      // catálogo da plataforma.
+      useAuthStore.setState({
+        user: { id: 'admin-uuid', fullName: 'Admin', email: 'admin@example.com', role: UserRole.ADMIN, clinicId: CLINIC_ID },
+      })
+      ;(clinicSpecialtiesService.getAll as jest.Mock).mockResolvedValue({
         data: mockSpecialties,
         total: 2,
         page: 1,
@@ -121,7 +129,12 @@ describe('TemplateForm (integration)', () => {
     })
 
     it('pre-selects specialty when specialtyId prop provided and options load', async () => {
-      ;(specialtiesService.getAll as jest.Mock).mockResolvedValue({
+      // O ADMIN precisa de clínica: a lista vem dos vínculos dela, não do
+      // catálogo da plataforma.
+      useAuthStore.setState({
+        user: { id: 'admin-uuid', fullName: 'Admin', email: 'admin@example.com', role: UserRole.ADMIN, clinicId: CLINIC_ID },
+      })
+      ;(clinicSpecialtiesService.getAll as jest.Mock).mockResolvedValue({
         data: mockSpecialties,
         total: 2,
         page: 1,
@@ -977,7 +990,7 @@ describe('TemplateForm (integration)', () => {
 
   describe('ADMIN profession selector', () => {
     it('always shows the profession selector for ADMIN in create mode, even with a specialty pre-filled', async () => {
-      ;(specialtiesService.getAll as jest.Mock).mockResolvedValue({
+      ;(clinicSpecialtiesService.getAll as jest.Mock).mockResolvedValue({
         data: mockSpecialties,
         total: 2,
         page: 1,

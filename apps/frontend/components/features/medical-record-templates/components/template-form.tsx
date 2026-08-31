@@ -14,7 +14,7 @@ import { FieldEditor } from './field-editor'
 import { SectionEditor } from './section-editor'
 import { CanonicalFieldPicker } from './canonical-field-picker'
 import { SortableList, SortableItem } from '@/components/ui/molecules/sortable-list/sortable-list'
-import { useSpecialties } from '@/components/features/specialties/hooks/use-specialties.hook'
+import { useClinicSpecialties } from '@/components/features/clinic-specialties/hooks/use-clinic-specialties.hook'
 import type { ITemplateModel } from '../types/template-model.types'
 import type { ICreateTemplateInput, IUpdateTemplateInput, ITemplateFieldInput, ITemplateSectionInput } from '../types/template-input.types'
 import type { ICanonicalFieldModel } from '../types/canonical-field-model.types'
@@ -168,11 +168,17 @@ export function TemplateForm(props: Props) {
   const isCrmProfessional =
     !myProfessional || getPrimaryCouncilType(myProfessional.registrations) === CouncilType.CRM
 
-  const { data: specialtiesPaginated } = useSpecialties({ limit: 100 })
+  // As especialidades da CLÍNICA, não o catálogo da plataforma: um modelo só faz
+  // sentido para uma especialidade que a clínica atende. O PROFESSIONAL é mais
+  // restrito ainda — só as próprias. A opção "Generalista (sem especialidade)"
+  // é a `value=""` do select e independe desta lista.
+  const { data: clinicSpecialtiesPaginated } = useClinicSpecialties(authUser?.clinicId ?? '', {
+    limit: 100,
+  })
   const specialties =
     isProfessional && myProfessional
       ? myProfessional.specialties.map((s) => ({ id: s.id, name: s.name }))
-      : (specialtiesPaginated?.data ?? [])
+      : (clinicSpecialtiesPaginated?.data ?? []).map((s) => ({ id: s.specialtyId, name: s.name }))
 
   const defaultFlatFields = template
     ? template.fields
