@@ -1,7 +1,6 @@
 'use client'
 
 import Link from 'next/link'
-import { UserRole } from '@app/shared'
 import { useBasePath } from '@/lib/slug-context'
 import { Button } from '@/components/ui/atoms/button/button'
 import { Typography } from '@/components/ui/atoms/typography/typography'
@@ -42,12 +41,15 @@ function DetailRow({
 
 export function UserDetails({ user, canDelete, onDeleteClick }: UserDetailsProps) {
   const basePath = useBasePath()
-  const isProfessional = user.role === UserRole.PROFESSIONAL
+  // `isProfessional` do modelo diz se o usuário TEM ficha; o cargo só diz o que
+  // ele administra. Igual a `user-form.tsx:156` — um ADMIN que também atende
+  // tem CRM para mostrar, e o cargo esconderia.
+  const hasProfessionalProfile = user.isProfessional
   const {
     professional,
     isPending: isProfessionalPending,
     isError: isProfessionalError,
-  } = useProfessionalByUserId(user.id, { enabled: isProfessional })
+  } = useProfessionalByUserId(user.id, { enabled: hasProfessionalProfile })
 
   return (
     <div className="flex flex-col gap-6" data-testid="user-details">
@@ -115,12 +117,12 @@ export function UserDetails({ user, canDelete, onDeleteClick }: UserDetailsProps
               testId="user-details-created-at"
             />
           </div>
-          {isProfessional && isProfessionalPending && (
+          {hasProfessionalProfile && isProfessionalPending && (
             <div className="bg-surface px-6 py-4" data-testid="user-details-profession-cell">
               <Skeleton height={16} className="w-40" />
             </div>
           )}
-          {isProfessional && !isProfessionalPending && !isProfessionalError && professional && (
+          {hasProfessionalProfile && !isProfessionalPending && !isProfessionalError && professional && (
             <div className="bg-surface px-6 py-4" data-testid="user-details-profession-cell">
               <DetailRow
                 label="Profissão"

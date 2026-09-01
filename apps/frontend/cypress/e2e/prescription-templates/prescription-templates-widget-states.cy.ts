@@ -14,6 +14,19 @@ const mockProfessionalUser = {
   clinicId: '10000000-0000-4000-8000-000000000000',
 }
 
+// A ficha do próprio usuário. Criar, editar e excluir modelo passaram a
+// depender dela, não do cargo — `/professionals*` não cobre esta rota, porque
+// no minimatch o `*` não atravessa `/`.
+const mockOwnProfessional = {
+  id: 'professional-uuid',
+  user: { id: 'professional-user-uuid', fullName: 'Dr. João', email: 'professional@pulso.center', isActive: true },
+  registrations: [{ id: 'reg-uuid', councilType: 'CRM', number: '11111', state: 'SP', isPrimary: true }],
+  specialties: [],
+  bio: null,
+  createdAt: new Date().toISOString(),
+  updatedAt: new Date().toISOString(),
+}
+
 const mockTemplate = {
   id: TEMPLATE_UUID,
   name: 'Modelo Hipertensão',
@@ -33,6 +46,10 @@ describe('Prescription templates — widget states (mocked)', () => {
       statusCode: 200,
       body: { data: [], total: 0, page: 1, limit: 10 },
     })
+    cy.intercept('GET', `${Cypress.env('API_URL')}/professionals/me`, {
+      statusCode: 200,
+      body: mockOwnProfessional,
+    }).as('getMyProfessional')
   })
 
   it('shows a skeleton while loading, then an error state on failure', () => {
@@ -128,5 +145,42 @@ describe('Prescription templates — widget states (mocked)', () => {
     cy.wait('@createTemplateError')
     cy.get('[data-testid="prescription-template-form-error"]').should('be.visible')
     cy.get('[data-testid="prescription-template-create-modal"]').should('be.visible')
+  })
+
+  // Cargo dá escopo, ficha dá exercício. A médica que administra a própria
+  // clínica é ADMIN e prescreve — precisa cadastrar o modelo dela.
+  it('lets an ADMIN who also practises create a template, and hides it from an ADMIN who does not', () => {
+    const adminDoctorUser = {
+      id: 'professional-user-uuid',
+      fullName: 'Dra. Brenna',
+      email: 'admindoctor@pulso.center',
+      role: 'admin',
+      clinicId: '10000000-0000-4000-8000-000000000000',
+    }
+
+    cy.intercept('GET', `${Cypress.env('API_URL')}/prescription-templates`, {
+      statusCode: 200,
+      body: [mockTemplate],
+    }).as('getTemplates')
+
+    visitClinic('/prescription-templates', adminDoctorUser)
+    cy.wait('@getTemplates')
+    cy.wait('@getMyProfessional')
+
+    cy.get('[data-testid="prescription-template-list-new-button"]').should('be.visible')
+    // O backend deixa o ADMIN mexer em qualquer modelo da clínica.
+    cy.get(`[data-testid="prescription-template-edit-${TEMPLATE_UUID}"]`).should('be.visible')
+    cy.get(`[data-testid="prescription-template-delete-${TEMPLATE_UUID}"]`).should('be.visible')
+
+    // Sem ficha, o mesmo cargo administra mas não prescreve.
+    cy.intercept('GET', `${Cypress.env('API_URL')}/professionals/me`, {
+      statusCode: 200,
+      body: null,
+    }).as('getNoProfessional')
+    cy.reload()
+    cy.wait('@getNoProfessional')
+
+    cy.get('[data-testid="prescription-template-list-table"]').should('be.visible')
+    cy.get('[data-testid="prescription-template-list-new-button"]').should('not.exist')
   })
 })

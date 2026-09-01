@@ -7,6 +7,7 @@ import { Modal } from '@/components/ui/organisms/modal/modal'
 import { MobileListCard } from '@/components/ui/molecules/mobile-list-card/mobile-list-card'
 import { useAuthStore } from '@/stores/auth.store'
 import { UserRole } from '@app/shared'
+import { useMyProfessional } from '@/components/features/professionals/hooks/use-my-professional.hook'
 import { usePrescriptionTemplates } from '../hooks/use-prescription-templates.hook'
 import { useCreatePrescriptionTemplate } from '../hooks/use-create-prescription-template.hook'
 import { useUpdatePrescriptionTemplate } from '../hooks/use-update-prescription-template.hook'
@@ -21,7 +22,19 @@ import type { IApiError } from '@/types/api.types'
 export function PrescriptionTemplateList() {
   const role = useAuthStore((s) => s.user?.role)
   const isAdmin = role === UserRole.ADMIN
-  const isProfessional = role === UserRole.PROFESSIONAL
+
+  // Cargo dá escopo, ficha dá exercício. Ter um modelo de receita é coisa de
+  // quem prescreve, e quem prescreve é quem tem ficha — inclusive a médica que
+  // administra a própria clínica, cujo cargo é ADMIN.
+  const { data: myProfessional } = useMyProfessional()
+  const canCreate = !!myProfessional
+
+  // O backend deixa o ADMIN editar e excluir qualquer modelo da clínica, e o
+  // profissional só os próprios (update-prescription-template.use-case.ts:34,
+  // delete-prescription-template.use-case.ts:25). A tela repete exatamente isso.
+  function canManage(template: IPrescriptionTemplateModel) {
+    return isAdmin || template.professionalId === myProfessional?.id
+  }
 
   const { data: templates, isPending, isError } = usePrescriptionTemplates()
 
@@ -87,7 +100,7 @@ export function PrescriptionTemplateList() {
             </p>
           )}
         </div>
-        {isProfessional && (
+        {canCreate && (
           <Button
             variant="primary"
             onClick={() => { setCreateError(null); setIsCreateOpen(true) }}
@@ -165,7 +178,7 @@ export function PrescriptionTemplateList() {
                     </td>
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-2">
-                        {isProfessional && (
+                        {canManage(template) && (
                           <button
                             type="button"
                             onClick={() => { setEditError(null); setEditingTemplate(template) }}
@@ -175,14 +188,16 @@ export function PrescriptionTemplateList() {
                             Editar
                           </button>
                         )}
-                        <button
-                          type="button"
-                          onClick={() => setDeletingId(template.id)}
-                          className="text-sm text-danger hover:underline"
-                          data-testid={`prescription-template-delete-${template.id}`}
-                        >
-                          Excluir
-                        </button>
+                        {canManage(template) && (
+                          <button
+                            type="button"
+                            onClick={() => setDeletingId(template.id)}
+                            className="text-sm text-danger hover:underline"
+                            data-testid={`prescription-template-delete-${template.id}`}
+                          >
+                            Excluir
+                          </button>
+                        )}
                       </div>
                     </td>
                   </tr>
@@ -208,7 +223,7 @@ export function PrescriptionTemplateList() {
                 ]}
                 actions={
                   <>
-                    {isProfessional && (
+                    {canManage(template) && (
                       <Button
                         variant="ghost"
                         size="sm"
@@ -219,15 +234,17 @@ export function PrescriptionTemplateList() {
                         Editar
                       </Button>
                     )}
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => setDeletingId(template.id)}
-                      data-testid={`prescription-template-card-delete-${template.id}`}
-                      className="text-xs text-danger hover:text-danger/80"
-                    >
-                      Excluir
-                    </Button>
+                    {canManage(template) && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setDeletingId(template.id)}
+                        data-testid={`prescription-template-card-delete-${template.id}`}
+                        className="text-xs text-danger hover:text-danger/80"
+                      >
+                        Excluir
+                      </Button>
+                    )}
                   </>
                 }
               />

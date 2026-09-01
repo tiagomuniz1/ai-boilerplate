@@ -1,17 +1,33 @@
 jest.mock('../services/prescription-templates.service')
 jest.mock('@/components/features/medications/services/medications.service')
+jest.mock('@/components/features/professionals/services/professionals.service')
 
 import { screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { UserRole } from '@app/shared'
 import { prescriptionTemplatesService } from '../services/prescription-templates.service'
 import { medicationsService } from '@/components/features/medications/services/medications.service'
+import { professionalsService } from '@/components/features/professionals/services/professionals.service'
+import { CouncilType } from '@app/shared'
 import { useAuthStore } from '@/stores/auth.store'
 import { renderWithProviders } from '@/tests/utils/render-with-providers'
 import { PrescriptionTemplateList } from './prescription-template-list'
 
 const mockService = prescriptionTemplatesService as jest.Mocked<typeof prescriptionTemplatesService>
 const mockMedicationsService = medicationsService as jest.Mocked<typeof medicationsService>
+const mockProfessionalsService = professionalsService as jest.Mocked<typeof professionalsService>
+
+// A ficha do próprio usuário. Por padrão é a mesma de quem assina os modelos do
+// fixture ('doctor-uuid'), então o dono e o leitor coincidem.
+const makeMyProfessional = (id = 'doctor-uuid') => ({
+  id,
+  user: { id: 'user-uuid', fullName: 'Test User', email: 'test@example.com', isActive: true },
+  registrations: [{ id: 'crm-1', councilType: CouncilType.CRM, number: '12345', state: 'SP', isPrimary: true }],
+  specialties: [],
+  bio: null,
+  createdAt: new Date().toISOString() as unknown as Date,
+  updatedAt: new Date().toISOString() as unknown as Date,
+})
 
 const makeUser = (role: UserRole) => ({
   id: 'user-uuid',
@@ -42,6 +58,7 @@ describe('PrescriptionTemplateList (integration)', () => {
     jest.clearAllMocks()
     useAuthStore.setState({ user: makeUser(UserRole.PROFESSIONAL) })
     mockMedicationsService.getAll.mockResolvedValue(makeMedPage() as any)
+    mockProfessionalsService.getMine.mockResolvedValue(makeMyProfessional() as any)
   })
 
   it('renders skeleton while loading', () => {
@@ -128,7 +145,7 @@ describe('PrescriptionTemplateList (integration)', () => {
     expect(screen.queryByTestId('prescription-template-professional-tpl-uuid')).not.toBeInTheDocument()
   })
 
-  it('shows "Novo modelo" button for DOCTOR', async () => {
+  it('shows "Novo modelo" button for a professional', async () => {
     mockService.getAll.mockResolvedValue([])
     renderWithProviders(<PrescriptionTemplateList />)
     await waitFor(() => {
@@ -136,8 +153,20 @@ describe('PrescriptionTemplateList (integration)', () => {
     })
   })
 
-  it('hides "Novo modelo" button for ADMIN', async () => {
+  // Cargo não decide isto: quem prescreve é quem tem ficha. Uma médica que
+  // administra a própria clínica é ADMIN e precisa do botão.
+  it('shows "Novo modelo" button for an ADMIN who also practises', async () => {
     useAuthStore.setState({ user: makeUser(UserRole.ADMIN) })
+    mockService.getAll.mockResolvedValue([])
+    renderWithProviders(<PrescriptionTemplateList />)
+    await waitFor(() => {
+      expect(screen.getByTestId('prescription-template-list-new-button')).toBeInTheDocument()
+    })
+  })
+
+  it('hides "Novo modelo" button for an ADMIN with no professional profile', async () => {
+    useAuthStore.setState({ user: makeUser(UserRole.ADMIN) })
+    mockProfessionalsService.getMine.mockResolvedValue(null)
     mockService.getAll.mockResolvedValue([])
     renderWithProviders(<PrescriptionTemplateList />)
     await waitFor(() => {
@@ -146,7 +175,7 @@ describe('PrescriptionTemplateList (integration)', () => {
     expect(screen.queryByTestId('prescription-template-list-new-button')).not.toBeInTheDocument()
   })
 
-  it('shows edit link for DOCTOR', async () => {
+  it('shows edit link for the professional who owns the template', async () => {
     mockService.getAll.mockResolvedValue([makeTemplateDto()] as any)
     renderWithProviders(<PrescriptionTemplateList />)
     await waitFor(() => {
@@ -154,18 +183,30 @@ describe('PrescriptionTemplateList (integration)', () => {
     })
   })
 
-  it('hides edit link for ADMIN', async () => {
+  // O backend deixa o ADMIN editar e excluir qualquer modelo da clínica; a tela
+  // escondia os dois e ficava mais restritiva que a regra que ela representa.
+  it('shows edit and delete for an ADMIN on a template signed by someone else', async () => {
     useAuthStore.setState({ user: makeUser(UserRole.ADMIN) })
-    mockService.getAll.mockResolvedValue([makeTemplateDto()] as any)
+    mockProfessionalsService.getMine.mockResolvedValue(null)
+    mockService.getAll.mockResolvedValue([makeTemplateDto({ professionalId: 'other-uuid' })] as any)
+    renderWithProviders(<PrescriptionTemplateList />)
+    await waitFor(() => {
+      expect(screen.getByTestId('prescription-template-edit-tpl-uuid')).toBeInTheDocument()
+    })
+    expect(screen.getByTestId('prescription-template-delete-tpl-uuid')).toBeInTheDocument()
+  })
+
+  it('hides edit and delete for a professional on a template signed by someone else', async () => {
+    mockService.getAll.mockResolvedValue([makeTemplateDto({ professionalId: 'other-uuid' })] as any)
     renderWithProviders(<PrescriptionTemplateList />)
     await waitFor(() => {
       expect(screen.getByTestId('prescription-template-name-tpl-uuid')).toBeInTheDocument()
     })
     expect(screen.queryByTestId('prescription-template-edit-tpl-uuid')).not.toBeInTheDocument()
+    expect(screen.queryByTestId('prescription-template-delete-tpl-uuid')).not.toBeInTheDocument()
   })
 
-  it('always shows delete link regardless of role', async () => {
-    useAuthStore.setState({ user: makeUser(UserRole.ADMIN) })
+  it('shows delete link for the professional who owns the template', async () => {
     mockService.getAll.mockResolvedValue([makeTemplateDto()] as any)
     renderWithProviders(<PrescriptionTemplateList />)
     await waitFor(() => {
@@ -387,7 +428,7 @@ describe('PrescriptionTemplateList (integration)', () => {
     expect(screen.getByTestId('prescription-template-card-edit-tpl-uuid')).toBeInTheDocument()
   })
 
-  it('mobile card shows Profissional row for ADMIN and hides the edit action (read-only)', async () => {
+  it('mobile card shows the Profissional row for ADMIN and keeps the edit action', async () => {
     useAuthStore.setState({ user: makeUser(UserRole.ADMIN) })
     mockService.getAll.mockResolvedValue([makeTemplateDto()] as any)
 
@@ -396,7 +437,18 @@ describe('PrescriptionTemplateList (integration)', () => {
     await waitFor(() => expect(screen.getByTestId('prescription-template-card-tpl-uuid')).toBeInTheDocument())
 
     expect(screen.getByTestId('prescription-template-card-tpl-uuid')).toHaveTextContent('Dr. House')
+    expect(screen.getByTestId('prescription-template-card-edit-tpl-uuid')).toBeInTheDocument()
+  })
+
+  it('mobile card hides both actions for a professional on a template signed by someone else', async () => {
+    mockService.getAll.mockResolvedValue([makeTemplateDto({ professionalId: 'other-uuid' })] as any)
+
+    renderWithProviders(<PrescriptionTemplateList />)
+
+    await waitFor(() => expect(screen.getByTestId('prescription-template-card-tpl-uuid')).toBeInTheDocument())
+
     expect(screen.queryByTestId('prescription-template-card-edit-tpl-uuid')).not.toBeInTheDocument()
+    expect(screen.queryByTestId('prescription-template-card-delete-tpl-uuid')).not.toBeInTheDocument()
   })
 
   it('clicking delete on a mobile card opens the delete dialog', async () => {

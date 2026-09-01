@@ -45,17 +45,26 @@ export class CreatePrescriptionTemplateUseCase extends BaseUseCase {
     let professionalId: string
     let professionalName: string
 
-    if (currentUser.role === UserRole.PROFESSIONAL) {
-      const professional = await this.professionalsRepository.findByUserId(currentUser.id, clinicId)
-      if (!professional) throw new ForbiddenException('Insufficient permissions')
-      professionalId = professional.id
-      professionalName = professional.user.fullName
-    } else {
-      if (!dto.professionalId) throw new UnprocessableEntityException('professionalId is required for ADMIN')
+    // Um modelo pertence a um profissional, então quem tem ficha cria o próprio —
+    // inclusive um ADMIN que também atende. O ADMIN segue podendo criar em nome
+    // de outro, informando professionalId explicitamente; quem não é ADMIN nunca
+    // pode, e por isso o campo é ignorado nesse caminho.
+    const ownProfessional = await this.professionalsRepository.findByUserId(currentUser.id, clinicId)
+
+    if (currentUser.role !== UserRole.ADMIN) {
+      if (!ownProfessional) throw new ForbiddenException('Insufficient permissions')
+      professionalId = ownProfessional.id
+      professionalName = ownProfessional.user.fullName
+    } else if (dto.professionalId) {
       const professional = await this.professionalsRepository.findById(dto.professionalId, clinicId)
       if (!professional) throw new NotFoundException('Professional not found')
       professionalId = professional.id
       professionalName = professional.user.fullName
+    } else if (ownProfessional) {
+      professionalId = ownProfessional.id
+      professionalName = ownProfessional.user.fullName
+    } else {
+      throw new UnprocessableEntityException('professionalId is required for ADMIN')
     }
 
     const items: PrescriptionTemplateItem[] = []

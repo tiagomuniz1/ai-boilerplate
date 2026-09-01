@@ -17,6 +17,12 @@ const genderLabel: Record<PatientGender, string> = {
 
 interface PatientDetailsProps {
   patient: IPatientModel
+  /**
+   * Editar e excluir paciente são exclusivos do ADMIN
+   * (patients.controller.ts:52,62). Vem da página, como em `UserDetails`, para
+   * a tela não guardar uma segunda fonte de verdade sobre cargo.
+   */
+  canManage: boolean
   onDeleteClick: () => void
 }
 
@@ -31,7 +37,7 @@ function DetailRow({ label, value, testId }: { label: string; value: string; tes
   )
 }
 
-export function PatientDetails({ patient, onDeleteClick }: PatientDetailsProps) {
+export function PatientDetails({ patient, canManage, onDeleteClick }: PatientDetailsProps) {
   const basePath = useBasePath()
 
   return (
@@ -45,22 +51,24 @@ export function PatientDetails({ patient, onDeleteClick }: PatientDetailsProps) 
             {patient.email}
           </p>
         </div>
-        <div className="flex items-center gap-2">
-          <Link href={`${basePath}/patients/${patient.id}/edit`}>
-            <Button variant="ghost" size="sm" data-testid="patient-details-edit-button">
-              Editar
+        {canManage && (
+          <div className="flex items-center gap-2">
+            <Link href={`${basePath}/patients/${patient.id}/edit`}>
+              <Button variant="ghost" size="sm" data-testid="patient-details-edit-button">
+                Editar
+              </Button>
+            </Link>
+            <Button
+              variant="primary"
+              size="sm"
+              onClick={onDeleteClick}
+              data-testid="patient-details-delete-button"
+              className="bg-danger hover:bg-danger/90 focus-visible:ring-danger"
+            >
+              Excluir
             </Button>
-          </Link>
-          <Button
-            variant="primary"
-            size="sm"
-            onClick={onDeleteClick}
-            data-testid="patient-details-delete-button"
-            className="bg-danger hover:bg-danger/90 focus-visible:ring-danger"
-          >
-            Excluir
-          </Button>
-        </div>
+          </div>
+        )}
       </div>
 
       <div className="overflow-hidden rounded-xl border border-line bg-surface shadow-sm">

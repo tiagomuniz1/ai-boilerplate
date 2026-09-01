@@ -5,13 +5,22 @@ jest.mock('../use-cases/delete-patient.use-case')
 import { screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { useRouter } from 'next/navigation'
-import { PatientGender } from '@app/shared'
+import { PatientGender, UserRole } from '@app/shared'
 import { patientsService } from '../services/patients.service'
 import { deletePatientUseCase } from '../use-cases/delete-patient.use-case'
+import { useAuthStore } from '@/stores/auth.store'
 import { renderWithProviders } from '@/tests/utils/render-with-providers'
 import { PatientList } from './patient-list'
 
 const mockPush = jest.fn()
+
+const makeUser = (role: UserRole) => ({
+  id: 'user-uuid',
+  fullName: 'Test User',
+  email: 'test@example.com',
+  role,
+  clinicId: 'clinic-uuid',
+})
 
 const makeDto = (overrides = {}) => ({
   id: 'uuid-1',
@@ -29,6 +38,7 @@ describe('PatientList (integration)', () => {
   beforeEach(() => {
     jest.clearAllMocks()
     ;(useRouter as jest.Mock).mockReturnValue({ push: mockPush })
+    useAuthStore.setState({ user: makeUser(UserRole.ADMIN) })
   })
 
   it('renders skeleton while loading', () => {
@@ -223,5 +233,25 @@ describe('PatientList (integration)', () => {
     await userEvent.click(screen.getByTestId('patient-card-delete-button-uuid-1'))
 
     expect(screen.getByTestId('delete-patient-dialog-confirm')).toBeInTheDocument()
+  })
+
+  // Criar, editar e excluir paciente são exclusivos do ADMIN
+  // (patients.controller.ts:24,52,62). A recepcionista tem esta lista no menu
+  // por desenho e via os três botões — cada clique terminava em 403.
+  it('hides the create, edit and delete actions from a receptionist', async () => {
+    ;(patientsService.getAll as jest.Mock).mockResolvedValue({ data: [makeDto()], total: 1, page: 1, limit: 20 })
+    useAuthStore.setState({ user: makeUser(UserRole.USER) })
+
+    renderWithProviders(<PatientList />)
+
+    await waitFor(() => {
+      expect(screen.getByTestId('patient-view-link-uuid-1')).toBeInTheDocument()
+    })
+
+    expect(screen.queryByTestId('patient-list-new-button')).not.toBeInTheDocument()
+    expect(screen.queryByTestId('patient-edit-link-uuid-1')).not.toBeInTheDocument()
+    expect(screen.queryByTestId('patient-delete-button-uuid-1')).not.toBeInTheDocument()
+    expect(screen.queryByTestId('patient-card-edit-link-uuid-1')).not.toBeInTheDocument()
+    expect(screen.queryByTestId('patient-card-delete-button-uuid-1')).not.toBeInTheDocument()
   })
 })

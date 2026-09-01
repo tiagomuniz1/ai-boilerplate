@@ -1,5 +1,19 @@
 # Changelog — Frontend
 
+## [1.5.2] - 2026-09-01
+
+### Fixed
+
+#### Varredura do padrão "cargo decidindo ofício"
+Depois da correção das quatro seções clínicas em 1.5.0, varri o frontend inteiro atrás do mesmo defeito — botão amarrado ao `role` quando a capacidade vem da ficha, e tela mais restritiva que o backend. Três lugares:
+
+- **Modelos de receita** — "+ Novo modelo" exigia role `PROFESSIONAL`. Uma médica que administra a própria clínica prescreve todo dia e não conseguia cadastrar um modelo. Passa a depender da ficha. No backend, um ADMIN com ficha que omite `professionalId` cria sob a própria ficha em vez de levar `422`; sem ficha, o `422` continua
+- **Modelos de receita — Editar e Excluir** — a tela escondia "Editar" de quem não fosse `PROFESSIONAL`, embora o backend sempre tenha deixado o ADMIN editar qualquer modelo da clínica; e mostrava "Excluir" sem trava nenhuma, no mesmo `<td>`. Os dois passam a repetir a regra do backend: ADMIN em qualquer um, profissional só nos próprios
+- **Detalhe do usuário** — a linha "Profissão (CRM/CRN…)" e a busca da ficha vinham do role, então o CRM de um ADMIN que também atende não aparecia. Passa a usar `isProfessional` do modelo, como o formulário irmão já fazia
+
+#### Recepcionista não vê mais botão que resulta em 403
+Criar, editar e excluir paciente são exclusivos do ADMIN no backend, mas a lista e o detalhe de paciente ofereciam os três a todo mundo. A recepcionista tem "Pacientes" no menu por desenho e navega ali todo dia — cada clique terminava em erro. É o espelho do defeito acima: tela e backend discordando sobre quem pode o quê.
+
 ## [1.5.1] - 2026-09-01
 
 ### Added

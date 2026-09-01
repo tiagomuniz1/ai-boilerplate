@@ -104,8 +104,9 @@ describe('CreatePrescriptionTemplateUseCase', () => {
   it('creates template for ADMIN using professionalId from DTO', async () => {
     const result = await useCase.execute({ ...baseDto, professionalId }, adminUser)
 
+    // O professionalId explícito vence a própria ficha: é o ADMIN criando em
+    // nome de outro profissional.
     expect(mockProfessionalsRepository.findById).toHaveBeenCalledWith(professionalId, clinicId)
-    expect(mockProfessionalsRepository.findByUserId).not.toHaveBeenCalled()
     expect(result.professionalId).toBe(professionalId)
   })
 
@@ -163,8 +164,19 @@ describe('CreatePrescriptionTemplateUseCase', () => {
     await expect(useCase.execute(baseDto, doctorUser)).rejects.toThrow(ForbiddenException)
   })
 
-  it('throws UnprocessableEntityException when ADMIN omits professionalId', async () => {
+  it('throws UnprocessableEntityException when an ADMIN without a professional profile omits professionalId', async () => {
+    mockProfessionalsRepository.findByUserId.mockResolvedValue(null)
+
     await expect(useCase.execute(baseDto, adminUser)).rejects.toThrow(UnprocessableEntityException)
+  })
+
+  // Uma médica que administra a própria clínica: cria o modelo dela sem ter de
+  // se escolher numa lista. Exercer vem da ficha, não do cargo.
+  it('creates the template under their own profile for an ADMIN who also practises', async () => {
+    const result = await useCase.execute(baseDto, adminUser)
+
+    expect(mockProfessionalsRepository.findByUserId).toHaveBeenCalledWith(adminUser.id, clinicId)
+    expect(result.professionalId).toBe(professionalId)
   })
 
   it('throws NotFoundException when ADMIN provides unknown professionalId', async () => {
