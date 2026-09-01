@@ -80,9 +80,9 @@ describe('Appointments — book', () => {
   beforeEach(() => {
     cy.clearCookies()
     cy.clearLocalStorage()
-    // Sem ficha de profissional: o default para quem só administra ou recepciona.
+    // A ficha do próprio usuário: neste spec ele é o profissional.
     // O glob `/professionals*` não cobre esta rota — `*` não atravessa a barra.
-    cy.intercept('GET', `${Cypress.env('API_URL')}/professionals/me`, { statusCode: 200, body: null })
+    cy.intercept('GET', `${Cypress.env('API_URL')}/professionals/me`, { statusCode: 200, body: mockProfessionalsList.data[0] })
     cy.intercept('GET', `${Cypress.env('API_URL')}/professionals*`, { statusCode: 200, body: mockProfessionalsList }).as('getProfessionals')
     cy.intercept('GET', `${Cypress.env('API_URL')}/professionals/${DOC_UUID}`, { statusCode: 200, body: makeProfessional([{ id: SPEC_UUID_1, name: 'Cardiologia' }]) }).as('getProfessional')
     cy.intercept('GET', `${Cypress.env('API_URL')}/appointments/availability*`, { statusCode: 200, body: mockAvailability }).as('getAvailability')
