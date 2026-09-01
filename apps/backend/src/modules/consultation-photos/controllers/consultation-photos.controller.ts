@@ -25,7 +25,7 @@ export class ConsultationPhotosController {
   ) {}
 
   @Post('appointments/:appointmentId')
-  @Roles(UserRole.PROFESSIONAL)
+  @Roles(UserRole.ADMIN, UserRole.PROFESSIONAL)
   @UseInterceptors(FilesInterceptor('files', 10, { storage: memoryStorage() }))
   upload(
     @Param('appointmentId') appointmentId: string,

@@ -61,6 +61,7 @@ describe('TemplateForm (integration)', () => {
     ;(canonicalFieldsService.getAll as jest.Mock).mockResolvedValue([])
     ;(clinicSpecialtiesService.getAll as jest.Mock).mockResolvedValue(emptySpecialtiesResponse)
     ;(professionalsService.getAll as jest.Mock).mockResolvedValue({ data: [], total: 0, page: 1, limit: 20 })
+    ;(professionalsService.getMine as jest.Mock).mockResolvedValue(null)
   })
 
   describe('create mode', () => {
@@ -900,12 +901,7 @@ describe('TemplateForm (integration)', () => {
       useAuthStore.setState({
         user: { id: 'user-uuid', fullName: 'Dr. João', email: 'joao@example.com', role: UserRole.PROFESSIONAL, clinicId: 'clinic-1' },
       })
-      ;(professionalsService.getAll as jest.Mock).mockResolvedValue({
-        data: [professional],
-        total: 1,
-        page: 1,
-        limit: 20,
-      })
+      ;(professionalsService.getMine as jest.Mock).mockResolvedValue(professional)
       return renderWithProviders(<TemplateForm mode="create" onSubmit={onSubmit} isPending={false} />)
     }
 

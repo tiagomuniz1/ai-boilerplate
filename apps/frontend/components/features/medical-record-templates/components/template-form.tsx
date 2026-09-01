@@ -162,7 +162,7 @@ export function TemplateForm(props: Props) {
 
   const authUser = useAuthStore((s) => s.user)
   const isProfessional = authUser?.role === UserRole.PROFESSIONAL
-  const { data: myProfessional } = useMyProfessional({ enabled: isProfessional })
+  const { data: myProfessional } = useMyProfessional()
   // Defaults to CRM while the professional's own profile is still loading, so the specialty
   // selector doesn't flash hidden-then-visible for the common (CRM) case.
   const isCrmProfessional =

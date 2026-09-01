@@ -1,5 +1,21 @@
 # Changelog — Frontend
 
+## [1.5.0] - 2026-09-01
+
+### Changed
+
+#### Quem administra também pode atender
+- As abas Receitas, Atestados, Exames e Fotos passam a decidir o botão de emitir por `canIssue` — tenho ficha de profissional **e** sou o profissional desta consulta — em vez do `role`. Um ADMIN que também atende emite normalmente nas próprias consultas
+- A agenda abre já na própria ficha para quem atende, em vez de exigir escolher no seletor a cada manhã. Qualquer escolha do usuário, inclusive `?doctor=`, tem precedência
+
+### Fixed
+
+#### `useMyProfessional` respondia errado para ADMIN
+- O hook fazia `GET /professionals` e pegava o primeiro item — o que só acerta para PROFESSIONAL: para um ADMIN aquela lista é a clínica inteira, e o "meu profissional" era um colega qualquer. Passa a usar `GET /professionals/me`. A mesma suposição existia inline na página de detalhe da consulta e na agenda
+
+#### ADMIN não conseguia excluir foto de consulta
+- `photo-section` amarrava enviar e excluir na mesma variável. O backend sempre permitiu ao ADMIN excluir; era a interface que escondia o botão de quem tinha direito a ele
+
 ## [1.4.1] - 2026-08-31
 
 ### Fixed

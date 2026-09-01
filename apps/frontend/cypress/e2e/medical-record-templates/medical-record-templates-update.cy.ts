@@ -40,6 +40,9 @@ describe('Medical Record Templates Update', () => {
   beforeEach(() => {
     cy.clearCookies()
     cy.clearLocalStorage()
+    // ADMIN sem ficha: o formulário pergunta "eu exerço?" e a resposta é não.
+    // Sem stub a chamada bate no backend real com token mock e vira 401.
+    cy.intercept('GET', `${Cypress.env('API_URL')}/professionals/me`, { statusCode: 200, body: null })
     cy.intercept('GET', `${Cypress.env('API_URL')}/medical-record-canonical-fields*`, {
       statusCode: 200,
       body: [],

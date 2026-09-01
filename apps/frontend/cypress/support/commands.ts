@@ -721,6 +721,13 @@ Cypress.Commands.add('stubAppointmentDetailWidgets', (overrides: AppointmentDeta
   const api = Cypress.env('API_URL')
   const emptyPage = { data: [], total: 0, page: 1, limit: 20 }
 
+  // A ficha do próprio usuário, que decide se ele pode emitir. Default: não tem.
+  // Um spec que precise de ficha registra o seu depois — este comando roda
+  // primeiro de propósito. O glob `/professionals*` NÃO cobre esta rota: no
+  // minimatch o `*` não atravessa a barra, e sem stub a chamada bate no backend
+  // real com token mock, dá 401 e joga o app num loop de redirect.
+  cy.intercept('GET', `${api}/professionals/me`, { statusCode: 200, body: null })
+
   cy.intercept('GET', `${api}/medical-records/by-appointment/*`, {
     statusCode: 200,
     body: overrides.medicalRecord ?? null,

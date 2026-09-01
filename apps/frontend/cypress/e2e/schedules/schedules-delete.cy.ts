@@ -47,6 +47,9 @@ describe('Schedules Delete', () => {
   beforeEach(() => {
     cy.clearCookies()
     cy.clearLocalStorage()
+    // A ficha do próprio usuário: neste spec ele é o profissional.
+    // O glob `/professionals*` não cobre esta rota — `*` não atravessa a barra.
+    cy.intercept('GET', `${Cypress.env('API_URL')}/professionals/me`, { statusCode: 200, body: mockProfessionalsList.data[0] })
     cy.intercept('GET', `${Cypress.env('API_URL')}/professionals*`, { statusCode: 200, body: mockProfessionalsList })
   })
 

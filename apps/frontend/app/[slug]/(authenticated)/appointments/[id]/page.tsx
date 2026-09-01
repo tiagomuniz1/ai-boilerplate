@@ -12,7 +12,7 @@ import { useAppointment } from '@/components/features/appointments/hooks/use-app
 import { useCompleteAppointment } from '@/components/features/appointments/hooks/use-complete-appointment.hook'
 import { useCancelAppointment } from '@/components/features/appointments/hooks/use-cancel-appointment.hook'
 import { useReassignAppointment } from '@/components/features/appointments/hooks/use-reassign-appointment.hook'
-import { useProfessionals } from '@/components/features/professionals/hooks/use-professionals.hook'
+import { useMyProfessional } from '@/components/features/professionals/hooks/use-my-professional.hook'
 import { usePrescriptions } from '@/components/features/prescriptions/hooks/use-prescriptions.hook'
 import { useAtestados } from '@/components/features/atestados/hooks/use-atestados.hook'
 import { useExamRequests } from '@/components/features/exames/hooks/use-exam-requests.hook'
@@ -41,8 +41,10 @@ export default function AppointmentDetailPage() {
   const role = currentUser?.role ?? UserRole.USER
 
   const isProfessional = role === UserRole.PROFESSIONAL
-  const { data: doctors } = useProfessionals({ limit: 100 })
-  const currentDoctorId = isProfessional ? doctors?.[0]?.id : undefined
+  // A própria ficha, se houver. Antes vinha de `doctors?.[0]`, que só acerta
+  // para PROFESSIONAL — para um ADMIN aquela lista é a clínica inteira.
+  const { data: myProfessional } = useMyProfessional()
+  const currentDoctorId = myProfessional?.id
 
   const { data: appointment, isLoading, isError } = useAppointment(id)
 
@@ -75,6 +77,11 @@ export default function AppointmentDetailPage() {
     (role === UserRole.PROFESSIONAL && appointment?.professionalId === currentDoctorId)
 
   const canAct = canManage && appointment?.status === AppointmentStatus.SCHEDULED
+
+  // Emitir receita/atestado/exame e enviar foto vem da ficha de profissional,
+  // não do cargo — e só na própria consulta, porque o documento carrega o
+  // registro de quem atendeu.
+  const canIssue = !!currentDoctorId && appointment?.professionalId === currentDoctorId
 
   const { data: prescriptions } = usePrescriptions(id)
   const { data: atestados } = useAtestados(id)
@@ -237,7 +244,7 @@ export default function AppointmentDetailPage() {
                   appointmentId={id}
                   professionalId={appointment.professionalId}
                   canManage={canManage}
-                  userRole={role}
+                  canIssue={canIssue}
                 />
               )}
 
@@ -246,7 +253,7 @@ export default function AppointmentDetailPage() {
                   appointmentId={id}
                   professionalId={appointment.professionalId}
                   canManage={canManage}
-                  userRole={role}
+                  canIssue={canIssue}
                 />
               )}
 
@@ -255,12 +262,12 @@ export default function AppointmentDetailPage() {
                   appointmentId={id}
                   professionalId={appointment.professionalId}
                   canManage={canManage}
-                  userRole={role}
+                  canIssue={canIssue}
                 />
               )}
 
               {activeTab === 'fotos' && canManage && (
-                <PhotoSection appointmentId={id} canManage={canManage} userRole={role} />
+                <PhotoSection appointmentId={id} canManage={canManage} canIssue={canIssue} />
               )}
             </div>
           </>

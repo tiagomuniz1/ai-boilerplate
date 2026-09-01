@@ -62,6 +62,12 @@ describe('Exames — Create', () => {
       statusCode: 200,
       body: { data: [mockProfessional], total: 1, page: 1, limit: 200 },
     })
+    // A ficha do próprio usuário — mesma armadilha de glob do `/professionals/:id`
+    // logo abaixo. É ela que decide se o botão de emitir aparece.
+    cy.intercept('GET', `${Cypress.env('API_URL')}/professionals/me`, {
+      statusCode: 200,
+      body: mockProfessional,
+    })
     // ProfessionalSignatureSelect (rendered inside ExameForm) fetches the single
     // professional by id — a distinct route from the list above (`/professionals*`
     // does not match `/professionals/:id`, since `*` does not cross `/`).

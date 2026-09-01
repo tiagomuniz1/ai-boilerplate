@@ -93,6 +93,20 @@ describe('Medical Record View', () => {
     // it, and the widgets this spec does not care about stop 401-ing the app
     // into a login/dashboard redirect loop.
     cy.stubAppointmentDetailWidgets()
+    // Este spec atua como o profissional DONO da consulta: sobrepõe o default do
+    // stubAppointmentDetailWidgets, que assume "não tenho ficha".
+    cy.intercept('GET', `${Cypress.env('API_URL')}/professionals/me`, {
+      statusCode: 200,
+      body: {
+        id: PROFESSIONAL_UUID,
+        user: { id: 'professional-user-uuid', fullName: 'Dr. João', email: 'professional@pulso.center', isActive: true },
+        registrations: [{ id: 'reg-1', councilType: 'crm', number: '12345/SP', state: 'SP', isPrimary: true }],
+        specialties: [{ id: SPEC_UUID, name: 'Cardiologia' }],
+        bio: null,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      },
+    })
     cy.intercept('GET', `${Cypress.env('API_URL')}/professionals*`, {
       statusCode: 200,
       body: {

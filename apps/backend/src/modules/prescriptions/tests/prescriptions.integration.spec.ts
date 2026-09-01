@@ -48,10 +48,13 @@ describe('PrescriptionsController (integration)', () => {
   let prescriptionRepository: Repository<Prescription>
 
   let adminToken: string
+  let adminDoctorToken: string
   let doctorToken: string
   let otherDoctorToken: string
   let userToken: string
   let professionalId: string
+  let adminDoctorId: string
+  let adminDoctorAppointmentId: string
   let otherDoctorId: string
   let patientId: string
   let appointmentId: string
@@ -128,6 +131,18 @@ describe('PrescriptionsController (integration)', () => {
       }),
     )
 
+    // ADMIN que também exerce: administra a clínica e atende. O role continua
+    // ADMIN; o que a habilita a emitir é a ficha de profissional abaixo.
+    const adminDoctorUser = await userRepository.save(
+      userRepository.create({
+        fullName: 'Admin Doctor',
+        email: 'admindoc@rx.test',
+        password: hashed,
+        role: UserRole.ADMIN,
+        clinicId: SEED_CLINIC_ID,
+      }),
+    )
+
     const otherDoctorUser = await userRepository.save(
       userRepository.create({
         fullName: 'Other Doctor',
@@ -160,6 +175,15 @@ describe('PrescriptionsController (integration)', () => {
     doctorEntity.professionalSpecialties = ([specialty]).map((s: any) => ({ specialtyId: s.id, registryNumber: null })) as any
     const doctorProfile = await doctorRepository.save(doctorEntity)
     professionalId = doctorProfile.id
+
+    const adminDoctorEntity = doctorRepository.create({
+      userId: adminDoctorUser.id,
+      clinicId: SEED_CLINIC_ID,
+    })
+    adminDoctorEntity.registrations = [{ clinicId: SEED_CLINIC_ID, councilType: CouncilType.CRM, number: '33333', state: 'SP', isPrimary: true }] as any
+    adminDoctorEntity.professionalSpecialties = ([specialty]).map((s: any) => ({ specialtyId: s.id, registryNumber: null })) as any
+    const adminDoctorProfile = await doctorRepository.save(adminDoctorEntity)
+    adminDoctorId = adminDoctorProfile.id
 
     const otherDoctorEntity = doctorRepository.create({
       userId: otherDoctorUser.id,
@@ -221,6 +245,23 @@ describe('PrescriptionsController (integration)', () => {
     )
     appointmentId = appointment.id
 
+    const adminDoctorAppointment = await appointmentRepository.save(
+      appointmentRepository.create({
+        clinicId: SEED_CLINIC_ID,
+        professionalId: adminDoctorId,
+        patientId,
+        specialtyId: specialty.id,
+        scheduleId: schedule.id,
+        date: '2026-01-05',
+        startTime: '09:00',
+        endTime: '09:30',
+        status: AppointmentStatus.SCHEDULED,
+        reason: null,
+        cancellationReason: null,
+      }),
+    )
+    adminDoctorAppointmentId = adminDoctorAppointment.id
+
     const cancelledAppt = await appointmentRepository.save(
       appointmentRepository.create({
         clinicId: SEED_CLINIC_ID,
@@ -261,6 +302,7 @@ describe('PrescriptionsController (integration)', () => {
     }
 
     adminToken = await loginAndExtractToken('admin@rx.test')
+    adminDoctorToken = await loginAndExtractToken('admindoc@rx.test')
     doctorToken = await loginAndExtractToken('doctor@rx.test')
     otherDoctorToken = await loginAndExtractToken('other@rx.test')
     userToken = await loginAndExtractToken('user@rx.test')
@@ -352,10 +394,33 @@ describe('PrescriptionsController (integration)', () => {
       expect(body.items).toHaveLength(2)
     })
 
-    it('returns 403 when ADMIN tries to emit prescription', async () => {
+    // Exercer a medicina vem da ficha de profissional, não do cargo. Um ADMIN
+    // sem ficha administra a clínica, mas não assina documento clínico.
+    it('returns 403 when ADMIN without a professional profile tries to emit', async () => {
       await request(app.getHttpServer())
         .post('/prescriptions')
         .set('Cookie', `access_token=${adminToken}`)
+        .send(validPayload())
+        .expect(403)
+    })
+
+    it('returns 201 when ADMIN with a professional profile emits on their own appointment', async () => {
+      const { body } = await request(app.getHttpServer())
+        .post('/prescriptions')
+        .set('Cookie', `access_token=${adminDoctorToken}`)
+        .send({ ...validPayload(), appointmentId: adminDoctorAppointmentId })
+        .expect(201)
+
+      expect(body.id).toBeDefined()
+    })
+
+    // O documento carrega um snapshot de assinatura e um token que a farmácia
+    // verifica publicamente: emitir sobre consulta alheia assinaria com o
+    // registro de outro profissional.
+    it('returns 403 when ADMIN with a professional profile emits on another professional appointment', async () => {
+      await request(app.getHttpServer())
+        .post('/prescriptions')
+        .set('Cookie', `access_token=${adminDoctorToken}`)
         .send(validPayload())
         .expect(403)
     })

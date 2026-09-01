@@ -78,6 +78,21 @@ describe('Prescriptions — widget states (mocked)', () => {
         limit: 200,
       },
     })
+    // Mesma armadilha de glob: `/professionals/me` é a ficha do próprio usuário,
+    // e é ela que decide se o botão de emitir aparece. Este spec roda como o
+    // profissional dono da consulta.
+    cy.intercept('GET', `${Cypress.env('API_URL')}/professionals/me`, {
+      statusCode: 200,
+      body: {
+        id: PROFESSIONAL_UUID,
+        user: { id: 'professional-user-uuid', fullName: 'Dr. João', email: 'professional@pulso.center', isActive: true },
+        registrations: [{ id: 'reg-1', councilType: 'crm', number: '12345/SP', state: 'SP', isPrimary: true }],
+        specialties: [{ id: SPEC_UUID, name: 'Cardiologia' }],
+        bio: null,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      },
+    })
     // ProfessionalSignatureSelect always fetches GET /professionals/:id (even when it
     // renders nothing) — the blanket `/professionals*` intercept above only matches the
     // query-string form (`/professionals?...`), not this nested path, so it needs its own.

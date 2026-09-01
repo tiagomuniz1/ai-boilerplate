@@ -314,7 +314,7 @@ describe('ExamRequestsController (integration)', () => {
       expect(body.items[2].observations).toBe('Incidência PA e perfil')
     })
 
-    it('returns 403 when ADMIN tries to request exams', async () => {
+    it('returns 403 when ADMIN without a professional profile tries to request exams', async () => {
       await request(app.getHttpServer())
         .post('/exam-requests')
         .set('Cookie', `access_token=${adminToken}`)
@@ -686,7 +686,7 @@ describe('ExamRequestsController (integration)', () => {
         .expect(422)
     })
 
-    it('returns 403 when ADMIN tries to attach a result', async () => {
+    it('returns 403 when ADMIN without a professional profile tries to attach a result', async () => {
       await request(app.getHttpServer())
         .post(`/exam-requests/${examRequestId}/results`)
         .set('Cookie', `access_token=${adminToken}`)
@@ -776,7 +776,7 @@ describe('ExamRequestsController (integration)', () => {
       expect(body.results).toHaveLength(1)
     })
 
-    it('returns 403 when ADMIN tries to remove a result', async () => {
+    it('returns 403 when ADMIN without a professional profile tries to remove a result', async () => {
       await request(app.getHttpServer())
         .delete(`/exam-results/${resultId}`)
         .set('Cookie', `access_token=${adminToken}`)

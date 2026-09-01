@@ -176,7 +176,7 @@ describe('CreateMedicalCertificateUseCase', () => {
     )
     mockAppointmentsRepository.findById.mockResolvedValue(makeAppointment() as any)
     mockProfessionalsRepository.findByUserId.mockResolvedValue(makeDoctor() as any)
-    mockProfessionalsRepository.findById.mockResolvedValue(makeDoctor() as any)
+    mockProfessionalsRepository.findByUserId.mockResolvedValue(makeDoctor() as any)
     mockPatientsRepository.findById.mockResolvedValue(makePatient() as any)
     ;(mockFindClinicByIdUseCase.execute as jest.Mock).mockResolvedValue(makeClinic())
     mockMedicalCertificatesRepository.create.mockResolvedValue(makeSavedCertificate() as any)
@@ -207,11 +207,18 @@ describe('CreateMedicalCertificateUseCase', () => {
     expect(mockProfessionalsRepository.findById).not.toHaveBeenCalled()
   })
 
-  it('loads doctor by ID for ADMIN (no RBAC check)', async () => {
+  // O cargo não emite; a ficha emite. Um ADMIN que também atende resolve a
+  // própria ficha pelo userId, igual a qualquer profissional.
+  it('resolves the issuer profile by userId, for ADMIN too', async () => {
     await useCase.execute(leaveDto as any, adminUser)
 
-    expect(mockProfessionalsRepository.findByUserId).not.toHaveBeenCalled()
-    expect(mockProfessionalsRepository.findById).toHaveBeenCalledWith(professionalId, clinicId)
+    expect(mockProfessionalsRepository.findByUserId).toHaveBeenCalledWith(adminUser.id, clinicId)
+  })
+
+  it('throws ForbiddenException when the issuer has no professional profile', async () => {
+    mockProfessionalsRepository.findByUserId.mockResolvedValue(null)
+
+    await expect(useCase.execute(leaveDto as any, adminUser)).rejects.toThrow(ForbiddenException)
   })
 
   it('signs with the professional council type for a non-CRM generalist professional (no specialty)', async () => {
@@ -225,7 +232,7 @@ describe('CreateMedicalCertificateUseCase', () => {
     mockAppointmentsRepository.findById.mockResolvedValue(
       makeAppointment({ professionalId: speechTherapistId, specialtyId: null }) as any,
     )
-    mockProfessionalsRepository.findById.mockResolvedValue(speechTherapist as any)
+    mockProfessionalsRepository.findByUserId.mockResolvedValue(speechTherapist as any)
 
     await useCase.execute(attendanceDto as any, adminUser)
 
@@ -297,7 +304,7 @@ describe('CreateMedicalCertificateUseCase', () => {
   })
 
   it('sets specialtyName to null when doctor has no matching specialty', async () => {
-    mockProfessionalsRepository.findById.mockResolvedValue(makeDoctor({ specialties: [] }) as any)
+    mockProfessionalsRepository.findByUserId.mockResolvedValue(makeDoctor({ specialties: [] }) as any)
 
     await useCase.execute(leaveDto as any, adminUser)
 
@@ -353,12 +360,6 @@ describe('CreateMedicalCertificateUseCase', () => {
     mockAppointmentsRepository.findById.mockResolvedValue(makeAppointment({ status: AppointmentStatus.CANCELLED }) as any)
 
     await expect(useCase.execute(leaveDto as any, adminUser)).rejects.toThrow(UnprocessableEntityException)
-  })
-
-  it('throws NotFoundException when doctor not found during snapshot', async () => {
-    mockProfessionalsRepository.findById.mockResolvedValue(null)
-
-    await expect(useCase.execute(leaveDto as any, adminUser)).rejects.toThrow(NotFoundException)
   })
 
   it('throws NotFoundException when patient not found', async () => {

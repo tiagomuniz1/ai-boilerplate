@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { MedicalCertificateType, UserRole } from '@app/shared'
+import { MedicalCertificateType } from '@app/shared'
 import { Modal } from '@/components/ui/organisms/modal/modal'
 import { formatDateToBR } from '@/lib/format-date'
 import { Button } from '@/components/ui/atoms/button/button'
@@ -22,7 +22,8 @@ export interface AtestadoSectionProps {
   appointmentId: string
   professionalId: string
   canManage: boolean
-  userRole: UserRole
+  /** Emitir vem da ficha de profissional e só na própria consulta — não do cargo. */
+  canIssue: boolean
 }
 
 function atestadoTitle(atestado: IAtestadoModel): string {
@@ -48,7 +49,7 @@ function atestadoDetail(atestado: IAtestadoModel): string | null {
   return null
 }
 
-export function AtestadoSection({ appointmentId, professionalId, canManage, userRole }: AtestadoSectionProps) {
+export function AtestadoSection({ appointmentId, professionalId, canManage, canIssue }: AtestadoSectionProps) {
   const [showForm, setShowForm] = useState(false)
   const [deletingId, setDeletingId] = useState<string | null>(null)
   const [previewAtestado, setPreviewAtestado] = useState<IAtestadoModel | null>(null)
@@ -58,7 +59,6 @@ export function AtestadoSection({ appointmentId, professionalId, canManage, user
   const { mutate: deleteAtestado, isPending: isDeleting } = useDeleteAtestado(appointmentId)
   const { mutate: download, isPending: isDownloading, variables: downloadingVars } = useDownloadAtestadoPdf()
 
-  const isProfessional = userRole === UserRole.PROFESSIONAL
 
   function handleCreate(input: ICreateAtestadoInput) {
     create(input, { onSuccess: () => setShowForm(false) })
@@ -88,7 +88,7 @@ export function AtestadoSection({ appointmentId, professionalId, canManage, user
             <h2 className="text-lg font-semibold text-text">Atestados</h2>
             <p className="text-sm text-text-mute">Atestados emitidos nesta consulta.</p>
           </div>
-          {isProfessional && canManage && (
+          {canIssue && canManage && (
             <Button
               type="button"
               onClick={() => setShowForm(true)}

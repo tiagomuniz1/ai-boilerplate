@@ -126,7 +126,7 @@ export function TemplateDetails({ templateId }: TemplateDetailsProps) {
   const role = useAuthStore((s) => s.user?.role)
   const isAdmin = role === UserRole.ADMIN
   const isProfessional = role === UserRole.PROFESSIONAL
-  const { data: myProfessional } = useMyProfessional({ enabled: isProfessional })
+  const { data: myProfessional } = useMyProfessional()
 
   const { data: template, isPending, isError } = useTemplate(templateId)
   const { mutate: deleteTemplate, isPending: isDeleting } = useDeleteTemplate()
@@ -163,7 +163,7 @@ export function TemplateDetails({ templateId }: TemplateDetailsProps) {
   const sortedSections = [...template.sections].sort((a, b) => a.order - b.order)
 
   const totalFields = template.fields.length
-  const canEdit = isAdmin || (isProfessional && ownsTemplateScope(template, myProfessional))
+  const canEdit = isAdmin || (isProfessional && ownsTemplateScope(template, myProfessional ?? undefined))
 
   return (
     <div className="flex flex-col gap-6" data-testid="template-details">

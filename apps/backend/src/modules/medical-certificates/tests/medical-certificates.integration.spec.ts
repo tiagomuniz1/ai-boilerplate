@@ -320,7 +320,7 @@ describe('MedicalCertificatesController (integration)', () => {
       expect(body.startDate).toBeNull()
     })
 
-    it('returns 403 when ADMIN tries to emit certificate', async () => {
+    it('returns 403 when ADMIN without a professional profile tries to emit', async () => {
       await request(app.getHttpServer())
         .post('/medical-certificates')
         .set('Cookie', `access_token=${adminToken}`)

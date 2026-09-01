@@ -32,7 +32,7 @@ export class ExamResultsController {
 
   @Delete(':id')
   @HttpCode(204)
-  @Roles(UserRole.PROFESSIONAL)
+  @Roles(UserRole.ADMIN, UserRole.PROFESSIONAL)
   delete(
     @Param('id') id: string,
     @CurrentUser() currentUser: ICurrentUser,

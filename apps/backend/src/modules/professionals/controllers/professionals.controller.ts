@@ -14,6 +14,7 @@ import { CreateProfessionalUseCase } from '../use-cases/create-professional.use-
 import { DeleteProfessionalUseCase } from '../use-cases/delete-professional.use-case'
 import { FindAllProfessionalsUseCase } from '../use-cases/find-all-professionals.use-case'
 import { FindProfessionalByIdUseCase } from '../use-cases/find-professional-by-id.use-case'
+import { FindMyProfessionalUseCase } from '../use-cases/find-my-professional.use-case'
 import { UpdateProfessionalUseCase } from '../use-cases/update-professional.use-case'
 
 @Controller('professionals')
@@ -22,6 +23,7 @@ export class ProfessionalsController {
     private readonly createProfessionalUseCase: CreateProfessionalUseCase,
     private readonly findAllProfessionalsUseCase: FindAllProfessionalsUseCase,
     private readonly findProfessionalByIdUseCase: FindProfessionalByIdUseCase,
+    private readonly findMyProfessionalUseCase: FindMyProfessionalUseCase,
     private readonly updateProfessionalUseCase: UpdateProfessionalUseCase,
     private readonly deleteProfessionalUseCase: DeleteProfessionalUseCase,
   ) {}
@@ -43,6 +45,14 @@ export class ProfessionalsController {
     @CurrentUser() currentUser: ICurrentUser,
   ): Promise<PaginatedProfessionalsResponseDto> {
     return this.findAllProfessionalsUseCase.execute(query, currentUser)
+  }
+
+  // Declarada acima de @Get(':id') de propósito: na ordem inversa, 'me' seria
+  // capturado como um id e o Postgres estouraria com uuid inválido.
+  @Get('me')
+  @Roles(UserRole.ADMIN, UserRole.PROFESSIONAL)
+  findMine(@CurrentUser() currentUser: ICurrentUser): Promise<ProfessionalResponseDto | null> {
+    return this.findMyProfessionalUseCase.execute(currentUser)
   }
 
   @Get(':id')

@@ -71,7 +71,14 @@ function stubAppointmentDetail(overrides: object = {}) {
   }).as('getAppointmentDetail')
 }
 
-function stubProfessionals() {
+// `mine` é a ficha do próprio usuário: quem a tem, exerce. O glob
+// `/professionals*` não cobre `/professionals/me` — no minimatch o `*` não
+// atravessa a barra — então precisa de intercept próprio.
+function stubProfessionals(mine: object | null = null) {
+  cy.intercept('GET', `${Cypress.env('API_URL')}/professionals/me`, {
+    statusCode: 200,
+    body: mine,
+  }).as('getMyProfessional')
   cy.intercept('GET', `${Cypress.env('API_URL')}/professionals*`, {
     statusCode: 200,
     body: mockProfessionalsResponse,
@@ -230,7 +237,7 @@ describe('Appointment Detail Page', () => {
 
   describe('PROFESSIONAL (own appointment)', () => {
     it('sees actions and medical record section', () => {
-      stubProfessionals()
+      stubProfessionals(mockProfessionalsResponse.data[0])
       stubMedicalRecord()
       stubTemplates()
       stubPrescriptions()
@@ -245,7 +252,7 @@ describe('Appointment Detail Page', () => {
     })
 
     it('atestados tab: shows a skeleton while loading, then the empty state', () => {
-      stubProfessionals()
+      stubProfessionals(mockProfessionalsResponse.data[0])
       stubMedicalRecord()
       stubTemplates()
       stubPrescriptions()
@@ -266,7 +273,7 @@ describe('Appointment Detail Page', () => {
     })
 
     it('atestados tab: shows an error state when the list fails to load', () => {
-      stubProfessionals()
+      stubProfessionals(mockProfessionalsResponse.data[0])
       stubMedicalRecord()
       stubTemplates()
       stubPrescriptions()
@@ -299,7 +306,7 @@ describe('Appointment Detail Page', () => {
         patientName: 'João Silva',
         professionalName: 'Dr. Owner',
       }
-      stubProfessionals()
+      stubProfessionals(mockProfessionalsResponse.data[0])
       stubMedicalRecord()
       stubTemplates()
       stubPrescriptions()

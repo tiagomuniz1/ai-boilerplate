@@ -102,6 +102,12 @@ describe('Appointments — recurring series (mocked)', () => {
     cy.clearLocalStorage()
     seriesDates = []
 
+    // A ficha do próprio usuário: neste spec ele é o profissional.
+    // O glob `/professionals*` não cobre esta rota — `*` não atravessa a barra.
+    cy.intercept('GET', `${Cypress.env('API_URL')}/professionals/me`, {
+      statusCode: 200,
+      body: makeProfessional([{ id: SPEC_UUID, name: 'Cardiologia' }]),
+    })
     cy.intercept('GET', `${Cypress.env('API_URL')}/professionals*`, {
       statusCode: 200,
       body: { data: [makeProfessional([{ id: SPEC_UUID, name: 'Cardiologia' }])], total: 1, page: 1, limit: 200 },

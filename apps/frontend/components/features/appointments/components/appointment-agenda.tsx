@@ -1,11 +1,12 @@
 'use client'
 
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useEffect } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { UserRole } from '@app/shared'
 import { useAuthStore } from '@/stores/auth.store'
 import { useIsMobile } from '@/hooks/use-is-mobile.hook'
 import { useProfessionals } from '@/components/features/professionals/hooks/use-professionals.hook'
+import { useMyProfessional } from '@/components/features/professionals/hooks/use-my-professional.hook'
 import { BlockTimeDialog } from '@/components/features/schedule-exceptions/components/BlockTimeDialog'
 import { getWeekStart, toLocalDateString } from '@/lib/format-date'
 import { AgendaToolbar } from './agenda-toolbar'
@@ -46,8 +47,20 @@ export function AppointmentAgenda() {
   const showDoctorSelector = role === UserRole.ADMIN || role === UserRole.USER
 
   const { data: doctors } = useProfessionals({ limit: 100 })
+  const { data: myProfessional } = useMyProfessional()
 
-  const currentDoctorId = isProfessional ? doctors?.[0]?.id : undefined
+  const currentDoctorId = myProfessional?.id
+
+  // Quem também atende cai na própria agenda. Sem isto, um ADMIN com ficha
+  // abriria a tela vazia e teria que se escolher no seletor toda manhã. Só vale
+  // como ponto de partida: qualquer escolha do usuário, inclusive via ?doctor=,
+  // tem precedência.
+  useEffect(() => {
+    if (!showDoctorSelector) return
+    if (searchParams.get('doctor') || selectedDoctorId) return
+    if (!myProfessional?.id) return
+    setSelectedDoctorId(myProfessional.id)
+  }, [showDoctorSelector, searchParams, selectedDoctorId, myProfessional?.id])
 
   const professionalIdForGrid: string | null = isProfessional ? 'self' : selectedDoctorId
 

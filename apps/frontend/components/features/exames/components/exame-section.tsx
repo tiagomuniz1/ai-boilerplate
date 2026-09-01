@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { ExamRequestStatus, UserRole } from '@app/shared'
+import { ExamRequestStatus } from '@app/shared'
 import { Modal } from '@/components/ui/organisms/modal/modal'
 import { Button } from '@/components/ui/atoms/button/button'
 import { Alert } from '@/components/ui/molecules/alert/alert'
@@ -25,7 +25,8 @@ export interface ExameSectionProps {
   appointmentId: string
   professionalId: string
   canManage: boolean
-  userRole: UserRole
+  /** Emitir vem da ficha de profissional e só na própria consulta — não do cargo. */
+  canIssue: boolean
 }
 
 const statusLabel: Record<ExamRequestStatus, string> = {
@@ -33,7 +34,7 @@ const statusLabel: Record<ExamRequestStatus, string> = {
   [ExamRequestStatus.COMPLETED]: 'Concluído',
 }
 
-export function ExameSection({ appointmentId, professionalId, canManage, userRole }: ExameSectionProps) {
+export function ExameSection({ appointmentId, professionalId, canManage, canIssue }: ExameSectionProps) {
   const [showForm, setShowForm] = useState(false)
   const [deletingId, setDeletingId] = useState<string | null>(null)
   const [deletingResultId, setDeletingResultId] = useState<string | null>(null)
@@ -51,7 +52,6 @@ export function ExameSection({ appointmentId, professionalId, canManage, userRol
     variables: downloadResultVars,
   } = useDownloadExamResultFile()
 
-  const isProfessional = userRole === UserRole.PROFESSIONAL
   const previewExamRequest = examRequests?.find((examRequest) => examRequest.id === previewId) ?? null
 
   function handleCreate(input: ICreateExamRequestInput) {
@@ -98,7 +98,7 @@ export function ExameSection({ appointmentId, professionalId, canManage, userRol
             <h2 className="text-lg font-semibold text-text">Exames</h2>
             <p className="text-sm text-text-mute">Exames solicitados nesta consulta.</p>
           </div>
-          {isProfessional && canManage && (
+          {canIssue && canManage && (
             <Button
               type="button"
               onClick={() => setShowForm(true)}
@@ -221,7 +221,7 @@ export function ExameSection({ appointmentId, professionalId, canManage, userRol
       <ExamePreviewModal
         examRequest={previewExamRequest}
         onClose={() => setPreviewId(null)}
-        canManageResults={isProfessional && canManage}
+        canManageResults={canIssue && canManage}
         isUploading={isUploading}
         uploadError={uploadGlobalError}
         onUpload={(files) => previewId && addResult({ examRequestId: previewId, files })}

@@ -118,23 +118,17 @@ describe('Medical Record Templates Details', () => {
       statusCode: 200,
       body: mockTemplate,
     }).as('getTemplate')
-    cy.intercept('GET', `${Cypress.env('API_URL')}/professionals*`, {
+    // A posse do escopo do modelo é decidida pela ficha do próprio usuário.
+    cy.intercept('GET', `${Cypress.env('API_URL')}/professionals/me`, {
       statusCode: 200,
       body: {
-        data: [
-          {
-            id: 'professional-uuid',
-            user: { id: mockProfessional.id, fullName: mockProfessional.fullName, email: mockProfessional.email },
-            registrations: [{ id: 'reg-1', councilType: 'crm', number: '123456', state: 'SP', isPrimary: true }],
-            specialties: [{ id: 'uuid-spec-1', name: 'Cardiologia', registryNumber: null }],
-            bio: null,
-            createdAt: '2024-01-15T10:00:00.000Z',
-            updatedAt: '2024-01-15T10:00:00.000Z',
-          },
-        ],
-        total: 1,
-        page: 1,
-        limit: 20,
+        id: 'professional-uuid',
+        user: { id: mockProfessional.id, fullName: mockProfessional.fullName, email: mockProfessional.email },
+        registrations: [{ id: 'reg-1', councilType: 'crm', number: '123456', state: 'SP', isPrimary: true }],
+        specialties: [{ id: 'uuid-spec-1', name: 'Cardiologia', registryNumber: null }],
+        bio: null,
+        createdAt: '2024-01-15T10:00:00.000Z',
+        updatedAt: '2024-01-15T10:00:00.000Z',
       },
     }).as('getMyProfessional')
 

@@ -24,6 +24,26 @@ O sistema possui quatro perfis de usuário (`UserRole`). Cada perfil reflete um 
 
 ---
 
+## Cargo e Ofício — dois eixos, não um
+
+O `role` responde **o que a pessoa administra**. A **ficha de profissional** (`professionals`, ligada ao usuário por `user_id`) responde **se ela exerce**. São perguntas diferentes e o sistema as separa:
+
+| | Vem de | Decide |
+|---|---|---|
+| **Escopo** | `role` | Vê tudo (ADMIN) ou só o próprio (PROFESSIONAL) |
+| **Exercício** | ficha de profissional | Pode emitir receita, atestado e pedido de exame, e enviar foto |
+
+Isso existe porque quem é dono da clínica com frequência também atende. Um único `role` obrigava a escolher: como ADMIN ela administrava mas não emitia nada; como PROFESSIONAL ela atendia mas não cadastrava paciente nem usuário.
+
+- **ADMIN com ficha** — administra a clínica **e** atende. É o caso do consultório de um profissional só.
+- **ADMIN sem ficha** — administra, não emite. Gestor que não é clínico.
+- **PROFESSIONAL** — inalterado: atende, escopo restrito ao próprio.
+- **USER** — recepção, somente leitura.
+
+**Emitir exige ser o profissional da consulta, para qualquer role** — inclusive ADMIN. O documento carrega um snapshot de assinatura (nome, conselho, registro) e um `verification_token` que a farmácia confere num endpoint público; emitir sobre consulta alheia produziria documento verificável atestando registro de outra pessoa. **Ver e excluir** documento continuam administrativos: ADMIN irrestrito na clínica.
+
+---
+
 ## Autenticação
 
 | Ação | ADMIN | PROFESSIONAL | USER | PATIENT |
@@ -174,7 +194,7 @@ O sistema possui quatro perfis de usuário (`UserRole`). Cada perfil reflete um 
 
 | Ação | ADMIN | PROFESSIONAL | USER | PATIENT |
 |---|:---:|:---:|:---:|:---:|
-| Enviar foto | ✗ | ✓ só na própria consulta | ✗ | ✗ |
+| Enviar foto | ✓ com ficha, só na própria consulta | ✓ só na própria consulta | ✗ | ✗ |
 | Listar por consulta | ✓ todas | ✓ só as próprias | ✗ | ✗ |
 | Ver/baixar arquivo | ✓ qualquer | ✓ só as próprias | ✗ | ✗ |
 | Excluir | ✓ qualquer | ✓ só as próprias | ✗ | ✗ |
@@ -215,7 +235,7 @@ Endpoint **público** (sem autenticação, `@Public`) consumido ao bipar o QR Co
 ## Resumo por perfil
 
 ### ADMIN
-Acesso irrestrito. Gerencia usuários, profissionais, pacientes, agendas e todas as consultas. Único perfil que pode criar usuários, ativar/desativar contas e excluir registros. Cria e edita templates de prontuário da clínica. Pode criar, editar e excluir qualquer prontuário.
+Acesso administrativo irrestrito. Gerencia usuários, profissionais, pacientes, agendas e todas as consultas. Único perfil que pode criar usuários, ativar/desativar contas e excluir registros. Cria e edita templates de prontuário da clínica. Pode criar, editar e excluir qualquer prontuário. **Não emite receita, atestado nem pedido de exame, e não envia foto — a menos que também tenha ficha de profissional**, e nesse caso apenas nas próprias consultas (ver "Cargo e Ofício").
 
 ### PROFESSIONAL
 Acessa o sistema para gerenciar a própria agenda, criar e acompanhar as próprias consultas. Pode editar os próprios dados de usuário e de profissional. Não vê dados de outros profissionais, agendas de outros ou consultas de outros profissionais. Cria e edita prontuários das próprias consultas (bloqueado após conclusão). Cria e edita o próprio template de prontuário — médico (CRM) através de uma das próprias especialidades, demais profissões direto para a profissão — sem acesso aos templates de outros profissionais nem à exclusão.

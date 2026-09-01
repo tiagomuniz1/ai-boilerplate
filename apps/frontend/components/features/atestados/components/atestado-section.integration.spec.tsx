@@ -35,8 +35,8 @@ const makeAtestadoDto = (overrides: object = {}) => ({
   ...overrides,
 })
 
-const doctorProps = { appointmentId: 'appt-uuid', professionalId: 'doctor-uuid', canManage: true, userRole: UserRole.PROFESSIONAL }
-const adminProps = { appointmentId: 'appt-uuid', professionalId: 'doctor-uuid', canManage: true, userRole: UserRole.ADMIN }
+const doctorProps = { appointmentId: 'appt-uuid', professionalId: 'doctor-uuid', canManage: true, canIssue: true }
+const adminProps = { appointmentId: 'appt-uuid', professionalId: 'doctor-uuid', canManage: true, canIssue: false }
 
 describe('AtestadoSection (integration)', () => {
   beforeEach(() => {
@@ -125,7 +125,7 @@ describe('AtestadoSection (integration)', () => {
     expect(screen.getByTestId('atestado-item-summary-cert-uuid')).toHaveTextContent('Entrada 08:00 · Saída 08:30')
   })
 
-  it('shows "Novo atestado" button for DOCTOR with canManage', async () => {
+  it('shows "Novo atestado" button for whoever holds a professional profile', async () => {
     mockAtestadosService.getByAppointment.mockResolvedValue([])
     renderWithProviders(<AtestadoSection {...doctorProps} />)
     await waitFor(() => {
@@ -133,7 +133,7 @@ describe('AtestadoSection (integration)', () => {
     })
   })
 
-  it('does not show "Novo atestado" button for ADMIN', async () => {
+  it('does not show \"Novo atestado\" button for someone without a professional profile', async () => {
     mockAtestadosService.getByAppointment.mockResolvedValue([])
     renderWithProviders(<AtestadoSection {...adminProps} />)
     await waitFor(() => {

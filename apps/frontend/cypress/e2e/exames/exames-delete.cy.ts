@@ -48,6 +48,20 @@ describe('Exames — Delete', () => {
     // it, and the widgets this spec does not care about stop 401-ing the app
     // into a login/dashboard redirect loop.
     cy.stubAppointmentDetailWidgets()
+    // A ficha do próprio usuário — o glob `/professionals*` não a cobre, porque o
+    // `*` não atravessa a barra. É ela que decide se o botão de emitir aparece.
+    cy.intercept('GET', `${Cypress.env('API_URL')}/professionals/me`, {
+      statusCode: 200,
+      body: {
+        id: PROFESSIONAL_UUID,
+        user: { id: 'professional-user-uuid', fullName: 'Dr. João', email: 'professional@pulso.center', isActive: true },
+        registrations: [{ id: 'reg-1', councilType: 'crm', number: '12345/SP', state: 'SP', isPrimary: true }],
+        specialties: [{ id: SPEC_UUID, name: 'Cardiologia' }],
+        bio: null,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      },
+    })
     cy.intercept('GET', `${Cypress.env('API_URL')}/professionals*`, {
       statusCode: 200,
       body: {

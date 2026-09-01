@@ -311,6 +311,37 @@ describe('ProfessionalsController (integration)', () => {
     })
   })
 
+  describe('GET /professionals/me', () => {
+    it('returns the caller own professional profile', async () => {
+      const { body } = await request(app.getHttpServer())
+        .get('/professionals/me')
+        .set('Authorization', `Bearer ${doctorToken}`)
+        .expect(200)
+
+      expect(body.id).toBe(doctorProfileId)
+    })
+
+    // Não ter ficha é uma resposta comum, não uma falha: 404 faria o React Query
+    // tratar como erro e repetir a chamada.
+    it('returns 200 with null when the caller has no professional profile', async () => {
+      const { body } = await request(app.getHttpServer())
+        .get('/professionals/me')
+        .set('Authorization', `Bearer ${doctorWithoutProfileToken}`)
+        .expect(200)
+
+      expect(body).toEqual({})
+    })
+
+    it('returns null for an ADMIN who does not practise', async () => {
+      const { body } = await request(app.getHttpServer())
+        .get('/professionals/me')
+        .set('Authorization', `Bearer ${accessToken}`)
+        .expect(200)
+
+      expect(body).toEqual({})
+    })
+  })
+
   describe('GET /professionals', () => {
     it('returns 200 with paginated response', async () => {
       const user1 = await createTargetUser()

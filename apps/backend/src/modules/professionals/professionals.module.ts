@@ -14,6 +14,7 @@ import { ProfessionalsController } from './controllers/professionals.controller'
 import { CreateProfessionalUseCase } from './use-cases/create-professional.use-case'
 import { FindAllProfessionalsUseCase } from './use-cases/find-all-professionals.use-case'
 import { FindProfessionalByIdUseCase } from './use-cases/find-professional-by-id.use-case'
+import { FindMyProfessionalUseCase } from './use-cases/find-my-professional.use-case'
 import { UpdateProfessionalUseCase } from './use-cases/update-professional.use-case'
 import { DeleteProfessionalUseCase } from './use-cases/delete-professional.use-case'
 import { IProfessionalsRepository } from './repositories/professionals.repository.interface'
@@ -35,6 +36,7 @@ import { ProfessionalsRepository } from './repositories/professionals.repository
     CreateProfessionalUseCase,
     FindAllProfessionalsUseCase,
     FindProfessionalByIdUseCase,
+    FindMyProfessionalUseCase,
     UpdateProfessionalUseCase,
     DeleteProfessionalUseCase,
     { provide: IProfessionalsRepository, useClass: ProfessionalsRepository },

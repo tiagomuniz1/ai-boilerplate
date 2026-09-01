@@ -44,8 +44,8 @@ const makeResultDto = (overrides: object = {}) => ({
   ...overrides,
 })
 
-const doctorProps = { appointmentId: 'appt-uuid', professionalId: 'doctor-uuid', canManage: true, userRole: UserRole.PROFESSIONAL }
-const adminProps = { appointmentId: 'appt-uuid', professionalId: 'doctor-uuid', canManage: true, userRole: UserRole.ADMIN }
+const doctorProps = { appointmentId: 'appt-uuid', professionalId: 'doctor-uuid', canManage: true, canIssue: true }
+const adminProps = { appointmentId: 'appt-uuid', professionalId: 'doctor-uuid', canManage: true, canIssue: false }
 
 describe('ExameSection (integration)', () => {
   beforeEach(() => {
@@ -109,7 +109,7 @@ describe('ExameSection (integration)', () => {
     })
   })
 
-  it('shows "Novo pedido de exames" button for DOCTOR with canManage', async () => {
+  it('shows "Novo pedido de exames" button for whoever holds a professional profile', async () => {
     mockExamsService.getByAppointment.mockResolvedValue([])
     renderWithProviders(<ExameSection {...doctorProps} />)
     await waitFor(() => {
@@ -117,7 +117,7 @@ describe('ExameSection (integration)', () => {
     })
   })
 
-  it('does not show "Novo pedido de exames" button for ADMIN', async () => {
+  it('does not show \"Novo pedido de exames\" button for someone without a professional profile', async () => {
     mockExamsService.getByAppointment.mockResolvedValue([])
     renderWithProviders(<ExameSection {...adminProps} />)
     await waitFor(() => {
@@ -370,7 +370,7 @@ describe('ExameSection (integration)', () => {
     })
   })
 
-  it('does not show result remove control inside the preview modal for ADMIN', async () => {
+  it('does not show result remove control inside the preview modal for someone without a professional profile', async () => {
     mockExamsService.getByAppointment.mockResolvedValue([
       makeExamRequestDto({ status: ExamRequestStatus.COMPLETED, results: [makeResultDto()] }),
     ] as any)

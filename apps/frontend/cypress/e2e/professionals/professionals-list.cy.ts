@@ -35,6 +35,9 @@ describe('Professionals List', () => {
   })
 
   it('shows skeleton during data fetch', () => {
+    // Sem ficha de profissional: o default para quem só administra ou recepciona.
+    // O glob `/professionals*` não cobre esta rota — `*` não atravessa a barra.
+    cy.intercept('GET', `${Cypress.env('API_URL')}/professionals/me`, { statusCode: 200, body: null })
     cy.intercept('GET', `${Cypress.env('API_URL')}/professionals*`, (req) => {
       req.reply({ delay: 1500, statusCode: 200, body: populatedListResponse })
     }).as('getProfessionals')

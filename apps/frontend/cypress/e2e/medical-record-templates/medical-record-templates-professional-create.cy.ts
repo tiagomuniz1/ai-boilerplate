@@ -76,9 +76,9 @@ describe('Medical Record Templates — professional creation', () => {
 
   describe('CRM professional', () => {
     beforeEach(() => {
-      cy.intercept('GET', `${Cypress.env('API_URL')}/professionals*`, {
+      cy.intercept('GET', `${Cypress.env('API_URL')}/professionals/me`, {
         statusCode: 200,
-        body: { data: [mockCrmProfessional], total: 1, page: 1, limit: 20 },
+        body: mockCrmProfessional,
       }).as('getMyProfessional')
     })
 
@@ -99,9 +99,9 @@ describe('Medical Record Templates — professional creation', () => {
 
   describe('non-CRM professional (CRN)', () => {
     beforeEach(() => {
-      cy.intercept('GET', `${Cypress.env('API_URL')}/professionals*`, {
+      cy.intercept('GET', `${Cypress.env('API_URL')}/professionals/me`, {
         statusCode: 200,
-        body: { data: [mockCrnProfessional], total: 1, page: 1, limit: 20 },
+        body: mockCrnProfessional,
       }).as('getMyProfessional')
     })
 
