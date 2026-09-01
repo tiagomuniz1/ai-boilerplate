@@ -92,7 +92,10 @@ describe('Users — role vs. profession clarity', () => {
     cy.get('[data-testid="user-details-profession-cell"]').should('not.exist')
   })
 
-  it('shows a read-only access-role notice (not an editable select) when editing a professional user', () => {
+  // A tela de edição de usuário é também o "Meu perfil" de quem não é ADMIN, por
+  // isso o seletor é condicional: o ADMIN troca o perfil de acesso de outros, e
+  // ninguém troca o próprio. O backend recusa os dois casos que a tela esconde.
+  it('lets an ADMIN change the access level of a professional, keeping the link to the professional record', () => {
     cy.intercept('GET', `${Cypress.env('API_URL')}/users/${MOCK_USER_ID}`, {
       statusCode: 200,
       body: mockProfessionalUser,
@@ -105,8 +108,11 @@ describe('Users — role vs. profession clarity', () => {
     visitClinic(`/users/${MOCK_USER_ID}/edit`, mockAuthUser)
     cy.wait('@getUser')
 
-    cy.get('[data-testid="user-form-role"]').should('not.exist')
-    cy.get('[data-testid="user-form-role-readonly"]').should('have.text', 'Profissional')
+    cy.get('[data-testid="user-form-role"]').should('exist')
+    cy.get('[data-testid="user-form-role-readonly"]').should('not.exist')
+    // O valor atual precisa estar entre as opções, senão o select abriria noutro
+    // perfil e um salvamento distraído rebaixaria o profissional.
+    cy.get('[data-testid="user-form-role"]').should('have.value', 'professional')
     cy.wait('@getProfessionals')
     cy.get('[data-testid="user-form-professional-link"]')
       .should('be.visible')

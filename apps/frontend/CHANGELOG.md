@@ -1,5 +1,15 @@
 # Changelog — Frontend
 
+## [1.5.1] - 2026-09-01
+
+### Added
+
+#### ADMIN altera o perfil de acesso pela tela
+- O formulário de edição de usuário passa a oferecer o seletor de perfil também para usuários com o role PROFESSIONAL, que antes era somente-leitura. Era o único caminho para tornar administradora uma profissional já cadastrada — e exigia `curl`
+- Visível apenas para ADMIN, e nunca no próprio cadastro. O backend recusa os dois casos independentemente da tela
+- `PROFESSIONAL` entra na lista apenas para quem já o é, para que o valor atual seja representável e a troca tenha volta. Virar profissional acontece ao criar a ficha, não ao escolher um perfil aqui
+- O link "Editar profissional" continua ao lado do seletor, agora acionado pelo campo `isProfessional` do usuário em vez do role — assim um ADMIN que também atende também o vê
+
 ## [1.5.0] - 2026-09-01
 
 ### Changed

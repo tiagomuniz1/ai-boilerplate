@@ -9,6 +9,7 @@ import { UserRole } from '@app/shared'
 import { userService } from '../services/users.service'
 import { professionalsService } from '@/components/features/professionals/services/professionals.service'
 import { renderWithProviders } from '@/tests/utils/render-with-providers'
+import { useAuthStore } from '@/stores/auth.store'
 import { UserForm } from './user-form'
 import type { IUserModel } from '../types/user-model.types'
 import type { ICreateUserInput } from '../types/user-input.types'
@@ -34,7 +35,10 @@ const professionalUser: IUserModel = {
   fullName: 'Ana Nutri',
   role: UserRole.PROFESSIONAL,
   isActive: true,
-  isProfessional: false,
+  // Quem tem o role PROFESSIONAL necessariamente tem ficha — é assim que o role
+  // é atribuído. A fixture dizia o contrário e só não quebrava porque a busca da
+  // ficha era disparada pelo role, não pelo campo.
+  isProfessional: true,
   isPatient: false,
   councilType: null,
 }
@@ -457,6 +461,56 @@ describe('UserForm (integration) — edit mode, PROFESSIONAL role', () => {
 
     await waitFor(() => {
       expect(onSubmit).toHaveBeenCalledWith(expect.objectContaining({ role: UserRole.PROFESSIONAL }), expect.any(Function))
+    })
+  })
+
+  // Esta tela é também o "Meu perfil" de quem não é ADMIN, por isso o seletor de
+  // perfil de acesso é condicional — e o backend recusa o que ela não oferece.
+  describe('perfil de acesso', () => {
+    const professionalUser = { ...existingUser, id: 'uuid-doc', role: UserRole.PROFESSIONAL, isProfessional: true }
+
+    function loginAs(role: UserRole, id = 'uuid-admin') {
+      useAuthStore.setState({
+        user: { id, fullName: 'Quem edita', email: 'quem@edita.com', role, clinicId: 'clinic-1' },
+      })
+    }
+
+    it('lets an ADMIN change the access level of a professional', async () => {
+      loginAs(UserRole.ADMIN)
+      renderWithProviders(
+        <UserForm mode="edit" defaultValues={professionalUser} isPending={false} onSubmit={jest.fn()} />,
+      )
+
+      const select = await screen.findByTestId<HTMLSelectElement>('user-form-role')
+      const options = [...select.options].map((o) => o.value)
+      expect(options).toContain(UserRole.ADMIN)
+      // O valor atual precisa ser representável, senão o select abriria noutro perfil.
+      expect(options).toContain(UserRole.PROFESSIONAL)
+      expect(screen.queryByTestId('user-form-role-readonly')).not.toBeInTheDocument()
+    })
+
+    it('does not let an ADMIN change their own access level', async () => {
+      loginAs(UserRole.ADMIN, professionalUser.id)
+      renderWithProviders(
+        <UserForm mode="edit" defaultValues={professionalUser} isPending={false} onSubmit={jest.fn()} />,
+      )
+
+      await waitFor(() => {
+        expect(screen.getByTestId('user-form-role-readonly')).toBeInTheDocument()
+      })
+      expect(screen.queryByTestId('user-form-role')).not.toBeInTheDocument()
+    })
+
+    it('does not offer the access level to a professional editing their own profile', async () => {
+      loginAs(UserRole.PROFESSIONAL, professionalUser.id)
+      renderWithProviders(
+        <UserForm mode="edit" defaultValues={professionalUser} isPending={false} onSubmit={jest.fn()} />,
+      )
+
+      await waitFor(() => {
+        expect(screen.getByTestId('user-form-role-readonly')).toBeInTheDocument()
+      })
+      expect(screen.queryByTestId('user-form-role')).not.toBeInTheDocument()
     })
   })
 })

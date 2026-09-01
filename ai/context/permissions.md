@@ -63,10 +63,13 @@ Isso existe porque quem é dono da clínica com frequência também atende. Um �
 | Listar usuários | ✓ | ✗ | ✗ | ✗ |
 | Ver por ID | ✓ qualquer | só o próprio | só o próprio | ✗ |
 | Editar | ✓ qualquer | só o próprio | só o próprio | ✗ |
+| Alterar perfil de acesso / ativação | ✓ de outros | ✗ | ✗ | ✗ |
 | Ativar / Desativar | ✓ | ✗ | ✗ | ✗ |
 | Excluir | ✓ | ✗ | ✗ | ✗ |
 
 > PROFESSIONAL e USER chegam à tela de edição pelo link **"Meu perfil"** no header. Não têm acesso à listagem.
+
+> **Editar o próprio perfil não promove.** `role` e `isActive` só mudam por ação de um ADMIN, e nem ele muda o próprio `role` — numa clínica com um administrador só, isso a deixaria sem ninguém capaz de gerir usuários. É por aqui que uma profissional já cadastrada se torna administradora (ver "Cargo e Ofício"): a ficha permanece, só o nível administrativo muda.
 
 ---
 

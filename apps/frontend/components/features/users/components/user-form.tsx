@@ -11,6 +11,7 @@ import { Button } from '@/components/ui/atoms/button/button'
 import { Alert } from '@/components/ui/molecules/alert/alert'
 import { cn } from '@/lib/cn'
 import { useBasePath } from '@/lib/slug-context'
+import { useAuthStore } from '@/stores/auth.store'
 import { USER_ROLE_LABELS, USER_ROLE_DESCRIPTIONS } from '@/lib/user-role-labels'
 import { useProfessionalByUserId } from '../hooks/use-professional-by-user-id.hook'
 import type { ICreateUserInput, IUpdateUserInput } from '../types/user-input.types'
@@ -132,8 +133,30 @@ function UserFormCreate({ isPending, globalError, availableRoles = DEFAULT_ROLES
 
 function UserFormEdit({ defaultValues, isPending, globalError, onSubmit }: UserFormEditProps) {
   const basePath = useBasePath()
+  const viewer = useAuthStore((state) => state.user)
   const isProfessional = defaultValues.role === UserRole.PROFESSIONAL
-  const { professional } = useProfessionalByUserId(defaultValues.id, { enabled: isProfessional })
+
+  // Esta tela é também o "Meu perfil" de quem não é ADMIN — só o ADMIN escolhe
+  // o perfil de acesso, e nem ele o próprio: numa clínica com um administrador
+  // só, rebaixar a si mesmo a deixaria sem ninguém capaz de gerir usuários. O
+  // backend recusa os dois casos; aqui apenas não oferecemos o que ele negaria.
+  const isAdminViewer = viewer?.role === UserRole.ADMIN
+  const isEditingSelf = viewer?.id === defaultValues.id
+  const canChangeRole = isAdminViewer && !isEditingSelf
+
+  // PROFESSIONAL entra na lista apenas para quem já o é, para que o valor atual
+  // seja representável e a troca tenha volta. Virar profissional acontece ao
+  // criar a ficha, não ao escolher um perfil aqui.
+  const roleOptions = isProfessional
+    ? [UserRole.USER, UserRole.ADMIN, UserRole.PROFESSIONAL]
+    : DEFAULT_ROLES
+
+  // `isProfessional` do modelo diz se o usuário TEM ficha — o role só diz o que
+  // ele administra. Um ADMIN que também atende cai aqui, e nenhuma tela sem
+  // ficha paga a busca.
+  const { professional } = useProfessionalByUserId(defaultValues.id, {
+    enabled: defaultValues.isProfessional,
+  })
 
   const {
     register,
@@ -190,7 +213,29 @@ function UserFormEdit({ defaultValues, isPending, globalError, onSubmit }: UserF
           error={errors.email?.message}
           {...register('email')}
         />
-        {isProfessional ? (
+        {canChangeRole ? (
+          <div className="flex flex-col gap-1.5">
+            <RoleSelect
+              registerProps={register('role')}
+              error={errors.role?.message}
+              availableRoles={roleOptions}
+              selectedRole={selectedRole}
+            />
+            {professional && (
+              <p className="text-xs text-text-dim" data-testid="user-form-professional-notice">
+                Este usuário atende pacientes. Profissão e registro (CRM/CRN/etc.) são
+                gerenciados na tela de Profissionais.{' '}
+                <Link
+                  href={`${basePath}/professionals/${professional.id}/edit`}
+                  className="text-accent hover:underline"
+                  data-testid="user-form-professional-link"
+                >
+                  Editar profissional
+                </Link>
+              </p>
+            )}
+          </div>
+        ) : isProfessional ? (
           <ProfessionalRoleNotice basePath={basePath} professionalId={professional?.id} />
         ) : (
           <RoleSelect
