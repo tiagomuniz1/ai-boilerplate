@@ -24,23 +24,18 @@ function mockAuthStoreAs(role: UserRole) {
 }
 
 function mockMyProfessional(overrides = {}) {
-  ;(professionalsService.getAll as jest.Mock).mockResolvedValue({
-    data: [
-      {
-        id: 'my-professional-uuid',
-        user: { id: 'user-uuid', fullName: 'Dr. João', email: 'joao@example.com', isActive: true },
-        registrations: [{ id: 'reg-1', councilType: CouncilType.CRM, number: '12345', state: 'SP', isPrimary: true }],
-        specialties: [],
-        bio: null,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-        ...overrides,
-      },
-    ],
-    total: 1,
-    page: 1,
-    limit: 20,
-  })
+  ;(professionalsService.getMine as jest.Mock).mockResolvedValue(
+    {
+      id: 'my-professional-uuid',
+      user: { id: 'user-uuid', fullName: 'Dr. João', email: 'joao@example.com', isActive: true },
+      registrations: [{ id: 'reg-1', councilType: CouncilType.CRM, number: '12345', state: 'SP', isPrimary: true }],
+      specialties: [],
+      bio: null,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      ...overrides,
+    },
+  )
 }
 
 const makeDto = (overrides = {}) => ({

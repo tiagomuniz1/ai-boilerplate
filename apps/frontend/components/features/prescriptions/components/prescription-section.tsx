@@ -1,7 +1,6 @@
 'use client'
 
 import { useState } from 'react'
-import { UserRole } from '@app/shared'
 import { Modal } from '@/components/ui/organisms/modal/modal'
 import { Button } from '@/components/ui/atoms/button/button'
 import { Alert } from '@/components/ui/molecules/alert/alert'
@@ -21,10 +20,11 @@ export interface PrescriptionSectionProps {
   appointmentId: string
   professionalId: string
   canManage: boolean
-  userRole: UserRole
+  /** Emitir vem da ficha de profissional e só na própria consulta — não do cargo. */
+  canIssue: boolean
 }
 
-export function PrescriptionSection({ appointmentId, professionalId, canManage, userRole }: PrescriptionSectionProps) {
+export function PrescriptionSection({ appointmentId, professionalId, canManage, canIssue }: PrescriptionSectionProps) {
   const [showForm, setShowForm] = useState(false)
   const [deletingId, setDeletingId] = useState<string | null>(null)
   const [previewPrescription, setPreviewPrescription] = useState<IPrescriptionModel | null>(null)
@@ -34,7 +34,6 @@ export function PrescriptionSection({ appointmentId, professionalId, canManage, 
   const { mutate: deletePrescription, isPending: isDeleting } = useDeletePrescription(appointmentId)
   const { mutate: download, isPending: isDownloading, variables: downloadingVars } = useDownloadPrescriptionPdf()
 
-  const isProfessional = userRole === UserRole.PROFESSIONAL
 
   function handleCreate(input: ICreatePrescriptionInput) {
     create(input, { onSuccess: () => setShowForm(false) })
@@ -64,7 +63,7 @@ export function PrescriptionSection({ appointmentId, professionalId, canManage, 
             <h2 className="text-lg font-semibold text-text">Receitas</h2>
             <p className="text-sm text-text-mute">Prescrições médicas emitidas nesta consulta.</p>
           </div>
-          {isProfessional && canManage && (
+          {canIssue && canManage && (
             <Button
               type="button"
               onClick={() => setShowForm(true)}

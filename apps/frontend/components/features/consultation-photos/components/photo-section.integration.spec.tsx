@@ -22,8 +22,8 @@ const makePhotoDto = (overrides: object = {}) => ({
   ...overrides,
 })
 
-const professionalProps = { appointmentId: 'appointment-uuid', canManage: true, userRole: UserRole.PROFESSIONAL }
-const adminProps = { appointmentId: 'appointment-uuid', canManage: true, userRole: UserRole.ADMIN }
+const professionalProps = { appointmentId: 'appointment-uuid', canManage: true, canIssue: true }
+const adminProps = { appointmentId: 'appointment-uuid', canManage: true, canIssue: false }
 
 describe('PhotoSection (integration)', () => {
   beforeEach(() => {
@@ -70,7 +70,7 @@ describe('PhotoSection (integration)', () => {
     expect(screen.getByTestId('photo-upload')).toBeInTheDocument()
   })
 
-  it('does not show the upload button for ADMIN', async () => {
+  it('does not show the upload button for someone without a professional profile', async () => {
     mockService.getByAppointment.mockResolvedValue([])
     renderWithProviders(<PhotoSection {...adminProps} />)
     await waitFor(() => expect(screen.getByTestId('photo-section-empty')).toBeInTheDocument())
@@ -157,7 +157,10 @@ describe('PhotoSection (integration)', () => {
     expect(screen.queryByTestId('photo-preview-next-button')).not.toBeInTheDocument()
   })
 
-  it('ADMIN can open the preview but sees no delete button in it', async () => {
+  // Enviar foto é ato clínico e exige a ficha; excluir é administrativo. O
+  // backend sempre permitiu ao ADMIN apagar — era a UI que amarrava os dois na
+  // mesma variável e escondia o botão de quem tinha direito a ele.
+  it('offers delete in the preview to whoever can manage the appointment, even without a professional profile', async () => {
     mockService.getByAppointment.mockResolvedValue([makePhotoDto()] as any)
     renderWithProviders(<PhotoSection {...adminProps} />)
 
@@ -165,7 +168,8 @@ describe('PhotoSection (integration)', () => {
     await userEvent.click(screen.getByTestId('photo-thumbnail-photo-uuid'))
 
     expect(screen.getByTestId('photo-preview-modal')).toBeInTheDocument()
-    expect(screen.queryByTestId('photo-preview-delete-button')).not.toBeInTheDocument()
+    expect(screen.getByTestId('photo-preview-delete-button')).toBeInTheDocument()
+    expect(screen.queryByTestId('photo-upload-input')).not.toBeInTheDocument()
   })
 
   it('deletes a photo after confirming in the dialog and closes the preview', async () => {

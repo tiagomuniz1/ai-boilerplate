@@ -3,6 +3,7 @@ import { ProfessionalsController } from './professionals.controller'
 import { CreateProfessionalUseCase } from '../use-cases/create-professional.use-case'
 import { FindAllProfessionalsUseCase } from '../use-cases/find-all-professionals.use-case'
 import { FindProfessionalByIdUseCase } from '../use-cases/find-professional-by-id.use-case'
+import { FindMyProfessionalUseCase } from '../use-cases/find-my-professional.use-case'
 import { UpdateProfessionalUseCase } from '../use-cases/update-professional.use-case'
 import { DeleteProfessionalUseCase } from '../use-cases/delete-professional.use-case'
 import { ListProfessionalsQueryDto } from '../dto/list-professionals-query.dto'
@@ -11,6 +12,7 @@ import { ICurrentUser } from '../../auth/types/current-user.type'
 const mockCreate = { execute: jest.fn() } as unknown as jest.Mocked<CreateProfessionalUseCase>
 const mockFindAll = { execute: jest.fn() } as unknown as jest.Mocked<FindAllProfessionalsUseCase>
 const mockFindById = { execute: jest.fn() } as unknown as jest.Mocked<FindProfessionalByIdUseCase>
+const mockFindMine = { execute: jest.fn() } as unknown as jest.Mocked<FindMyProfessionalUseCase>
 const mockUpdate = { execute: jest.fn() } as unknown as jest.Mocked<UpdateProfessionalUseCase>
 const mockDelete = { execute: jest.fn() } as unknown as jest.Mocked<DeleteProfessionalUseCase>
 
@@ -36,9 +38,19 @@ describe('ProfessionalsController', () => {
       mockCreate,
       mockFindAll,
       mockFindById,
+      mockFindMine,
       mockUpdate,
       mockDelete,
     )
+  })
+
+  it('findMine delegates to FindMyProfessionalUseCase', async () => {
+    mockFindMine.execute.mockResolvedValue(null)
+
+    const result = await controller.findMine(currentUser)
+
+    expect(mockFindMine.execute).toHaveBeenCalledWith(currentUser)
+    expect(result).toBeNull()
   })
 
   it('create delegates to CreateProfessionalUseCase', async () => {

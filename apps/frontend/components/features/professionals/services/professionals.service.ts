@@ -18,6 +18,9 @@ export const professionalsService = {
       `/professionals${query ? `?${query}` : ''}`,
     )
   },
+  // O backend devolve `null` quando o usuário não tem ficha — não ter é uma
+  // resposta comum, não um erro.
+  getMine: () => apiClient.get<ProfessionalResponseDto | null>('/professionals/me'),
   getById: (id: string) => apiClient.get<ProfessionalResponseDto>(`/professionals/${id}`),
   create: (data: CreateProfessionalDto) => apiClient.post<ProfessionalResponseDto>('/professionals', data),
   update: (id: string, data: UpdateProfessionalDto) =>

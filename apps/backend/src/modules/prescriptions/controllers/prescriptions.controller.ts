@@ -38,7 +38,7 @@ export class PrescriptionsController {
   }
 
   @Post()
-  @Roles(UserRole.PROFESSIONAL)
+  @Roles(UserRole.ADMIN, UserRole.PROFESSIONAL)
   @Throttle({ default: { limit: 30, ttl: 60000 } })
   create(
     @Body() dto: CreatePrescriptionDto,

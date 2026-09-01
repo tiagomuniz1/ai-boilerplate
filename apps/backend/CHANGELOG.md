@@ -1,5 +1,25 @@
 # Changelog — Backend
 
+## [1.5.0] - 2026-09-01
+
+### Added
+
+#### `GET /professionals/me`
+- Devolve a ficha de profissional do próprio usuário, ou `null` quando ele não exerce. `200` com `null`, nunca `404` — não ter ficha é resposta comum, e um 404 faria o React Query tratar como erro e repetir. Declarada acima de `@Get(':id')`, senão `me` seria capturado como id
+
+### Changed
+
+#### Cargo e ofício deixam de ser a mesma coisa
+- **Exercer** (emitir receita, atestado, pedido de exame; anexar/remover resultado; enviar foto) passa a depender da **ficha de profissional**, não do `role`. As 6 rotas que eram `@Roles(PROFESSIONAL)` exclusivas aceitam `ADMIN, PROFESSIONAL`, e o use-case exige a ficha
+- **Escopo** continua vindo do `role`: ADMIN vê a clínica toda, PROFESSIONAL vê o próprio. Nada muda para quem já usa
+- **Emitir exige ser o profissional da consulta, para qualquer role** — inclusive ADMIN. O documento leva um snapshot de assinatura e um `verification_token` conferido publicamente pela farmácia; emitir sobre consulta alheia produziria documento verificável atestando registro de outra pessoa
+- Ver e excluir documento seguem administrativos: ADMIN irrestrito na clínica
+
+### Fixed
+
+#### Fallback que assinava em nome do profissional da consulta
+- `create-prescription`, `create-medical-certificate` e `create-exam-request` tinham `professionalForRbac ?? findById(appointment.professionalId)`. Era código morto — nenhum ADMIN chegava lá —, mas deixava o sistema a um `if` de distância de emitir documento assinado por quem não o emitiu. Removido
+
 ## [1.4.0] - 2026-08-31
 
 ### Changed

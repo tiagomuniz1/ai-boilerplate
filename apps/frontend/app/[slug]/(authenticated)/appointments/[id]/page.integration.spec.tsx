@@ -51,6 +51,17 @@ function mockAuth(role: UserRole, userId = 'user-uuid') {
   )
 }
 
+// A ficha do próprio usuário — o que decide se ele pode emitir. `null` = não exerce.
+const makeMyProfessional = (id = DOCTOR_ID) => ({
+  id,
+  user: { id: DOCTOR_USER_ID, fullName: 'Dr. Test', email: 'doctor@test.com', isActive: true },
+  registrations: [{ id: 'crm-1', councilType: CouncilType.CRM, number: '12345', state: 'SP', isPrimary: true }],
+  specialties: [],
+  bio: null,
+  createdAt: new Date().toISOString() as unknown as Date,
+  updatedAt: new Date().toISOString() as unknown as Date,
+})
+
 const makeDoctorsResponse = (id = DOCTOR_ID) => ({
   data: [
     {
@@ -107,6 +118,7 @@ describe('AppointmentDetailPage (integration)', () => {
     jest.clearAllMocks()
     mockAuth(UserRole.ADMIN)
     mockDoctorsService.getAll.mockResolvedValue(makeDoctorsResponse())
+    mockDoctorsService.getMine.mockResolvedValue(null)
     mockMedicalRecordsService.getByAppointment.mockResolvedValue(null)
     mockTemplatesService.getAll.mockResolvedValue({ data: [], total: 0, page: 1, limit: 1 })
     mockPrescriptionsService.getByAppointment.mockResolvedValue([])
@@ -192,7 +204,7 @@ describe('AppointmentDetailPage (integration)', () => {
 
   it('DOCTOR sees actions for own appointment', async () => {
     mockAuth(UserRole.PROFESSIONAL, DOCTOR_USER_ID)
-    mockDoctorsService.getAll.mockResolvedValue(makeDoctorsResponse(DOCTOR_ID))
+    mockDoctorsService.getMine.mockResolvedValue(makeMyProfessional(DOCTOR_ID) as any)
     mockAppointmentsService.getById.mockResolvedValue(makeAppointmentDto({ professionalId: DOCTOR_ID }))
     renderWithProviders(<AppointmentDetailPage />)
     await waitFor(() => {
@@ -202,7 +214,7 @@ describe('AppointmentDetailPage (integration)', () => {
 
   it('DOCTOR does not see actions for another doctor appointment', async () => {
     mockAuth(UserRole.PROFESSIONAL, DOCTOR_USER_ID)
-    mockDoctorsService.getAll.mockResolvedValue(makeDoctorsResponse(DOCTOR_ID))
+    mockDoctorsService.getMine.mockResolvedValue(makeMyProfessional(DOCTOR_ID) as any)
     mockAppointmentsService.getById.mockResolvedValue(
       makeAppointmentDto({ professionalId: 'other-doctor-id' }),
     )

@@ -46,10 +46,13 @@ describe('ConsultationPhotosController (integration)', () => {
   let consultationPhotoRepository: Repository<ConsultationPhoto>
 
   let adminToken: string
+  let adminProfessionalToken: string
   let professionalToken: string
   let otherProfessionalToken: string
   let userToken: string
   let professionalId: string
+  let adminProfessionalId: string
+  let adminProfessionalAppointmentId: string
   let otherProfessionalId: string
   let patientId: string
   let appointmentId: string
@@ -113,6 +116,17 @@ describe('ConsultationPhotosController (integration)', () => {
       }),
     )
 
+    // ADMIN que também atende: administra a clínica e tem ficha de profissional.
+    const adminProfessionalUser = await userRepository.save(
+      userRepository.create({
+        fullName: 'Admin Professional',
+        email: 'adminpro@photos.test',
+        password: hashed,
+        role: UserRole.ADMIN,
+        clinicId: SEED_CLINIC_ID,
+      }),
+    )
+
     const professionalUser = await userRepository.save(
       userRepository.create({
         fullName: 'Ana Nutri',
@@ -155,6 +169,15 @@ describe('ConsultationPhotosController (integration)', () => {
     professionalEntity.professionalSpecialties = [] as any
     const professionalProfile = await professionalRepository.save(professionalEntity)
     professionalId = professionalProfile.id
+
+    const adminProfessionalEntity = professionalRepository.create({
+      userId: adminProfessionalUser.id,
+      clinicId: SEED_CLINIC_ID,
+    })
+    adminProfessionalEntity.registrations = [{ clinicId: SEED_CLINIC_ID, councilType: CouncilType.CRN, number: '33333', state: 'SP', isPrimary: true }] as any
+    adminProfessionalEntity.professionalSpecialties = [] as any
+    const adminProfessionalProfile = await professionalRepository.save(adminProfessionalEntity)
+    adminProfessionalId = adminProfessionalProfile.id
 
     const otherProfessionalEntity = professionalRepository.create({
       userId: otherProfessionalUser.id,
@@ -216,6 +239,23 @@ describe('ConsultationPhotosController (integration)', () => {
     )
     appointmentId = appointment.id
 
+    const adminProfessionalAppointment = await appointmentRepository.save(
+      appointmentRepository.create({
+        clinicId: SEED_CLINIC_ID,
+        professionalId: adminProfessionalId,
+        patientId,
+        specialtyId: null,
+        scheduleId: schedule.id,
+        date: '2026-01-05',
+        startTime: '09:00',
+        endTime: '09:30',
+        status: AppointmentStatus.SCHEDULED,
+        reason: null,
+        cancellationReason: null,
+      }),
+    )
+    adminProfessionalAppointmentId = adminProfessionalAppointment.id
+
     const otherSchedule = await scheduleRepository.save(
       scheduleRepository.create({
         professionalId: otherProfessionalId,
@@ -258,6 +298,7 @@ describe('ConsultationPhotosController (integration)', () => {
     }
 
     adminToken = await loginAndExtractToken('admin@photos.test')
+    adminProfessionalToken = await loginAndExtractToken('adminpro@photos.test')
     professionalToken = await loginAndExtractToken('professional@photos.test')
     otherProfessionalToken = await loginAndExtractToken('other@photos.test')
     userToken = await loginAndExtractToken('user@photos.test')
@@ -309,10 +350,26 @@ describe('ConsultationPhotosController (integration)', () => {
         .expect(422)
     })
 
-    it('returns 403 when ADMIN tries to upload', async () => {
+    it('returns 403 when ADMIN without a professional profile tries to upload', async () => {
       await request(app.getHttpServer())
         .post(`/consultation-photos/appointments/${appointmentId}`)
         .set('Cookie', `access_token=${adminToken}`)
+        .attach('files', Buffer.from('fake-jpeg-bytes'), { filename: 'evolucao.jpg', contentType: 'image/jpeg' })
+        .expect(403)
+    })
+
+    it('returns 201 when ADMIN with a professional profile uploads to their own appointment', async () => {
+      await request(app.getHttpServer())
+        .post(`/consultation-photos/appointments/${adminProfessionalAppointmentId}`)
+        .set('Cookie', `access_token=${adminProfessionalToken}`)
+        .attach('files', Buffer.from('fake-jpeg-bytes'), { filename: 'evolucao.jpg', contentType: 'image/jpeg' })
+        .expect(201)
+    })
+
+    it('returns 403 when ADMIN with a professional profile uploads to another professional appointment', async () => {
+      await request(app.getHttpServer())
+        .post(`/consultation-photos/appointments/${appointmentId}`)
+        .set('Cookie', `access_token=${adminProfessionalToken}`)
         .attach('files', Buffer.from('fake-jpeg-bytes'), { filename: 'evolucao.jpg', contentType: 'image/jpeg' })
         .expect(403)
     })

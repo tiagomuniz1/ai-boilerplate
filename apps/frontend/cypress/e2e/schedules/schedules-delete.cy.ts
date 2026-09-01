@@ -47,6 +47,9 @@ describe('Schedules Delete', () => {
   beforeEach(() => {
     cy.clearCookies()
     cy.clearLocalStorage()
+    // Sem ficha de profissional: o default para quem só administra ou recepciona.
+    // O glob `/professionals*` não cobre esta rota — `*` não atravessa a barra.
+    cy.intercept('GET', `${Cypress.env('API_URL')}/professionals/me`, { statusCode: 200, body: null })
     cy.intercept('GET', `${Cypress.env('API_URL')}/professionals*`, { statusCode: 200, body: mockProfessionalsList })
   })
 

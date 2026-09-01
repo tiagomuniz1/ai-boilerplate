@@ -100,6 +100,9 @@ describe('Schedule Detail', () => {
   it('back button navigates to schedules list', () => {
     cy.intercept('GET', `${Cypress.env('API_URL')}/schedules/${mockSchedule.id}`, { statusCode: 200, body: mockSchedule }).as('getSchedule')
     cy.intercept('GET', `${Cypress.env('API_URL')}/schedules*`, { statusCode: 200, body: { data: [], total: 0, page: 1, limit: 20 } })
+    // Sem ficha de profissional: o default para quem só administra ou recepciona.
+    // O glob `/professionals*` não cobre esta rota — `*` não atravessa a barra.
+    cy.intercept('GET', `${Cypress.env('API_URL')}/professionals/me`, { statusCode: 200, body: null })
     cy.intercept('GET', `${Cypress.env('API_URL')}/professionals*`, { statusCode: 200, body: { data: [], total: 0, page: 1, limit: 100 } })
 
     visitClinic(`/schedules/${mockSchedule.id}`, mockProfessionalUser)

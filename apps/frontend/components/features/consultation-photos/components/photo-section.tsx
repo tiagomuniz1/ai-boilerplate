@@ -1,7 +1,6 @@
 'use client'
 
 import { useState } from 'react'
-import { UserRole } from '@app/shared'
 import { Alert } from '@/components/ui/molecules/alert/alert'
 import { useAppointmentPhotos } from '../hooks/use-appointment-photos.hook'
 import { useUploadConsultationPhotos } from '../hooks/use-upload-consultation-photos.hook'
@@ -16,10 +15,11 @@ import type { IApiError } from '@/types/api.types'
 export interface PhotoSectionProps {
   appointmentId: string
   canManage: boolean
-  userRole: UserRole
+  /** Emitir vem da ficha de profissional e só na própria consulta — não do cargo. */
+  canIssue: boolean
 }
 
-export function PhotoSection({ appointmentId, canManage, userRole }: PhotoSectionProps) {
+export function PhotoSection({ appointmentId, canManage, canIssue }: PhotoSectionProps) {
   const [previewId, setPreviewId] = useState<string | null>(null)
   const [deletingId, setDeletingId] = useState<string | null>(null)
 
@@ -27,8 +27,10 @@ export function PhotoSection({ appointmentId, canManage, userRole }: PhotoSectio
   const { mutate: upload, isPending: isUploading, error: uploadError } = useUploadConsultationPhotos(appointmentId)
   const { mutate: deletePhoto, isPending: isDeleting } = useDeleteConsultationPhoto(appointmentId)
 
-  const isProfessional = userRole === UserRole.PROFESSIONAL
-  const canUploadOrDelete = isProfessional && canManage
+  // Enviar exige a ficha; excluir é ato administrativo e o backend já
+  // permite ao ADMIN — a UI é que amarrava os dois na mesma variável.
+  const canUpload = canIssue && canManage
+  const canDelete = canManage
   const previewIndex = photos?.findIndex((photo) => photo.id === previewId) ?? -1
   const previewPhoto = previewIndex >= 0 ? photos![previewIndex] : null
 
@@ -63,7 +65,7 @@ export function PhotoSection({ appointmentId, canManage, userRole }: PhotoSectio
           </div>
         </div>
 
-        {canUploadOrDelete && (
+        {canUpload && (
           <div className="mb-4">
             <PhotoUpload isPending={isUploading} onUpload={(files) => upload(files)} />
             {uploadGlobalError && (
@@ -106,7 +108,7 @@ export function PhotoSection({ appointmentId, canManage, userRole }: PhotoSectio
       <PhotoPreviewModal
         photo={previewPhoto}
         onClose={() => setPreviewId(null)}
-        canDelete={canUploadOrDelete}
+        canDelete={canDelete}
         isDeleting={isDeleting}
         onDelete={(id) => setDeletingId(id)}
         hasPrevious={previewIndex > 0}

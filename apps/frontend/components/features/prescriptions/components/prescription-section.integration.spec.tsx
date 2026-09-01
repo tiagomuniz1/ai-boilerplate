@@ -49,8 +49,8 @@ const makeMed = () => ({
   createdAt: new Date().toISOString(),
 })
 
-const doctorProps = { appointmentId: 'appt-uuid', professionalId: 'doctor-uuid', canManage: true, userRole: UserRole.PROFESSIONAL }
-const adminProps = { appointmentId: 'appt-uuid', professionalId: 'doctor-uuid', canManage: true, userRole: UserRole.ADMIN }
+const doctorProps = { appointmentId: 'appt-uuid', professionalId: 'doctor-uuid', canManage: true, canIssue: true }
+const adminProps = { appointmentId: 'appt-uuid', professionalId: 'doctor-uuid', canManage: true, canIssue: false }
 
 describe('PrescriptionSection (integration)', () => {
   beforeEach(() => {
@@ -105,7 +105,7 @@ describe('PrescriptionSection (integration)', () => {
     })
   })
 
-  it('shows "Nova receita" button for DOCTOR with canManage', async () => {
+  it('shows "Nova receita" button for whoever holds a professional profile', async () => {
     mockPrescriptionsService.getByAppointment.mockResolvedValue([])
     renderWithProviders(<PrescriptionSection {...doctorProps} />)
     await waitFor(() => {
@@ -113,7 +113,7 @@ describe('PrescriptionSection (integration)', () => {
     })
   })
 
-  it('does not show "Nova receita" button for ADMIN', async () => {
+  it('does not show \"Nova receita\" button for someone without a professional profile', async () => {
     mockPrescriptionsService.getByAppointment.mockResolvedValue([])
     renderWithProviders(<PrescriptionSection {...adminProps} />)
     await waitFor(() => {

@@ -27,7 +27,7 @@ export class ExamRequestsController {
   ) {}
 
   @Post()
-  @Roles(UserRole.PROFESSIONAL)
+  @Roles(UserRole.ADMIN, UserRole.PROFESSIONAL)
   @Throttle({ default: { limit: 30, ttl: 60000 } })
   create(
     @Body() dto: CreateExamRequestDto,
@@ -81,7 +81,7 @@ export class ExamRequestsController {
   }
 
   @Post(':id/results')
-  @Roles(UserRole.PROFESSIONAL)
+  @Roles(UserRole.ADMIN, UserRole.PROFESSIONAL)
   @UseInterceptors(FilesInterceptor('files', 5, { storage: memoryStorage() }))
   addResult(
     @Param('id') id: string,
