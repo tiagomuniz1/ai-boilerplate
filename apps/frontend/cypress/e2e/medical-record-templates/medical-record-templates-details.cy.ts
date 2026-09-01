@@ -46,6 +46,15 @@ describe('Medical Record Templates Details', () => {
   beforeEach(() => {
     cy.clearCookies()
     cy.clearLocalStorage()
+    // A tela consulta a ficha do próprio usuário para decidir a posse do escopo.
+    // Sem este intercept a chamada ia ao backend real com o token falso do
+    // `visitClinic`, tomava 401 e derrubava o teste na cascata de sessão
+    // expirada — nada a ver com o que cada caso se propõe a verificar.
+    // `/professionals*` não cobre esta rota: no minimatch o `*` não atravessa `/`.
+    cy.intercept('GET', `${Cypress.env('API_URL')}/professionals/me`, {
+      statusCode: 200,
+      body: null,
+    }).as('getMyProfessional')
   })
 
   it('shows skeleton during data fetch', () => {

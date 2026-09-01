@@ -48,6 +48,34 @@ function normalizeProblemDetails(error: unknown): IApiError {
   }
 }
 
+// Um único refresh por vez, compartilhado por todas as requisições que tomaram
+// 401 juntas.
+//
+// O backend rotaciona o refresh token: emitir um novo revoga o anterior
+// (refresh-token.use-case.ts:80). Uma tela que dispara várias queries de uma vez
+// — o dashboard faz isso — tinha todas expirando no mesmo instante, e cada uma
+// chamava /auth/refresh por conta própria. A primeira revogava o token que as
+// outras estavam usando; as perdedoras tomavam 401 e mandavam o usuário para o
+// login, no meio de uma sessão perfeitamente válida.
+let inFlightRefresh: Promise<void> | null = null
+
+function refreshSession(): Promise<void> {
+  if (inFlightRefresh) return inFlightRefresh
+
+  const slug = getClinicSlug()
+  const refreshOptions: { withCredentials: boolean; headers?: Record<string, string> } = { withCredentials: true }
+  if (slug) refreshOptions.headers = { 'x-clinic-slug': slug }
+
+  inFlightRefresh = axios
+    .post(`${process.env.NEXT_PUBLIC_API_URL}/auth/refresh`, {}, refreshOptions)
+    .then(() => undefined)
+    .finally(() => {
+      inFlightRefresh = null
+    })
+
+  return inFlightRefresh
+}
+
 client.interceptors.response.use(
   (response) => response.data,
   async (error: unknown) => {
@@ -63,14 +91,7 @@ client.interceptors.response.use(
       const config = error.config as RetryableConfig
       config._retry = true
       try {
-        const slug = getClinicSlug()
-        const refreshOptions: { withCredentials: boolean; headers?: Record<string, string> } = { withCredentials: true }
-        if (slug) refreshOptions.headers = { 'x-clinic-slug': slug }
-        await axios.post(
-          `${process.env.NEXT_PUBLIC_API_URL}/auth/refresh`,
-          {},
-          refreshOptions,
-        )
+        await refreshSession()
         return client(config)
       } catch {
         /* c8 ignore else */

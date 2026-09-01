@@ -174,6 +174,53 @@ describe('api-client', () => {
       expect(result).toBe(retried)
     })
 
+    // O backend rotaciona o refresh token: emitir um novo revoga o anterior. Uma
+    // tela que dispara várias queries de uma vez tinha todas expirando juntas, e
+    // cada uma chamava /auth/refresh por conta própria — a primeira revogava o
+    // token das outras, que tomavam 401 e mandavam o usuário para o login no
+    // meio de uma sessão válida.
+    it('issues a single refresh for several requests that fail with 401 at once', async () => {
+      ;(axios.isAxiosError as unknown as jest.Mock).mockReturnValue(true)
+      let resolveRefresh: (value: unknown) => void = () => {}
+      ;(axios.post as jest.Mock).mockReturnValue(new Promise((resolve) => { resolveRefresh = resolve }))
+      axiosInstance.mockResolvedValue({ ok: true })
+
+      const makeError = (url: string) => ({
+        response: { status: 401, data: {} },
+        config: { _retry: false, url },
+        message: 'Unauthorized',
+      })
+
+      const pending = Promise.all([
+        onRejected(makeError('/a')),
+        onRejected(makeError('/b')),
+        onRejected(makeError('/c')),
+      ])
+
+      resolveRefresh({})
+      await pending
+
+      expect((axios.post as jest.Mock).mock.calls.filter(([url]) => String(url).includes('/auth/refresh'))).toHaveLength(1)
+      expect(axiosInstance).toHaveBeenCalledTimes(3)
+    })
+
+    it('refreshes again on a later 401, once the previous refresh has settled', async () => {
+      ;(axios.isAxiosError as unknown as jest.Mock).mockReturnValue(true)
+      ;(axios.post as jest.Mock).mockResolvedValue({})
+      axiosInstance.mockResolvedValue({ ok: true })
+
+      const makeError = (url: string) => ({
+        response: { status: 401, data: {} },
+        config: { _retry: false, url },
+        message: 'Unauthorized',
+      })
+
+      await onRejected(makeError('/a'))
+      await onRejected(makeError('/b'))
+
+      expect((axios.post as jest.Mock).mock.calls.filter(([url]) => String(url).includes('/auth/refresh'))).toHaveLength(2)
+    })
+
     it('redirects to /login and rejects when refresh fails', async () => {
       ;(axios.isAxiosError as unknown as jest.Mock).mockReturnValue(true)
       ;(axios.post as jest.Mock).mockRejectedValue(new Error('Refresh failed'))

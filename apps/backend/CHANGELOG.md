@@ -1,5 +1,14 @@
 # Changelog — Backend
 
+## [1.5.3] - 2026-09-01
+
+### Fixed
+
+#### `POST /auth/refresh` limpa a sessão ao falhar
+- Um refresh recusado devolvia `401` deixando `access_token` e `refresh_token` no navegador. Como são `httpOnly`, o cliente não consegue apagá-los sozinho — e a página de login, que decide pela presença do `access_token`, devolvia o usuário ao dashboard. O resultado era um loop de redirecionamento até o navegador cortar
+- Agora os dois cookies são limpos nos dois caminhos de falha: refresh token ausente, e refresh token recusado pelo use-case (expirado, revogado ou inexistente)
+- `POST /auth/logout` já fazia isso; o refresh é o outro fim da mesma sessão e não fazia
+
 ## [1.5.2] - 2026-09-01
 
 ### Fixed

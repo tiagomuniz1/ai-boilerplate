@@ -459,6 +459,43 @@ describe('AuthController (integration)', () => {
         .expect(401)
     })
 
+    // Um refresh que falha encerra a sessão, e os cookies vão junto. Deixá-los
+    // para trás produzia um loop: o cliente ia para /login, a página de login
+    // via o access_token ainda presente e devolvia para o dashboard, que
+    // chamava a API, tomava 401 e recomeçava. Os cookies são httpOnly — o
+    // cliente não consegue apagá-los sozinho.
+    it('clears both session cookies when the refresh token is rejected', async () => {
+      const user = await createTestUser()
+      const { refreshToken } = await loginAndExtractTokens(user.email)
+
+      await request(app.getHttpServer())
+        .post('/auth/refresh')
+        .set('Cookie', `refresh_token=${refreshToken}`)
+
+      const { headers } = await request(app.getHttpServer())
+        .post('/auth/refresh')
+        .set('Cookie', `refresh_token=${refreshToken}`)
+        .expect(401)
+
+      const cookies = Array.isArray(headers['set-cookie']) ? headers['set-cookie'] : [headers['set-cookie']]
+      const cleared = cookies.filter((c: string) => c?.includes('Expires=Thu, 01 Jan 1970'))
+
+      expect(cleared.some((c: string) => c.startsWith('access_token='))).toBe(true)
+      expect(cleared.some((c: string) => c.startsWith('refresh_token='))).toBe(true)
+    })
+
+    it('clears both session cookies when no refresh_token cookie is present', async () => {
+      const { headers } = await request(app.getHttpServer())
+        .post('/auth/refresh')
+        .expect(401)
+
+      const cookies = Array.isArray(headers['set-cookie']) ? headers['set-cookie'] : [headers['set-cookie']]
+      const cleared = cookies.filter((c: string) => c?.includes('Expires=Thu, 01 Jan 1970'))
+
+      expect(cleared.some((c: string) => c.startsWith('access_token='))).toBe(true)
+      expect(cleared.some((c: string) => c.startsWith('refresh_token='))).toBe(true)
+    })
+
     it('returns 401 when no refresh_token cookie is present', async () => {
       await request(app.getHttpServer())
         .post('/auth/refresh')
