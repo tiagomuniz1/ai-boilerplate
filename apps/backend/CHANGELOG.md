@@ -1,5 +1,15 @@
 # Changelog — Backend
 
+## [1.5.1] - 2026-09-01
+
+### Fixed
+
+#### Escalada de privilégio ao editar o próprio perfil
+- `PATCH /users/:id` repassava o DTO inteiro ao update depois de checar apenas "você só edita a si mesmo". Como `role` e `isActive` viajam nesse DTO, **qualquer USER ou PROFESSIONAL virava ADMIN com um PATCH no próprio id**. A interface escondia o seletor, e era só isso que segurava — o backend é a fonte de verdade
+- Passa a recusar alteração de `role` ou `isActive` por quem não é ADMIN, e alteração do próprio `role` mesmo por ADMIN: numa clínica com um administrador só, rebaixar a si mesmo a deixaria sem ninguém capaz de gerir usuários
+- A comparação é contra o valor atual, não a presença do campo — o formulário reenvia perfil e status inalterados ao salvar "Meu perfil", e recusar isso quebraria a edição do próprio cadastro
+- Mesmo padrão que `update-professional.use-case.ts` já usava para o `isActive`; o módulo de usuários não o tinha
+
 ## [1.5.0] - 2026-09-01
 
 ### Added

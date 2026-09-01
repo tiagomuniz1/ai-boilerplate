@@ -28,6 +28,27 @@ export class UpdateUserUseCase extends BaseUseCase {
     const user = await this.usersRepository.findById(id, clinicId)
     if (!user) throw new NotFoundException('User not found')
 
+    // Editar o próprio perfil não pode virar promoção. Sem isto, qualquer USER
+    // ou PROFESSIONAL vira ADMIN com um PATCH no próprio id — a tela escondia o
+    // seletor, mas o backend é a fonte de verdade. Mesmo padrão de
+    // update-professional.use-case.ts, que já protege o `isActive`.
+    //
+    // Compara com o valor atual em vez de olhar só a presença do campo: o
+    // formulário reenvia o perfil inalterado ao salvar "Meu perfil", e recusar
+    // isso quebraria a edição do próprio cadastro para quem não é ADMIN.
+    const changesRole = dto.role !== undefined && dto.role !== user.role
+    const changesActive = dto.isActive !== undefined && dto.isActive !== user.isActive
+
+    if ((changesRole || changesActive) && currentUser.role !== UserRole.ADMIN) {
+      throw new ForbiddenException('Only admins can change access level or active status')
+    }
+
+    // Nem um ADMIN rebaixa a si mesmo: numa clínica com um único administrador
+    // isso a deixaria sem ninguém capaz de gerir usuários.
+    if (changesRole && currentUser.id === id) {
+      throw new ForbiddenException('You cannot change your own access level')
+    }
+
     if (dto.email && dto.email !== user.email) {
       const existing = await this.usersRepository.findByEmail(dto.email, user.clinicId)
       if (existing) throw new ConflictException('Email already in use')

@@ -192,6 +192,68 @@ describe('UpdateUserUseCase', () => {
     expect(result.id).toBe(user.id)
   })
 
+  // Editar o próprio perfil não pode virar promoção: era possível virar ADMIN
+  // com um PATCH no próprio id, e só a interface escondia o caminho.
+  it('throws ForbiddenException when a PROFESSIONAL tries to promote themselves', async () => {
+    const user = makeUser()
+    const doctorUser: ICurrentUser = { id: user.id, role: UserRole.PROFESSIONAL, clinicId: CLINIC_ID }
+
+    await expect(
+      useCase.execute(user.id, { role: UserRole.ADMIN }, doctorUser),
+    ).rejects.toThrow(ForbiddenException)
+    expect(mockUsersRepository.update).not.toHaveBeenCalled()
+  })
+
+  it('throws ForbiddenException when a USER tries to change their own active status', async () => {
+    const user = makeUser()
+    const currentUser: ICurrentUser = { id: user.id, role: UserRole.USER, clinicId: CLINIC_ID }
+
+    await expect(
+      useCase.execute(user.id, { isActive: false }, currentUser),
+    ).rejects.toThrow(ForbiddenException)
+    expect(mockUsersRepository.update).not.toHaveBeenCalled()
+  })
+
+  it('lets an ADMIN change another user access level', async () => {
+    const user = makeUser()
+    mockUsersRepository.findById.mockResolvedValue(user)
+    mockUsersRepository.update.mockResolvedValue({ ...user, role: UserRole.ADMIN })
+
+    const result = await useCase.execute(user.id, { role: UserRole.ADMIN }, adminUser)
+
+    expect(result.role).toBe(UserRole.ADMIN)
+  })
+
+  // Numa clínica com um único administrador, rebaixar a si mesmo a deixaria sem
+  // ninguém capaz de gerir usuários.
+  it('throws ForbiddenException when an ADMIN tries to change their own access level', async () => {
+    const self = makeUser({ role: UserRole.ADMIN })
+    const selfAdmin: ICurrentUser = { id: self.id, role: UserRole.ADMIN, clinicId: CLINIC_ID }
+    mockUsersRepository.findById.mockResolvedValue(self)
+
+    await expect(
+      useCase.execute(self.id, { role: UserRole.USER }, selfAdmin),
+    ).rejects.toThrow(ForbiddenException)
+    expect(mockUsersRepository.update).not.toHaveBeenCalled()
+  })
+
+  // O formulário reenvia perfil e status inalterados ao salvar "Meu perfil".
+  // Recusar isso quebraria a edição do próprio cadastro de quem não é ADMIN.
+  it('lets a non-admin save their own profile while echoing back the unchanged role', async () => {
+    const user = makeUser({ role: UserRole.USER })
+    const currentUser: ICurrentUser = { id: user.id, role: UserRole.USER, clinicId: CLINIC_ID }
+    mockUsersRepository.findById.mockResolvedValue(user)
+    mockUsersRepository.update.mockResolvedValue({ ...user, fullName: 'Novo Nome' })
+
+    const result = await useCase.execute(
+      user.id,
+      { fullName: 'Novo Nome', role: user.role, isActive: user.isActive },
+      currentUser,
+    )
+
+    expect(result.fullName).toBe('Novo Nome')
+  })
+
   it('throws ForbiddenException when DOCTOR tries to update another user profile', async () => {
     const doctorUser: ICurrentUser = { id: faker.string.uuid(), role: UserRole.PROFESSIONAL, clinicId: CLINIC_ID }
     const otherId = faker.string.uuid()
