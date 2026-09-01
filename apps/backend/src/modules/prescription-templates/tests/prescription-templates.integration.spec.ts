@@ -39,6 +39,8 @@ describe('PrescriptionTemplatesController (integration)', () => {
   let templateRepository: Repository<PrescriptionTemplate>
 
   let adminToken: string
+  let practisingAdminToken: string
+  let practisingAdminProfessionalId: string
   let doctorToken: string
   let otherDoctorToken: string
   let userToken: string
@@ -111,6 +113,18 @@ describe('PrescriptionTemplatesController (integration)', () => {
       }),
     )
 
+    // A médica que administra a própria clínica: cargo ADMIN e ficha de
+    // profissional. Exercer vem da ficha, não do cargo.
+    const practisingAdminUser = await userRepository.save(
+      userRepository.create({
+        fullName: 'Admin Doctor',
+        email: 'admindoctor@tpl.test',
+        password: hashed,
+        role: UserRole.ADMIN,
+        clinicId: SEED_CLINIC_ID,
+      }),
+    )
+
     const otherDoctorUser = await userRepository.save(
       userRepository.create({
         fullName: 'Other Doctor',
@@ -147,6 +161,14 @@ describe('PrescriptionTemplatesController (integration)', () => {
     const savedOther = await doctorRepository.save(otherDoctorEntity)
     otherDoctorId = savedOther.id
 
+    const practisingAdminEntity = doctorRepository.create({
+      userId: practisingAdminUser.id,
+      clinicId: SEED_CLINIC_ID,
+    })
+    practisingAdminEntity.registrations = [{ clinicId: SEED_CLINIC_ID, councilType: CouncilType.CRM, number: '33333', state: 'SP', isPrimary: true }] as any
+    const savedPractisingAdmin = await doctorRepository.save(practisingAdminEntity)
+    practisingAdminProfessionalId = savedPractisingAdmin.id
+
     const medication = await medicationRepository.save(
       medicationRepository.create({
         name: 'Dipirona 500mg',
@@ -170,6 +192,7 @@ describe('PrescriptionTemplatesController (integration)', () => {
     }
 
     adminToken = await loginAndExtractToken('admin@tpl.test')
+    practisingAdminToken = await loginAndExtractToken('admindoctor@tpl.test')
     doctorToken = await loginAndExtractToken('doctor@tpl.test')
     otherDoctorToken = await loginAndExtractToken('other@tpl.test')
     userToken = await loginAndExtractToken('user@tpl.test')
@@ -223,12 +246,33 @@ describe('PrescriptionTemplatesController (integration)', () => {
       expect(body.items[0].name).toBe('Amoxicilina')
     })
 
-    it('returns 422 when ADMIN omits professionalId', async () => {
+    it('returns 422 when an ADMIN without a professional profile omits professionalId', async () => {
       await request(app.getHttpServer())
         .post('/prescription-templates')
         .set('Cookie', [`access_token=${adminToken}`])
         .send(makePayload())
         .expect(422)
+    })
+
+    it('creates the template under their own profile for an ADMIN who also practises → 201', async () => {
+      const { body } = await request(app.getHttpServer())
+        .post('/prescription-templates')
+        .set('Cookie', [`access_token=${practisingAdminToken}`])
+        .send(makePayload())
+        .expect(201)
+
+      expect(body.professionalId).toBe(practisingAdminProfessionalId)
+      expect(body.professionalName).toBe('Admin Doctor')
+    })
+
+    it('lets a practising ADMIN create on behalf of another professional → 201', async () => {
+      const { body } = await request(app.getHttpServer())
+        .post('/prescription-templates')
+        .set('Cookie', [`access_token=${practisingAdminToken}`])
+        .send(makePayload({ professionalId }))
+        .expect(201)
+
+      expect(body.professionalId).toBe(professionalId)
     })
 
     it('returns 403 for USER role', async () => {
