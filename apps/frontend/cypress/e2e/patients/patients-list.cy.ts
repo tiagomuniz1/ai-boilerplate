@@ -194,6 +194,26 @@ describe('Patients List', () => {
     cy.get(`[data-testid="patient-name-${mockPatient.id}"]`).should('contain', 'João Silva')
     cy.get(`[data-testid="patient-name-${dependentPatient.id}"]`).should('contain', 'Bebê Silva')
   })
+
+  // Criar, editar e excluir paciente são exclusivos do ADMIN
+  // (patients.controller.ts:24,52,62). A recepcionista tem esta lista no menu
+  // por desenho e via os três botões — cada clique terminava em 403.
+  it('hides create, edit and delete from a receptionist but keeps the list readable', () => {
+    const receptionist = { ...mockAuthUser, id: 'mock-receptionist-id', fullName: 'Recepção', role: 'user' }
+
+    cy.intercept('GET', `${Cypress.env('API_URL')}/patients*`, {
+      statusCode: 200,
+      body: populatedListResponse,
+    }).as('getPatients')
+
+    visitClinic('/patients', receptionist)
+    cy.wait('@getPatients')
+
+    cy.get(`[data-testid="patient-view-link-${mockPatient.id}"]`).should('be.visible')
+    cy.get('[data-testid="patient-list-new-button"]').should('not.exist')
+    cy.get(`[data-testid="patient-edit-link-${mockPatient.id}"]`).should('not.exist')
+    cy.get(`[data-testid="patient-delete-button-${mockPatient.id}"]`).should('not.exist')
+  })
 })
 
 export {}

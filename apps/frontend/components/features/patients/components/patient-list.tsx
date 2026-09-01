@@ -6,13 +6,14 @@ import { useBasePath } from '@/lib/slug-context'
 import { Alert } from '@/components/ui/molecules/alert/alert'
 import { Button } from '@/components/ui/atoms/button/button'
 import { Input } from '@/components/ui/atoms/input/input'
-import { PatientGender } from '@app/shared'
+import { PatientGender, UserRole } from '@app/shared'
 import { formatPhone } from '@/lib/format-phone'
 import { MobileListCard } from '@/components/ui/molecules/mobile-list-card/mobile-list-card'
 import { usePatients } from '../hooks/use-patients.hook'
 import { useDeletePatient } from '../hooks/use-delete-patient.hook'
 import { PatientListSkeleton } from './patient-list-skeleton'
 import { PatientDeleteDialog } from './patient-delete-dialog'
+import { useAuthStore } from '@/stores/auth.store'
 import type { IPatientModel } from '../types/patient-model.types'
 
 const genderLabel: Record<PatientGender, string> = {
@@ -23,6 +24,11 @@ const genderLabel: Record<PatientGender, string> = {
 
 export function PatientList() {
   const basePath = useBasePath()
+
+  // Criar, editar e excluir paciente são exclusivos do ADMIN
+  // (patients.controller.ts:24,52,62). A recepcionista tem a lista no menu por
+  // desenho e via os três botões — cada clique dela terminava em 403.
+  const isAdmin = useAuthStore((s) => s.user?.role) === UserRole.ADMIN
   const [searchTerm, setSearchTerm] = useState('')
   const [debouncedSearch, setDebouncedSearch] = useState('')
   const [patientToDelete, setPatientToDelete] = useState<IPatientModel | null>(null)
@@ -76,11 +82,13 @@ export function PatientList() {
             </p>
           )}
         </div>
-        <Link href={`${basePath}/patients/new`} className="block sm:inline-block">
-          <Button variant="primary" data-testid="patient-list-new-button" className="w-full sm:w-auto">
-            + Novo paciente
-          </Button>
-        </Link>
+        {isAdmin && (
+          <Link href={`${basePath}/patients/new`} className="block sm:inline-block">
+            <Button variant="primary" data-testid="patient-list-new-button" className="w-full sm:w-auto">
+              + Novo paciente
+            </Button>
+          </Link>
+        )}
       </div>
 
       <Input
@@ -186,22 +194,26 @@ export function PatientList() {
                     </td>
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-3">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleDeleteClick(patient)}
-                          data-testid={`patient-delete-button-${patient.id}`}
-                          className="text-xs text-danger hover:text-danger/80"
-                        >
-                          Excluir
-                        </Button>
-                        <Link
-                          href={`${basePath}/patients/${patient.id}/edit`}
-                          data-testid={`patient-edit-link-${patient.id}`}
-                          className="text-xs text-text-mute hover:text-text transition-colors"
-                        >
-                          Editar
-                        </Link>
+                        {isAdmin && (
+                          <>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleDeleteClick(patient)}
+                              data-testid={`patient-delete-button-${patient.id}`}
+                              className="text-xs text-danger hover:text-danger/80"
+                            >
+                              Excluir
+                            </Button>
+                            <Link
+                              href={`${basePath}/patients/${patient.id}/edit`}
+                              data-testid={`patient-edit-link-${patient.id}`}
+                              className="text-xs text-text-mute hover:text-text transition-colors"
+                            >
+                              Editar
+                            </Link>
+                          </>
+                        )}
                         <Link
                           href={`${basePath}/patients/${patient.id}`}
                           data-testid={`patient-view-link-${patient.id}`}
@@ -247,22 +259,26 @@ export function PatientList() {
                 ]}
                 actions={
                   <>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => handleDeleteClick(patient)}
-                      data-testid={`patient-card-delete-button-${patient.id}`}
-                      className="text-xs text-danger hover:text-danger/80"
-                    >
-                      Excluir
-                    </Button>
-                    <Link
-                      href={`${basePath}/patients/${patient.id}/edit`}
-                      data-testid={`patient-card-edit-link-${patient.id}`}
-                      className="text-xs text-text-mute hover:text-text transition-colors"
-                    >
-                      Editar
-                    </Link>
+                    {isAdmin && (
+                      <>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleDeleteClick(patient)}
+                          data-testid={`patient-card-delete-button-${patient.id}`}
+                          className="text-xs text-danger hover:text-danger/80"
+                        >
+                          Excluir
+                        </Button>
+                        <Link
+                          href={`${basePath}/patients/${patient.id}/edit`}
+                          data-testid={`patient-card-edit-link-${patient.id}`}
+                          className="text-xs text-text-mute hover:text-text transition-colors"
+                        >
+                          Editar
+                        </Link>
+                      </>
+                    )}
                     <Link
                       href={`${basePath}/patients/${patient.id}`}
                       data-testid={`patient-card-view-link-${patient.id}`}

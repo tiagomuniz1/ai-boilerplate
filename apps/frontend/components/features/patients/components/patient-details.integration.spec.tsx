@@ -34,7 +34,7 @@ describe('PatientDetails (integration)', () => {
   })
 
   it('renders all patient fields', () => {
-    renderWithProviders(<PatientDetails patient={patient} onDeleteClick={jest.fn()} />)
+    renderWithProviders(<PatientDetails patient={patient} canManage onDeleteClick={jest.fn()} />)
 
     expect(screen.getByTestId('patient-details-name')).toHaveTextContent('João Silva')
     expect(screen.getByTestId('patient-details-email')).toHaveTextContent('joao@example.com')
@@ -44,7 +44,7 @@ describe('PatientDetails (integration)', () => {
   })
 
   it('renders edit button linking to edit page', () => {
-    renderWithProviders(<PatientDetails patient={patient} onDeleteClick={jest.fn()} />)
+    renderWithProviders(<PatientDetails patient={patient} canManage onDeleteClick={jest.fn()} />)
 
     const editButton = screen.getByTestId('patient-details-edit-button')
     expect(editButton).toBeInTheDocument()
@@ -53,7 +53,7 @@ describe('PatientDetails (integration)', () => {
   it('calls onDeleteClick when delete button is clicked', async () => {
     const onDeleteClick = jest.fn()
 
-    renderWithProviders(<PatientDetails patient={patient} onDeleteClick={onDeleteClick} />)
+    renderWithProviders(<PatientDetails patient={patient} canManage onDeleteClick={onDeleteClick} />)
 
     await userEvent.click(screen.getByTestId('patient-details-delete-button'))
 
@@ -61,7 +61,7 @@ describe('PatientDetails (integration)', () => {
   })
 
   it('renders birthdate formatted', () => {
-    renderWithProviders(<PatientDetails patient={patient} onDeleteClick={jest.fn()} />)
+    renderWithProviders(<PatientDetails patient={patient} canManage onDeleteClick={jest.fn()} />)
 
     expect(screen.getByTestId('patient-details-birthdate')).toBeInTheDocument()
   })
@@ -70,7 +70,7 @@ describe('PatientDetails (integration)', () => {
     renderWithProviders(
       <PatientDetails
         patient={{ ...patient, gender: PatientGender.FEMALE }}
-        onDeleteClick={jest.fn()}
+        canManage onDeleteClick={jest.fn()}
       />,
     )
 
@@ -79,14 +79,14 @@ describe('PatientDetails (integration)', () => {
 
   it('shows "Não informado" when documentNumber is null', () => {
     renderWithProviders(
-      <PatientDetails patient={{ ...patient, documentNumber: null }} onDeleteClick={jest.fn()} />,
+      <PatientDetails patient={{ ...patient, documentNumber: null }} canManage onDeleteClick={jest.fn()} />,
     )
 
     expect(screen.getByTestId('patient-details-document')).toHaveTextContent('Não informado')
   })
 
   it('does not render "Vinculado a" or "Dependentes" sections for a standalone patient', () => {
-    renderWithProviders(<PatientDetails patient={patient} onDeleteClick={jest.fn()} />)
+    renderWithProviders(<PatientDetails patient={patient} canManage onDeleteClick={jest.fn()} />)
 
     expect(screen.queryByTestId('patient-details-responsible')).not.toBeInTheDocument()
     expect(screen.queryByTestId('patient-details-dependents')).not.toBeInTheDocument()
@@ -101,7 +101,7 @@ describe('PatientDetails (integration)', () => {
       responsiblePatient: { id: 'titular-uuid', fullName: 'Maria Silva', documentNumber: '11122233344' },
     }
 
-    renderWithProviders(<PatientDetails patient={dependent} onDeleteClick={jest.fn()} />)
+    renderWithProviders(<PatientDetails patient={dependent} canManage onDeleteClick={jest.fn()} />)
 
     expect(screen.getByTestId('patient-details-responsible')).toHaveTextContent('Maria Silva')
     expect(screen.getByTestId('patient-details-responsible')).toHaveTextContent('Filho(a)')
@@ -120,7 +120,7 @@ describe('PatientDetails (integration)', () => {
       ],
     }
 
-    renderWithProviders(<PatientDetails patient={titular} onDeleteClick={jest.fn()} />)
+    renderWithProviders(<PatientDetails patient={titular} canManage onDeleteClick={jest.fn()} />)
 
     const section = screen.getByTestId('patient-details-dependents')
     expect(section).toHaveTextContent('Bebê Silva')
@@ -132,5 +132,16 @@ describe('PatientDetails (integration)', () => {
     expect(links).toHaveLength(2)
     expect(links[0]).toHaveAttribute('href', expect.stringContaining('/patients/dependent-1'))
     expect(links[1]).toHaveAttribute('href', expect.stringContaining('/patients/dependent-2'))
+  })
+
+  // A recepcionista tem a lista de pacientes no menu por desenho, mas criar,
+  // editar e excluir são exclusivos do ADMIN (patients.controller.ts:24,52,62).
+  // A tela oferecia os três e cada clique dela terminava em 403.
+  it('hides edit and delete when the viewer cannot manage patients', () => {
+    renderWithProviders(<PatientDetails patient={patient} canManage={false} onDeleteClick={jest.fn()} />)
+
+    expect(screen.getByTestId('patient-details-name')).toBeInTheDocument()
+    expect(screen.queryByTestId('patient-details-edit-button')).not.toBeInTheDocument()
+    expect(screen.queryByTestId('patient-details-delete-button')).not.toBeInTheDocument()
   })
 })

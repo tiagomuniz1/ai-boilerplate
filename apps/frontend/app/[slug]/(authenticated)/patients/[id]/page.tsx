@@ -26,6 +26,7 @@ export default function PatientDetailsPage() {
   const currentUser = useAuthStore((s) => s.user)
   const canSeeMedicalHistory =
     currentUser?.role === UserRole.ADMIN || currentUser?.role === UserRole.PROFESSIONAL
+  const canManagePatient = currentUser?.role === UserRole.ADMIN
 
   function handleDeleteConfirm() {
     deletePatient(id, {
@@ -68,7 +69,11 @@ export default function PatientDetailsPage() {
 
       {!isPending && !isError && patient && (
         <>
-          <PatientDetails patient={patient} onDeleteClick={() => setShowDeleteDialog(true)} />
+          <PatientDetails
+            patient={patient}
+            canManage={canManagePatient}
+            onDeleteClick={() => setShowDeleteDialog(true)}
+          />
           {canSeeMedicalHistory && (
             <section className="mt-8">
               <h2 className="text-base font-semibold text-text mb-4" data-testid="patient-history-title">

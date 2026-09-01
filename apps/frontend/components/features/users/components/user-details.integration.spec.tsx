@@ -69,8 +69,8 @@ describe('UserDetails (integration)', () => {
     expect(screen.getByTestId('user-details-role')).toHaveTextContent('Recepcionista')
   })
 
-  it('does not show a profession row for non-professional roles', () => {
-    renderWithProviders(<UserDetails user={{ ...user, role: UserRole.USER }} canDelete onDeleteClick={jest.fn()} />)
+  it('does not show a profession row for a user with no professional profile', () => {
+    renderWithProviders(<UserDetails user={{ ...user, role: UserRole.USER, isProfessional: false }} canDelete onDeleteClick={jest.fn()} />)
 
     expect(screen.queryByTestId('user-details-profession-cell')).not.toBeInTheDocument()
   })
@@ -104,8 +104,13 @@ describe('UserDetails (integration)', () => {
   })
 })
 
-describe('UserDetails (integration) — PROFESSIONAL role', () => {
-  const professionalUser: IUserModel = { ...user, id: 'uuid-professional-1', role: UserRole.PROFESSIONAL }
+describe('UserDetails (integration) — users who hold a professional profile', () => {
+  const professionalUser: IUserModel = {
+    ...user,
+    id: 'uuid-professional-1',
+    role: UserRole.PROFESSIONAL,
+    isProfessional: true,
+  }
 
   beforeEach(() => {
     jest.clearAllMocks()
@@ -147,5 +152,36 @@ describe('UserDetails (integration) — PROFESSIONAL role', () => {
     await waitFor(() => {
       expect(screen.queryByTestId('user-details-profession-cell')).not.toBeInTheDocument()
     })
+  })
+
+  // Cargo dá escopo, ficha dá exercício: a médica que administra a própria
+  // clínica é ADMIN e tem CRM. Amarrar a linha ao cargo escondia o registro
+  // dela — mesmo defeito que `user-form.tsx:156` já tinha corrigido.
+  it('shows the profession for an ADMIN who also holds a professional profile', async () => {
+    ;(professionalsService.getAll as jest.Mock).mockResolvedValue({
+      data: [professionalDto],
+      total: 1,
+      page: 1,
+      limit: 100,
+    })
+
+    const adminWhoPractises: IUserModel = { ...professionalUser, role: UserRole.ADMIN }
+    renderWithProviders(<UserDetails user={adminWhoPractises} canDelete onDeleteClick={jest.fn()} />)
+
+    expect(screen.getByTestId('user-details-role')).toHaveTextContent('Administrador')
+
+    await waitFor(() => {
+      expect(screen.getByTestId('user-details-profession')).toHaveTextContent('CRN 12345/SP')
+    })
+  })
+
+  it('does not look up a profile for a PROFESSIONAL whose profile was removed', async () => {
+    const withoutProfile: IUserModel = { ...professionalUser, isProfessional: false }
+    renderWithProviders(<UserDetails user={withoutProfile} canDelete onDeleteClick={jest.fn()} />)
+
+    await waitFor(() => {
+      expect(screen.queryByTestId('user-details-profession-cell')).not.toBeInTheDocument()
+    })
+    expect(professionalsService.getAll).not.toHaveBeenCalled()
   })
 })

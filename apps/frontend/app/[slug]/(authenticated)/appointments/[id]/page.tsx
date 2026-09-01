@@ -40,7 +40,6 @@ export default function AppointmentDetailPage() {
   const currentUser = useAuthStore((s) => s.user)
   const role = currentUser?.role ?? UserRole.USER
 
-  const isProfessional = role === UserRole.PROFESSIONAL
   // A própria ficha, se houver. Antes vinha de `doctors?.[0]`, que só acerta
   // para PROFESSIONAL — para um ADMIN aquela lista é a clínica inteira.
   const { data: myProfessional } = useMyProfessional()

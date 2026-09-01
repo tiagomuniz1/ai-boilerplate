@@ -40,6 +40,8 @@ Isso existe porque quem é dono da clínica com frequência também atende. Um �
 - **PROFESSIONAL** — inalterado: atende, escopo restrito ao próprio.
 - **USER** — recepção, somente leitura.
 
+**Ter um modelo de receita também é exercício**, e segue o mesmo eixo: quem cadastra um modelo é quem tem ficha, não quem tem cargo (ver "Modelos de Receita").
+
 **Emitir exige ser o profissional da consulta, para qualquer role** — inclusive ADMIN. O documento carrega um snapshot de assinatura (nome, conselho, registro) e um `verification_token` que a farmácia confere num endpoint público; emitir sobre consulta alheia produziria documento verificável atestando registro de outra pessoa. **Ver e excluir** documento continuam administrativos: ADMIN irrestrito na clínica.
 
 ---
@@ -175,6 +177,25 @@ Isso existe porque quem é dono da clínica com frequência também atende. Um �
 | Excluir | ✓ | ✗ | ✗ | ✗ |
 
 > Templates são escopados por `clinicId + specialtyId` **ou**, para o template generalista (sem especialidade), por `clinicId + councilType` — no máximo um por profissão por clínica. Todo profissional pode criar e editar o próprio modelo: médico (CRM) através de uma das próprias especialidades (ou sem especialidade, gerando o generalista do CRM); as demais profissões (CRN, CREFITO, CRP, CRO, CRFA) direto para a profissão, sem passar por especialidade. "Próprio escopo" = especialidade que o profissional possui, ou `councilType` que bate com o próprio registro principal. ADMIN pode criar/editar qualquer template, inclusive um generalista de profissão não-médica. Excluir continua exclusivo do ADMIN.
+
+---
+
+
+## Modelos de Receita (`/prescription-templates`)
+
+Receituário pré-montado do profissional — a lista de medicamentos que ele repete no dia a dia. Não é documento emitido: é rascunho reutilizável, sem paciente, sem consulta e sem assinatura.
+
+| Ação | ADMIN | PROFESSIONAL | USER | PATIENT |
+|---|:---:|:---:|:---:|:---:|
+| Criar modelo | ✓ **se tiver ficha** | ✓ (o próprio) | ✗ | ✗ |
+| Listar modelos | ✓ todos | só os próprios | ✗ | ✗ |
+| Ver por ID | ✓ qualquer | só o próprio | ✗ | ✗ |
+| Editar | ✓ qualquer | só o próprio | ✗ | ✗ |
+| Excluir | ✓ qualquer | só o próprio | ✗ | ✗ |
+
+> **Criar depende da ficha, não do cargo** (ver "Cargo e Ofício"). Um ADMIN com ficha cria o modelo sob a própria ficha sem informar `professionalId`; informando um, cria em nome daquele profissional. Um ADMIN **sem** ficha só cria informando `professionalId` — omitir devolve `422`.
+
+> **Editar e excluir são escopo, não exercício:** o ADMIN é zelador dos modelos da clínica e mexe em qualquer um, inclusive sem ter ficha. O profissional só nos próprios — e, como a listagem já lhe devolve apenas esses, ele nunca chega a ver os alheios.
 
 ---
 

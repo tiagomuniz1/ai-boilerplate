@@ -1,5 +1,14 @@
 # Changelog — Backend
 
+## [1.5.2] - 2026-09-01
+
+### Fixed
+
+#### Modelo de receita para quem administra e atende
+- `POST /prescription-templates` resolvia a ficha do autor pelo `role`: um ADMIN **tinha** de informar `professionalId`, e omiti-lo dava `422`. Uma médica que administra a própria clínica precisava se escolher numa lista de profissionais para cadastrar o próprio modelo
+- Passa a buscar a ficha do chamador antes de olhar o cargo. Com ficha e sem `professionalId`, o modelo nasce sob a própria ficha; com `professionalId` explícito, em nome daquele profissional — é o ADMIN agindo por outro. Sem ficha e sem `professionalId`, o `422` continua
+- Nada muda para `PROFESSIONAL`: continua restrito à própria ficha, e um `professionalId` alheio no corpo continua sendo ignorado
+
 ## [1.5.1] - 2026-09-01
 
 ### Fixed
