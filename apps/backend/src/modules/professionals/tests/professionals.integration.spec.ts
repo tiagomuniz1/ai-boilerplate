@@ -844,12 +844,46 @@ describe('ProfessionalsController (integration)', () => {
       expect(user?.deletedAt).toBeNull()
     })
 
-    it('returns 403 when admin tries to delete own professional profile', async () => {
+    // Cargo dá escopo, ficha dá exercício: um ADMIN que largou a ficha continua
+    // administrando. O guard só existe contra a autodestruição, que é o caso do
+    // PROFESSIONAL — cujo usuário é apagado junto com a ficha.
+    it('lets an admin delete their own professional profile and keeps the user as ADMIN', async () => {
       const { body: created } = await createProfessional(authUserId, { crmNumber: '11111/SP' }).expect(201)
 
       await request(app.getHttpServer())
         .delete(`/professionals/${created.id}`)
         .set('Authorization', `Bearer ${accessToken}`)
+        .expect(204)
+
+      const user = await userRepository.findOne({ where: { id: authUserId }, withDeleted: true })
+      expect(user?.deletedAt).toBeNull()
+      expect(user?.role).toBe(UserRole.ADMIN)
+      expect(user?.isActive).toBe(true)
+
+      const professional = await professionalRepository.findOne({ where: { id: created.id }, withDeleted: true })
+      expect(professional?.deletedAt).not.toBeNull()
+    })
+
+    it('returns 403 when a PROFESSIONAL tries to delete their own profile', async () => {
+      const password = 'Password123!'
+      const hashedPassword = await bcrypt.hash(password, 1)
+      const selfUser = await userRepository.save(
+        userRepository.create({
+          fullName: 'Self Deleting Professional',
+          email: 'selfdelete@professionals.test',
+          password: hashedPassword,
+          role: UserRole.PROFESSIONAL,
+          isActive: true,
+          clinicId: SEED_CLINIC_ID,
+        }),
+      )
+      const { body: created } = await createProfessional(selfUser.id, { crmNumber: '77777/SP' }).expect(201)
+
+      const selfToken = await loginUser(selfUser.email, password)
+
+      await request(app.getHttpServer())
+        .delete(`/professionals/${created.id}`)
+        .set('Authorization', `Bearer ${selfToken}`)
         .expect(403)
     })
 

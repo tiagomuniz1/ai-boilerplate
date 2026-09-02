@@ -135,14 +135,31 @@ describe('DeleteProfessionalUseCase', () => {
     expect(mockUsersRepository.delete).not.toHaveBeenCalled()
   })
 
-  it('throws ForbiddenException when trying to delete own professional profile', async () => {
-    const professional = makeProfessional()
+  // Um PROFESSIONAL que apaga a própria ficha some junto com ela — o usuário é
+  // deletado logo abaixo — e perde o acesso na hora, sem volta.
+  it('throws ForbiddenException when a PROFESSIONAL deletes their own profile', async () => {
+    const professional = makeProfessional(UserRole.PROFESSIONAL)
     mockProfessionalsRepository.findById.mockResolvedValue(professional as any)
-    const selfCurrentUser: ICurrentUser = { id: professional.userId, role: UserRole.ADMIN, clinicId: CLINIC_ID }
+    const selfCurrentUser: ICurrentUser = { id: professional.userId, role: UserRole.PROFESSIONAL, clinicId: CLINIC_ID }
 
     await expect(useCase.execute(professional.id, selfCurrentUser)).rejects.toThrow(ForbiddenException)
     expect(mockProfessionalsRepository.delete).not.toHaveBeenCalled()
     expect(mockUsersRepository.delete).not.toHaveBeenCalled()
+  })
+
+  // Para ADMIN o usuário fica intacto: largar a ficha é "parei de atender", não
+  // "saí da clínica". Sem isso, a única administradora de uma clínica ficava
+  // presa à própria ficha para sempre, porque ninguém mais pode excluí-la.
+  it('lets an ADMIN delete their own professional profile, keeping the user account', async () => {
+    const professional = makeProfessional(UserRole.ADMIN)
+    mockProfessionalsRepository.findById.mockResolvedValue(professional as any)
+    const selfCurrentUser: ICurrentUser = { id: professional.userId, role: UserRole.ADMIN, clinicId: CLINIC_ID }
+
+    await expect(useCase.execute(professional.id, selfCurrentUser)).resolves.toBeUndefined()
+
+    expect(mockProfessionalsRepository.delete).toHaveBeenCalledWith(professional.id, mockQueryRunner)
+    expect(mockUsersRepository.delete).not.toHaveBeenCalled()
+    expect(mockUsersRepository.update).not.toHaveBeenCalled()
   })
 
   it('throws NotFoundException when professional does not exist', async () => {
