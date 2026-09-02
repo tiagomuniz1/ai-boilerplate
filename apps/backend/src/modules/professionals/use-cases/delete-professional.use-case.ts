@@ -30,7 +30,18 @@ export class DeleteProfessionalUseCase extends BaseUseCase {
     const professional = await this.professionalsRepository.findById(id, clinicId)
     if (!professional) throw new NotFoundException('Professional not found')
 
-    if (professional.userId === currentUser.id) {
+    // Excluir a própria ficha só é proibido quando isso destruiria a própria
+    // conta: mais abaixo, um usuário de role PROFESSIONAL é apagado junto com a
+    // ficha (ou rebaixado a PATIENT), e quem fizesse isso em si mesmo perderia o
+    // acesso na hora, sem volta.
+    //
+    // Para ADMIN não é o caso — o usuário fica intacto, com o mesmo cargo. Cargo
+    // dá escopo, ficha dá exercício: largar a ficha é dizer "parei de atender",
+    // não "saí da clínica". Sem isso, uma médica que administra a própria clínica
+    // ficava presa à ficha para sempre, já que ninguém mais pode excluí-la.
+    const wouldDestroyOwnAccount =
+      professional.userId === currentUser.id && professional.user.role === UserRole.PROFESSIONAL
+    if (wouldDestroyOwnAccount) {
       throw new ForbiddenException('Cannot delete your own professional profile')
     }
 

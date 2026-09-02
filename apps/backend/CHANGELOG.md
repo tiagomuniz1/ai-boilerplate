@@ -1,5 +1,14 @@
 # Changelog — Backend
 
+## [1.5.4] - 2026-09-02
+
+### Fixed
+
+#### ADMIN pode largar a própria ficha de profissional
+- `DELETE /professionals/:id` recusava qualquer exclusão da própria ficha, de qualquer cargo. O guard existe contra a autodestruição: excluir a ficha de um usuário de role `PROFESSIONAL` apaga o usuário junto (ou o rebaixa a `PATIENT`), e quem fizesse isso em si mesmo perderia o acesso na hora
+- Para `ADMIN` essa consequência não existe — o usuário fica intacto, com o mesmo cargo e ativo. O guard passa a valer só quando a exclusão de fato destruiria a própria conta
+- Sem isso, quem administra a própria clínica ficava preso à ficha para sempre: ninguém mais pode excluí-la, e ele não podia excluir a si mesmo. Era um caminho sem volta, exatamente o risco registrado quando cargo e ofício foram separados
+
 ## [1.5.3] - 2026-09-01
 
 ### Fixed

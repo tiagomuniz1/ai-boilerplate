@@ -87,6 +87,8 @@ Isso existe porque quem é dono da clínica com frequência também atende. Um �
 
 > PROFESSIONAL que chama `GET /professionals` recebe apenas o próprio perfil. USER e ADMIN recebem a lista completa.
 
+> **Excluir a própria ficha:** permitido para ADMIN, proibido para PROFESSIONAL. A diferença não é de escopo, é de consequência — excluir a ficha de um usuário de role PROFESSIONAL apaga o usuário junto (ou o rebaixa a PATIENT, se ele também for paciente), então fazer isso em si mesmo é perder o acesso na hora, sem volta. Para ADMIN o usuário fica intacto e com o mesmo cargo: largar a ficha é dizer "parei de atender", não "saí da clínica" (ver "Cargo e Ofício"). Sem isso, a única administradora de uma clínica ficava presa à própria ficha para sempre, já que ninguém mais pode excluí-la.
+
 ---
 
 ## Pacientes (`/patients`)
