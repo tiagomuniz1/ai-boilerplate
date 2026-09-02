@@ -79,13 +79,33 @@ export class AuthController {
     @Headers('x-clinic-slug') slug?: string,
   ): Promise<void> {
     const names = this.cookieNames(slug)
-    const refreshToken = req.cookies?.[names.refresh] as string | undefined
-    if (!refreshToken) throw new UnauthorizedException('Refresh token not found')
-
-    const { accessToken, refreshToken: newRefreshToken, expiresIn, refreshTokenExpiresIn } =
-      await this.refreshTokenUseCase.execute({ refreshToken })
-
     const cookieOptions = this.baseCookieOptions()
+
+    // Um refresh que falha encerra a sessão, e os cookies precisam ir embora
+    // junto. Deixá-los para trás produzia um loop de redirecionamento: o
+    // cliente ia para /login, a página de login via o `access_token` ainda
+    // presente e devolvia para o dashboard, que chamava a API, tomava 401 e
+    // recomeçava. O cookie é httpOnly — só o servidor pode apagá-lo.
+    const clearSession = () => {
+      res.clearCookie(names.access, cookieOptions)
+      res.clearCookie(names.refresh, cookieOptions)
+    }
+
+    const refreshToken = req.cookies?.[names.refresh] as string | undefined
+    if (!refreshToken) {
+      clearSession()
+      throw new UnauthorizedException('Refresh token not found')
+    }
+
+    let tokens
+    try {
+      tokens = await this.refreshTokenUseCase.execute({ refreshToken })
+    } catch (error) {
+      clearSession()
+      throw error
+    }
+
+    const { accessToken, refreshToken: newRefreshToken, expiresIn, refreshTokenExpiresIn } = tokens
 
     res.cookie(names.access, accessToken, { ...cookieOptions, maxAge: expiresIn * 1000 })
     res.cookie(names.refresh, newRefreshToken, { ...cookieOptions, maxAge: refreshTokenExpiresIn * 1000 })

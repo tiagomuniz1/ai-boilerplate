@@ -1,5 +1,22 @@
 # Changelog — Frontend
 
+## [1.5.3] - 2026-09-01
+
+### Fixed
+
+#### Loop de redirecionamento com sessão expirada
+Uma sessão morta jogava o usuário num vaivém entre login e dashboard até o navegador cortar por excesso de redirecionamentos — o sintoma relatado como "clico numa tela e sou mandado para o dashboard". Duas causas somadas, corrigidas juntas:
+
+- **O refresh não limpava os cookies que invalidava** (backend). O cliente ia para `/login`, a página de login via o `access_token` ainda presente e devolvia para o dashboard, que chamava a API, tomava 401 e recomeçava. Os cookies são `httpOnly` — só o servidor consegue apagá-los, e agora apaga
+- **Refreshes concorrentes derrubavam a própria sessão** (`lib/api-client.ts`). O backend rotaciona o refresh token: emitir um novo revoga o anterior. Uma tela que dispara várias queries de uma vez tinha todas expirando no mesmo instante e cada uma chamava `/auth/refresh` por conta própria; a primeira revogava o token das outras, que tomavam 401 e mandavam o usuário para o login no meio de uma sessão perfeitamente válida. Passa a haver um único refresh em voo, compartilhado
+
+Dois specs também estavam presos ao mesmo problema, ambos por não interceptarem `/professionals/me` corretamente — `/professionals*` não cobre a rota, porque no minimatch o `*` não atravessa `/`:
+
+- `medical-record-templates-details.cy.ts` não a interceptava, então a chamada ia ao backend real com o token falso do `visitClinic` e derrubava 9 dos 11 casos na cascata de sessão expirada
+- `mobile/no-horizontal-scroll.cy.ts` recebia `null` do stub genérico, o que contradiz o usuário do spec: um PROFESSIONAL vendo a própria consulta. A aba Prontuário depende da ficha, então nunca aparecia
+
+O loop foi encontrado pela suíte E2E, não em produção — mas é a mesma falha relatada em uso.
+
 ## [1.5.2] - 2026-09-01
 
 ### Fixed
