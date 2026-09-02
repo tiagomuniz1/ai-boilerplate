@@ -54,3 +54,6 @@ yarn-error.log*
 **/*.tfstate.backup
 **/.terraform.lock.hcl
 **/terraform.tfvars
+
+# Saída do guia de onboarding (gerada por docs/onboarding/build-pdf.sh)
+docs/onboarding/build/

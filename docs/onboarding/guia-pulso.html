@@ -1,0 +1,690 @@
+<meta charset="utf-8">
+<title>Guia do Pulso</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=Source+Sans+3:ital,wght@0,400;0,600;1,400&family=JetBrains+Mono:wght@500&display=swap">
+
+<style>
+  :root {
+    --ground: #FBF7F3;
+    --surface: #FFFFFF;
+    --surface-sunk: #F5EEE7;
+    --ink: #1E1618;
+    --ink-dim: #57494C;
+    --ink-mute: #8B7B7F;
+    --line: #E7DBD2;
+    --line-soft: #F0E7DF;
+    --brand: #5A0E20;
+    --brand-soft: #F8E3E9;
+    --accent: #D9542F;
+    --accent-soft: #FCEDE6;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --ground: #15100F;
+      --surface: #1E1817;
+      --surface-sunk: #271F1E;
+      --ink: #F5EDE8;
+      --ink-dim: #C2B2AC;
+      --ink-mute: #8E7C77;
+      --line: #362B29;
+      --line-soft: #2A2220;
+      --brand: #F0A8B8;
+      --brand-soft: #3A1A22;
+      --accent: #F0835C;
+      --accent-soft: #3A211A;
+    }
+  }
+
+  :root[data-theme="dark"] {
+    --ground: #15100F;
+    --surface: #1E1817;
+    --surface-sunk: #271F1E;
+    --ink: #F5EDE8;
+    --ink-dim: #C2B2AC;
+    --ink-mute: #8E7C77;
+    --line: #362B29;
+    --line-soft: #2A2220;
+    --brand: #F0A8B8;
+    --brand-soft: #3A1A22;
+    --accent: #F0835C;
+    --accent-soft: #3A211A;
+  }
+
+  body {
+    background: var(--ground);
+    color: var(--ink);
+    font-family: "Source Sans 3", ui-sans-serif, system-ui, -apple-system, sans-serif;
+    font-size: 16.5px;
+    line-height: 1.62;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .page { max-width: 46rem; margin: 0 auto; padding: 0 1.5rem 5rem; }
+
+  h1, h2, h3, .wordmark {
+    font-family: "Bricolage Grotesque", ui-sans-serif, system-ui, sans-serif;
+    font-weight: 700;
+    text-wrap: balance;
+    line-height: 1.14;
+    letter-spacing: -.018em;
+  }
+
+  p { margin-bottom: .85rem; }
+  p:last-child { margin-bottom: 0; }
+  strong { font-weight: 600; }
+
+  /* ---------------- capa ---------------- */
+
+  .cover {
+    min-height: 92vh;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 1.5rem;
+    padding: 4rem 0;
+  }
+
+  .logo-slot {
+    border: 1.5px dashed var(--line);
+    border-radius: 12px;
+    padding: 2rem 1.5rem;
+    text-align: center;
+    color: var(--ink-mute);
+    font-family: "JetBrains Mono", ui-monospace, monospace;
+    font-size: .74rem;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    max-width: 20rem;
+  }
+
+  .wordmark { font-size: 3rem; color: var(--brand); letter-spacing: -.03em; }
+  .wordmark span { color: var(--accent); }
+
+  .cover h1 { font-size: clamp(2.6rem, 7vw, 4rem); }
+  .cover .sub { font-size: 1.25rem; color: var(--ink-dim); max-width: 34ch; }
+
+  .cover .meta {
+    margin-top: 1.5rem;
+    padding-top: 1.25rem;
+    border-top: 2px solid var(--brand);
+    font-size: .95rem;
+    color: var(--ink-dim);
+  }
+  .cover .meta b { color: var(--ink); font-weight: 600; }
+
+  /* ---------------- sumário ---------------- */
+
+  .toc {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    padding: 1.75rem 2rem;
+    margin-bottom: 3.5rem;
+  }
+  .toc h2 { font-size: 1.15rem; margin-bottom: 1rem; }
+  .toc ol { list-style: none; display: flex; flex-direction: column; gap: .55rem; }
+  .toc li { display: flex; gap: .75rem; align-items: baseline; color: var(--ink-dim); }
+  .toc .n {
+    font-family: "JetBrains Mono", ui-monospace, monospace;
+    font-size: .8rem;
+    color: var(--brand);
+    min-width: 1.4rem;
+  }
+  .toc a { color: var(--ink); text-decoration: none; }
+  .toc a:hover { text-decoration: underline; }
+
+  /* ---------------- capítulos ---------------- */
+
+  .chapter { margin-bottom: 3.5rem; }
+
+  .chapter > h2 {
+    font-size: 1.75rem;
+    padding-bottom: .6rem;
+    border-bottom: 2px solid var(--brand);
+    margin-bottom: 1.5rem;
+    display: flex;
+    align-items: baseline;
+    gap: .8rem;
+  }
+  .chapter > h2 .cn {
+    font-family: "JetBrains Mono", ui-monospace, monospace;
+    font-size: .95rem;
+    color: var(--brand);
+    font-weight: 500;
+  }
+
+  .section { margin-bottom: 2rem; }
+  .section h3 { font-size: 1.2rem; margin-bottom: .6rem; color: var(--ink); }
+  .section p, .section ul { color: var(--ink-dim); }
+  .section ul { padding-left: 1.2rem; display: flex; flex-direction: column; gap: .4rem; margin-bottom: .85rem; }
+  .section li strong { color: var(--ink); }
+
+  .steps { counter-reset: step; list-style: none; padding-left: 0; }
+  .steps li {
+    counter-increment: step;
+    position: relative;
+    padding-left: 2.1rem;
+  }
+  .steps li::before {
+    content: counter(step);
+    position: absolute;
+    left: 0;
+    top: .1rem;
+    width: 1.45rem;
+    height: 1.45rem;
+    border-radius: 50%;
+    background: var(--brand-soft);
+    color: var(--brand);
+    font-family: "JetBrains Mono", ui-monospace, monospace;
+    font-size: .76rem;
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  /* ---------------- figuras ---------------- */
+
+  figure {
+    margin: 1.25rem 0;
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+  figure img {
+    display: block;
+    width: 100%;
+    max-width: 100%;
+    height: auto;
+    border: 1px solid var(--line);
+    border-radius: 10px;
+  }
+  .placeholder {
+    border: 1.5px dashed var(--line);
+    border-radius: 10px;
+    background: var(--surface-sunk);
+    padding: 2.25rem 1.5rem;
+    text-align: center;
+  }
+  .placeholder .tag {
+    font-family: "JetBrains Mono", ui-monospace, monospace;
+    font-size: .68rem;
+    letter-spacing: .13em;
+    text-transform: uppercase;
+    color: var(--accent);
+    display: block;
+    margin-bottom: .4rem;
+  }
+  .placeholder .what { color: var(--ink-dim); font-size: .95rem; }
+  figcaption {
+    font-size: .87rem;
+    color: var(--ink-mute);
+    margin-top: .5rem;
+    text-align: center;
+  }
+
+  /* ---------------- destaques ---------------- */
+
+  .callout {
+    border-left: 3px solid var(--accent);
+    background: var(--accent-soft);
+    border-radius: 0 10px 10px 0;
+    padding: .95rem 1.15rem;
+    margin: 1.1rem 0;
+    color: var(--ink-dim);
+    font-size: .96rem;
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+  .callout b { color: var(--ink); font-weight: 600; }
+  .callout .kind {
+    font-family: "JetBrains Mono", ui-monospace, monospace;
+    font-size: .66rem;
+    letter-spacing: .13em;
+    text-transform: uppercase;
+    color: var(--accent);
+    display: block;
+    margin-bottom: .25rem;
+  }
+
+  .split {
+    display: grid;
+    gap: 1rem;
+    margin: 1.25rem 0;
+  }
+  @media (min-width: 34rem) { .split { grid-template-columns: 1fr 1fr; } }
+  .split > div {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    padding: 1.1rem 1.25rem;
+  }
+  .split h4 {
+    font-family: "Bricolage Grotesque", sans-serif;
+    font-weight: 700;
+    font-size: 1.02rem;
+    margin-bottom: .35rem;
+  }
+  .split p { font-size: .95rem; color: var(--ink-dim); }
+
+  /* ---------------- faq ---------------- */
+
+  .faq { display: flex; flex-direction: column; gap: 1.1rem; }
+  .faq-item { break-inside: avoid; page-break-inside: avoid; }
+  .faq-item h3 { font-size: 1.03rem; margin-bottom: .3rem; }
+  .faq-item p { color: var(--ink-dim); font-size: .96rem; }
+
+  .closing {
+    background: var(--surface-sunk);
+    border-radius: 14px;
+    padding: 1.75rem 2rem;
+    margin-top: 1rem;
+  }
+  .closing h2 { font-size: 1.2rem; margin-bottom: .6rem; }
+  .closing p { color: var(--ink-dim); font-size: .96rem; }
+
+  /* ---------------- impressão ---------------- */
+
+  @media print {
+    @page { size: A4; margin: 16mm 15mm; }
+
+    /* Precisa casar a especificidade do bloco de tema escuro
+       (`:root:not([data-theme="light"])`), senão ele vence na impressão e o
+       guia sai com texto claro sobre papel branco. */
+    :root,
+    :root[data-theme="dark"],
+    :root:not([data-theme="light"]) {
+      --ground: #FFFFFF;
+      --surface: #FFFFFF;
+      --surface-sunk: #F7F1EB;
+      --ink: #17100F;
+      --ink-dim: #453A3C;
+      --ink-mute: #7A6B6E;
+      --line: #DCCFC5;
+      --brand: #5A0E20;
+      --brand-soft: #F6E0E6;
+      --accent: #B8431F;
+      --accent-soft: #FBEDE6;
+    }
+
+    body {
+      background: #FFF;
+      font-size: 10.5pt;
+      line-height: 1.5;
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+    }
+
+    .page { max-width: none; padding: 0; }
+
+    .cover { min-height: auto; height: 240mm; justify-content: center; padding: 0; }
+    .cover, .toc, .chapter { break-after: page; page-break-after: always; }
+    .chapter:last-of-type { break-after: auto; page-break-after: auto; }
+
+    .chapter > h2, .section h3 { break-after: avoid; page-break-after: avoid; }
+    .section { break-inside: avoid-page; }
+
+    a { color: var(--ink); text-decoration: none; }
+    .toc a::after { content: ""; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    * { animation: none !important; transition: none !important; }
+  }
+</style>
+
+<div class="page">
+
+  <!-- ==================== CAPA ==================== -->
+  <header class="cover">
+    <div class="logo-slot">Substituir pelo logotipo da clínica</div>
+    <div class="wordmark">pulso<span>.</span></div>
+    <h1>Guia do Pulso</h1>
+    <p class="sub">Tudo o que você precisa para usar o sistema no dia a dia da sua clínica.</p>
+    <div class="meta">
+      <b>Clínica:</b> _______________________<br>
+      <b>Entregue em:</b> ____ / ____ / ________
+    </div>
+  </header>
+
+  <!-- ==================== SUMÁRIO ==================== -->
+  <nav class="toc">
+    <h2>O que tem neste guia</h2>
+    <ol>
+      <li><span class="n">1</span><a href="#c1">Como o Pulso está organizado</a></li>
+      <li><span class="n">2</span><a href="#c2">Entrar no sistema</a></li>
+      <li><span class="n">3</span><a href="#c3">Dashboard: como foi o período</a></li>
+      <li><span class="n">4</span><a href="#c4">Preparar a clínica</a></li>
+      <li><span class="n">5</span><a href="#c5">A agenda no dia a dia</a></li>
+      <li><span class="n">6</span><a href="#c6">Durante o atendimento</a></li>
+      <li><span class="n">7</span><a href="#c7">A farmácia confere a receita</a></li>
+      <li><span class="n">8</span><a href="#c8">Ganhar tempo com modelos</a></li>
+      <li><span class="n">9</span><a href="#c9">Dúvidas frequentes</a></li>
+    </ol>
+  </nav>
+
+  <!-- ==================== 1 ==================== -->
+  <section class="chapter" id="c1">
+    <h2><span class="cn">01</span>Como o Pulso está organizado</h2>
+
+    <div class="section">
+      <h3>Você é administradora e médica</h3>
+      <p>O Pulso separa duas perguntas que outros sistemas costumam misturar: <strong>o que você administra</strong> e <strong>o que você exerce</strong>.</p>
+      <div class="split">
+        <div>
+          <h4>Como administradora</h4>
+          <p>Cadastra pacientes, usuários e profissionais, configura agendas e enxerga a clínica inteira.</p>
+        </div>
+        <div>
+          <h4>Como médica</h4>
+          <p>Atende, preenche prontuário e emite receita, atestado e pedido de exame — nas suas consultas.</p>
+        </div>
+      </div>
+      <p>São dois eixos, não um. Você não precisa escolher entre administrar e atender.</p>
+      <div class="callout">
+        <span class="kind">Importante</span>
+        <b>Emitir um documento exige ser a profissional daquela consulta.</b> Isso vale inclusive para você como administradora: não é possível emitir receita numa consulta de outro profissional, porque o documento sai com o nome e o registro de quem assinou.
+      </div>
+    </div>
+
+    <div class="section">
+      <h3>O menu da esquerda</h3>
+      <p>Tudo no Pulso está no menu lateral, e ele não muda de lugar.</p>
+      <ul>
+        <li><strong>Dashboard</strong> — o resumo do período</li>
+        <li><strong>Pacientes</strong> — o cadastro de quem você atende</li>
+        <li><strong>Profissionais</strong> — quem atende na clínica</li>
+        <li><strong>Usuários</strong> — quem acessa o sistema</li>
+        <li><strong>Agendas</strong> — os horários em que cada profissional atende</li>
+        <li><strong>Consultas</strong> — a agenda do dia a dia</li>
+        <li><strong>Modelos de prontuário</strong> e <strong>Modelos de receita</strong> — o que você monta uma vez e reaproveita sempre</li>
+      </ul>
+      <figure>
+        <div class="placeholder"><span class="tag">Print</span><span class="what">Tela do dashboard com o menu lateral inteiro visível</span></div>
+        <figcaption>O menu lateral, sempre no mesmo lugar.</figcaption>
+      </figure>
+      <p>O menu muda conforme o perfil de quem entrou. A recepcionista, por exemplo, não vê Agendas nem os modelos.</p>
+    </div>
+  </section>
+
+  <!-- ==================== 2 ==================== -->
+  <section class="chapter" id="c2">
+    <h2><span class="cn">02</span>Entrar no sistema</h2>
+
+    <div class="section">
+      <p>Sua clínica tem o próprio endereço no Pulso, e a tela de login já traz o logotipo dela. Vale salvar nos favoritos do navegador.</p>
+      <figure>
+        <div class="placeholder"><span class="tag">Print</span><span class="what">Tela de login com a barra de endereço visível</span></div>
+        <figcaption>O endereço da sua clínica.</figcaption>
+      </figure>
+      <p>No topo à direita de qualquer tela ficam dois botões: o de <strong>tema claro e escuro</strong> e o <strong>menu do usuário</strong>, por onde você chega ao seu próprio cadastro e à saída do sistema.</p>
+      <div class="callout">
+        <span class="kind">Dica</span>
+        Se você ficar muito tempo sem mexer, o sistema pede o login de novo. Isso é <b>proteção, não erro</b> — evita que a sua sessão fique aberta num computador do consultório.
+      </div>
+    </div>
+  </section>
+
+  <!-- ==================== 3 ==================== -->
+  <section class="chapter" id="c3">
+    <h2><span class="cn">03</span>Dashboard: como foi o período</h2>
+
+    <div class="section">
+      <p>A primeira tela responde a uma pergunta só: como foi o período.</p>
+      <ul>
+        <li>No alto, quatro números: <strong>agendados, confirmados, atendidos</strong> e <strong>faltas</strong></li>
+        <li>Abaixo, o perfil dos pacientes, os procedimentos por especialidade, a divisão entre particular e convênio, e os aniversariantes do dia</li>
+        <li>Ao fim, o gráfico de atendimentos ao longo do período</li>
+      </ul>
+      <p>O período se ajusta nos campos <strong>De</strong> e <strong>até</strong>, no canto superior direito.</p>
+      <figure>
+        <div class="placeholder"><span class="tag">Print</span><span class="what">Dashboard completo, com números e gráfico preenchidos</span></div>
+        <figcaption>O resumo do período escolhido.</figcaption>
+      </figure>
+    </div>
+  </section>
+
+  <!-- ==================== 4 ==================== -->
+  <section class="chapter" id="c4">
+    <h2><span class="cn">04</span>Preparar a clínica</h2>
+    <p style="color: var(--ink-dim); margin-bottom: 1.5rem;">Quatro cadastros que você faz uma vez. Depois deles, o sistema está pronto para receber atendimento.</p>
+
+    <div class="section">
+      <h3>Profissionais</h3>
+      <p>Quem atende na clínica. Cada profissional tem <strong>conselho e registro</strong> — CRM, CRN, CREFITO, CRP, entre outros — e, no caso dos médicos, <strong>especialidades</strong>.</p>
+      <p>É esse cadastro, e não o cargo no sistema, que permite emitir receita, atestado e pedido de exame.</p>
+      <figure>
+        <div class="placeholder"><span class="tag">Print</span><span class="what">Formulário de profissional com conselho, registro e especialidade</span></div>
+        <figcaption>O cadastro que habilita a emissão de documentos.</figcaption>
+      </figure>
+    </div>
+
+    <div class="section">
+      <h3>Usuários</h3>
+      <p>Usuário é quem entra no sistema. Há três perfis:</p>
+      <ul>
+        <li><strong>Administrador</strong> — acesso completo à clínica</li>
+        <li><strong>Profissional</strong> — a própria agenda e as próprias consultas</li>
+        <li><strong>Recepcionista</strong> — consulta pacientes, profissionais e a agenda, sem alterar</li>
+      </ul>
+      <div class="callout">
+        <span class="kind">Atenção</span>
+        A recepcionista <b>não cadastra nem edita paciente</b> — isso é da administradora. É a diferença que mais surpreende quem vem de outro sistema.
+      </div>
+      <figure>
+        <div class="placeholder"><span class="tag">Print</span><span class="what">Formulário de usuário aberto no seletor de perfil de acesso</span></div>
+        <figcaption>O perfil define o que a pessoa enxerga.</figcaption>
+      </figure>
+    </div>
+
+    <div class="section">
+      <h3>Agendas</h3>
+      <p>Antes de agendar qualquer paciente, o sistema precisa saber <strong>quando você atende</strong>. Para cada dia da semana você informa:</p>
+      <ul>
+        <li>hora de início</li>
+        <li>hora de fim</li>
+        <li><strong>duração da consulta</strong></li>
+      </ul>
+      <p>O Pulso divide esse período em horários, e é isso que aparece na tela de Consultas.</p>
+      <div class="callout">
+        <span class="kind">Importante</span>
+        <b>Sem agenda cadastrada não existe horário para agendar.</b> Se a tela de Consultas aparecer vazia, quase sempre é isto — e não um defeito.
+      </div>
+      <figure>
+        <div class="placeholder"><span class="tag">Print</span><span class="what">Formulário de agenda com dia, horários e duração preenchidos</span></div>
+        <figcaption>Os horários de atendimento de cada profissional.</figcaption>
+      </figure>
+    </div>
+
+    <div class="section">
+      <h3>Pacientes</h3>
+      <p>O cadastro de quem você atende: dados de contato, nascimento e CPF.</p>
+      <p>Um paciente pode ser cadastrado como <strong>dependente</strong> de outro — filho, cônjuge — e nesse caso o <strong>CPF deixa de ser obrigatório</strong>. É o que resolve recém-nascido e criança que ainda não tem documento.</p>
+      <figure>
+        <div class="placeholder"><span class="tag">Print</span><span class="what">Formulário de paciente mostrando o vínculo de dependente</span></div>
+        <figcaption>Dependente vinculado a um titular.</figcaption>
+      </figure>
+      <div class="callout">
+        <span class="kind">Dica</span>
+        Na rotina, use a <b>busca por nome</b> no alto da lista. É bem mais rápido do que rolar a página.
+      </div>
+    </div>
+  </section>
+
+  <!-- ==================== 5 ==================== -->
+  <section class="chapter" id="c5">
+    <h2><span class="cn">05</span>A agenda no dia a dia</h2>
+
+    <div class="section">
+      <h3>A tela de Consultas</h3>
+      <p>É a tela que você vai abrir todo dia. Ela já abre na sua própria agenda — você não precisa se escolher numa lista.</p>
+      <ul>
+        <li>Alterne entre <strong>Dia</strong> e <strong>Semana</strong> nos botões à direita</li>
+        <li>Ande no tempo com as setas, e volte com <strong>Hoje</strong></li>
+        <li>Horário livre aparece como <em>"Livre — clique para agendar"</em>; horário ocupado mostra o nome do paciente</li>
+      </ul>
+      <figure>
+        <div class="placeholder"><span class="tag">Print</span><span class="what">Agenda em visão de Semana, com horários livres, ocupados e um bloqueio</span></div>
+        <figcaption>A agenda da semana.</figcaption>
+      </figure>
+    </div>
+
+    <div class="section">
+      <h3>Agendar uma consulta</h3>
+      <ol class="steps">
+        <li>Clique no horário livre desejado</li>
+        <li>Escolha o paciente</li>
+        <li>Confirme</li>
+      </ol>
+      <p>A duração vem da agenda que você cadastrou — não é preciso digitar horário de término.</p>
+    </div>
+
+    <div class="section">
+      <h3>Bloquear um horário</h3>
+      <p>Congresso, férias, um almoço mais longo: use <strong>Bloquear horário</strong>, no canto superior direito da agenda. O período bloqueado deixa de aceitar agendamento.</p>
+    </div>
+
+    <div class="section">
+      <h3>A consulta por dentro</h3>
+      <p>Clicar na consulta abre um resumo rápido. <strong>Ir para a consulta</strong> abre a tela completa, que traz no topo o profissional, a especialidade, a data e o horário, e três ações: <strong>Preencher prontuário</strong>, <strong>Cancelar consulta</strong> e <strong>Concluir</strong>.</p>
+      <p>Logo abaixo ficam as abas do atendimento: <strong>Resumo, Prontuário, Receitas, Atestados, Exames</strong> e <strong>Fotos</strong>.</p>
+      <figure>
+        <div class="placeholder"><span class="tag">Print</span><span class="what">Tela da consulta na aba Resumo, com as abas e os três botões visíveis</span></div>
+        <figcaption>O centro do atendimento.</figcaption>
+      </figure>
+      <div class="callout">
+        <span class="kind">Importante</span>
+        <b>Concluir a consulta fecha o prontuário para edição.</b> Conclua quando terminar de escrever, não quando o paciente sair da sala.
+      </div>
+    </div>
+  </section>
+
+  <!-- ==================== 6 ==================== -->
+  <section class="chapter" id="c6">
+    <h2><span class="cn">06</span>Durante o atendimento</h2>
+
+    <div class="section">
+      <h3>Prontuário</h3>
+      <p>Cada consulta tem um prontuário, com os campos do <strong>modelo</strong> da especialidade daquele atendimento. O histórico do paciente reúne os prontuários anteriores e fica acessível pela ficha dele.</p>
+      <figure>
+        <div class="placeholder"><span class="tag">Print</span><span class="what">Aba Prontuário preenchida</span></div>
+        <figcaption>O prontuário da consulta.</figcaption>
+      </figure>
+    </div>
+
+    <div class="section">
+      <h3>Receita</h3>
+      <ol class="steps">
+        <li>Abra a aba <strong>Receitas</strong> e clique em <strong>+ Nova receita</strong></li>
+        <li>Busque e selecione os medicamentos</li>
+        <li>Informe a posologia</li>
+        <li>Emita</li>
+      </ol>
+      <p>Cada receita emitida pode ser <strong>visualizada</strong> ou <strong>baixada em PDF</strong>, para imprimir ou enviar ao paciente.</p>
+      <div class="callout">
+        <span class="kind">Dica</span>
+        A base de medicamentos vem da <b>ANVISA</b> — por isso a busca encontra praticamente qualquer apresentação registrada no país.
+      </div>
+      <figure>
+        <div class="placeholder"><span class="tag">Print</span><span class="what">Aba Receitas com uma receita emitida: Visualizar, Baixar PDF e Excluir</span></div>
+        <figcaption>Receitas emitidas nesta consulta.</figcaption>
+      </figure>
+    </div>
+
+    <div class="section">
+      <h3>Atestado e pedido de exames</h3>
+      <p>Seguem a mesma lógica da receita, cada um em sua aba: emitir, visualizar e baixar em PDF.</p>
+      <p>No pedido de exames é possível <strong>anexar o resultado</strong> quando o laboratório devolver, e ele fica guardado junto da consulta.</p>
+    </div>
+
+    <div class="section">
+      <h3>Fotos</h3>
+      <p>Imagens anexadas ao atendimento, organizadas por data de envio. A ficha do paciente reúne as fotos de todas as consultas dele, o que ajuda a acompanhar evolução ao longo do tempo.</p>
+      <div class="callout">
+        <span class="kind">Privacidade</span>
+        Cada profissional vê apenas as fotos das <b>próprias</b> consultas, mesmo quando se trata do mesmo paciente.
+      </div>
+    </div>
+  </section>
+
+  <!-- ==================== 7 ==================== -->
+  <section class="chapter" id="c7">
+    <h2><span class="cn">07</span>A farmácia confere a receita</h2>
+
+    <div class="section">
+      <p>Toda receita emitida no Pulso sai com um <strong>QR Code</strong> no rodapé.</p>
+      <p>A farmácia lê esse código e o sistema confirma que a receita é autêntica, mostrando a clínica, o profissional, o registro dele e os medicamentos prescritos.</p>
+      <p>Nenhum outro dado clínico é exposto, e o nome e o CPF do paciente aparecem <strong>mascarados</strong>.</p>
+      <p>É o que impede que um PDF adulterado passe por receita sua.</p>
+      <figure>
+        <div class="placeholder"><span class="tag">Print</span><span class="what">Rodapé do PDF com o QR Code e a tela de verificação aberta</span></div>
+        <figcaption>Verificação pública da receita.</figcaption>
+      </figure>
+    </div>
+  </section>
+
+  <!-- ==================== 8 ==================== -->
+  <section class="chapter" id="c8">
+    <h2><span class="cn">08</span>Ganhar tempo com modelos</h2>
+    <p style="color: var(--ink-dim); margin-bottom: 1.5rem;">Duas telas, a mesma ideia: monte uma vez, reaproveite sempre.</p>
+
+    <div class="section">
+      <h3>Modelos de prontuário</h3>
+      <p>Em vez de escrever do zero a cada atendimento, você monta uma vez os campos que sempre preenche. O modelo pode ser <strong>por especialidade</strong> ou <strong>geral para a profissão</strong>. Ao abrir o prontuário, os campos já estão lá.</p>
+      <figure>
+        <div class="placeholder"><span class="tag">Print</span><span class="what">Construtor de modelo de prontuário com campos montados</span></div>
+        <figcaption>Os campos que você define uma vez.</figcaption>
+      </figure>
+    </div>
+
+    <div class="section">
+      <h3>Modelos de receita</h3>
+      <p>A mesma ideia para o receituário: as combinações de medicamentos que você repete toda semana, salvas com um nome.</p>
+      <p>Não é um documento emitido — é um rascunho reutilizável, sem paciente e sem assinatura, até você usá-lo numa consulta.</p>
+      <figure>
+        <div class="placeholder"><span class="tag">Print</span><span class="what">Lista de modelos de receita com o botão + Novo modelo</span></div>
+        <figcaption>Seu receituário pré-montado.</figcaption>
+      </figure>
+    </div>
+  </section>
+
+  <!-- ==================== 9 ==================== -->
+  <section class="chapter" id="c9">
+    <h2><span class="cn">09</span>Dúvidas frequentes</h2>
+
+    <div class="faq">
+      <div class="faq-item">
+        <h3>A agenda está vazia, sem nenhum horário</h3>
+        <p>Quase sempre falta cadastrar a agenda daquele profissional em <strong>Agendas</strong>. Sem horário de atendimento definido, não há horário para agendar.</p>
+      </div>
+      <div class="faq-item">
+        <h3>Não consigo mais editar o prontuário</h3>
+        <p>A consulta já foi concluída. Concluir fecha o prontuário para edição — é o que garante que o registro não muda depois de encerrado o atendimento.</p>
+      </div>
+      <div class="faq-item">
+        <h3>O sistema me pediu login de novo no meio do dia</h3>
+        <p>A sessão expira após um tempo sem uso. É proteção, e basta entrar novamente.</p>
+      </div>
+      <div class="faq-item">
+        <h3>Sou administradora, por que não consigo emitir receita nesta consulta?</h3>
+        <p>Porque a consulta é de outro profissional. O documento sai com o nome e o registro de quem assina, então só a profissional daquele atendimento pode emiti-lo.</p>
+      </div>
+      <div class="faq-item">
+        <h3>A recepcionista não consegue cadastrar um paciente</h3>
+        <p>Correto: cadastrar, editar e excluir paciente são ações da administradora. A recepcionista consulta a lista e a agenda, sem alterar.</p>
+      </div>
+      <div class="faq-item">
+        <h3>Não vejo as fotos que outro profissional anexou</h3>
+        <p>Cada profissional vê apenas as fotos das próprias consultas, mesmo sendo o mesmo paciente. É privacidade entre colegas.</p>
+      </div>
+    </div>
+
+    <div class="closing">
+      <h2>Precisa de ajuda?</h2>
+      <p>Fale com o suporte por _______________________.</p>
+      <p>Ao relatar um problema, diga em que tela estava e o que tentou fazer — isso costuma resolver em uma mensagem só.</p>
+    </div>
+  </section>
+
+</div>
