@@ -19,6 +19,7 @@ function makePatient(overrides: Partial<IAppointmentPatientModel> = {}): IAppoin
 
 const defaultProps = {
   patient: makePatient(),
+  patientId: 'patient-uuid',
   prescriptionCount: 2,
   showPrescriptions: true,
   certificateCount: 1,
@@ -151,5 +152,14 @@ describe('ResumoTab', () => {
     renderWithProviders(<ResumoTab {...defaultProps} onNavigate={onNavigate} />)
     await userEvent.click(screen.getByTestId('resumo-tab-exames'))
     expect(onNavigate).toHaveBeenCalledWith('exames')
+  })
+
+  // O profissional não acessa a lista de pacientes, onde este mesmo link existe
+  // para ADMIN e recepção. Aqui é a única porta dele para o histórico.
+  it('links to the appointment history of this patient', () => {
+    renderWithProviders(<ResumoTab {...defaultProps} />)
+
+    const link = screen.getByTestId('resumo-tab-patient-appointments-link')
+    expect(link).toHaveAttribute('href', expect.stringContaining('/patients/patient-uuid/appointments'))
   })
 })

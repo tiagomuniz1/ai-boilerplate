@@ -132,6 +132,8 @@ Isso existe porque quem é dono da clínica com frequência também atende. Um �
 | Concluir | ✓ qualquer | só a própria | ✗ | ✗ |
 | Ver disponibilidade | ✓ | ✓ própria | ✓ | ✗ |
 
+> **Histórico por paciente** (`GET /appointments?patientId=`): ADMIN e USER veem as consultas de todos os profissionais e podem filtrar por um; PROFESSIONAL recebe apenas as próprias, por recorte do servidor — o seletor nem lhe é oferecido. ADMIN e recepção chegam pela listagem de pacientes; o profissional, pelo link na própria consulta, já que não acessa aquela listagem.
+
 > PROFESSIONAL que cria uma consulta usa o próprio `professionalId` (via `userId`). ADMIN deve informar `professionalId` no body. Slot é derivado da configuração de agenda — cliente envia apenas `date` + `startTime`. Concluir rejeita consultas futuras.
 
 ---
