@@ -1,5 +1,15 @@
 # Changelog — Frontend
 
+## [1.6.0] - 2026-09-03
+
+### Added
+
+#### Consultas de um paciente
+- Tela nova em `/patients/:id/appointments`, com as consultas daquele paciente **da mais recente para a mais antiga** — data, horário, profissional, especialidade e status, cada linha abrindo a consulta
+- Antes não havia onde ver isso. A ficha do paciente mostra o **histórico de prontuários**, que é outra coisa: consulta cancelada, com falta, ou que ninguém chegou a preencher não aparece ali
+- **ADMIN e recepção** chegam pelo link "Consultas" na listagem de pacientes e veem todos os profissionais, com filtro por um deles. **O profissional** chega pelo link na própria consulta — ele não acessa a listagem de pacientes — e recebe apenas as próprias, por recorte do servidor; o seletor nem lhe é oferecido
+- Sem mudança no backend: `GET /appointments` já aceitava `patientId`, já ordenava por data decrescente e já restringia o profissional. O parâmetro existia até no service do frontend — faltava a tela que o usasse
+
 ## [1.5.3] - 2026-09-01
 
 ### Fixed

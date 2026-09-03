@@ -1,6 +1,8 @@
 'use client'
 
+import Link from 'next/link'
 import { PatientGender } from '@app/shared'
+import { useBasePath } from '@/lib/slug-context'
 import { formatPhone } from '@/lib/format-phone'
 import { formatCpf } from '@/lib/format-cpf'
 import { calculateAge } from '@/lib/calculate-age'
@@ -72,6 +74,8 @@ function DocumentRow({
 
 interface ResumoTabProps {
   patient: IAppointmentPatientModel
+  /** Usado no link para o histórico de consultas deste paciente. */
+  patientId: string
   prescriptionCount?: number
   showPrescriptions: boolean
   certificateCount?: number
@@ -85,6 +89,7 @@ interface ResumoTabProps {
 
 export function ResumoTab({
   patient,
+  patientId,
   prescriptionCount,
   showPrescriptions,
   certificateCount,
@@ -95,6 +100,7 @@ export function ResumoTab({
   showPhotos,
   onNavigate,
 }: ResumoTabProps) {
+  const basePath = useBasePath()
   const birthDateFormatted = patient.birthDate.toLocaleDateString('pt-BR', {
     day: '2-digit',
     month: 'long',
@@ -105,7 +111,18 @@ export function ResumoTab({
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-4" data-testid="resumo-tab">
       <div className="lg:col-span-2 rounded-xl border border-border bg-surface p-5" data-testid="patient-info-card">
-        <h2 className="text-base font-semibold text-text mb-4">Dados do Paciente</h2>
+        <div className="mb-4 flex items-baseline justify-between gap-4">
+          <h2 className="text-base font-semibold text-text">Dados do Paciente</h2>
+          {/* Única porta do profissional para o histórico: ele não acessa a
+              lista de pacientes, onde o mesmo link existe para ADMIN e recepção. */}
+          <Link
+            href={`${basePath}/patients/${patientId}/appointments`}
+            data-testid="resumo-tab-patient-appointments-link"
+            className="text-sm text-accent hover:underline"
+          >
+            Ver consultas deste paciente
+          </Link>
+        </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <DetailRow label="Nome" value={patient.fullName} testId="patient-info-name" />
           <DetailRow label="E-mail" value={patient.email} testId="patient-info-email" />

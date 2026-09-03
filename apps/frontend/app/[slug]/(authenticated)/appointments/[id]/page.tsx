@@ -216,6 +216,7 @@ export default function AppointmentDetailPage() {
               {activeTab === 'resumo' && (
                 <ResumoTab
                   patient={appointment.patient}
+                  patientId={appointment.patientId}
                   prescriptionCount={canManage ? (prescriptions?.length ?? 0) : undefined}
                   showPrescriptions={canManage}
                   certificateCount={canManage ? (atestados?.length ?? 0) : undefined}

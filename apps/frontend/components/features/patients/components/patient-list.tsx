@@ -215,6 +215,13 @@ export function PatientList() {
                           </>
                         )}
                         <Link
+                          href={`${basePath}/patients/${patient.id}/appointments`}
+                          data-testid={`patient-appointments-link-${patient.id}`}
+                          className="text-xs text-text-mute hover:text-text transition-colors"
+                        >
+                          Consultas
+                        </Link>
+                        <Link
                           href={`${basePath}/patients/${patient.id}`}
                           data-testid={`patient-view-link-${patient.id}`}
                           className="flex items-center justify-center rounded-md p-1.5 text-text-mute transition-colors hover:bg-line hover:text-text"
@@ -279,6 +286,13 @@ export function PatientList() {
                         </Link>
                       </>
                     )}
+                    <Link
+                      href={`${basePath}/patients/${patient.id}/appointments`}
+                      data-testid={`patient-card-appointments-link-${patient.id}`}
+                      className="text-xs text-text-mute hover:text-text transition-colors"
+                    >
+                      Consultas
+                    </Link>
                     <Link
                       href={`${basePath}/patients/${patient.id}`}
                       data-testid={`patient-card-view-link-${patient.id}`}
