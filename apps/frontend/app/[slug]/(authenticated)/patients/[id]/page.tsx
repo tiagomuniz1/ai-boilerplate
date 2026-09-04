@@ -15,6 +15,7 @@ import { useDeletePatient } from '@/components/features/patients/hooks/use-delet
 import { PatientMedicalHistory } from '@/components/features/medical-records/components/patient-medical-history'
 import { PatientPhotoGallery } from '@/components/features/consultation-photos/components/patient-photo-gallery'
 import { VaccinationHistory } from '@/components/features/vaccinations/components/vaccination-history'
+import { VaccineStatusPanel } from '@/components/features/vaccine-schedules/components/vaccine-status-panel'
 import { useAuthStore } from '@/stores/auth.store'
 
 export default function PatientDetailsPage() {
@@ -95,7 +96,13 @@ export default function PatientDetailsPage() {
               recepção não a lê. O componente traz o próprio título. */}
           {canSeeMedicalHistory && (
             <section className="mt-8" data-testid="patient-vaccinations-section">
-              <VaccinationHistory patientId={id} />
+              {/* A situação vem antes da caderneta: responde "o que falta", que
+                  é a pergunta que se faz na consulta. A caderneta responde "o
+                  que já tomou". */}
+              <VaccineStatusPanel patientId={id} />
+              <div className="mt-8">
+                <VaccinationHistory patientId={id} />
+              </div>
             </section>
           )}
         </>

@@ -1,5 +1,16 @@
 # Changelog — Frontend
 
+## [1.8.0] - 2026-09-04
+
+### Added
+
+#### Situação vacinal na ficha do paciente
+- Painel com o que falta pelo calendário, ordenado pelo que precisa ser olhado primeiro: fora da janela, pendente, ainda não devida, em dia, não se aplica
+- **A linguagem é de sugestão, não de ordem** — "pendente pelo calendário", nunca "em atraso", com o aviso permanente de que a conduta é do profissional. O sistema informa, não prescreve
+- **Registrar conduta**: confirmar, adiar ou dispensar, com motivo obrigatório nos dois últimos. O motivo e quem decidiu ficam visíveis na própria linha
+- Registrar conduta depende da **ficha**, como registrar uma dose
+- **Tela do calendário no backoffice** para o PLATFORM_ADMIN, com filtro por vacina e janela etária legível
+
 ## [1.7.0] - 2026-09-04
 
 ### Added

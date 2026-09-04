@@ -249,6 +249,29 @@ export const NAVIGATION_ITEMS: INavigationItem[] = [
     ),
   },
   {
+    id: 'vaccine-schedules',
+    label: 'Calendário vacinal',
+    href: '/vaccine-schedules',
+    requiredRoles: [UserRole.PLATFORM_ADMIN],
+    icon: (
+      <svg
+        xmlns="http://www.w3.org/2000/svg"
+        width={18}
+        height={18}
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth={2}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      >
+        <rect x="3" y="4" width="18" height="18" rx="2" />
+        <path d="M16 2v4M8 2v4M3 10h18" />
+        <path d="m9 16 2 2 4-4" />
+      </svg>
+    ),
+  },
+  {
     id: 'medical-record-templates',
     label: 'Modelos de prontuário',
     href: '/medical-record-templates',

@@ -1,5 +1,16 @@
 # Changelog — Backend
 
+## [1.7.0] - 2026-09-04
+
+### Added
+
+#### Calendário vacinal e o que falta a cada paciente
+- `GET /vaccine-schedules/patients/:id` — a situação vacinal: por vacina, se está em dia, pendente, fora da janela, ainda não devida ou dispensada, com a próxima dose e a data a partir da qual ela é devida
+- `GET/POST/PATCH/DELETE /vaccine-schedules/rules` — o calendário, curado pelo PLATFORM_ADMIN e **editável no backoffice**: quando o Ministério muda o esquema, a correção é curadoria, não deploy. Seed com 29 regras do Calendário Nacional
+- `POST /vaccine-schedules/decisions` — a conduta do profissional sobre uma pendência. **Dispensar e adiar exigem motivo**; confirmar não, porque é só reconhecer o calendário
+- O cálculo vive numa **função pura sem I/O** (`evaluate-vaccine-schedule`), com 25 testes: é a peça que faz afirmação clínica e precisa ser testável exaustivamente. O use-case só orquestra
+- O cache da situação carrega o **dia na chave**: a idade do paciente avança à meia-noite sem nada acontecer no sistema
+
 ## [1.6.0] - 2026-09-04
 
 ### Added

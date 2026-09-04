@@ -238,6 +238,28 @@ O registro do que o paciente já tomou. **Ancorada no paciente, não na consulta
 
 ---
 
+
+## Calendário Vacinal (`/vaccine-schedules`)
+
+O esquema que o sistema usa para dizer o que falta, e a conduta que o profissional registra sobre cada pendência.
+
+| Ação | PLATFORM_ADMIN | ADMIN | PROFESSIONAL | USER | PATIENT |
+|---|:---:|:---:|:---:|:---:|:---:|
+| Listar regras do calendário | ✓ | ✓ (leitura) | ✓ (leitura) | ✗ | ✗ |
+| Criar / editar / excluir regra | ✓ | ✗ | ✗ | ✗ | ✗ |
+| Ver a situação vacinal de um paciente | ✗ | ✓ | ✓ | ✗ | ✗ |
+| Registrar conduta sobre uma pendência | ✗ | ✓ **se tiver ficha** | ✓ | ✗ | ✗ |
+
+> **O sistema informa, não prescreve.** Ele diz "pendente pelo calendário" e a palavra final é de quem atende — registrada como conduta, com o motivo. Dispensar e adiar **exigem motivo**; confirmar não, porque é só reconhecer o que o calendário disse. Sem isso, contraindicação e esquema especial virariam alerta permanente e errado na tela da paciente.
+
+> **Registrar conduta é ato clínico e depende da ficha**, como registrar uma dose. Cargo administrativo sozinho não decide sobre esquema vacinal.
+
+> O calendário é curadoria da plataforma e **editável no backoffice**: quando o Ministério muda o esquema, a correção é curadoria, não deploy. Regra de vacina desativada sai do cálculo — senão o sistema cobraria dose de algo que saiu do catálogo.
+
+> Uma regra com recorte de sexo simplesmente **não existe** para quem está fora dele: é ausência de dever, não "não se aplica". A vacina nem aparece na lista.
+
+---
+
 ## Prontuários (`/medical-records`)
 
 | Ação | ADMIN | PROFESSIONAL | USER | PATIENT |

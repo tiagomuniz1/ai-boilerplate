@@ -31,5 +31,7 @@ import { UpdateVaccinationUseCase } from './use-cases/update-vaccination.use-cas
     DeleteVaccinationUseCase,
     { provide: IVaccinationsRepository, useClass: VaccinationsRepository },
   ],
+  // O motor de status precisa das doses registradas para dizer o que falta.
+  exports: [IVaccinationsRepository],
 })
 export class VaccinationsModule {}
