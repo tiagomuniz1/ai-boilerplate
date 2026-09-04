@@ -31,7 +31,7 @@ O `role` responde **o que a pessoa administra**. A **ficha de profissional** (`p
 | | Vem de | Decide |
 |---|---|---|
 | **Escopo** | `role` | Vê tudo (ADMIN) ou só o próprio (PROFESSIONAL) |
-| **Exercício** | ficha de profissional | Pode emitir receita, atestado e pedido de exame, e enviar foto |
+| **Exercício** | ficha de profissional | Pode emitir receita, atestado, pedido de exame e indicação de vacina; registrar dose e conduta vacinal; e enviar foto |
 
 Isso existe porque quem é dono da clínica com frequência também atende. Um único `role` obrigava a escolher: como ADMIN ela administrava mas não emitia nada; como PROFESSIONAL ela atendia mas não cadastrava paciente nem usuário.
 
@@ -42,7 +42,9 @@ Isso existe porque quem é dono da clínica com frequência também atende. Um �
 
 **Ter um modelo de receita também é exercício**, e segue o mesmo eixo: quem cadastra um modelo é quem tem ficha, não quem tem cargo (ver "Modelos de Receita").
 
-**Emitir exige ser o profissional da consulta, para qualquer role** — inclusive ADMIN. O documento carrega um snapshot de assinatura (nome, conselho, registro) e um `verification_token` que a farmácia confere num endpoint público; emitir sobre consulta alheia produziria documento verificável atestando registro de outra pessoa. **Ver e excluir** documento continuam administrativos: ADMIN irrestrito na clínica.
+**Emitir exige ser o profissional da consulta, para qualquer role** — inclusive ADMIN. Todo documento sai com um snapshot de assinatura (nome, conselho, registro), e emitir sobre consulta alheia poria o registro de uma pessoa num documento que ela não redigiu. A receita acrescenta a isso um `verification_token` que a farmácia confere num endpoint público, o que agrava a consequência mas não é a origem da regra — ela vale igual para atestado, pedido de exame e indicação de vacina, que não têm QR. **Ver e excluir** documento continuam administrativos: ADMIN irrestrito na clínica.
+
+> **Registrar dose e registrar conduta vacinal são exercício, mas não exigem posse do atendimento.** Não há assinatura em jogo: a caderneta frequentemente transcreve dose aplicada anos atrás noutro serviço, e a conduta é sobre o paciente, não sobre uma consulta.
 
 ---
 
