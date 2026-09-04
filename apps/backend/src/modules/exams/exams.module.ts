@@ -24,7 +24,7 @@ import { IExamRequestsRepository } from './repositories/exam-requests.repository
 import { ExamRequestsRepository } from './repositories/exam-requests.repository'
 import { IExamResultsRepository } from './repositories/exam-results.repository.interface'
 import { ExamResultsRepository } from './repositories/exam-results.repository'
-import { LogoFetcherService } from './services/logo-fetcher.service'
+import { LogoFetcherService } from '../../common/services/logo-fetcher.service'
 import { ExamRequestPdfBuilderService } from './services/exam-request-pdf-builder.service'
 
 @Module({

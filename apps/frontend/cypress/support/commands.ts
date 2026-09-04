@@ -148,6 +148,12 @@ interface CreateMedicationInput {
   activeIngredient?: string
 }
 
+interface CreateVaccineInput {
+  name: string
+  abbreviation?: string | null
+  preventedDiseases?: string | null
+}
+
 interface CreateCanonicalFieldInput {
   canonicalKey: string
   label: string
@@ -191,6 +197,8 @@ declare global {
       createMedicalRecordViaApi(input: CreateMedicalRecordInput, accessToken: string): Chainable<{ id: string }>
       createMedicationViaApi(input: CreateMedicationInput, accessToken: string): Chainable<{ id: string; name: string }>
       deleteMedicationViaApi(id: string, accessToken?: string): Chainable<void>
+      createVaccineViaApi(input: CreateVaccineInput, accessToken: string): Chainable<{ id: string; name: string }>
+      deleteVaccineViaApi(id: string, accessToken?: string): Chainable<void>
       createCanonicalFieldViaApi(input: CreateCanonicalFieldInput, accessToken: string): Chainable<{ id: string; canonicalKey: string; label: string }>
       stubAppointmentDetailWidgets(overrides?: AppointmentDetailWidgetStubs): Chainable<void>
       stubPatientDetailWidgets(overrides?: PatientDetailWidgetStubs): Chainable<void>
@@ -679,6 +687,25 @@ Cypress.Commands.add('deleteMedicationViaApi', (id: string, accessToken?: string
   cy.request({
     method: 'DELETE',
     url: `${Cypress.env('API_URL')}/medications/${id}`,
+    failOnStatusCode: false,
+    headers: accessToken ? { Authorization: `Bearer ${accessToken}` } : {},
+  })
+})
+
+// O catálogo de vacinas é do PLATFORM_ADMIN — passe um platformAdminToken.
+Cypress.Commands.add('createVaccineViaApi', (input: CreateVaccineInput, accessToken: string) => {
+  cy.request({
+    method: 'POST',
+    url: `${Cypress.env('API_URL')}/vaccines`,
+    body: input,
+    headers: { Authorization: `Bearer ${accessToken}` },
+  }).then((response) => ({ id: response.body.id as string, name: response.body.name as string }))
+})
+
+Cypress.Commands.add('deleteVaccineViaApi', (id: string, accessToken?: string) => {
+  cy.request({
+    method: 'DELETE',
+    url: `${Cypress.env('API_URL')}/vaccines/${id}`,
     failOnStatusCode: false,
     headers: accessToken ? { Authorization: `Bearer ${accessToken}` } : {},
   })

@@ -6,7 +6,7 @@ import { ICurrentUser } from '../../auth/types/current-user.type'
 import { FindClinicByIdUseCase } from '../../clinics/use-cases/find-clinic-by-id.use-case'
 import { IPrescriptionsRepository } from '../repositories/prescriptions.repository.interface'
 import { FindPrescriptionByIdUseCase } from './find-prescription-by-id.use-case'
-import { LogoFetcherService } from '../services/logo-fetcher.service'
+import { LogoFetcherService } from '../../../common/services/logo-fetcher.service'
 import { PrescriptionPdfBuilderService } from '../services/prescription-pdf-builder.service'
 
 @Injectable()

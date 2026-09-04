@@ -9,6 +9,7 @@ import * as request from 'supertest'
 import { Repository } from 'typeorm'
 import { UserRole } from '@app/shared'
 import { AppModule } from '../../../app.module'
+import { CacheService } from '../../../cache/cache.service'
 import { Clinic } from '../../clinics/entities/clinic.entity'
 import { User } from '../../users/entities/user.entity'
 import { RefreshToken } from '../entities/refresh-token.entity'
@@ -50,6 +51,7 @@ describe('AuthController (integration)', () => {
   let userRepository: Repository<User>
   let clinicRepository: Repository<Clinic>
   let refreshTokenRepository: Repository<RefreshToken>
+  let cacheService: CacheService
 
   beforeAll(async () => {
     const module = await Test.createTestingModule({
@@ -71,6 +73,7 @@ describe('AuthController (integration)', () => {
     userRepository = module.get(getRepositoryToken(User))
     clinicRepository = module.get(getRepositoryToken(Clinic))
     refreshTokenRepository = module.get(getRepositoryToken(RefreshToken))
+    cacheService = module.get(CacheService)
   })
 
   beforeEach(async () => {
@@ -80,6 +83,12 @@ describe('AuthController (integration)', () => {
   })
 
   afterEach(async () => {
+    // As tabelas somem, mas o contador de tentativas de login vive no Redis, que
+    // é compartilhado e não tem schema `test`. Sem limpar, a execução seguinte
+    // herda a conta bloqueada e o login responde "credenciais inválidas" antes
+    // de chegar na checagem que o teste quer exercer.
+    await cacheService.delByPattern('login-attempts:*')
+
     await refreshTokenRepository.query('DELETE FROM test.schedules')
     await refreshTokenRepository.query('DELETE FROM test.professional_specialties')
     await refreshTokenRepository.query('DELETE FROM test.professionals')

@@ -14,6 +14,7 @@ import { useCancelAppointment } from '@/components/features/appointments/hooks/u
 import { useReassignAppointment } from '@/components/features/appointments/hooks/use-reassign-appointment.hook'
 import { useMyProfessional } from '@/components/features/professionals/hooks/use-my-professional.hook'
 import { usePrescriptions } from '@/components/features/prescriptions/hooks/use-prescriptions.hook'
+import { useVaccineIndications } from '@/components/features/vaccine-indications/hooks/use-vaccine-indications.hook'
 import { useAtestados } from '@/components/features/atestados/hooks/use-atestados.hook'
 import { useExamRequests } from '@/components/features/exames/hooks/use-exam-requests.hook'
 import { useAppointmentPhotos } from '@/components/features/consultation-photos/hooks/use-appointment-photos.hook'
@@ -22,6 +23,7 @@ import { AppointmentHeaderCard } from '@/components/features/appointments/compon
 import { ResumoTab } from '@/components/features/appointments/components/resumo-tab'
 import { MedicalRecordSection } from '@/components/features/appointments/components/medical-record-section'
 import { PrescriptionSection } from '@/components/features/prescriptions/components/prescription-section'
+import { VaccineIndicationSection } from '@/components/features/vaccine-indications/components/vaccine-indication-section'
 import { AtestadoSection } from '@/components/features/atestados/components/atestado-section'
 import { ExameSection } from '@/components/features/exames/components/exame-section'
 import { PhotoSection } from '@/components/features/consultation-photos/components/photo-section'
@@ -89,6 +91,7 @@ export default function AppointmentDetailPage() {
   const { data: examRequests } = useExamRequests(id)
   const { data: photos } = useAppointmentPhotos(id)
   const { data: appointmentVaccinations } = useVaccinations({ appointmentId: id })
+  const { data: vaccineIndications } = useVaccineIndications(id)
   const { data: record } = useMedicalRecordByAppointment(canSeeMedicalRecord ? id : '')
 
   const completeApiError = completeError as IApiError | null
@@ -154,10 +157,17 @@ export default function AppointmentDetailPage() {
     ...(canManage
       ? [{ id: 'fotos', label: 'Fotos', count: photos?.length ?? 0 }]
       : []),
-    // A caderneta é do paciente, não da consulta: a contagem aqui é só das
-    // doses lançadas NESTE atendimento, e a aba abre o histórico inteiro.
+    // A caderneta é do paciente, não da consulta: a contagem aqui é do que ESTE
+    // atendimento lançou — doses registradas mais indicações emitidas —, e a aba
+    // abre o histórico inteiro do paciente.
     ...(canSeeMedicalRecord
-      ? [{ id: 'vacinas', label: 'Vacinas', count: appointmentVaccinations?.total ?? 0 }]
+      ? [
+          {
+            id: 'vacinas',
+            label: 'Vacinas',
+            count: (appointmentVaccinations?.total ?? 0) + (vaccineIndications?.length ?? 0),
+          },
+        ]
       : []),
   ]
 
@@ -279,7 +289,14 @@ export default function AppointmentDetailPage() {
               )}
 
               {activeTab === 'vacinas' && canSeeMedicalRecord && (
-                <VaccinationHistory patientId={appointment.patientId} appointmentId={id} />
+                <div className="flex flex-col gap-8">
+                  <VaccineIndicationSection
+                    appointmentId={id}
+                    canManage={canManage}
+                    canIssue={canIssue}
+                  />
+                  <VaccinationHistory patientId={appointment.patientId} appointmentId={id} />
+                </div>
               )}
             </div>
           </>

@@ -1,5 +1,21 @@
 # Changelog — Backend
 
+## [1.8.0] - 2026-09-04
+
+### Added
+
+#### Indicação de vacina
+- `POST/GET/DELETE /vaccine-indications` e `GET /vaccine-indications/:id/pdf` — o documento que a paciente leva ao serviço de imunização, no molde do atestado: snapshot `jsonb` congelado na emissão, PDF por pdfmake, assinatura resolvida por `resolveProfessionalSigningIdentity`
+- **Emitir exige ser o profissional da consulta**, para qualquer role — o documento sai com nome, conselho e registro de quem assina
+- **A vacina vem sempre do catálogo**, e desativada não pode ser indicada
+- **Sem QR e sem verificação pública**, ao contrário da receita: ali o QR existe porque a farmácia confere; aqui não há quem confira, e o endpoint público exporia dado de paciente sem leitor do outro lado
+
+### Changed
+- `LogoFetcherService` estava **triplicado** em `prescriptions/`, `medical-certificates/` e `exams/` — três cópias byte a byte idênticas. A quarta seria a da indicação; virou uma só, em `common/services/`
+
+### Fixed
+- A suíte de integração de auth deixava o contador de tentativas de login no Redis, que é compartilhado e não tem schema `test`. A execução seguinte herdava a conta bloqueada e `returns 401 when account is inactive` falhava com "credenciais inválidas" — falha real, mas de higiene de teste, não de produto
+
 ## [1.7.0] - 2026-09-04
 
 ### Added

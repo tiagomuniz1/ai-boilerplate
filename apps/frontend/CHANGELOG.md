@@ -1,5 +1,16 @@
 # Changelog — Frontend
 
+## [1.9.0] - 2026-09-04
+
+### Added
+
+#### Indicação de vacina na aba Vacinas da consulta
+- Emitir, listar, baixar PDF e excluir, ao lado da caderneta — quem olha o que falta é quem indica, e as duas coisas ficam na mesma aba
+- A lista mostra **as vacinas pelo nome**, não uma contagem: ler "3 vacinas" obrigaria a abrir o PDF para saber quais
+- Seletor simples do catálogo, sem busca por tecla — são dezenas de vacinas curadas, não os 36 mil medicamentos da ANVISA
+- A contagem da aba passa a somar o que **esta consulta** lançou: doses registradas mais indicações emitidas
+- Quando o catálogo não cabe numa página, a tela **diz** que a lista está incompleta em vez de esconder vacina sem avisar
+
 ## [1.8.0] - 2026-09-04
 
 ### Added

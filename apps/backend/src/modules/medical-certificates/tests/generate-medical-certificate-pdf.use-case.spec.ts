@@ -4,7 +4,7 @@ import { CouncilType, MedicalCertificateType, UserRole } from '@app/shared'
 import { ICurrentUser } from '../../auth/types/current-user.type'
 import { IMedicalCertificatesRepository } from '../repositories/medical-certificates.repository.interface'
 import { FindMedicalCertificateByIdUseCase } from '../use-cases/find-medical-certificate-by-id.use-case'
-import { LogoFetcherService } from '../services/logo-fetcher.service'
+import { LogoFetcherService } from '../../../common/services/logo-fetcher.service'
 import { MedicalCertificatePdfBuilderService } from '../services/medical-certificate-pdf-builder.service'
 import { GenerateMedicalCertificatePdfUseCase } from '../use-cases/generate-medical-certificate-pdf.use-case'
 

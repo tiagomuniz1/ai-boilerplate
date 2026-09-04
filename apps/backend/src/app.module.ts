@@ -23,6 +23,7 @@ import { MedicationsModule } from './modules/medications/medications.module'
 import { VaccinesModule } from './modules/vaccines/vaccines.module'
 import { VaccinationsModule } from './modules/vaccinations/vaccinations.module'
 import { VaccineSchedulesModule } from './modules/vaccine-schedules/vaccine-schedules.module'
+import { VaccineIndicationsModule } from './modules/vaccine-indications/vaccine-indications.module'
 import { PrescriptionsModule } from './modules/prescriptions/prescriptions.module'
 import { PrescriptionTemplatesModule } from './modules/prescription-templates/prescription-templates.module'
 import { MedicalCertificatesModule } from './modules/medical-certificates/medical-certificates.module'
@@ -63,6 +64,7 @@ import { RolesGuard } from './modules/auth/guards/roles.guard'
     VaccinesModule,
     VaccinationsModule,
     VaccineSchedulesModule,
+    VaccineIndicationsModule,
     PrescriptionsModule,
     PrescriptionTemplatesModule,
     MedicalCertificatesModule,
