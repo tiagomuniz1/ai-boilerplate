@@ -203,6 +203,41 @@ Receituário pré-montado do profissional — a lista de medicamentos que ele re
 
 ---
 
+
+## Vacinas (`/vaccines`)
+
+Catálogo global de imunobiológicos, mesma natureza de `/medications` e do catálogo de campos canônicos: vocabulário da plataforma, sem `clinicId`.
+
+| Ação | PLATFORM_ADMIN | ADMIN | PROFESSIONAL | USER | PATIENT |
+|---|:---:|:---:|:---:|:---:|:---:|
+| Listar / ver | ✓ | ✓ (leitura) | ✓ (leitura) | ✗ | ✗ |
+| Criar / editar / ativar-desativar | ✓ | ✗ | ✗ | ✗ | ✗ |
+| Excluir | ✓ | ✗ | ✗ | ✗ | ✗ |
+
+> Sem importação automática: o Calendário Nacional de Vacinação não é publicado em formato aberto como o CSV da ANVISA, e são algumas dezenas de entradas. O seed traz o calendário oficial como ponto de partida e o backoffice edita tudo sem deploy. Desativar tira a vacina das listas da clínica sem apagar as doses já registradas.
+
+---
+
+## Caderneta de Vacinação (`/vaccinations`)
+
+O registro do que o paciente já tomou. **Ancorada no paciente, não na consulta** — é a única entidade clínica do sistema cujo `appointment_id` é opcional, porque a dose aplicada anos atrás em outro serviço não tem consulta a que se amarrar. Quando o registro nasce dentro de um atendimento, o vínculo é gravado.
+
+| Ação | ADMIN | PROFESSIONAL | USER | PATIENT |
+|---|:---:|:---:|:---:|:---:|
+| Registrar dose | ✓ **se tiver ficha** | ✓ | ✗ | ✗ |
+| Ver a caderneta | ✓ | ✓ (a caderneta inteira) | ✗ | ✗ |
+| Corrigir / excluir | ✓ qualquer | só o que registrou | ✗ | ✗ |
+
+> **Registrar depende da ficha, não do cargo** (ver "Cargo e Ofício"). Diferente de receita, atestado e pedido de exame, **não** se exige ser o profissional da consulta: ali a regra existe porque o documento leva assinatura verificável publicamente pelo QR, e aqui não há assinatura — o registro apenas guarda quem transcreveu.
+
+> **Corrigir e excluir são escopo, não exercício:** o ADMIN é zelador da caderneta da clínica e mexe em qualquer registro, inclusive sem ter ficha. O profissional só no que ele mesmo lançou.
+
+> **O profissional vê a caderneta inteira**, inclusive doses que outro profissional transcreveu — ao contrário das fotos, que são recortadas por quem atendeu. Histórico de imunização não se fatia por autoria: uma dose que a paciente tomou é fato dela, não do profissional.
+
+> A recepção não acessa — é dado clínico, na mesma linha do histórico de prontuários e da galeria de fotos.
+
+---
+
 ## Prontuários (`/medical-records`)
 
 | Ação | ADMIN | PROFESSIONAL | USER | PATIENT |

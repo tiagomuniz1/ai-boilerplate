@@ -30,9 +30,11 @@ import type { ICancelConfirmInput } from '@/components/features/appointments/com
 import { SeriesOccurrencesDialog } from '@/components/features/appointments/components/series-occurrences-dialog'
 import { CompleteAppointmentDialog } from '@/components/features/appointments/components/complete-appointment-dialog'
 import { ReassignProfessionalDialog } from '@/components/features/appointments/components/reassign-professional-dialog'
+import { VaccinationHistory } from '@/components/features/vaccinations/components/vaccination-history'
+import { useVaccinations } from '@/components/features/vaccinations/hooks/use-vaccinations.hook'
 import type { IApiError } from '@/types/api.types'
 
-type TabId = 'resumo' | 'prontuario' | 'receitas' | 'atestados' | 'exames' | 'fotos'
+type TabId = 'resumo' | 'prontuario' | 'receitas' | 'atestados' | 'exames' | 'fotos' | 'vacinas'
 
 export default function AppointmentDetailPage() {
   const { id } = useParams<{ id: string }>()
@@ -86,6 +88,7 @@ export default function AppointmentDetailPage() {
   const { data: atestados } = useAtestados(id)
   const { data: examRequests } = useExamRequests(id)
   const { data: photos } = useAppointmentPhotos(id)
+  const { data: appointmentVaccinations } = useVaccinations({ appointmentId: id })
   const { data: record } = useMedicalRecordByAppointment(canSeeMedicalRecord ? id : '')
 
   const completeApiError = completeError as IApiError | null
@@ -150,6 +153,11 @@ export default function AppointmentDetailPage() {
       : []),
     ...(canManage
       ? [{ id: 'fotos', label: 'Fotos', count: photos?.length ?? 0 }]
+      : []),
+    // A caderneta é do paciente, não da consulta: a contagem aqui é só das
+    // doses lançadas NESTE atendimento, e a aba abre o histórico inteiro.
+    ...(canSeeMedicalRecord
+      ? [{ id: 'vacinas', label: 'Vacinas', count: appointmentVaccinations?.total ?? 0 }]
       : []),
   ]
 
@@ -268,6 +276,10 @@ export default function AppointmentDetailPage() {
 
               {activeTab === 'fotos' && canManage && (
                 <PhotoSection appointmentId={id} canManage={canManage} canIssue={canIssue} />
+              )}
+
+              {activeTab === 'vacinas' && canSeeMedicalRecord && (
+                <VaccinationHistory patientId={appointment.patientId} appointmentId={id} />
               )}
             </div>
           </>

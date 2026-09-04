@@ -1,5 +1,15 @@
 # Changelog — Backend
 
+## [1.6.0] - 2026-09-04
+
+### Added
+
+#### Vacinas: catálogo e caderneta do paciente
+- `GET/POST/PATCH/DELETE /vaccines` — catálogo global de imunobiológicos, sem `clinicId`, curado pelo PLATFORM_ADMIN e lido por ADMIN e PROFESSIONAL. Sem importação automática: o calendário oficial não é publicado em formato aberto como o CSV da ANVISA, e são 23 entradas curadas à mão. Índice único por `lower(name)`, parcial no soft delete
+- `GET/POST/PATCH/DELETE /vaccinations` — a caderneta, **ancorada no paciente**. É a única entidade clínica do sistema com `appointment_id` opcional, e a decisão é deliberada: dose aplicada anos atrás em outro serviço não tem consulta a que se amarrar
+- Registrar exige ficha, não cargo — e, diferente das emissões, **não** exige ser o profissional da consulta, porque não há assinatura verificável envolvida. Corrigir e excluir são escopo: ADMIN em qualquer registro, profissional só nos próprios
+- A recepção não lê caderneta
+
 ## [1.5.4] - 2026-09-02
 
 ### Fixed

@@ -1,5 +1,16 @@
 # Changelog — Frontend
 
+## [1.7.0] - 2026-09-04
+
+### Added
+
+#### Vacinas: catálogo e caderneta do paciente
+- **Caderneta na ficha do paciente**, ao lado do histórico de prontuários e das fotos: vacina, dose, data, onde foi aplicada e quem registrou, da mais recente para a mais antiga
+- **Aba Vacinas na consulta** — a dose registrada ali nasce vinculada ao atendimento; a aba mostra a caderneta inteira do paciente, e o contador conta só o que foi lançado naquela consulta
+- **Catálogo no backoffice** para o PLATFORM_ADMIN, com busca por nome, sigla ou doença prevenida, e ativar/desativar. Desativar tira a vacina das listas da clínica sem apagar as doses já registradas
+- O botão de registrar depende da **ficha de profissional**, não do cargo: uma médica que administra a própria clínica registra normalmente
+- O seletor de vacina é um `select` simples, não a busca com lista de resultados do formulário de receita — são dezenas de vacinas, não 36 mil medicamentos, e aquela busca dispara uma consulta por tecla
+
 ## [1.6.0] - 2026-09-03
 
 ### Added
