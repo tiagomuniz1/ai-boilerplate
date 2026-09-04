@@ -742,6 +742,9 @@ export interface AppointmentDetailWidgetStubs {
   atestados?: unknown
   examRequests?: unknown
   consultationPhotos?: unknown
+  vaccinations?: unknown
+  vaccineIndications?: unknown
+  vaccines?: unknown
 }
 
 Cypress.Commands.add('stubAppointmentDetailWidgets', (overrides: AppointmentDetailWidgetStubs = {}) => {
@@ -784,6 +787,24 @@ Cypress.Commands.add('stubAppointmentDetailWidgets', (overrides: AppointmentDeta
     statusCode: 200,
     body: overrides.consultationPhotos ?? [],
   }).as('getConsultationPhotos')
+
+  // A aba Vacinas monta duas coisas no load da página, não ao clicar na aba: a
+  // contagem de doses lançadas nesta consulta e as indicações emitidas nela.
+  cy.intercept('GET', `${api}/vaccinations*`, {
+    statusCode: 200,
+    body: overrides.vaccinations ?? emptyPage,
+  }).as('getAppointmentVaccinations')
+
+  cy.intercept('GET', `${api}/vaccine-indications*`, {
+    statusCode: 200,
+    body: overrides.vaccineIndications ?? [],
+  }).as('getVaccineIndications')
+
+  // O seletor do formulário de indicação lê o catálogo.
+  cy.intercept('GET', `${api}/vaccines*`, {
+    statusCode: 200,
+    body: overrides.vaccines ?? { data: [], total: 0, page: 1, limit: 100 },
+  }).as('getVaccines')
 })
 
 /**
@@ -794,6 +815,9 @@ Cypress.Commands.add('stubAppointmentDetailWidgets', (overrides: AppointmentDeta
 export interface PatientDetailWidgetStubs {
   medicalHistory?: unknown
   photoGallery?: unknown
+  vaccinations?: unknown
+  vaccines?: unknown
+  vaccineStatus?: unknown
 }
 
 Cypress.Commands.add('stubPatientDetailWidgets', (overrides: PatientDetailWidgetStubs = {}) => {
@@ -808,6 +832,28 @@ Cypress.Commands.add('stubPatientDetailWidgets', (overrides: PatientDetailWidget
     statusCode: 200,
     body: overrides.photoGallery ?? { data: [], total: 0, page: 1, limit: 20 },
   }).as('getPatientPhotos')
+
+  // A ficha do paciente também monta a caderneta e a situação vacinal. Mesma
+  // armadilha do 401 acima: sem stub, o app sai para /login e o spec morre.
+  cy.intercept('GET', `${api}/vaccinations*`, {
+    statusCode: 200,
+    body: overrides.vaccinations ?? { data: [], total: 0, page: 1, limit: 20 },
+  }).as('getPatientVaccinations')
+
+  cy.intercept('GET', `${api}/vaccines*`, {
+    statusCode: 200,
+    body: overrides.vaccines ?? { data: [], total: 0, page: 1, limit: 100 },
+  }).as('getVaccinesCatalog')
+
+  // `*` não atravessa a barra no minimatch: `/vaccine-schedules*` NÃO cobre
+  // `/vaccine-schedules/patients/:id`. Precisa do padrão com o caminho inteiro.
+  cy.intercept('GET', `${api}/vaccine-schedules/patients/*`, {
+    statusCode: 200,
+    body: overrides.vaccineStatus ?? { patientId: 'stub', ageInMonths: 0, items: [] },
+  }).as('getPatientVaccineStatus')
+
+  // Registrar dose e conduta dependem da ficha do próprio usuário. Default: não tem.
+  cy.intercept('GET', `${api}/professionals/me`, { statusCode: 200, body: null })
 })
 
 export {}

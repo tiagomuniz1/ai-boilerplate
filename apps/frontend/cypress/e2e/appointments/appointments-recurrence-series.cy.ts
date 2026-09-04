@@ -145,6 +145,20 @@ function stubDetailPage(appointment: Record<string, unknown>) {
   // The detail page mounts the photos tab; unstubbed it 401s and the api-client
   // redirect interceptor puts the app in a login/dashboard redirect loop.
   cy.intercept('GET', `${Cypress.env('API_URL')}/consultation-photos*`, { statusCode: 200, body: [] })
+
+  // A aba Vacinas monta no load da página, não ao clicar na aba: doses lançadas
+  // nesta consulta e indicações emitidas nela. Sem stub, a chamada bate no
+  // backend real com token mock, dá 401 e o interceptor do api-client joga o
+  // app num loop de redirect — a página inteira some, inclusive o estado de erro.
+  cy.intercept('GET', `${Cypress.env('API_URL')}/vaccinations*`, {
+    statusCode: 200,
+    body: { data: [], total: 0, page: 1, limit: 20 },
+  })
+  cy.intercept('GET', `${Cypress.env('API_URL')}/vaccine-indications*`, { statusCode: 200, body: [] })
+  cy.intercept('GET', `${Cypress.env('API_URL')}/vaccines*`, {
+    statusCode: 200,
+    body: { data: [], total: 0, page: 1, limit: 100 },
+  })
 }
 
 describe('Appointments — recurring series affordances', () => {

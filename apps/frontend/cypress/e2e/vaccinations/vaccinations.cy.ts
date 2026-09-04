@@ -97,6 +97,13 @@ function stubBasics(comFicha = true) {
     statusCode: 200,
     body: { data: [], total: 0, page: 1, limit: 20 },
   })
+  // A aba Vacinas da consulta monta a indicação junto da caderneta. Sem stub, o
+  // 401 do backend real joga o app para /login e a tela some inteira.
+  cy.intercept('GET', `${Cypress.env('API_URL')}/vaccine-indications*`, { statusCode: 200, body: [] })
+  cy.intercept('GET', `${Cypress.env('API_URL')}/vaccine-schedules/patients/*`, {
+    statusCode: 200,
+    body: { patientId: 'stub', ageInMonths: 0, items: [] },
+  })
 }
 
 describe('Caderneta de vacinação', () => {
