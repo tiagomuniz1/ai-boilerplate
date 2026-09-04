@@ -20,6 +20,8 @@ import { MedicalRecordCanonicalFieldsModule } from './modules/medical-record-can
 import { MedicalRecordTemplatesModule } from './modules/medical-record-templates/medical-record-templates.module'
 import { MedicalRecordsModule } from './modules/medical-records/medical-records.module'
 import { MedicationsModule } from './modules/medications/medications.module'
+import { VaccinesModule } from './modules/vaccines/vaccines.module'
+import { VaccinationsModule } from './modules/vaccinations/vaccinations.module'
 import { PrescriptionsModule } from './modules/prescriptions/prescriptions.module'
 import { PrescriptionTemplatesModule } from './modules/prescription-templates/prescription-templates.module'
 import { MedicalCertificatesModule } from './modules/medical-certificates/medical-certificates.module'
@@ -57,6 +59,8 @@ import { RolesGuard } from './modules/auth/guards/roles.guard'
     MedicalRecordTemplatesModule,
     MedicalRecordsModule,
     MedicationsModule,
+    VaccinesModule,
+    VaccinationsModule,
     PrescriptionsModule,
     PrescriptionTemplatesModule,
     MedicalCertificatesModule,

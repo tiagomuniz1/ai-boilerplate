@@ -15,6 +15,8 @@ import { Schedule } from '../../../modules/schedules/entities/schedule.entity'
 import { Appointment } from '../../../modules/appointments/entities/appointment.entity'
 import { MedicalRecordCanonicalField } from '../../../modules/medical-record-canonical-fields/entities/medical-record-canonical-field.entity'
 import { CANONICAL_FIELDS } from '../canonical-fields/canonical-fields'
+import { Vaccine } from '../../../modules/vaccines/entities/vaccine.entity'
+import { VACCINES } from '../vaccines/vaccines'
 import {
   MedicalRecordTemplate,
   MedicalRecordTemplateField,
@@ -33,6 +35,7 @@ export async function devSeed(dataSource: DataSource): Promise<void> {
   await seedClinicAdmin(dataSource.getRepository(User))
   const nutritionSpecialty = await seedNutritionSpecialty(dataSource)
   await seedCanonicalFields(dataSource)
+  await seedVaccines(dataSource)
   await seedMedicalRecordTemplates(dataSource)
   await seedGeneralistProfessional(dataSource)
   await seedNutritionistProfessional(dataSource, nutritionSpecialty)
@@ -150,6 +153,28 @@ async function seedCanonicalFields(dataSource: DataSource): Promise<void> {
     )
     console.log(`Dev seed: canonical field "${data.canonicalKey}" created.`)
   }
+}
+
+// Catálogo global de imunobiológicos, mesma natureza dos campos canônicos:
+// vocabulário da plataforma, idempotente por nome.
+async function seedVaccines(dataSource: DataSource): Promise<void> {
+  const repository = dataSource.getRepository(Vaccine)
+
+  for (const data of VACCINES) {
+    const existing = await repository.findOneBy({ name: data.name })
+    if (existing) continue
+
+    await repository.save(
+      repository.create({
+        name: data.name,
+        abbreviation: data.abbreviation,
+        preventedDiseases: data.preventedDiseases,
+        isActive: true,
+      }),
+    )
+  }
+
+  console.log(`Dev seed: ${VACCINES.length} vaccines ensured.`)
 }
 
 async function seedMedicalRecordTemplates(dataSource: DataSource): Promise<void> {
