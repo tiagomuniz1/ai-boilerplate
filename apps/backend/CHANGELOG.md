@@ -1,5 +1,15 @@
 # Changelog — Backend
 
+## [1.8.1] - 2026-09-05
+
+### Fixed
+
+#### `yarn build` produz um artefato que roda
+- `webpack.config.js` chamava `nodeExternals()` sem argumento, que lê `node_modules` relativo ao cwd — em yarn workspaces as dependências estão içadas na raiz, então ele enxergava 11 pacotes de 1186 e empacotava o resto. Só quebrava em dependência com binário nativo, e cada uma tinha ganhado remendo manual (`bcrypt`, `fsevents`, `@next/swc-darwin-arm64`); `sharp` seria o quarto. Agora aponta para a raiz por caminho absoluto e falha alto se não a encontrar
+- Com o bundle compilando, apareceu o bloqueio de verdade: `database.config.ts` resolve entities e migrations por glob de sistema de arquivos, e o webpack junta tudo num arquivo só — o glob acha os 32 `.entity.ts` do código-fonte e o TypeORM morre tentando dar require em TypeScript. **`build` passou a compilar com tsc**, que é o que produção sempre rodou via `build:docker`; este virou apelido de `build`, então o Dockerfile segue intocado
+- `nest-cli.docker.json` → `nest-cli.build.json`: não é mais config exclusiva do container, é a do build
+- `webpack.config.js` fica como opção documentada, com o bloqueio do glob registrado nele
+
 ## [1.8.0] - 2026-09-04
 
 ### Added
