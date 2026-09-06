@@ -47,15 +47,36 @@ function cleanup(ctx: { professional: any; patient: any; schedule: any }) {
 }
 
 describe('Indicação de vacina — stack real', () => {
+  // O catálogo de vacinas é GLOBAL, sem clinicId, e o E2E roda contra o banco
+  // de desenvolvimento. Limpar no fim do teste não basta: se uma asserção falha
+  // antes, a limpeza nunca roda e a vacina de teste fica no catálogo que a
+  // clínica enxerga. Rastrear e limpar no afterEach, que roda de qualquer jeito.
+  const vacinasCriadas: string[] = []
+  let platformAdminToken: string
+
+  function criarVacinaDeTeste(nome: string, token: string, sigla: string | null = null) {
+    platformAdminToken = token
+    return cy.createVaccineViaApi({ name: nome, abbreviation: sigla }, token).then((vacina) => {
+      vacinasCriadas.push(vacina.id)
+      return vacina
+    })
+  }
+
   beforeEach(() => {
     cy.clearCookies()
     cy.clearLocalStorage()
   })
 
+  afterEach(() => {
+    while (vacinasCriadas.length) {
+      cy.deleteVaccineViaApi(vacinasCriadas.pop()!, platformAdminToken)
+    }
+  })
+
   it('emite a indicação e o backend grava a vacina do catálogo', () => {
     cy.seedSpecialty().then((catalogSeed) => {
       const vaccineName = `Tríplice viral Real ${Date.now()}`
-      cy.createVaccineViaApi({ name: vaccineName, abbreviation: 'SCR' }, catalogSeed.platformAdminToken).then((vaccine) => {
+      criarVacinaDeTeste(vaccineName, catalogSeed.platformAdminToken, 'SCR').then((vaccine) => {
         seedAppointment().then((ctx) => {
           cy.loginAsClinicUser(ctx.professional.email, ctx.professional.password, CLINIC_SLUG).then((token) => {
             cy.visit(`/${CLINIC_SLUG}/appointments/${ctx.appointment.id}`)
@@ -86,8 +107,6 @@ describe('Indicação de vacina — stack real', () => {
 
             // A lista mostra a vacina pelo nome, não uma contagem.
             cy.get('[data-testid="vaccine-indication-section-list"]').should('contain', vaccineName)
-
-            cy.deleteVaccineViaApi(vaccine.id, catalogSeed.platformAdminToken)
             cleanup(ctx)
           })
         })
@@ -97,7 +116,7 @@ describe('Indicação de vacina — stack real', () => {
 
   it('gera um PDF de verdade', () => {
     cy.seedSpecialty().then((catalogSeed) => {
-      cy.createVaccineViaApi({ name: `Hepatite B Real ${Date.now()}` }, catalogSeed.platformAdminToken).then((vaccine) => {
+      criarVacinaDeTeste(`Hepatite B Real ${Date.now()}`, catalogSeed.platformAdminToken).then((vaccine) => {
         seedAppointment().then((ctx) => {
           cy.loginAsClinicUser(ctx.professional.email, ctx.professional.password, CLINIC_SLUG).then((token) => {
             cy.request({
@@ -115,8 +134,6 @@ describe('Indicação de vacina — stack real', () => {
                 expect(pdf.headers['content-type']).to.contain('application/pdf')
                 expect(pdf.body.slice(0, 4)).to.eq('%PDF')
               })
-
-              cy.deleteVaccineViaApi(vaccine.id, catalogSeed.platformAdminToken)
               cleanup(ctx)
             })
           })
@@ -129,7 +146,7 @@ describe('Indicação de vacina — stack real', () => {
   // profissional não emite sobre a consulta de outro.
   it('o backend recusa indicar sobre consulta de outro profissional', () => {
     cy.seedSpecialty().then((catalogSeed) => {
-      cy.createVaccineViaApi({ name: `dTpa Real ${Date.now()}` }, catalogSeed.platformAdminToken).then((vaccine) => {
+      criarVacinaDeTeste(`dTpa Real ${Date.now()}`, catalogSeed.platformAdminToken).then((vaccine) => {
         seedAppointment().then((ctx) => {
           cy.seedProfessional().then((outroProfissional) => {
             cy.loginAsClinicUser(outroProfissional.email, outroProfissional.password, CLINIC_SLUG).then((outroToken) => {
@@ -146,7 +163,6 @@ describe('Indicação de vacina — stack real', () => {
               cy.deleteProfessionalViaApi(outroProfissional.professionalId, outroProfissional.accessToken)
               cy.deleteUserViaApi(outroProfissional.userId, outroProfissional.accessToken)
               cy.deleteSpecialtyViaApi(outroProfissional.specialtyId, outroProfissional.platformAdminToken)
-              cy.deleteVaccineViaApi(vaccine.id, catalogSeed.platformAdminToken)
               cleanup(ctx)
             })
           })
@@ -157,7 +173,7 @@ describe('Indicação de vacina — stack real', () => {
 
   it('exclui a indicação emitida', () => {
     cy.seedSpecialty().then((catalogSeed) => {
-      cy.createVaccineViaApi({ name: `BCG Real ${Date.now()}` }, catalogSeed.platformAdminToken).then((vaccine) => {
+      criarVacinaDeTeste(`BCG Real ${Date.now()}`, catalogSeed.platformAdminToken).then((vaccine) => {
         seedAppointment().then((ctx) => {
           cy.loginAsClinicUser(ctx.professional.email, ctx.professional.password, CLINIC_SLUG).then((token) => {
             cy.request({
@@ -180,8 +196,6 @@ describe('Indicação de vacina — stack real', () => {
               }).then((response) => {
                 expect(response.body).to.have.length(0)
               })
-
-              cy.deleteVaccineViaApi(vaccine.id, catalogSeed.platformAdminToken)
               cleanup(ctx)
             })
           })
