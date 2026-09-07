@@ -148,6 +148,29 @@ ADMIN_EMAIL=admin@pulso.center ADMIN_PASSWORD='uma-senha-forte' \
 Depois, logar em `https://backoffice.pulso.center` com esse e-mail/senha. A senha
 pode ser trocada depois pelo próprio app.
 
+### 3.5. Catálogo de vacinas e calendário vacinal
+
+Mesma situação do admin da plataforma: **seeds não rodam em produção**, mas o
+módulo de vacinas é inerte sem o catálogo e as regras do calendário — sem
+catálogo não há o que registrar nem indicar, e sem regras a situação vacinal não
+calcula nada. O script roda um container backend efêmero no EC2 via SSM,
+reusando a imagem deployada. **Idempotente**: vacina e regra já existentes são
+deixadas como estão, porque o backoffice edita esse catálogo e sobrescrever
+apagaria a curadoria da clínica.
+
+```bash
+bash infra/scripts/import-vaccines.sh production
+```
+
+Traz 23 vacinas (Calendário Nacional mais as de uso corrente na rede privada) e
+29 regras de esquema. Rode **depois** do Deploy que subiu o módulo — o script
+executa `dist/database/seeds/run-import-vaccines.js`, que precisa estar na
+imagem. Rode de novo a cada deploy que acrescente entradas ao seed: o que já
+existe não é tocado.
+
+Conferir depois, no backoffice: **Vacinas** lista 23 entradas e **Calendário
+vacinal** lista 29 regras.
+
 ---
 
 ## 4. Deploy de rotina
