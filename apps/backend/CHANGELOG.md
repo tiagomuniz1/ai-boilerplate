@@ -1,5 +1,11 @@
 # Changelog — Backend
 
+## [1.8.2] - 2026-09-06
+
+### Added
+- `import:vaccines` — publica o catálogo de vacinas e o Calendário Nacional no banco, no molde de `import:medications` e `import:canonical-fields`. Seeds não rodam em produção, e sem esses dados o módulo de vacinas sobe inerte: sem catálogo não há o que registrar nem indicar, e sem regras a situação vacinal não calcula nada. Idempotente nas duas tabelas — o que já existe não é tocado, porque o backoffice edita esse catálogo
+- `infra/scripts/import-vaccines.sh` — roda a importação em produção por container efêmero via SSM, mesmo mecanismo do seed do admin da plataforma
+
 ## [1.8.1] - 2026-09-05
 
 ### Fixed
