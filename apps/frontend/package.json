@@ -1,6 +1,6 @@
 {
   "name": "@app/frontend",
-  "version": "1.6.0",
+  "version": "1.9.0",
   "private": true,
   "scripts": {
     "dev": "node scripts/load-env.js && next dev",

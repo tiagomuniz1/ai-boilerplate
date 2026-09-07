@@ -81,9 +81,10 @@ export class CreateExamRequestUseCase extends BaseUseCase {
 
     // Exercer vem da ficha de profissional, não do cargo: um ADMIN que também
     // atende emite normalmente, um ADMIN sem ficha não emite nada. E emitir
-    // exige ser o profissional DA CONSULTA para todo mundo — o documento leva um
-    // snapshot de assinatura verificável publicamente pelo QR, então assinar em
-    // nome de quem atendeu não é opção.
+    // exige ser o profissional DA CONSULTA para todo mundo — o documento sai com
+    // nome, conselho e registro de quem assina, então emitir sobre consulta
+    // alheia poria o registro de uma pessoa num documento que ela não redigiu.
+    // (A receita acrescenta o QR verificável; aqui não há, e a regra vale igual.)
     const professional = await this.professionalsRepository.findByUserId(currentUser.id, clinicId)
     if (!professional || professional.id !== appointment.professionalId) {
       throw new ForbiddenException('Insufficient permissions')

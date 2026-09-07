@@ -1,5 +1,52 @@
 # Changelog — Backend
 
+## [1.8.1] - 2026-09-05
+
+### Fixed
+
+#### `yarn build` produz um artefato que roda
+- `webpack.config.js` chamava `nodeExternals()` sem argumento, que lê `node_modules` relativo ao cwd — em yarn workspaces as dependências estão içadas na raiz, então ele enxergava 11 pacotes de 1186 e empacotava o resto. Só quebrava em dependência com binário nativo, e cada uma tinha ganhado remendo manual (`bcrypt`, `fsevents`, `@next/swc-darwin-arm64`); `sharp` seria o quarto. Agora aponta para a raiz por caminho absoluto e falha alto se não a encontrar
+- Com o bundle compilando, apareceu o bloqueio de verdade: `database.config.ts` resolve entities e migrations por glob de sistema de arquivos, e o webpack junta tudo num arquivo só — o glob acha os 32 `.entity.ts` do código-fonte e o TypeORM morre tentando dar require em TypeScript. **`build` passou a compilar com tsc**, que é o que produção sempre rodou via `build:docker`; este virou apelido de `build`, então o Dockerfile segue intocado
+- `nest-cli.docker.json` → `nest-cli.build.json`: não é mais config exclusiva do container, é a do build
+- `webpack.config.js` fica como opção documentada, com o bloqueio do glob registrado nele
+
+## [1.8.0] - 2026-09-04
+
+### Added
+
+#### Indicação de vacina
+- `POST/GET/DELETE /vaccine-indications` e `GET /vaccine-indications/:id/pdf` — o documento que a paciente leva ao serviço de imunização, no molde do atestado: snapshot `jsonb` congelado na emissão, PDF por pdfmake, assinatura resolvida por `resolveProfessionalSigningIdentity`
+- **Emitir exige ser o profissional da consulta**, para qualquer role — o documento sai com nome, conselho e registro de quem assina
+- **A vacina vem sempre do catálogo**, e desativada não pode ser indicada
+- **Sem QR e sem verificação pública**, ao contrário da receita: ali o QR existe porque a farmácia confere; aqui não há quem confira, e o endpoint público exporia dado de paciente sem leitor do outro lado
+
+### Changed
+- `LogoFetcherService` estava **triplicado** em `prescriptions/`, `medical-certificates/` e `exams/` — três cópias byte a byte idênticas. A quarta seria a da indicação; virou uma só, em `common/services/`
+
+### Fixed
+- A suíte de integração de auth deixava o contador de tentativas de login no Redis, que é compartilhado e não tem schema `test`. A execução seguinte herdava a conta bloqueada e `returns 401 when account is inactive` falhava com "credenciais inválidas" — falha real, mas de higiene de teste, não de produto
+
+## [1.7.0] - 2026-09-04
+
+### Added
+
+#### Calendário vacinal e o que falta a cada paciente
+- `GET /vaccine-schedules/patients/:id` — a situação vacinal: por vacina, se está em dia, pendente, fora da janela, ainda não devida ou dispensada, com a próxima dose e a data a partir da qual ela é devida
+- `GET/POST/PATCH/DELETE /vaccine-schedules/rules` — o calendário, curado pelo PLATFORM_ADMIN e **editável no backoffice**: quando o Ministério muda o esquema, a correção é curadoria, não deploy. Seed com 29 regras do Calendário Nacional
+- `POST /vaccine-schedules/decisions` — a conduta do profissional sobre uma pendência. **Dispensar e adiar exigem motivo**; confirmar não, porque é só reconhecer o calendário
+- O cálculo vive numa **função pura sem I/O** (`evaluate-vaccine-schedule`), com 25 testes: é a peça que faz afirmação clínica e precisa ser testável exaustivamente. O use-case só orquestra
+- O cache da situação carrega o **dia na chave**: a idade do paciente avança à meia-noite sem nada acontecer no sistema
+
+## [1.6.0] - 2026-09-04
+
+### Added
+
+#### Vacinas: catálogo e caderneta do paciente
+- `GET/POST/PATCH/DELETE /vaccines` — catálogo global de imunobiológicos, sem `clinicId`, curado pelo PLATFORM_ADMIN e lido por ADMIN e PROFESSIONAL. Sem importação automática: o calendário oficial não é publicado em formato aberto como o CSV da ANVISA, e são 23 entradas curadas à mão. Índice único por `lower(name)`, parcial no soft delete
+- `GET/POST/PATCH/DELETE /vaccinations` — a caderneta, **ancorada no paciente**. É a única entidade clínica do sistema com `appointment_id` opcional, e a decisão é deliberada: dose aplicada anos atrás em outro serviço não tem consulta a que se amarrar
+- Registrar exige ficha, não cargo — e, diferente das emissões, **não** exige ser o profissional da consulta, porque não há assinatura verificável envolvida. Corrigir e excluir são escopo: ADMIN em qualquer registro, profissional só nos próprios
+- A recepção não lê caderneta
+
 ## [1.5.4] - 2026-09-02
 
 ### Fixed

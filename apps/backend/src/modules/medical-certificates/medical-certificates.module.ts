@@ -14,7 +14,7 @@ import { DeleteMedicalCertificateUseCase } from './use-cases/delete-medical-cert
 import { GenerateMedicalCertificatePdfUseCase } from './use-cases/generate-medical-certificate-pdf.use-case'
 import { IMedicalCertificatesRepository } from './repositories/medical-certificates.repository.interface'
 import { MedicalCertificatesRepository } from './repositories/medical-certificates.repository'
-import { LogoFetcherService } from './services/logo-fetcher.service'
+import { LogoFetcherService } from '../../common/services/logo-fetcher.service'
 import { MedicalCertificatePdfBuilderService } from './services/medical-certificate-pdf-builder.service'
 
 @Module({

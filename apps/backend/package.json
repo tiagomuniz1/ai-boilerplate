@@ -1,10 +1,10 @@
 {
   "name": "@app/backend",
-  "version": "1.5.4",
+  "version": "1.8.1",
   "private": true,
   "scripts": {
-    "build": "nest build --webpack",
-    "build:docker": "nest build --config nest-cli.docker.json && tsc-alias -p tsconfig.build.json",
+    "build": "nest build --config nest-cli.build.json && tsc-alias -p tsconfig.build.json",
+    "build:docker": "yarn build",
     "dev": "node scripts/load-env.js && yarn workspace @app/shared build && AWS_PROFILE=pulso-workload nest start --watch",
     "start": "node dist/main.js",
     "test:unit": "jest --config jest.config.ts --passWithNoTests",

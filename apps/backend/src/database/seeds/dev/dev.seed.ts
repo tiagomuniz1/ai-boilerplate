@@ -15,6 +15,10 @@ import { Schedule } from '../../../modules/schedules/entities/schedule.entity'
 import { Appointment } from '../../../modules/appointments/entities/appointment.entity'
 import { MedicalRecordCanonicalField } from '../../../modules/medical-record-canonical-fields/entities/medical-record-canonical-field.entity'
 import { CANONICAL_FIELDS } from '../canonical-fields/canonical-fields'
+import { Vaccine } from '../../../modules/vaccines/entities/vaccine.entity'
+import { VACCINES } from '../vaccines/vaccines'
+import { VaccineScheduleRule } from '../../../modules/vaccine-schedules/entities/vaccine-schedule-rule.entity'
+import { VACCINE_SCHEDULE_RULES } from '../vaccines/vaccine-schedule-rules'
 import {
   MedicalRecordTemplate,
   MedicalRecordTemplateField,
@@ -33,6 +37,8 @@ export async function devSeed(dataSource: DataSource): Promise<void> {
   await seedClinicAdmin(dataSource.getRepository(User))
   const nutritionSpecialty = await seedNutritionSpecialty(dataSource)
   await seedCanonicalFields(dataSource)
+  await seedVaccines(dataSource)
+  await seedVaccineScheduleRules(dataSource)
   await seedMedicalRecordTemplates(dataSource)
   await seedGeneralistProfessional(dataSource)
   await seedNutritionistProfessional(dataSource, nutritionSpecialty)
@@ -150,6 +156,63 @@ async function seedCanonicalFields(dataSource: DataSource): Promise<void> {
     )
     console.log(`Dev seed: canonical field "${data.canonicalKey}" created.`)
   }
+}
+
+// Catálogo global de imunobiológicos, mesma natureza dos campos canônicos:
+// vocabulário da plataforma, idempotente por nome.
+async function seedVaccines(dataSource: DataSource): Promise<void> {
+  const repository = dataSource.getRepository(Vaccine)
+
+  for (const data of VACCINES) {
+    const existing = await repository.findOneBy({ name: data.name })
+    if (existing) continue
+
+    await repository.save(
+      repository.create({
+        name: data.name,
+        abbreviation: data.abbreviation,
+        preventedDiseases: data.preventedDiseases,
+        isActive: true,
+      }),
+    )
+  }
+
+  console.log(`Dev seed: ${VACCINES.length} vaccines ensured.`)
+}
+
+// O calendário oficial como ponto de partida. Idempotente por (vacina, ordem
+// da dose), que é a chave única da tabela.
+async function seedVaccineScheduleRules(dataSource: DataSource): Promise<void> {
+  const vaccineRepository = dataSource.getRepository(Vaccine)
+  const ruleRepository = dataSource.getRepository(VaccineScheduleRule)
+
+  let criadas = 0
+  for (const data of VACCINE_SCHEDULE_RULES) {
+    const vaccine = await vaccineRepository.findOneBy({ name: data.vaccineName })
+    if (!vaccine) continue
+
+    const existing = await ruleRepository.findOneBy({
+      vaccineId: vaccine.id,
+      doseOrder: data.doseOrder,
+    })
+    if (existing) continue
+
+    await ruleRepository.save(
+      ruleRepository.create({
+        vaccineId: vaccine.id,
+        doseLabel: data.doseLabel,
+        doseOrder: data.doseOrder,
+        minAgeMonths: data.minAgeMonths,
+        maxAgeMonths: data.maxAgeMonths ?? null,
+        minIntervalDays: data.minIntervalDays ?? null,
+        appliesToGender: data.appliesToGender ?? null,
+        isActive: true,
+      }),
+    )
+    criadas += 1
+  }
+
+  console.log(`Dev seed: ${criadas} vaccine schedule rules created.`)
 }
 
 async function seedMedicalRecordTemplates(dataSource: DataSource): Promise<void> {

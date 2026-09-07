@@ -1,5 +1,38 @@
 # Changelog — Frontend
 
+## [1.9.0] - 2026-09-04
+
+### Added
+
+#### Indicação de vacina na aba Vacinas da consulta
+- Emitir, listar, baixar PDF e excluir, ao lado da caderneta — quem olha o que falta é quem indica, e as duas coisas ficam na mesma aba
+- A lista mostra **as vacinas pelo nome**, não uma contagem: ler "3 vacinas" obrigaria a abrir o PDF para saber quais
+- Seletor simples do catálogo, sem busca por tecla — são dezenas de vacinas curadas, não os 36 mil medicamentos da ANVISA
+- A contagem da aba passa a somar o que **esta consulta** lançou: doses registradas mais indicações emitidas
+- Quando o catálogo não cabe numa página, a tela **diz** que a lista está incompleta em vez de esconder vacina sem avisar
+
+## [1.8.0] - 2026-09-04
+
+### Added
+
+#### Situação vacinal na ficha do paciente
+- Painel com o que falta pelo calendário, ordenado pelo que precisa ser olhado primeiro: fora da janela, pendente, ainda não devida, em dia, não se aplica
+- **A linguagem é de sugestão, não de ordem** — "pendente pelo calendário", nunca "em atraso", com o aviso permanente de que a conduta é do profissional. O sistema informa, não prescreve
+- **Registrar conduta**: confirmar, adiar ou dispensar, com motivo obrigatório nos dois últimos. O motivo e quem decidiu ficam visíveis na própria linha
+- Registrar conduta depende da **ficha**, como registrar uma dose
+- **Tela do calendário no backoffice** para o PLATFORM_ADMIN, com filtro por vacina e janela etária legível
+
+## [1.7.0] - 2026-09-04
+
+### Added
+
+#### Vacinas: catálogo e caderneta do paciente
+- **Caderneta na ficha do paciente**, ao lado do histórico de prontuários e das fotos: vacina, dose, data, onde foi aplicada e quem registrou, da mais recente para a mais antiga
+- **Aba Vacinas na consulta** — a dose registrada ali nasce vinculada ao atendimento; a aba mostra a caderneta inteira do paciente, e o contador conta só o que foi lançado naquela consulta
+- **Catálogo no backoffice** para o PLATFORM_ADMIN, com busca por nome, sigla ou doença prevenida, e ativar/desativar. Desativar tira a vacina das listas da clínica sem apagar as doses já registradas
+- O botão de registrar depende da **ficha de profissional**, não do cargo: uma médica que administra a própria clínica registra normalmente
+- O seletor de vacina é um `select` simples, não a busca com lista de resultados do formulário de receita — são dezenas de vacinas, não 36 mil medicamentos, e aquela busca dispara uma consulta por tecla
+
 ## [1.6.0] - 2026-09-03
 
 ### Added

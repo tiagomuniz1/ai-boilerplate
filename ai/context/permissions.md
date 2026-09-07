@@ -31,7 +31,7 @@ O `role` responde **o que a pessoa administra**. A **ficha de profissional** (`p
 | | Vem de | Decide |
 |---|---|---|
 | **Escopo** | `role` | Vê tudo (ADMIN) ou só o próprio (PROFESSIONAL) |
-| **Exercício** | ficha de profissional | Pode emitir receita, atestado e pedido de exame, e enviar foto |
+| **Exercício** | ficha de profissional | Pode emitir receita, atestado, pedido de exame e indicação de vacina; registrar dose e conduta vacinal; e enviar foto |
 
 Isso existe porque quem é dono da clínica com frequência também atende. Um único `role` obrigava a escolher: como ADMIN ela administrava mas não emitia nada; como PROFESSIONAL ela atendia mas não cadastrava paciente nem usuário.
 
@@ -42,7 +42,9 @@ Isso existe porque quem é dono da clínica com frequência também atende. Um �
 
 **Ter um modelo de receita também é exercício**, e segue o mesmo eixo: quem cadastra um modelo é quem tem ficha, não quem tem cargo (ver "Modelos de Receita").
 
-**Emitir exige ser o profissional da consulta, para qualquer role** — inclusive ADMIN. O documento carrega um snapshot de assinatura (nome, conselho, registro) e um `verification_token` que a farmácia confere num endpoint público; emitir sobre consulta alheia produziria documento verificável atestando registro de outra pessoa. **Ver e excluir** documento continuam administrativos: ADMIN irrestrito na clínica.
+**Emitir exige ser o profissional da consulta, para qualquer role** — inclusive ADMIN. Todo documento sai com um snapshot de assinatura (nome, conselho, registro), e emitir sobre consulta alheia poria o registro de uma pessoa num documento que ela não redigiu. A receita acrescenta a isso um `verification_token` que a farmácia confere num endpoint público, o que agrava a consequência mas não é a origem da regra — ela vale igual para atestado, pedido de exame e indicação de vacina, que não têm QR. **Ver e excluir** documento continuam administrativos: ADMIN irrestrito na clínica.
+
+> **Registrar dose e registrar conduta vacinal são exercício, mas não exigem posse do atendimento.** Não há assinatura em jogo: a caderneta frequentemente transcreve dose aplicada anos atrás noutro serviço, e a conduta é sobre o paciente, não sobre uma consulta.
 
 ---
 
@@ -203,6 +205,85 @@ Receituário pré-montado do profissional — a lista de medicamentos que ele re
 
 ---
 
+
+## Vacinas (`/vaccines`)
+
+Catálogo global de imunobiológicos, mesma natureza de `/medications` e do catálogo de campos canônicos: vocabulário da plataforma, sem `clinicId`.
+
+| Ação | PLATFORM_ADMIN | ADMIN | PROFESSIONAL | USER | PATIENT |
+|---|:---:|:---:|:---:|:---:|:---:|
+| Listar / ver | ✓ | ✓ (leitura) | ✓ (leitura) | ✗ | ✗ |
+| Criar / editar / ativar-desativar | ✓ | ✗ | ✗ | ✗ | ✗ |
+| Excluir | ✓ | ✗ | ✗ | ✗ | ✗ |
+
+> Sem importação automática: o Calendário Nacional de Vacinação não é publicado em formato aberto como o CSV da ANVISA, e são algumas dezenas de entradas. O seed traz o calendário oficial como ponto de partida e o backoffice edita tudo sem deploy. Desativar tira a vacina das listas da clínica sem apagar as doses já registradas.
+
+---
+
+## Caderneta de Vacinação (`/vaccinations`)
+
+O registro do que o paciente já tomou. **Ancorada no paciente, não na consulta** — é a única entidade clínica do sistema cujo `appointment_id` é opcional, porque a dose aplicada anos atrás em outro serviço não tem consulta a que se amarrar. Quando o registro nasce dentro de um atendimento, o vínculo é gravado.
+
+| Ação | ADMIN | PROFESSIONAL | USER | PATIENT |
+|---|:---:|:---:|:---:|:---:|
+| Registrar dose | ✓ **se tiver ficha** | ✓ | ✗ | ✗ |
+| Ver a caderneta | ✓ | ✓ (a caderneta inteira) | ✗ | ✗ |
+| Corrigir / excluir | ✓ qualquer | só o que registrou | ✗ | ✗ |
+
+> **Registrar depende da ficha, não do cargo** (ver "Cargo e Ofício"). Diferente de receita, atestado e pedido de exame, **não** se exige ser o profissional da consulta: ali a regra existe porque o documento leva assinatura verificável publicamente pelo QR, e aqui não há assinatura — o registro apenas guarda quem transcreveu.
+
+> **Corrigir e excluir são escopo, não exercício:** o ADMIN é zelador da caderneta da clínica e mexe em qualquer registro, inclusive sem ter ficha. O profissional só no que ele mesmo lançou.
+
+> **O profissional vê a caderneta inteira**, inclusive doses que outro profissional transcreveu — ao contrário das fotos, que são recortadas por quem atendeu. Histórico de imunização não se fatia por autoria: uma dose que a paciente tomou é fato dela, não do profissional.
+
+> A recepção não acessa — é dado clínico, na mesma linha do histórico de prontuários e da galeria de fotos.
+
+---
+
+
+
+## Indicações de Vacina (`/vaccine-indications`)
+
+Documento emitido: a vacina que o profissional recomenda, para a paciente aplicar em serviço de imunização. Segue o molde do atestado, não o do registro de vacinação.
+
+| Ação | ADMIN | PROFESSIONAL | USER | PATIENT |
+|---|:---:|:---:|:---:|:---:|
+| Emitir indicação | ✓ **com ficha, só na própria consulta** | ✓ só na própria consulta | ✗ | ✗ |
+| Listar por consulta | ✓ todas | ✓ só as próprias | ✗ | ✗ |
+| Ver por ID / baixar PDF | ✓ qualquer | ✓ só as próprias | ✗ | ✗ |
+| Excluir | ✓ qualquer | ✓ só as próprias | ✗ | ✗ |
+
+> **Emitir exige ser o profissional da consulta, para qualquer role** — a mesma regra da receita e do atestado. O documento sai com nome, conselho e registro de quem assina, e emitir sobre consulta alheia poria o registro de uma pessoa num documento que ela não redigiu.
+
+> **A vacina vem sempre do catálogo**, sem escape para texto livre — ao contrário da receita, que aceita princípio ativo digitado. Nome livre quebraria a ligação com a caderneta e com o calendário. Vacina desativada no catálogo não pode ser indicada: desativar existe para tirar de circulação o que não deve mais ser aplicado.
+
+> **Sem QR e sem verificação pública**, ao contrário da receita. Ali o QR existe porque a farmácia confere contra a fonte; aqui não há quem confira, e um endpoint público exporia dado de paciente sem leitor do outro lado. É aditivo: se um serviço de imunização passar a conferir, o token entra depois.
+
+> `appointment_id` é obrigatório, ao contrário do registro de vacinação (ver "Vacinação"). Registrar é transcrever o que a paciente já tomou, e isso frequentemente não tem consulta; indicar é ato de consulta.
+
+---
+
+## Calendário Vacinal (`/vaccine-schedules`)
+
+O esquema que o sistema usa para dizer o que falta, e a conduta que o profissional registra sobre cada pendência.
+
+| Ação | PLATFORM_ADMIN | ADMIN | PROFESSIONAL | USER | PATIENT |
+|---|:---:|:---:|:---:|:---:|:---:|
+| Listar regras do calendário | ✓ | ✓ (leitura) | ✓ (leitura) | ✗ | ✗ |
+| Criar / editar / excluir regra | ✓ | ✗ | ✗ | ✗ | ✗ |
+| Ver a situação vacinal de um paciente | ✗ | ✓ | ✓ | ✗ | ✗ |
+| Registrar conduta sobre uma pendência | ✗ | ✓ **se tiver ficha** | ✓ | ✗ | ✗ |
+
+> **O sistema informa, não prescreve.** Ele diz "pendente pelo calendário" e a palavra final é de quem atende — registrada como conduta, com o motivo. Dispensar e adiar **exigem motivo**; confirmar não, porque é só reconhecer o que o calendário disse. Sem isso, contraindicação e esquema especial virariam alerta permanente e errado na tela da paciente.
+
+> **Registrar conduta é ato clínico e depende da ficha**, como registrar uma dose. Cargo administrativo sozinho não decide sobre esquema vacinal.
+
+> O calendário é curadoria da plataforma e **editável no backoffice**: quando o Ministério muda o esquema, a correção é curadoria, não deploy. Regra de vacina desativada sai do cálculo — senão o sistema cobraria dose de algo que saiu do catálogo.
+
+> Uma regra com recorte de sexo simplesmente **não existe** para quem está fora dele: é ausência de dever, não "não se aplica". A vacina nem aparece na lista.
+
+---
+
 ## Prontuários (`/medical-records`)
 
 | Ação | ADMIN | PROFESSIONAL | USER | PATIENT |
@@ -263,7 +344,7 @@ Endpoint **público** (sem autenticação, `@Public`) consumido ao bipar o QR Co
 ## Resumo por perfil
 
 ### ADMIN
-Acesso administrativo irrestrito. Gerencia usuários, profissionais, pacientes, agendas e todas as consultas. Único perfil que pode criar usuários, ativar/desativar contas e excluir registros. Cria e edita templates de prontuário da clínica. Pode criar, editar e excluir qualquer prontuário. **Não emite receita, atestado nem pedido de exame, e não envia foto — a menos que também tenha ficha de profissional**, e nesse caso apenas nas próprias consultas (ver "Cargo e Ofício").
+Acesso administrativo irrestrito. Gerencia usuários, profissionais, pacientes, agendas e todas as consultas. Único perfil que pode criar usuários, ativar/desativar contas e excluir registros. Cria e edita templates de prontuário da clínica. Pode criar, editar e excluir qualquer prontuário. **Não emite receita, atestado, pedido de exame nem indicação de vacina, e não envia foto — a menos que também tenha ficha de profissional**, e nesse caso apenas nas próprias consultas (ver "Cargo e Ofício").
 
 ### PROFESSIONAL
 Acessa o sistema para gerenciar a própria agenda, criar e acompanhar as próprias consultas. Pode editar os próprios dados de usuário e de profissional. Não vê dados de outros profissionais, agendas de outros ou consultas de outros profissionais. Cria e edita prontuários das próprias consultas (bloqueado após conclusão). Cria e edita o próprio template de prontuário — médico (CRM) através de uma das próprias especialidades, demais profissões direto para a profissão — sem acesso aos templates de outros profissionais nem à exclusão.

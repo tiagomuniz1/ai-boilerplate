@@ -4,7 +4,7 @@ import { BaseUseCase } from '../../../common/base.use-case'
 import { ICurrentUser } from '../../auth/types/current-user.type'
 import { IMedicalCertificatesRepository } from '../repositories/medical-certificates.repository.interface'
 import { FindMedicalCertificateByIdUseCase } from './find-medical-certificate-by-id.use-case'
-import { LogoFetcherService } from '../services/logo-fetcher.service'
+import { LogoFetcherService } from '../../../common/services/logo-fetcher.service'
 import { MedicalCertificatePdfBuilderService } from '../services/medical-certificate-pdf-builder.service'
 
 @Injectable()

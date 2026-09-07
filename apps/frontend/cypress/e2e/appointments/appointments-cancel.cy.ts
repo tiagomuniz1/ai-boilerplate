@@ -96,6 +96,20 @@ describe('Appointments — cancel', () => {
     // A página de detalhe monta a aba de fotos; sem stub a chamada dá 401 e o
     // interceptor do api-client joga o app num loop de redirect login/dashboard.
     cy.intercept('GET', `${Cypress.env('API_URL')}/consultation-photos*`, { statusCode: 200, body: [] })
+
+  // A aba Vacinas monta no load da página, não ao clicar na aba: doses lançadas
+  // nesta consulta e indicações emitidas nela. Sem stub, a chamada bate no
+  // backend real com token mock, dá 401 e o interceptor do api-client joga o
+  // app num loop de redirect — a página inteira some, inclusive o estado de erro.
+  cy.intercept('GET', `${Cypress.env('API_URL')}/vaccinations*`, {
+    statusCode: 200,
+    body: { data: [], total: 0, page: 1, limit: 20 },
+  })
+  cy.intercept('GET', `${Cypress.env('API_URL')}/vaccine-indications*`, { statusCode: 200, body: [] })
+  cy.intercept('GET', `${Cypress.env('API_URL')}/vaccines*`, {
+    statusCode: 200,
+    body: { data: [], total: 0, page: 1, limit: 100 },
+  })
   })
 
   it('PROFESSIONAL sees cancel button on appointment detail page', () => {
