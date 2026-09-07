@@ -1,6 +1,6 @@
 {
   "name": "@app/backend",
-  "version": "1.8.1",
+  "version": "1.8.2",
   "private": true,
   "scripts": {
     "build": "nest build --config nest-cli.build.json && tsc-alias -p tsconfig.build.json",
@@ -22,6 +22,7 @@
     "import:medications": "ts-node -r tsconfig-paths/register src/database/seeds/run-import-medications.ts",
     "import:themes": "ts-node -r tsconfig-paths/register src/database/seeds/run-import-themes.ts",
     "import:canonical-fields": "ts-node -r tsconfig-paths/register src/database/seeds/run-import-canonical-fields.ts",
+    "import:vaccines": "ts-node -r tsconfig-paths/register src/database/seeds/run-import-vaccines.ts",
     "dev:carga": "node scripts/load-env.js && yarn workspace @app/shared build && AWS_PROFILE=pulso-workload DB_SCHEMA=carga nest start --watch"
   },
   "dependencies": {
